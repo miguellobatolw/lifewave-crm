@@ -2876,18 +2876,29 @@ async function executarSyncContacts() {
   status.className = 'gsync-status';
 
   try {
-    const url = 'https://people.googleapis.com/v1/people/me/connections' +
-      '?personFields=names,emailAddresses,phoneNumbers' +
-      '&pageSize=500&sortOrder=FIRST_NAME_ASCENDING';
+    let allConnections = [];
+    let pageToken = '';
+    let page = 1;
 
-    const res = await fetch(url, {
-      headers: { Authorization: `Bearer ${googleAccessToken}` }
-    });
-    if (!res.ok) throw new Error(`Erro ${res.status}: ${res.statusText}`);
-    const data = await res.json();
-    const connections = data.connections || [];
+    do {
+      status.textContent = `A carregar página ${page}... (${allConnections.length} até agora)`;
+      const url = 'https://people.googleapis.com/v1/people/me/connections' +
+        '?personFields=names,emailAddresses,phoneNumbers' +
+        '&pageSize=1000&sortOrder=FIRST_NAME_ASCENDING' +
+        (pageToken ? `&pageToken=${pageToken}` : '');
 
-    googleContactsToImport = connections.map(p => {
+      const res = await fetch(url, {
+        headers: { Authorization: `Bearer ${googleAccessToken}` }
+      });
+      if (!res.ok) throw new Error(`Erro ${res.status}: ${res.statusText}`);
+      const data = await res.json();
+      const connections = data.connections || [];
+      allConnections = allConnections.concat(connections);
+      pageToken = data.nextPageToken || '';
+      page++;
+    } while (pageToken);
+
+    googleContactsToImport = allConnections.map(p => {
       const nome = p.names?.[0]?.displayName || '';
       const tel = p.phoneNumbers?.[0]?.value || '';
       const email = p.emailAddresses?.[0]?.value || '';
