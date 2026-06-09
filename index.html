@@ -1,0 +1,3413 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>LifeWave CRM — Gestão de Leads & Posts</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<style>
+  :root {
+    --bg: #0a0f1e;
+    --surface: #111827;
+    --surface2: #1a2235;
+    --surface3: #1f2d44;
+    --accent: #00d4aa;
+    --accent2: #0084ff;
+    --accent3: #ff6b35;
+    --gold: #f5c842;
+    --text: #e8edf5;
+    --text2: #8a99b3;
+    --text3: #4a5568;
+    --border: rgba(255,255,255,0.06);
+    --shadow: 0 8px 32px rgba(0,0,0,0.4);
+    --radius: 14px;
+    --radius-sm: 8px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* BACKGROUND MESH */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background:
+      radial-gradient(ellipse 80% 60% at 10% 10%, rgba(0,212,170,0.06) 0%, transparent 60%),
+      radial-gradient(ellipse 60% 50% at 90% 80%, rgba(0,132,255,0.06) 0%, transparent 60%),
+      radial-gradient(ellipse 50% 40% at 50% 50%, rgba(255,107,53,0.03) 0%, transparent 70%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* LAYOUT */
+  .app { display: flex; min-height: 100vh; position: relative; z-index: 1; }
+
+  /* SIDEBAR */
+  .sidebar {
+    width: 220px;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    padding: 24px 0;
+    position: fixed;
+    height: 100vh;
+    z-index: 100;
+  }
+
+  .logo {
+    padding: 0 20px 24px;
+    border-bottom: 1px solid var(--border);
+  }
+  .logo-text {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: 18px;
+    color: var(--accent);
+    letter-spacing: -0.5px;
+  }
+  .logo-sub { font-size: 11px; color: var(--text2); margin-top: 2px; }
+
+  .nav { padding: 16px 12px; flex: 1; }
+  .nav-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    color: var(--text2);
+    font-size: 13.5px;
+    font-weight: 500;
+    transition: all 0.2s;
+    margin-bottom: 2px;
+  }
+  .nav-item:hover { background: var(--surface2); color: var(--text); }
+  .nav-item.active { background: rgba(0,212,170,0.12); color: var(--accent); }
+  .nav-icon { font-size: 16px; width: 20px; text-align: center; }
+
+  .sidebar-badge {
+    background: var(--accent);
+    color: var(--bg);
+    font-size: 10px;
+    font-weight: 700;
+    padding: 2px 6px;
+    border-radius: 20px;
+    margin-left: auto;
+  }
+
+  /* MAIN */
+  .main {
+    margin-left: 220px;
+    flex: 1;
+    padding: 28px;
+    min-height: 100vh;
+  }
+
+  /* PAGE HEADER */
+  .page-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 28px;
+  }
+  .page-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--text);
+  }
+  .page-sub { font-size: 13px; color: var(--text2); margin-top: 2px; }
+
+  /* BUTTONS */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 18px;
+    border-radius: var(--radius-sm);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    border: none;
+    transition: all 0.2s;
+  }
+  .btn-primary {
+    background: var(--accent);
+    color: var(--bg);
+    font-weight: 600;
+  }
+  .btn-primary:hover { background: #00bfa0; transform: translateY(-1px); }
+  .btn-secondary {
+    background: var(--surface2);
+    color: var(--text);
+    border: 1px solid var(--border);
+  }
+  .btn-secondary:hover { background: var(--surface3); }
+  .btn-ai {
+    background: linear-gradient(135deg, #0084ff, #00d4aa);
+    color: white;
+    font-weight: 600;
+  }
+  .btn-ai:hover { opacity: 0.9; transform: translateY(-1px); }
+  .btn-danger { background: rgba(255,70,70,0.15); color: #ff6b6b; border: 1px solid rgba(255,70,70,0.2); }
+  .btn-danger:hover { background: rgba(255,70,70,0.25); }
+  .btn-sm { padding: 6px 12px; font-size: 12px; }
+
+  /* CARDS */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+  }
+
+  /* STATS */
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    margin-bottom: 28px;
+  }
+  .stat-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 18px 20px;
+    position: relative;
+    overflow: hidden;
+  }
+  .stat-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+  }
+  .stat-card.c1::before { background: var(--accent); }
+  .stat-card.c2::before { background: var(--accent2); }
+  .stat-card.c3::before { background: var(--gold); }
+  .stat-card.c4::before { background: var(--accent3); }
+  .stat-label { font-size: 11px; color: var(--text2); text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 8px; }
+  .stat-value { font-family: 'Syne', sans-serif; font-size: 28px; font-weight: 700; }
+  .stat-card.c1 .stat-value { color: var(--accent); }
+  .stat-card.c2 .stat-value { color: var(--accent2); }
+  .stat-card.c3 .stat-value { color: var(--gold); }
+  .stat-card.c4 .stat-value { color: var(--accent3); }
+  .stat-trend { font-size: 11px; color: var(--text2); margin-top: 4px; }
+
+  /* FUNIL */
+  .funnel-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 12px;
+    margin-bottom: 28px;
+  }
+  .funnel-col {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+  }
+  .funnel-header {
+    padding: 12px 14px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .funnel-body { padding: 10px; min-height: 200px; }
+  .lead-card {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 10px 12px;
+    margin-bottom: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+  }
+  .lead-card:hover { border-color: var(--accent); transform: translateY(-1px); }
+  .lead-name { font-size: 13px; font-weight: 500; color: var(--text); }
+  .lead-info { font-size: 11px; color: var(--text2); margin-top: 3px; }
+  .lead-badge {
+    display: inline-block;
+    font-size: 10px;
+    padding: 2px 7px;
+    border-radius: 20px;
+    margin-top: 5px;
+    font-weight: 600;
+  }
+
+  /* STATUS COLORS */
+  .s-novo { color: #8b9cf7; }
+  .b-novo { background: rgba(139,156,247,0.15); color: #8b9cf7; }
+  .s-contactado { color: var(--accent2); }
+  .b-contactado { background: rgba(0,132,255,0.15); color: var(--accent2); }
+  .s-interessado { color: var(--gold); }
+  .b-interessado { background: rgba(245,200,66,0.15); color: var(--gold); }
+  .s-negociacao { color: var(--accent3); }
+  .b-negociacao { background: rgba(255,107,53,0.15); color: var(--accent3); }
+  .s-cliente { color: var(--accent); }
+  .b-cliente { background: rgba(0,212,170,0.15); color: var(--accent); }
+
+  /* FORMS */
+  .form-group { margin-bottom: 16px; }
+  .form-label { display: block; font-size: 12px; color: var(--text2); margin-bottom: 6px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px; }
+  .form-input, .form-select, .form-textarea {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13.5px;
+    padding: 10px 14px;
+    transition: border-color 0.2s;
+    outline: none;
+  }
+  .form-input:focus, .form-select:focus, .form-textarea:focus {
+    border-color: var(--accent);
+    background: var(--surface3);
+  }
+  .form-textarea { resize: vertical; min-height: 90px; }
+  .form-select option { background: var(--surface2); }
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+
+  /* MODAL */
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.7);
+    backdrop-filter: blur(4px);
+    z-index: 200;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s;
+  }
+  .modal-overlay.open { opacity: 1; pointer-events: all; }
+  .modal {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    width: 92%;
+    max-width: 520px;
+    max-height: 88vh;
+    overflow-y: auto;
+    padding: 28px;
+    transform: translateY(20px);
+    transition: transform 0.2s;
+    box-shadow: var(--shadow);
+  }
+  .modal-overlay.open .modal { transform: translateY(0); }
+  .modal-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 18px;
+    font-weight: 700;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .modal-close { background: none; border: none; color: var(--text2); font-size: 20px; cursor: pointer; }
+  .modal-actions { display: flex; gap: 10px; margin-top: 20px; justify-content: flex-end; }
+
+  /* POSTS AREA */
+  .posts-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  .post-generator {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 22px;
+  }
+  .post-output {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 22px;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .ai-result {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 16px;
+    flex: 1;
+    min-height: 220px;
+    font-size: 13.5px;
+    line-height: 1.7;
+    color: var(--text);
+    white-space: pre-wrap;
+    position: relative;
+  }
+
+  .ai-loader {
+    display: none;
+    position: absolute;
+    inset: 0;
+    align-items: center;
+    justify-content: center;
+    background: var(--surface2);
+    border-radius: var(--radius-sm);
+    flex-direction: column;
+    gap: 12px;
+  }
+  .ai-loader.show { display: flex; }
+
+  .spinner {
+    width: 36px;
+    height: 36px;
+    border: 3px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .ai-label {
+    font-size: 11px;
+    color: var(--text2);
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    font-weight: 600;
+  }
+
+  .platform-pills { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
+  .pill {
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    border: 1.5px solid var(--border);
+    color: var(--text2);
+    background: var(--surface2);
+    transition: all 0.18s;
+  }
+  .pill.active { border-color: var(--accent); color: var(--accent); background: rgba(0,212,170,0.1); }
+  .pill:hover { border-color: var(--accent); color: var(--accent); }
+
+  .tone-pills { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
+  .tone-pill {
+    padding: 5px 12px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    border: 1.5px solid var(--border);
+    color: var(--text2);
+    background: none;
+    transition: all 0.18s;
+  }
+  .tone-pill.active { border-color: var(--accent2); color: var(--accent2); background: rgba(0,132,255,0.1); }
+
+  /* CALENDÁRIO */
+  .calendar-grid {
+    display: grid;
+    grid-template-columns: 1fr 340px;
+    gap: 20px;
+  }
+  .cal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+  }
+  .cal-month {
+    font-family: 'Syne', sans-serif;
+    font-size: 18px;
+    font-weight: 700;
+  }
+  .cal-days {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 6px;
+  }
+  .cal-day-name {
+    font-size: 11px;
+    color: var(--text2);
+    text-align: center;
+    padding: 6px 0;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .cal-day {
+    aspect-ratio: 1;
+    border-radius: var(--radius-sm);
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    padding: 6px;
+    cursor: pointer;
+    transition: all 0.18s;
+    position: relative;
+    font-size: 12px;
+    color: var(--text2);
+  }
+  .cal-day:hover { border-color: var(--accent); color: var(--text); }
+  .cal-day.today { border-color: var(--accent); color: var(--accent); font-weight: 700; }
+  .cal-day.empty { background: none; border-color: transparent; cursor: default; }
+  .cal-day.has-post::after {
+    content: '';
+    position: absolute;
+    bottom: 4px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: var(--accent);
+  }
+  .cal-day.other-month { opacity: 0.3; }
+  .cal-day.selected-day { background: rgba(0,212,170,0.18); border-color: var(--accent); color: var(--accent); font-weight: 700; }
+
+  .scheduled-list { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; }
+  .scheduled-item {
+    border-bottom: 1px solid var(--border);
+    padding: 12px 0;
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+  }
+  .scheduled-item:last-child { border-bottom: none; }
+  .scheduled-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); margin-top: 5px; flex-shrink: 0; }
+  .scheduled-text { font-size: 13px; color: var(--text); line-height: 1.5; }
+  .scheduled-meta { font-size: 11px; color: var(--text2); margin-top: 3px; }
+
+  /* SECTION TITLE */
+  .section-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  /* NOTA ALERT */
+  .ai-note {
+    background: rgba(0,132,255,0.08);
+    border: 1px solid rgba(0,132,255,0.2);
+    border-radius: var(--radius-sm);
+    padding: 10px 14px;
+    font-size: 12px;
+    color: var(--accent2);
+    margin-bottom: 16px;
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  /* TOAST */
+  .toast {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    background: var(--surface);
+    border: 1px solid var(--accent);
+    color: var(--accent);
+    border-radius: var(--radius-sm);
+    padding: 12px 18px;
+    font-size: 13px;
+    font-weight: 500;
+    z-index: 999;
+    transform: translateY(80px);
+    opacity: 0;
+    transition: all 0.3s;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .toast.show { transform: translateY(0); opacity: 1; }
+
+  /* PAGES */
+  .page { display: none; }
+  .page.active { display: block; min-height: calc(100vh - 120px); }
+
+  /* TAGS */
+  .tag {
+    display: inline-block;
+    font-size: 10px;
+    padding: 2px 7px;
+    border-radius: 20px;
+    font-weight: 600;
+    margin-right: 4px;
+  }
+
+  /* TABLE */
+  .table-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; }
+  th {
+    text-align: left;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.7px;
+    color: var(--text2);
+    font-weight: 600;
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border);
+  }
+  td {
+    padding: 12px 14px;
+    font-size: 13px;
+    border-bottom: 1px solid var(--border);
+    color: var(--text);
+  }
+  tr:hover td { background: rgba(255,255,255,0.02); }
+  tr:last-child td { border-bottom: none; }
+
+  /* RESPONSIVE — MOBILE FIRST */
+  @media (max-width: 768px) {
+    /* Esconde sidebar lateral */
+    .sidebar { display: none; }
+
+    /* Main ocupa tudo */
+    .main { margin-left: 0; padding: 14px 12px 90px; }
+
+    /* Navbar em baixo tipo app */
+    .bottom-nav {
+      display: flex !important;
+      position: fixed;
+      bottom: 0; left: 0; right: 0;
+      background: var(--surface);
+      border-top: 1px solid var(--border);
+      z-index: 200;
+      padding: 4px 0 8px;
+      justify-content: space-around;
+      overflow-x: auto;
+    }
+
+    .stats-grid { grid-template-columns: 1fr 1fr; gap: 10px; }
+    .stat-value { font-size: 22px; }
+    .funnel-grid { grid-template-columns: 1fr; }
+    .posts-grid { grid-template-columns: 1fr; }
+    .calendar-grid { grid-template-columns: 1fr; }
+    .form-row { grid-template-columns: 1fr; }
+    .page-header { flex-direction: column; align-items: flex-start; gap: 10px; }
+    .page-header > div:last-child { width: 100%; }
+    .page-header .btn { width: 100%; justify-content: center; }
+
+    /* Bottom nav compact for many items */
+    .bn-item { padding: 3px 6px; font-size: 9px; min-width: 52px; }
+    .bn-item .bn-icon { font-size: 18px; }
+  }
+
+  @media (min-width: 769px) {
+    .bottom-nav { display: none !important; }
+  }
+
+  /* BOTTOM NAV */
+  .bottom-nav { display: none; }
+  .bn-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    padding: 4px 8px;
+    cursor: pointer;
+    color: var(--text2);
+    font-size: 10px;
+    font-weight: 500;
+    border-radius: var(--radius-sm);
+    transition: color 0.2s;
+    flex: 1;
+  }
+  .bn-item.active { color: var(--accent); }
+  .bn-item .bn-icon { font-size: 18px; }
+  .bn-badge {
+    position: absolute;
+    top: -2px; right: -4px;
+    background: var(--accent);
+    color: var(--bg);
+    font-size: 9px;
+    font-weight: 700;
+    padding: 1px 5px;
+    border-radius: 20px;
+  }
+  .bn-icon-wrap { position: relative; }
+
+  /* LINK ITEM */
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 10px 14px;
+    cursor: pointer;
+    transition: all 0.18s;
+  }
+  .link-item:hover { border-color: var(--accent); background: var(--surface3); }
+  .link-label { font-size: 12px; font-weight: 600; color: var(--text); margin-bottom: 3px; }
+  .link-url { font-size: 11px; color: var(--text2); word-break: break-all; }
+
+  /* SCROLLBAR */
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: var(--surface); }
+  ::-webkit-scrollbar-thumb { background: var(--surface3); border-radius: 3px; }
+
+  /* GOOGLE SYNC */
+  .google-sync-bar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 10px 14px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+  }
+  .google-sync-bar .gsync-label { font-size: 12px; color: var(--text2); font-weight: 500; flex: 1; min-width: 160px; }
+  .btn-google {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    border-radius: var(--radius-sm);
+    background: #fff;
+    color: #3c4043;
+    font-size: 13px;
+    font-weight: 600;
+    border: 1px solid #dadce0;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: 'DM Sans', sans-serif;
+  }
+  .btn-google:hover { background: #f8f9fa; box-shadow: 0 1px 6px rgba(0,0,0,0.2); }
+  .btn-google .g-icon { font-size: 16px; }
+  .btn-google.connected { background: rgba(0,212,170,0.1); color: var(--accent); border-color: var(--accent); }
+  .btn-google.syncing { opacity: 0.7; pointer-events: none; }
+  .gsync-status { font-size: 11px; color: var(--text2); }
+  .gsync-status.ok { color: var(--accent); }
+  .gsync-status.err { color: #ff6b6b; }
+
+  /* LOCAL FILE WARNING */
+  .local-warning {
+    display: none;
+    background: rgba(245,200,66,0.1);
+    border: 1px solid rgba(245,200,66,0.35);
+    border-radius: var(--radius-sm);
+    padding: 10px 14px;
+    font-size: 12px;
+    color: var(--gold);
+    margin-bottom: 14px;
+    line-height: 1.6;
+  }
+  .local-warning strong { display: block; margin-bottom: 4px; font-size: 13px; }
+
+  /* AI SELECTOR */
+  .ai-selector-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 6px 8px;
+    margin-bottom: 16px;
+  }
+  .ai-selector-label { font-size: 11px; color: var(--text2); font-weight: 600; margin-right: 4px; white-space: nowrap; }
+  .ai-btn {
+    display: flex; align-items: center; gap: 6px;
+    padding: 7px 14px;
+    border-radius: 6px;
+    border: 1.5px solid transparent;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 600;
+    background: transparent;
+    color: var(--text2);
+    transition: all 0.18s;
+    flex: 1;
+    justify-content: center;
+  }
+  .ai-btn:hover { background: var(--surface3); color: var(--text); }
+  .ai-btn.active-claude { background: rgba(0,212,170,0.12); border-color: var(--accent); color: var(--accent); }
+  .ai-btn.active-gemini { background: rgba(66,133,244,0.12); border-color: #4285f4; color: #4285f4; }
+  .gemini-key-row {
+    display: none;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 10px 12px;
+    margin-bottom: 14px;
+    gap: 8px;
+    align-items: center;
+  }
+  .gemini-key-row.show { display: flex; }
+  .gemini-key-row input { flex: 1; background: var(--surface3); border: 1px solid var(--border); border-radius: 6px; padding: 7px 10px; color: var(--text); font-size: 12px; outline: none; }
+  .gemini-key-row input:focus { border-color: #4285f4; }
+  .gemini-key-status { font-size: 11px; white-space: nowrap; }
+
+  /* CHAR COUNTER */
+  .char-count { font-size: 11px; color: var(--text2); text-align: right; margin-top: 4px; }
+  .char-count.warn { color: var(--gold); }
+  .char-count.over { color: #ff6b6b; }
+
+  /* IMAGE UPLOAD */
+  .img-upload-zone {
+    border: 2px dashed var(--border);
+    border-radius: var(--radius-sm);
+    padding: 16px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: var(--surface2);
+    position: relative;
+  }
+  .img-upload-zone:hover, .img-upload-zone.drag-over {
+    border-color: var(--accent);
+    background: rgba(0,212,170,0.05);
+  }
+  .img-upload-zone input[type=file] {
+    position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%;
+  }
+  .img-upload-label { font-size: 12px; color: var(--text2); display: flex; flex-direction: column; align-items: center; gap: 6px; pointer-events: none; }
+  .img-upload-label .upload-icon { font-size: 24px; }
+  .img-preview-wrap {
+    position: relative;
+    margin-top: 10px;
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+    display: none;
+  }
+  .img-preview-wrap img {
+    width: 100%;
+    max-height: 160px;
+    object-fit: cover;
+    border-radius: var(--radius-sm);
+    display: block;
+  }
+  .img-remove-btn {
+    position: absolute;
+    top: 6px; right: 6px;
+    background: rgba(0,0,0,0.7);
+    border: none;
+    color: white;
+    border-radius: 50%;
+    width: 24px; height: 24px;
+    cursor: pointer;
+    font-size: 12px;
+    display: flex; align-items: center; justify-content: center;
+  }
+
+  /* CSV IMPORT */
+  .import-zone {
+    border: 2px dashed var(--border);
+    border-radius: var(--radius-sm);
+    padding: 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: var(--surface2);
+    position: relative;
+  }
+  .import-zone:hover { border-color: var(--accent2); background: rgba(0,132,255,0.05); }
+  .import-zone input[type=file] { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; }
+  .import-preview {
+    background: var(--surface3);
+    border-radius: var(--radius-sm);
+    padding: 12px;
+    margin-top: 12px;
+    max-height: 200px;
+    overflow-y: auto;
+    font-size: 12px;
+    color: var(--text2);
+    display: none;
+  }
+  .import-row {
+    display: flex;
+    gap: 8px;
+    padding: 6px 0;
+    border-bottom: 1px solid var(--border);
+    align-items: center;
+  }
+  .import-row:last-child { border-bottom: none; }
+  .import-row input[type=checkbox] { accent-color: var(--accent); }
+
+  /* SCREENSHOT UPLOAD */
+  .screenshot-zone {
+    border: 2px dashed var(--border);
+    border-radius: var(--radius-sm);
+    padding: 16px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: var(--surface2);
+    position: relative;
+    margin-bottom: 12px;
+  }
+  .screenshot-zone:hover, .screenshot-zone.drag-over {
+    border-color: var(--accent2);
+    background: rgba(0,132,255,0.05);
+  }
+  .screenshot-zone input[type=file] { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; }
+  .screenshot-preview {
+    width: 100%;
+    max-height: 140px;
+    object-fit: cover;
+    border-radius: var(--radius-sm);
+    margin-top: 8px;
+    display: none;
+  }
+
+  /* COPY BTN */
+  .copy-bar {
+    display: flex;
+    gap: 8px;
+    margin-top: 12px;
+    flex-wrap: wrap;
+  }
+
+  .detail-row { display: flex; gap: 8px; margin-bottom: 10px; }
+  .detail-label { font-size: 12px; color: var(--text2); min-width: 90px; font-weight: 500; }
+  .detail-val { font-size: 13px; color: var(--text); }
+
+  .history-item {
+    border-left: 2px solid var(--border);
+    padding: 8px 0 8px 14px;
+    margin-bottom: 10px;
+    font-size: 12.5px;
+    color: var(--text2);
+  }
+  .history-date { font-size: 11px; color: var(--text3); margin-top: 3px; }
+
+  .empty-state {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--text2);
+    font-size: 13px;
+  }
+  .empty-icon { font-size: 32px; margin-bottom: 10px; opacity: 0.5; }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="logo">
+      <div class="logo-text">⚡ LW CRM</div>
+      <div class="logo-sub">LifeWave X39</div>
+    </div>
+    <nav class="nav">
+      <div class="nav-item active" onclick="goTo('dashboard')">
+        <span class="nav-icon">📊</span>
+        <span>Dashboard</span>
+      </div>
+      <div class="nav-item" onclick="goTo('funil')">
+        <span class="nav-icon">🔀</span>
+        <span>Funil de Leads</span>
+        <span class="sidebar-badge" id="badge-leads">0</span>
+      </div>
+      <div class="nav-item" onclick="goTo('lista')">
+        <span class="nav-icon">👥</span>
+        <span>Contactos</span>
+      </div>
+      <div class="nav-item" onclick="goTo('posts')">
+        <span class="nav-icon">✨</span>
+        <span>Criar Posts IA</span>
+      </div>
+      <div class="nav-item" onclick="goTo('calendario')">
+        <span class="nav-icon">📅</span>
+        <span>Calendário</span>
+      </div>
+      <div class="nav-item" onclick="goTo('agenda')">
+        <span class="nav-icon">🗓️</span>
+        <span>Agenda</span>
+      </div>
+      <div class="nav-item" onclick="goTo('respostas')">
+        <span class="nav-icon">💬</span>
+        <span>Respostas Rápidas</span>
+      </div>
+    </nav>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="main">
+
+    <!-- DASHBOARD -->
+    <div id="page-dashboard" class="page active">
+      <div class="page-header">
+        <div>
+          <div class="page-title">Dashboard</div>
+          <div class="page-sub">Visão geral do teu negócio LifeWave X39</div>
+        </div>
+        <button class="btn btn-primary" onclick="openModal('modal-lead')">＋ Novo Lead</button>
+      </div>
+
+      <div class="stats-grid">
+        <div class="stat-card c1">
+          <div class="stat-label">Total Leads</div>
+          <div class="stat-value" id="stat-total">0</div>
+          <div class="stat-trend">Todos os contactos</div>
+        </div>
+        <div class="stat-card c2">
+          <div class="stat-label">Em Progresso</div>
+          <div class="stat-value" id="stat-prog">0</div>
+          <div class="stat-trend">Contactado + Interessado</div>
+        </div>
+        <div class="stat-card c3">
+          <div class="stat-label">Em Negociação</div>
+          <div class="stat-value" id="stat-neg">0</div>
+          <div class="stat-trend">Próximos de fechar</div>
+        </div>
+        <div class="stat-card c4">
+          <div class="stat-label">Clientes</div>
+          <div class="stat-value" id="stat-cli">0</div>
+          <div class="stat-trend">Conversões concluídas</div>
+        </div>
+      </div>
+
+      <div class="section-title">📋 Leads Recentes</div>
+      <div class="card table-wrap">
+        <table id="table-recentes">
+          <thead>
+            <tr>
+              <th>Nome</th>
+              <th>Contacto</th>
+              <th>Mercado</th>
+              <th>Estado</th>
+              <th>Último Contacto</th>
+              <th>Ações</th>
+            </tr>
+          </thead>
+          <tbody id="tbody-recentes">
+            <tr><td colspan="6" class="empty-state">Sem leads ainda. Adiciona o primeiro!</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- FUNIL -->
+    <div id="page-funil" class="page">
+      <div class="page-header">
+        <div>
+          <div class="page-title">Funil de Leads</div>
+          <div class="page-sub">Arrasta os leads pelo funil de vendas</div>
+        </div>
+        <button class="btn btn-primary" onclick="openModal('modal-lead')">＋ Novo Lead</button>
+      </div>
+      <div class="funnel-grid" id="funil-container"></div>
+    </div>
+
+    <!-- LISTA -->
+    <div id="page-lista" class="page">
+      <div class="page-header">
+        <div>
+          <div class="page-title">Contactos</div>
+          <div class="page-sub">Todos os teus leads e clientes</div>
+        </div>
+        <div style="display:flex;gap:10px;">
+          <input class="form-input" style="width:200px;padding:8px 12px" placeholder="🔍 Pesquisar..." oninput="filtrarLista(this.value)">
+          <button class="btn btn-secondary" onclick="openModal('modal-importar')">📂 Importar</button>
+          <button class="btn btn-primary" onclick="openModal('modal-lead')">＋ Novo Lead</button>
+        </div>
+      </div>
+      <!-- Google Contacts Sync Bar -->
+      <div class="google-sync-bar" id="contacts-sync-bar">
+        <span class="gsync-label">🔗 Sincronizar com Google Contactos</span>
+        <span class="gsync-status" id="contacts-gsync-status"></span>
+        <button class="btn-google" id="btn-google-contacts" onclick="syncGoogleContacts()">
+          <span class="g-icon">🇬</span> Importar do Google
+        </button>
+      </div>
+      <div class="card table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Nome</th><th>Telefone</th><th>Email</th><th>Mercado</th><th>Estado</th><th>Notas</th><th>Ações</th>
+            </tr>
+          </thead>
+          <tbody id="tbody-lista">
+            <tr><td colspan="7" class="empty-state">Sem contactos ainda.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- POSTS IA -->
+    <div id="page-posts" class="page">
+      <div class="page-header">
+        <div>
+          <div class="page-title">✨ Criar Posts com IA</div>
+          <div class="page-sub">Gera conteúdo personalizado para as tuas redes sociais</div>
+        </div>
+      </div>
+
+      <div class="ai-selector-bar" id="posts-ai-selector">
+        <span class="ai-selector-label">🤖 IA:</span>
+        <button class="ai-btn active-claude" id="posts-btn-claude" onclick="setAI('posts','claude')">
+          <span>🧠</span> Claude
+        </button>
+        <button class="ai-btn" id="posts-btn-gemini" onclick="setAI('posts','gemini')">
+          <span style="font-size:14px;">✦</span> Gemini
+        </button>
+      </div>
+      <div class="local-warning" id="posts-local-warning">
+        <strong>⚠️ Ficheiro local detetado</strong>
+        O Claude não funciona quando a app é aberta como ficheiro (bloqueio de segurança do browser).<br>
+        👉 <strong>Usa o Gemini:</strong> seleciona "✦ Gemini" acima → obtém chave grátis em <strong>aistudio.google.com</strong>
+      </div>
+      <div class="gemini-key-row" id="posts-gemini-key-row">
+        <span style="font-size:18px;">🔑</span>
+        <input type="password" id="posts-gemini-key" placeholder="Chave API Gemini (AIza...)" oninput="saveGeminiKey(this.value)">
+        <span class="gemini-key-status" id="posts-gemini-status"></span>
+        <a href="https://aistudio.google.com/app/apikey" target="_blank" style="font-size:11px;color:#4285f4;white-space:nowrap;">Obter chave →</a>
+      </div>
+      <div class="gemini-key-row" id="posts-claude-key-row">
+        <span style="font-size:18px;">🔑</span>
+        <input type="password" id="posts-claude-key" placeholder="Chave API Claude (sk-ant-...)" oninput="saveClaudeKey(this.value)">
+        <span class="gemini-key-status" id="posts-claude-status"></span>
+        <a href="https://console.anthropic.com/settings/keys" target="_blank" style="font-size:11px;color:var(--accent);white-space:nowrap;">Obter chave →</a>
+      </div>
+
+      <div class="ai-note" id="posts-ai-note">
+        <span>🤖</span>
+        <span id="posts-ai-note-text">Claude gera posts em <strong>Português de Portugal</strong>, adaptados ao estilo LifeWave X39 — autêntico, empático e sem pressão de vendas.</span>
+      </div>
+
+      <div class="posts-grid">
+        <div class="post-generator">
+          <div class="section-title">⚙️ Configurar Post</div>
+
+          <div class="form-group">
+            <div class="form-label">Plataforma</div>
+            <div class="platform-pills">
+              <div class="pill active" onclick="setPlatform(this,'Facebook')">📘 Facebook</div>
+              <div class="pill" onclick="setPlatform(this,'Instagram')">📸 Instagram</div>
+              <div class="pill" onclick="setPlatform(this,'WhatsApp')">💬 WhatsApp</div>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <div class="form-label">Tom / Abordagem</div>
+            <div class="tone-pills">
+              <div class="tone-pill active" onclick="setTone(this,'Testemunho pessoal')">💬 Testemunho</div>
+              <div class="tone-pill" onclick="setTone(this,'Educativo e informativo')">📚 Educativo</div>
+              <div class="tone-pill" onclick="setTone(this,'Motivacional')">🔥 Motivacional</div>
+              <div class="tone-pill" onclick="setTone(this,'Convite suave')">🌱 Convite</div>
+              <div class="tone-pill" onclick="setTone(this,'Urgência e oportunidade')">⚡ Urgência</div>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <div class="form-label">Tema / Assunto</div>
+            <select class="form-select" id="tema-select">
+              <option>Energia e disposição diária</option>
+              <option>Recuperação e bem-estar</option>
+              <option>Sono e descanso</option>
+              <option>Dores e desconforto físico</option>
+              <option>Oportunidade de negócio</option>
+              <option>Apresentação do produto X39</option>
+              <option>Resultados de clientes</option>
+              <option>Dúvidas frequentes</option>
+              <option>Convite para saber mais</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <div class="form-label">Detalhe / Contexto (opcional)</div>
+            <textarea class="form-textarea" id="contexto-input" placeholder="Ex: Fala sobre como o X39 me ajudou a ter mais energia para o trabalho noturno..." style="min-height:70px;"></textarea>
+          </div>
+
+          <div class="form-group">
+            <div class="form-label">Incluir emojis?</div>
+            <select class="form-select" id="emoji-select">
+              <option value="sim">✅ Sim, alguns emojis</option>
+              <option value="nao">❌ Não, texto limpo</option>
+              <option value="muitos">🎉 Sim, muitos emojis</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <div class="form-label">📷 Imagem / Foto (opcional)</div>
+            <div class="img-upload-zone" id="post-img-zone">
+              <input type="file" accept="image/*" id="post-img-input" onchange="handlePostImage(this)">
+              <div class="img-upload-label">
+                <span class="upload-icon">🖼️</span>
+                <span>Arrasta ou clica para adicionar imagem</span>
+                <span style="font-size:10px;color:var(--text3);">A IA descreve a imagem e cria um post relacionado</span>
+              </div>
+            </div>
+            <div class="img-preview-wrap" id="post-img-preview">
+              <img id="post-img-thumb" src="" alt="preview">
+              <button class="img-remove-btn" onclick="removerImagemPost()">✕</button>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <div class="form-label">🎬 URL de Vídeo (opcional)</div>
+            <div style="display:flex;gap:8px;align-items:flex-start;">
+              <div style="flex:1;position:relative;">
+                <input class="form-input" id="video-url-input" placeholder="YouTube, Facebook, Instagram, TikTok, Vimeo..." style="padding-right:36px;" oninput="onVideoUrlInput()">
+                <span id="video-url-icon" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);font-size:16px;pointer-events:none;"></span>
+              </div>
+              <button class="btn btn-secondary btn-sm" id="video-fetch-btn" onclick="buscarInfoVideo()" style="white-space:nowrap;padding:10px 14px;display:none;">🔍 Analisar</button>
+            </div>
+            <div id="video-info-box" style="display:none;margin-top:10px;background:var(--surface3);border-radius:var(--radius-sm);padding:12px;border:1px solid var(--border);">
+              <div style="display:flex;gap:10px;align-items:flex-start;">
+                <img id="video-thumb" src="" alt="" style="width:80px;height:52px;object-fit:cover;border-radius:6px;flex-shrink:0;display:none;">
+                <div style="flex:1;min-width:0;">
+                  <div id="video-title" style="font-size:12px;font-weight:600;color:var(--text);line-height:1.4;"></div>
+                  <div id="video-desc" style="font-size:11px;color:var(--text2);margin-top:4px;line-height:1.4;max-height:48px;overflow:hidden;"></div>
+                  <div id="video-source" style="font-size:10px;color:var(--accent);margin-top:4px;font-weight:600;"></div>
+                </div>
+                <button onclick="limparVideo()" style="background:none;border:none;color:var(--text2);cursor:pointer;font-size:14px;flex-shrink:0;">✕</button>
+              </div>
+            </div>
+            <div id="video-loading" style="display:none;font-size:12px;color:var(--text2);margin-top:8px;display:none;align-items:center;gap:8px;">
+              <div class="spinner" style="width:16px;height:16px;border-width:2px;"></div>
+              <span>A procurar informação do vídeo...</span>
+            </div>
+            <div id="video-error" style="display:none;font-size:12px;color:#ff6b6b;margin-top:6px;"></div>
+          </div>
+
+          <button class="btn btn-ai" style="width:100%;justify-content:center;padding:13px;" onclick="gerarPost()" id="btn-gerar-post">
+            🤖 Gerar Post com IA
+          </button>
+        </div>
+
+        <div class="post-output">
+          <div class="section-title">📝 Post Gerado</div>
+          <div class="ai-result" id="ai-result">
+            <div class="ai-loader" id="ai-loader">
+              <div class="spinner"></div>
+              <div class="ai-label" id="posts-loader-label">A IA está a criar o teu post...</div>
+            </div>
+            <span id="ai-text" style="color:var(--text2);font-style:italic;">O teu post aparecerá aqui. Configura as opções ao lado e clica em "Gerar Post".</span>
+          </div>
+          <div class="char-count" id="char-count"></div>
+          <div class="copy-bar" id="copy-bar" style="display:none;">
+            <button class="btn btn-secondary btn-sm" onclick="copiarPost()">📋 Copiar</button>
+            <button class="btn btn-secondary btn-sm" onclick="abrirAgendarModal()">📅 Agendar</button>
+            <button class="btn btn-ai btn-sm" onclick="gerarPost()">🔄 Gerar outra versão</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CALENDÁRIO -->
+    <div id="page-calendario" class="page">
+      <div class="page-header">
+        <div>
+          <div class="page-title">📅 Calendário de Posts</div>
+          <div class="page-sub">Planeia e agenda o teu conteúdo</div>
+        </div>
+        <button class="btn btn-primary" onclick="abrirAgendarModal()">＋ Agendar Post</button>
+      </div>
+      <!-- Google Calendar Sync Bar -->
+      <div class="google-sync-bar" id="calendar-sync-bar">
+        <span class="gsync-label">🔗 Sincronizar com Google Calendar</span>
+        <span class="gsync-status" id="calendar-gsync-status"></span>
+        <button class="btn-google" id="btn-google-calendar" onclick="syncGoogleCalendar()">
+          <span class="g-icon">🇬</span> Exportar para Google Calendar
+        </button>
+      </div>
+      <div class="calendar-grid">
+        <div class="card">
+          <div class="cal-header">
+            <button class="btn btn-secondary btn-sm" onclick="changeMonth(-1)">‹</button>
+            <div class="cal-month" id="cal-month-label"></div>
+            <button class="btn btn-secondary btn-sm" onclick="changeMonth(1)">›</button>
+          </div>
+          <div class="cal-days" id="cal-days"></div>
+        </div>
+        <div class="scheduled-list">
+          <div class="section-title">📌 Posts Agendados</div>
+          <div id="scheduled-container">
+            <div class="empty-state">
+              <div class="empty-icon">📭</div>
+              Sem posts agendados ainda.
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- RESPOSTAS RÁPIDAS -->
+    <div id="page-respostas" class="page">
+      <div class="page-header">
+        <div>
+          <div class="page-title">💬 Respostas Rápidas com IA</div>
+          <div class="page-sub">Gera respostas personalizadas para WhatsApp, Messenger e Instagram</div>
+        </div>
+      </div>
+
+      <div class="ai-selector-bar" id="resp-ai-selector">
+        <span class="ai-selector-label">🤖 IA:</span>
+        <button class="ai-btn active-claude" id="resp-btn-claude" onclick="setAI('resp','claude')">
+          <span>🧠</span> Claude
+        </button>
+        <button class="ai-btn" id="resp-btn-gemini" onclick="setAI('resp','gemini')">
+          <span style="font-size:14px;">✦</span> Gemini
+        </button>
+      </div>
+      <div class="local-warning" id="resp-local-warning">
+        <strong>⚠️ Ficheiro local detetado</strong>
+        O Claude não funciona quando a app é aberta como ficheiro (bloqueio de segurança do browser).<br>
+        👉 <strong>Usa o Gemini:</strong> seleciona "✦ Gemini" acima → obtém chave grátis em <strong>aistudio.google.com</strong>
+      </div>
+      <div class="gemini-key-row" id="resp-gemini-key-row">
+        <span style="font-size:18px;">🔑</span>
+        <input type="password" id="resp-gemini-key" placeholder="Chave API Gemini (AIza...)" oninput="saveGeminiKey(this.value)">
+        <span class="gemini-key-status" id="resp-gemini-status"></span>
+        <a href="https://aistudio.google.com/app/apikey" target="_blank" style="font-size:11px;color:#4285f4;white-space:nowrap;">Obter chave →</a>
+      </div>
+      <div class="gemini-key-row" id="resp-claude-key-row">
+        <span style="font-size:18px;">🔑</span>
+        <input type="password" id="resp-claude-key" placeholder="Chave API Claude (sk-ant-...)" oninput="saveClaudeKey(this.value)">
+        <span class="gemini-key-status" id="resp-claude-status"></span>
+        <a href="https://console.anthropic.com/settings/keys" target="_blank" style="font-size:11px;color:var(--accent);white-space:nowrap;">Obter chave →</a>
+      </div>
+
+      <div class="ai-note">
+        <span>🔗</span>
+        <span>Os teus links pessoais são incluídos automaticamente nas respostas sempre que relevante.</span>
+      </div>
+
+      <div class="posts-grid">
+        <!-- ESQUERDA: configuração -->
+        <div class="post-generator">
+          <div class="section-title">⚙️ Configurar Resposta</div>
+
+          <div class="form-group">
+            <div class="form-label">Canal de Mensagem</div>
+            <div class="platform-pills" id="msg-platform-pills">
+              <div class="pill active" onclick="setMsgPlatform(this,'WhatsApp')">💬 WhatsApp</div>
+              <div class="pill" onclick="setMsgPlatform(this,'Messenger')">💙 Messenger</div>
+              <div class="pill" onclick="setMsgPlatform(this,'Instagram DM')">📸 Instagram DM</div>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <div class="form-label">Tipo de Lead</div>
+            <div class="tone-pills" id="lead-type-pills">
+              <div class="tone-pill active" onclick="setLeadType(this,'quente')">🔥 Quente</div>
+              <div class="tone-pill" onclick="setLeadType(this,'morno')">🌤 Morno</div>
+              <div class="tone-pill" onclick="setLeadType(this,'frio')">❄️ Frio</div>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <div class="form-label">A pessoa perguntou / disse</div>
+            <select class="form-select" id="pergunta-select" onchange="checkCustom()">
+              <optgroup label="🛒 Sobre o Produto X39">
+                <option value="o que é o x39">O que é o X39?</option>
+                <option value="como funciona o patch x39">Como funciona o patch?</option>
+                <option value="para que serve o x39">Para que serve o X39?</option>
+                <option value="quais os benefícios do x39">Quais os benefícios?</option>
+                <option value="tem estudos científicos">Tem estudos científicos?</option>
+                <option value="é seguro usar o x39">É seguro usar?</option>
+                <option value="quanto tempo para sentir resultados">Quanto tempo para sentir resultados?</option>
+                <option value="como se usa o patch x39">Como se usa?</option>
+                <option value="posso usar com medicação">Posso usar com medicação?</option>
+              </optgroup>
+              <optgroup label="💰 Sobre o Preço / Compra">
+                <option value="quanto custa o x39">Quanto custa?</option>
+                <option value="como posso comprar o x39">Como posso comprar?</option>
+                <option value="há desconto ou promoção">Há desconto ou promoção?</option>
+                <option value="qual a diferença entre cliente e distribuidor">Diferença entre cliente e distribuidor?</option>
+                <option value="posso experimentar antes de comprar">Posso experimentar antes?</option>
+              </optgroup>
+              <optgroup label="🤝 Sobre o Negócio">
+                <option value="como funciona o negócio lifewave">Como funciona o negócio?</option>
+                <option value="quanto se pode ganhar com lifewave">Quanto se pode ganhar?</option>
+                <option value="é uma pirâmide ou mlm">É uma pirâmide?</option>
+                <option value="o que tenho de fazer para começar o negócio">O que tenho de fazer para começar?</option>
+                <option value="preciso de ter muita gente para ganhar dinheiro">Preciso de muita gente para ganhar?</option>
+                <option value="já tentei mlm antes e não funcionou">Já tentei MLM e não funcionou</option>
+              </optgroup>
+              <optgroup label="😒 Objeções / Resistências">
+                <option value="não acredito nisso">Não acredito nisso</option>
+                <option value="parece uma fraude ou esquema">Parece fraude / esquema</option>
+                <option value="não tenho dinheiro para isso">Não tenho dinheiro para isso</option>
+                <option value="não tenho tempo para isso">Não tenho tempo para isso</option>
+                <option value="tenho de pensar">Tenho de pensar / deixa ver</option>
+                <option value="já ouvi falar mas não me interessa">Já ouvi falar, não me interessa</option>
+                <option value="vou falar com o meu médico">Vou falar com o meu médico</option>
+              </optgroup>
+              <optgroup label="✅ Interesse / Próximo Passo">
+                <option value="quero saber mais sobre o x39">Quero saber mais</option>
+                <option value="onde posso ver mais informação sobre lifewave">Onde ver mais informação?</option>
+                <option value="como me registro na lifewave">Como me registro / inscrevo?</option>
+                <option value="quero começar como distribuidor">Quero começar como distribuidor</option>
+              </optgroup>
+              <option value="outro">✏️ Outra pergunta (escrever)</option>
+            </select>
+          </div>
+
+          <div class="form-group" id="custom-pergunta-group" style="display:none;">
+            <div class="form-label">Escreve a pergunta / mensagem recebida</div>
+            <textarea class="form-textarea" id="custom-pergunta" placeholder="Ex: O meu marido tem dores nas costas, o X39 pode ajudar?" style="min-height:70px;"></textarea>
+          </div>
+
+          <div class="form-group">
+            <div class="form-label">📸 Print da Conversa (opcional)</div>
+            <div class="screenshot-zone" id="screenshot-zone">
+              <input type="file" accept="image/*" id="screenshot-input" onchange="handleScreenshot(this)">
+              <div class="img-upload-label">
+                <span class="upload-icon">📱</span>
+                <span>Faz upload de um print do WhatsApp / Messenger / Instagram</span>
+                <span style="font-size:10px;color:var(--text3);">A IA lê a conversa e gera a resposta automaticamente</span>
+              </div>
+              <img id="screenshot-preview" class="screenshot-preview" src="" alt="preview">
+            </div>
+            <div id="screenshot-remove-row" style="display:none;margin-top:6px;">
+              <button class="btn btn-danger btn-sm" onclick="removerScreenshot()">✕ Remover print</button>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <div class="form-label">Contexto extra (opcional)</div>
+            <textarea class="form-textarea" id="resp-contexto" placeholder="Ex: A pessoa é professora, tem 45 anos, já falou comigo antes sobre energia..." style="min-height:60px;"></textarea>
+          </div>
+
+          <div class="form-group">
+            <div class="form-label">Incluir link na resposta?</div>
+            <select class="form-select" id="link-select">
+              <option value="nenhum">Sem link (só resposta)</option>
+              <option value="produto">🛒 Funil de Produto (X39)</option>
+              <option value="negocio">🤝 Funil de Negócio</option>
+              <option value="registo">📋 Link de Registo direto</option>
+              <option value="produtos-direto">🔗 Produtos (link direto)</option>
+              <option value="negocio-direto">🔗 Negócio (link direto)</option>
+            </select>
+          </div>
+
+          <button class="btn btn-ai" style="width:100%;justify-content:center;padding:13px;" onclick="gerarResposta()" id="btn-gerar-resp">
+            🤖 Gerar Resposta com IA
+          </button>
+        </div>
+
+        <!-- DIREITA: resultado -->
+        <div class="post-output">
+          <div class="section-title">📨 Resposta Gerada</div>
+          <div class="ai-result" id="resp-result">
+            <div class="ai-loader" id="resp-loader">
+              <div class="spinner"></div>
+              <div class="ai-label" id="resp-loader-label">A IA está a escrever a resposta...</div>
+            </div>
+            <span id="resp-text" style="color:var(--text2);font-style:italic;">A resposta aparecerá aqui. Seleciona a pergunta e clica em "Gerar Resposta".</span>
+          </div>
+          <div class="copy-bar" id="resp-copy-bar" style="display:none;">
+            <button class="btn btn-secondary btn-sm" onclick="copiarResposta()">📋 Copiar</button>
+            <button class="btn btn-ai btn-sm" onclick="gerarResposta()">🔄 Gerar outra versão</button>
+          </div>
+
+          <!-- LINKS RÁPIDOS -->
+          <div style="margin-top:20px;">
+            <div class="section-title">🔗 Os Teus Links (clica para copiar)</div>
+            <div style="display:flex;flex-direction:column;gap:8px;" id="links-rapidos">
+              <div class="link-item" onclick="copiarLink('https://lifewave.com/MiguelLobato/enrollment/enrollerselection','Registo LifeWave')">
+                <div class="link-label">📋 Registo LifeWave</div>
+                <div class="link-url">lifewave.com/MiguelLobato/enrollment/enrollerselection</div>
+              </div>
+              <div class="link-item" onclick="copiarLink('https://lwsinfo.com/x39pt?aff=MiguelLobato','Funil Produto')">
+                <div class="link-label">🛒 Funil Produto (Captura)</div>
+                <div class="link-url">lwsinfo.com/x39pt?aff=MiguelLobato</div>
+              </div>
+              <div class="link-item" onclick="copiarLink('https://lwsinfo.com/bizpt?aff=MiguelLobato','Funil Negócio')">
+                <div class="link-label">🤝 Funil Negócio (Captura)</div>
+                <div class="link-url">lwsinfo.com/bizpt?aff=MiguelLobato</div>
+              </div>
+              <div class="link-item" onclick="copiarLink('https://lifewaveresults.com/?lng=pt','Produtos Direto')">
+                <div class="link-label">🔗 Produtos (link direto)</div>
+                <div class="link-url">lifewaveresults.com/?lng=pt</div>
+              </div>
+              <div class="link-item" onclick="copiarLink('https://lifewaveresults.com/biz?lng=pt','Negócio Direto')">
+                <div class="link-label">🔗 Negócio (link direto)</div>
+                <div class="link-url">lifewaveresults.com/biz?lng=pt</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- AGENDA -->
+    <div id="page-agenda" class="page">
+      <div class="page-header">
+        <div>
+          <div class="page-title">🗓️ Agenda</div>
+          <div class="page-sub">Compromissos, follow-ups e reuniões</div>
+        </div>
+        <button class="btn btn-primary" onclick="openModal('modal-novo-evento')">＋ Novo Evento</button>
+      </div>
+      <!-- Google Calendar Sync Bar -->
+      <div class="google-sync-bar" id="agenda-sync-bar">
+        <span class="gsync-label">🔗 Sincronizar com Google Calendar</span>
+        <span class="gsync-status" id="agenda-gsync-status"></span>
+        <button class="btn-google" id="btn-google-agenda" onclick="syncGoogleAgenda()">
+          <span class="g-icon">🇬</span> Sincronizar com Google Calendar
+        </button>
+      </div>
+      <div class="calendar-grid">
+        <!-- Calendário visual -->
+        <div class="card">
+          <div class="cal-header">
+            <button class="btn btn-secondary btn-sm" onclick="changeAgendaMonth(-1)">‹</button>
+            <div class="cal-month" id="agenda-month-label"></div>
+            <button class="btn btn-secondary btn-sm" onclick="changeAgendaMonth(1)">›</button>
+          </div>
+          <div class="cal-days" id="agenda-cal-days"></div>
+        </div>
+        <!-- Lista de eventos -->
+        <div class="scheduled-list">
+          <div class="section-title" id="agenda-list-title">📋 Todos os Eventos</div>
+          <div id="agenda-events-container">
+            <div class="empty-state">
+              <div class="empty-icon">🗓️</div>
+              Sem eventos agendados ainda.
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- BOTTOM NAV (mobile) -->
+  <nav class="bottom-nav" id="bottom-nav">
+    <div class="bn-item active" id="bn-dashboard" onclick="goTo('dashboard')">
+      <div class="bn-icon-wrap"><span class="bn-icon">📊</span></div>
+      <span>Dashboard</span>
+    </div>
+    <div class="bn-item" id="bn-funil" onclick="goTo('funil')">
+      <div class="bn-icon-wrap">
+        <span class="bn-icon">🔀</span>
+        <span class="bn-badge" id="bn-badge">0</span>
+      </div>
+      <span>Funil</span>
+    </div>
+    <div class="bn-item" id="bn-lista" onclick="goTo('lista')">
+      <div class="bn-icon-wrap"><span class="bn-icon">👥</span></div>
+      <span>Contactos</span>
+    </div>
+    <div class="bn-item" id="bn-posts" onclick="goTo('posts')">
+      <div class="bn-icon-wrap"><span class="bn-icon">✨</span></div>
+      <span>Posts IA</span>
+    </div>
+    <div class="bn-item" id="bn-respostas" onclick="goTo('respostas')">
+      <div class="bn-icon-wrap"><span class="bn-icon">💬</span></div>
+      <span>Respostas</span>
+    </div>
+    <div class="bn-item" id="bn-calendario" onclick="goTo('calendario')">
+      <div class="bn-icon-wrap"><span class="bn-icon">📅</span></div>
+      <span>Calendário</span>
+    </div>
+    <div class="bn-item" id="bn-agenda" onclick="goTo('agenda')">
+      <div class="bn-icon-wrap"><span class="bn-icon">🗓️</span></div>
+      <span>Agenda</span>
+    </div>
+  </nav>
+
+</div>
+
+<!-- MODAL: NOVO LEAD -->
+<div class="modal-overlay" id="modal-lead">
+  <div class="modal">
+    <div class="modal-title">
+      <span id="modal-lead-title">➕ Novo Lead</span>
+      <button class="modal-close" onclick="closeModal('modal-lead')">✕</button>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Nome *</label>
+        <input class="form-input" id="f-nome" placeholder="Nome completo">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Telefone</label>
+        <input class="form-input" id="f-tel" placeholder="+351 9xx xxx xxx">
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Email</label>
+        <input class="form-input" id="f-email" type="email" placeholder="email@exemplo.com">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Mercado</label>
+        <select class="form-select" id="f-mercado">
+          <option>Quente (amigos/família)</option>
+          <option>Morno (conhecidos)</option>
+          <option>Frio (desconhecidos)</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Estado</label>
+        <select class="form-select" id="f-estado">
+          <option value="novo">Novo</option>
+          <option value="contactado">Contactado</option>
+          <option value="interessado">Interessado</option>
+          <option value="negociacao">Em Negociação</option>
+          <option value="cliente">Cliente</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Fonte</label>
+        <select class="form-select" id="f-fonte">
+          <option>Instagram</option>
+          <option>Facebook</option>
+          <option>WhatsApp</option>
+          <option>Pessoal</option>
+          <option>Referência</option>
+          <option>Outro</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Notas / Observações</label>
+      <textarea class="form-textarea" id="f-notas" placeholder="Interesses, dores, histórico de conversa..."></textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="closeModal('modal-lead')">Cancelar</button>
+      <button class="btn btn-primary" onclick="salvarLead()">✓ Guardar Lead</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: VER LEAD -->
+<div class="modal-overlay" id="modal-ver-lead">
+  <div class="modal">
+    <div class="modal-title">
+      <span id="ver-lead-nome">Lead</span>
+      <button class="modal-close" onclick="closeModal('modal-ver-lead')">✕</button>
+    </div>
+    <div id="ver-lead-content"></div>
+    <div class="modal-actions" id="ver-lead-actions"></div>
+  </div>
+</div>
+
+<!-- MODAL: AGENDAR POST -->
+<div class="modal-overlay" id="modal-agendar">
+  <div class="modal">
+    <div class="modal-title">
+      <span>📅 Agendar Post</span>
+      <button class="modal-close" onclick="closeModal('modal-agendar')">✕</button>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Texto do Post</label>
+      <textarea class="form-textarea" id="ag-texto" style="min-height:120px;" placeholder="Copia o post aqui ou escreve diretamente..."></textarea>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Plataforma</label>
+        <select class="form-select" id="ag-plataforma">
+          <option>Facebook</option>
+          <option>Instagram</option>
+          <option>WhatsApp</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Data e Hora</label>
+        <input class="form-input" type="datetime-local" id="ag-data">
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="closeModal('modal-agendar')">Cancelar</button>
+      <button class="btn btn-primary" onclick="agendarPost()">📅 Agendar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: IMPORTAR CONTACTOS -->
+<div class="modal-overlay" id="modal-importar">
+  <div class="modal" style="max-width:600px;">
+    <div class="modal-title">
+      <span>📂 Importar Contactos</span>
+      <button class="modal-close" onclick="closeModal('modal-importar')">✕</button>
+    </div>
+    <div class="ai-note" style="margin-bottom:14px;">
+      <span>📋</span>
+      <span>Suporta ficheiros <strong>CSV, VCF (vCard)</strong> e <strong>Excel (.xlsx)</strong>. Colunas reconhecidas: nome, telefone, email, notas.</span>
+    </div>
+    <div class="import-zone" id="import-zone">
+      <input type="file" accept=".csv,.vcf,.xlsx,.xls" id="import-file-input" onchange="handleImportFile(this)">
+      <div class="img-upload-label">
+        <span class="upload-icon">📁</span>
+        <span style="font-weight:600;color:var(--text);">Clica ou arrasta o ficheiro aqui</span>
+        <span style="font-size:11px;">CSV · VCF · XLSX</span>
+      </div>
+    </div>
+    <div id="import-preview-area" style="display:none;margin-top:14px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+        <div class="section-title" style="margin-bottom:0;" id="import-count-label">0 contactos encontrados</div>
+        <div style="display:flex;gap:8px;">
+          <button class="btn btn-secondary btn-sm" onclick="selecionarTodosImport(true)">✓ Todos</button>
+          <button class="btn btn-secondary btn-sm" onclick="selecionarTodosImport(false)">✗ Nenhum</button>
+        </div>
+      </div>
+      <div class="import-preview" id="import-preview" style="display:block;"></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="closeModal('modal-importar')">Cancelar</button>
+      <button class="btn btn-primary" id="import-confirm-btn" onclick="confirmarImport()" style="display:none;">✓ Importar Selecionados</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast">✓ <span id="toast-msg"></span></div>
+
+<script>
+// ===== STATE =====
+let leads = JSON.parse(localStorage.getItem('lw_leads') || '[]');
+let posts = JSON.parse(localStorage.getItem('lw_posts') || '[]');
+let editingLeadId = null;
+let currentPlatform = 'Facebook';
+let currentTone = 'Testemunho pessoal';
+let calDate = new Date();
+let lastGeneratedPost = '';
+
+// ===== NAVIGATION =====
+function goTo(page) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.querySelectorAll('.bn-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('page-' + page).classList.add('active');
+  const items = document.querySelectorAll('.nav-item');
+  const map = { dashboard: 0, funil: 1, lista: 2, posts: 3, calendario: 4, agenda: 5, respostas: 6 };
+  if (map[page] !== undefined && items[map[page]]) items[map[page]].classList.add('active');
+  const bnEl = document.getElementById('bn-' + page);
+  if (bnEl) bnEl.classList.add('active');
+  if (page === 'funil') renderFunil();
+  if (page === 'lista') renderLista();
+  if (page === 'dashboard') renderDashboard();
+  if (page === 'calendario') renderCalendario();
+  if (page === 'agenda') renderAgenda();
+  window.scrollTo(0, 0);
+}
+
+// ===== MODAL =====
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+document.querySelectorAll('.modal-overlay').forEach(m => {
+  m.addEventListener('click', e => { if (e.target === m) m.classList.remove('open'); });
+});
+
+// ===== LEADS =====
+function gerarId() { return Date.now().toString(36) + Math.random().toString(36).slice(2); }
+
+function salvarLead() {
+  const nome = document.getElementById('f-nome').value.trim();
+  if (!nome) { showToast('❌ Nome é obrigatório'); return; }
+  const lead = {
+    id: editingLeadId || gerarId(),
+    nome,
+    tel: document.getElementById('f-tel').value.trim(),
+    email: document.getElementById('f-email').value.trim(),
+    mercado: document.getElementById('f-mercado').value,
+    estado: document.getElementById('f-estado').value,
+    fonte: document.getElementById('f-fonte').value,
+    notas: document.getElementById('f-notas').value.trim(),
+    data: new Date().toLocaleDateString('pt-PT'),
+    historico: editingLeadId ? (leads.find(l => l.id === editingLeadId)?.historico || []) : []
+  };
+  if (editingLeadId) {
+    const idx = leads.findIndex(l => l.id === editingLeadId);
+    if (lead.estado !== leads[idx].estado) {
+      lead.historico.push({ msg: `Estado alterado para "${estadoLabel(lead.estado)}"`, data: new Date().toLocaleString('pt-PT') });
+    }
+    leads[idx] = lead;
+  } else {
+    lead.historico = [{ msg: 'Lead adicionado', data: new Date().toLocaleString('pt-PT') }];
+    leads.unshift(lead);
+  }
+  saveleads();
+  closeModal('modal-lead');
+  renderDashboard();
+  renderFunil();
+  renderLista();
+  showToast(editingLeadId ? '✓ Lead atualizado' : '✓ Lead adicionado');
+}
+
+function editarLead(id) {
+  const l = leads.find(x => x.id === id);
+  if (!l) return;
+  editingLeadId = id;
+  document.getElementById('modal-lead-title').textContent = '✏️ Editar Lead';
+  document.getElementById('f-nome').value = l.nome;
+  document.getElementById('f-tel').value = l.tel;
+  document.getElementById('f-email').value = l.email;
+  document.getElementById('f-mercado').value = l.mercado;
+  document.getElementById('f-estado').value = l.estado;
+  document.getElementById('f-fonte').value = l.fonte;
+  document.getElementById('f-notas').value = l.notas;
+  closeModal('modal-ver-lead');
+  openModal('modal-lead');
+}
+
+function verLead(id) {
+  const l = leads.find(x => x.id === id);
+  if (!l) return;
+  document.getElementById('ver-lead-nome').textContent = l.nome;
+  document.getElementById('ver-lead-content').innerHTML = `
+    <div class="detail-row"><div class="detail-label">📱 Telefone</div><div class="detail-val">${l.tel || '—'}</div></div>
+    <div class="detail-row"><div class="detail-label">📧 Email</div><div class="detail-val">${l.email || '—'}</div></div>
+    <div class="detail-row"><div class="detail-label">🎯 Mercado</div><div class="detail-val">${l.mercado}</div></div>
+    <div class="detail-row"><div class="detail-label">📌 Estado</div><div class="detail-val"><span class="lead-badge b-${l.estado}">${estadoLabel(l.estado)}</span></div></div>
+    <div class="detail-row"><div class="detail-label">🔍 Fonte</div><div class="detail-val">${l.fonte}</div></div>
+    <div class="detail-row"><div class="detail-label">📅 Adicionado</div><div class="detail-val">${l.data}</div></div>
+    ${l.notas ? `<div class="detail-row"><div class="detail-label">📝 Notas</div><div class="detail-val">${l.notas}</div></div>` : ''}
+    ${l.historico?.length ? `<div class="section-title" style="margin-top:16px;">📜 Histórico</div>${l.historico.map(h => `<div class="history-item">${h.msg}<div class="history-date">${h.data}</div></div>`).join('')}` : ''}
+  `;
+  document.getElementById('ver-lead-actions').innerHTML = `
+    <button class="btn btn-secondary btn-sm" onclick="avancarEstado('${id}')">⏩ Avançar Estado</button>
+    <button class="btn btn-secondary btn-sm" onclick="editarLead('${id}')">✏️ Editar</button>
+    <button class="btn btn-danger btn-sm" onclick="eliminarLead('${id}')">🗑 Eliminar</button>
+  `;
+  openModal('modal-ver-lead');
+}
+
+function avancarEstado(id) {
+  const estados = ['novo','contactado','interessado','negociacao','cliente'];
+  const l = leads.find(x => x.id === id);
+  if (!l) return;
+  const idx = estados.indexOf(l.estado);
+  if (idx < estados.length - 1) {
+    l.estado = estados[idx + 1];
+    l.historico = l.historico || [];
+    l.historico.push({ msg: `Avançou para "${estadoLabel(l.estado)}"`, data: new Date().toLocaleString('pt-PT') });
+    saveleads();
+    verLead(id);
+    renderDashboard();
+    renderFunil();
+    renderLista();
+    showToast('✓ Estado atualizado');
+  }
+}
+
+function eliminarLead(id) {
+  if (!confirm('Tens a certeza que queres eliminar este lead?')) return;
+  leads = leads.filter(x => x.id !== id);
+  saveleads();
+  closeModal('modal-ver-lead');
+  renderDashboard();
+  renderFunil();
+  renderLista();
+  showToast('🗑 Lead eliminado');
+}
+
+function saveleads() { localStorage.setItem('lw_leads', JSON.stringify(leads)); updateBadge(); }
+
+function estadoLabel(e) {
+  return { novo:'Novo', contactado:'Contactado', interessado:'Interessado', negociacao:'Negociação', cliente:'Cliente' }[e] || e;
+}
+
+// ===== DASHBOARD =====
+function renderDashboard() {
+  document.getElementById('stat-total').textContent = leads.length;
+  document.getElementById('stat-prog').textContent = leads.filter(l => ['contactado','interessado'].includes(l.estado)).length;
+  document.getElementById('stat-neg').textContent = leads.filter(l => l.estado === 'negociacao').length;
+  document.getElementById('stat-cli').textContent = leads.filter(l => l.estado === 'cliente').length;
+  updateBadge();
+  const tbody = document.getElementById('tbody-recentes');
+  if (!leads.length) {
+    tbody.innerHTML = '<tr><td colspan="6" class="empty-state">Sem leads ainda. Adiciona o primeiro!</td></tr>';
+    return;
+  }
+  tbody.innerHTML = leads.slice(0, 8).map(l => `
+    <tr>
+      <td><strong>${l.nome}</strong></td>
+      <td>${l.tel || l.email || '—'}</td>
+      <td><span class="tag" style="background:rgba(255,255,255,0.06);color:var(--text2)">${l.mercado.split(' ')[0]}</span></td>
+      <td><span class="lead-badge b-${l.estado}">${estadoLabel(l.estado)}</span></td>
+      <td>${l.data}</td>
+      <td>
+        <button class="btn btn-secondary btn-sm" onclick="verLead('${l.id}')">Ver</button>
+      </td>
+    </tr>
+  `).join('');
+}
+
+function updateBadge() {
+  document.getElementById('badge-leads').textContent = leads.length;
+  const bn = document.getElementById('bn-badge');
+  if (bn) bn.textContent = leads.length;
+}
+
+// ===== FUNIL =====
+function renderFunil() {
+  const cols = [
+    { key:'novo', label:'🆕 Novo', color:'#8b9cf7' },
+    { key:'contactado', label:'📞 Contactado', color:'#0084ff' },
+    { key:'interessado', label:'⭐ Interessado', color:'#f5c842' },
+    { key:'negociacao', label:'🤝 Negociação', color:'#ff6b35' },
+    { key:'cliente', label:'✅ Cliente', color:'#00d4aa' },
+  ];
+  const container = document.getElementById('funil-container');
+  container.innerHTML = cols.map(col => {
+    const group = leads.filter(l => l.estado === col.key);
+    return `
+      <div class="funnel-col">
+        <div class="funnel-header" style="color:${col.color}">
+          ${col.label}
+          <span style="background:rgba(255,255,255,0.06);color:var(--text2);font-size:11px;padding:2px 7px;border-radius:20px;">${group.length}</span>
+        </div>
+        <div class="funnel-body">
+          ${group.length ? group.map(l => `
+            <div class="lead-card" onclick="verLead('${l.id}')">
+              <div class="lead-name">${l.nome}</div>
+              <div class="lead-info">${l.tel || l.email || 'Sem contacto'}</div>
+              <div><span class="lead-badge" style="background:rgba(255,255,255,0.06);color:var(--text2)">${l.mercado.split(' ')[0]}</span></div>
+            </div>
+          `).join('') : '<div class="empty-state" style="padding:20px 10px;font-size:12px;">Vazio</div>'}
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+// ===== LISTA =====
+function renderLista(filtro = '') {
+  const tbody = document.getElementById('tbody-lista');
+  const filtered = filtro
+    ? leads.filter(l => l.nome.toLowerCase().includes(filtro.toLowerCase()) || (l.tel||'').includes(filtro) || (l.email||'').toLowerCase().includes(filtro.toLowerCase()))
+    : leads;
+  if (!filtered.length) {
+    tbody.innerHTML = '<tr><td colspan="7" class="empty-state">Sem resultados.</td></tr>';
+    return;
+  }
+  tbody.innerHTML = filtered.map(l => `
+    <tr>
+      <td><strong>${l.nome}</strong></td>
+      <td>${l.tel || '—'}</td>
+      <td>${l.email || '—'}</td>
+      <td>${l.mercado.split(' ')[0]}</td>
+      <td><span class="lead-badge b-${l.estado}">${estadoLabel(l.estado)}</span></td>
+      <td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${l.notas || '—'}</td>
+      <td style="display:flex;gap:6px;">
+        <button class="btn btn-secondary btn-sm" onclick="verLead('${l.id}')">Ver</button>
+        <button class="btn btn-secondary btn-sm" onclick="editarLead('${l.id}')">✏️</button>
+      </td>
+    </tr>
+  `).join('');
+}
+
+function filtrarLista(v) { renderLista(v); }
+
+// ===== POSTS IA =====
+function setPlatform(el, val) {
+  document.querySelectorAll('.pill').forEach(p => p.classList.remove('active'));
+  el.classList.add('active');
+  currentPlatform = val;
+}
+
+function setTone(el, val) {
+  document.querySelectorAll('.tone-pill').forEach(p => p.classList.remove('active'));
+  el.classList.add('active');
+  currentTone = val;
+}
+
+// gerarPost defined below with image support
+
+function copiarPost() {
+  const texto = document.getElementById('ai-text').textContent;
+  navigator.clipboard.writeText(texto).then(() => showToast('📋 Post copiado!')).catch(() => {
+    const ta = document.createElement('textarea');
+    ta.value = texto;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    showToast('📋 Post copiado!');
+  });
+}
+
+function abrirAgendarModal() {
+  const texto = document.getElementById('ai-text')?.textContent;
+  if (texto && !['O teu post aparecerá aqui', '❌'].some(s => texto.includes(s))) {
+    document.getElementById('ag-texto').value = texto;
+  }
+  const now = new Date();
+  now.setMinutes(0);
+  now.setHours(now.getHours() + 1);
+  document.getElementById('ag-data').value = now.toISOString().slice(0,16);
+  document.getElementById('ag-plataforma').value = currentPlatform;
+  openModal('modal-agendar');
+}
+
+function agendarPost() {
+  const texto = document.getElementById('ag-texto').value.trim();
+  const data = document.getElementById('ag-data').value;
+  const plataforma = document.getElementById('ag-plataforma').value;
+  if (!texto || !data) { showToast('❌ Preenche o texto e a data'); return; }
+  const post = { id: gerarId(), texto, data, plataforma };
+  posts.push(post);
+  localStorage.setItem('lw_posts', JSON.stringify(posts));
+  closeModal('modal-agendar');
+  renderCalendario();
+  showToast('📅 Post agendado!');
+}
+
+// ===== CALENDÁRIO =====
+function renderCalendario() {
+  const ano = calDate.getFullYear();
+  const mes = calDate.getMonth();
+  const hoje = new Date();
+  const meses = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+  document.getElementById('cal-month-label').textContent = `${meses[mes]} ${ano}`;
+
+  const primeiroDia = new Date(ano, mes, 1).getDay();
+  const diasNoMes = new Date(ano, mes + 1, 0).getDate();
+  const container = document.getElementById('cal-days');
+
+  const dias = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
+  let html = dias.map(d => `<div class="cal-day-name">${d}</div>`).join('');
+
+  for (let i = 0; i < primeiroDia; i++) {
+    html += `<div class="cal-day empty"></div>`;
+  }
+
+  for (let d = 1; d <= diasNoMes; d++) {
+    const isHoje = hoje.getDate() === d && hoje.getMonth() === mes && hoje.getFullYear() === ano;
+    const dataStr = `${ano}-${String(mes+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const temPost = posts.some(p => p.data.startsWith(dataStr));
+    html += `<div class="cal-day ${isHoje ? 'today' : ''} ${temPost ? 'has-post' : ''}">${d}</div>`;
+  }
+
+  container.innerHTML = html;
+
+  // Scheduled list
+  const sc = document.getElementById('scheduled-container');
+  const sorted = [...posts].sort((a, b) => new Date(a.data) - new Date(b.data));
+  if (!sorted.length) {
+    sc.innerHTML = '<div class="empty-state"><div class="empty-icon">📭</div>Sem posts agendados.</div>';
+    return;
+  }
+  sc.innerHTML = sorted.map(p => {
+    const dt = new Date(p.data);
+    const label = dt.toLocaleDateString('pt-PT', { weekday:'short', day:'numeric', month:'short' });
+    const hora = dt.toLocaleTimeString('pt-PT', { hour:'2-digit', minute:'2-digit' });
+    return `
+      <div class="scheduled-item">
+        <div class="scheduled-dot" style="background:${p.plataforma==='Facebook'?'#0084ff':p.plataforma==='Instagram'?'#e1306c':'#25d366'}"></div>
+        <div>
+          <div class="scheduled-text">${p.texto.slice(0,80)}${p.texto.length > 80 ? '…' : ''}</div>
+          <div class="scheduled-meta">📘 ${p.plataforma} · ${label} às ${hora}
+            <button onclick="eliminarPost('${p.id}')" style="background:none;border:none;color:#ff6b6b;cursor:pointer;font-size:11px;margin-left:8px;">✕ Remover</button>
+          </div>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function eliminarPost(id) {
+  posts = posts.filter(p => p.id !== id);
+  localStorage.setItem('lw_posts', JSON.stringify(posts));
+  renderCalendario();
+  showToast('🗑 Post removido');
+}
+
+function changeMonth(dir) {
+  calDate.setMonth(calDate.getMonth() + dir);
+  renderCalendario();
+}
+
+// ===== TOAST =====
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  document.getElementById('toast-msg').textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+// ===== RESPOSTAS RÁPIDAS =====
+let currentMsgPlatform = 'WhatsApp';
+let currentLeadType = 'quente';
+
+const MEU_LINKS = {
+  registo: 'https://lifewave.com/MiguelLobato/enrollment/enrollerselection',
+  produto: 'https://lwsinfo.com/x39pt?aff=MiguelLobato',
+  'produto-obrigado': 'https://lwsinfo.com/x39pt-obrigado?aff=MiguelLobato',
+  negocio: 'https://lwsinfo.com/bizpt?aff=MiguelLobato',
+  'negocio-obrigado': 'https://lwsinfo.com/bizpt-obrigado?aff=MiguelLobato',
+  'produtos-direto': 'https://lifewaveresults.com/?lng=pt',
+  'negocio-direto': 'https://lifewaveresults.com/biz?lng=pt',
+};
+
+function setMsgPlatform(el, val) {
+  document.querySelectorAll('#msg-platform-pills .pill').forEach(p => p.classList.remove('active'));
+  el.classList.add('active');
+  currentMsgPlatform = val;
+}
+
+function setLeadType(el, val) {
+  document.querySelectorAll('#lead-type-pills .tone-pill').forEach(p => p.classList.remove('active'));
+  el.classList.add('active');
+  currentLeadType = val;
+}
+
+function checkCustom() {
+  const v = document.getElementById('pergunta-select').value;
+  document.getElementById('custom-pergunta-group').style.display = v === 'outro' ? 'block' : 'none';
+}
+
+// gerarResposta defined below with screenshot support
+
+function copiarResposta() {
+  const texto = document.getElementById('resp-text').textContent;
+  navigator.clipboard.writeText(texto).then(() => showToast('📋 Resposta copiada!')).catch(() => {
+    const ta = document.createElement('textarea');
+    ta.value = texto;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    showToast('📋 Resposta copiada!');
+  });
+}
+
+function copiarLink(url, nome) {
+  navigator.clipboard.writeText(url).then(() => showToast(`🔗 ${nome} copiado!`)).catch(() => {
+    const ta = document.createElement('textarea');
+    ta.value = url;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    showToast(`🔗 ${nome} copiado!`);
+  });
+}
+
+// ===== AI SELECTOR =====
+let postsAI = localStorage.getItem('lw_postsAI') || 'claude';
+let respAI  = localStorage.getItem('lw_respAI')  || 'claude';
+let geminiKey = localStorage.getItem('lw_geminiKey') || '';
+let claudeKey = localStorage.getItem('lw_claudeKey') || '';
+
+function saveClaudeKey(val) {
+  claudeKey = val.trim();
+  localStorage.setItem('lw_claudeKey', claudeKey);
+  ['posts','resp'].forEach(p => {
+    const st = document.getElementById(p + '-claude-status');
+    if (st) st.textContent = claudeKey.length > 10 ? '✅ Guardada' : '';
+    const inp = document.getElementById(p + '-claude-key');
+    if (inp && inp !== document.activeElement) inp.value = claudeKey;
+  });
+}
+
+function saveGeminiKey(val) {
+  geminiKey = val.trim();
+  localStorage.setItem('lw_geminiKey', geminiKey);
+  ['posts','resp'].forEach(p => {
+    const st = document.getElementById(p + '-gemini-status');
+    if (st) st.textContent = geminiKey.length > 10 ? '✅ Guardada' : '';
+    const inp = document.getElementById(p + '-gemini-key');
+    if (inp && inp !== document.activeElement) inp.value = geminiKey;
+  });
+}
+
+function setAI(page, ai) {
+  if (page === 'posts') {
+    postsAI = ai;
+    localStorage.setItem('lw_postsAI', ai);
+    document.getElementById('posts-btn-claude').className = 'ai-btn' + (ai==='claude' ? ' active-claude' : '');
+    document.getElementById('posts-btn-gemini').className = 'ai-btn' + (ai==='gemini' ? ' active-gemini' : '');
+    document.getElementById('posts-gemini-key-row').classList.toggle('show', ai==='gemini');
+    const claudeRow = document.getElementById('posts-claude-key-row');
+    if (claudeRow) claudeRow.classList.toggle('show', ai==='claude');
+    const noteText = document.getElementById('posts-ai-note-text');
+    noteText.innerHTML = ai === 'gemini'
+      ? 'Gemini gera posts em <strong>Português de Portugal</strong>, adaptados ao estilo LifeWave X39 — autêntico, empático e sem pressão de vendas.'
+      : 'Claude gera posts em <strong>Português de Portugal</strong>, adaptados ao estilo LifeWave X39 — autêntico, empático e sem pressão de vendas.';
+    if (ai === 'gemini') syncGeminiKeyInputs();
+    if (ai === 'claude') syncClaudeKeyInputs();
+  } else {
+    respAI = ai;
+    localStorage.setItem('lw_respAI', ai);
+    document.getElementById('resp-btn-claude').className = 'ai-btn' + (ai==='claude' ? ' active-claude' : '');
+    document.getElementById('resp-btn-gemini').className = 'ai-btn' + (ai==='gemini' ? ' active-gemini' : '');
+    document.getElementById('resp-gemini-key-row').classList.toggle('show', ai==='gemini');
+    const claudeRow = document.getElementById('resp-claude-key-row');
+    if (claudeRow) claudeRow.classList.toggle('show', ai==='claude');
+    if (ai === 'gemini') syncGeminiKeyInputs();
+    if (ai === 'claude') syncClaudeKeyInputs();
+  }
+}
+
+function syncGeminiKeyInputs() {
+  ['posts','resp'].forEach(p => {
+    const inp = document.getElementById(p + '-gemini-key');
+    const st  = document.getElementById(p + '-gemini-status');
+    if (inp) inp.value = geminiKey;
+    if (st)  st.textContent = geminiKey.length > 10 ? '✅ Guardada' : '';
+  });
+}
+
+function syncClaudeKeyInputs() {
+  ['posts','resp'].forEach(p => {
+    const inp = document.getElementById(p + '-claude-key');
+    const st  = document.getElementById(p + '-claude-status');
+    if (inp) inp.value = claudeKey;
+    if (st)  st.textContent = claudeKey.length > 10 ? '✅ Guardada' : '';
+  });
+}
+
+function initAISelector() {
+  setAI('posts', postsAI);
+  setAI('resp',  respAI);
+  syncGeminiKeyInputs();
+  syncClaudeKeyInputs();
+}
+
+// Gemini API call — tenta modelos por ordem até encontrar um que funcione
+const GEMINI_MODELS = [
+  'gemini-2.5-flash',
+  'gemini-2.0-flash',
+  'gemini-1.5-flash'
+];
+
+async function callGeminiModel(model, prompt, imageBase64, imageMediaType) {
+  const parts = [];
+  if (imageBase64) {
+    parts.push({ inline_data: { mime_type: imageMediaType || 'image/jpeg', data: imageBase64 } });
+  }
+  parts.push({ text: prompt });
+  const body = {
+    contents: [{ role: 'user', parts }],
+    generationConfig: { maxOutputTokens: 4096, temperature: 0.8 }
+  };
+  const res = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiKey}`,
+    { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }
+  );
+  const data = await res.json();
+  if (data.error) throw new Error(data.error.message || 'Erro Gemini');
+  return data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+}
+
+async function callGemini(prompt, imageBase64, imageMediaType) {
+  if (!geminiKey) throw new Error('GEMINI_NO_KEY');
+  // Tenta cada modelo até um funcionar
+  let lastError = null;
+  for (const model of GEMINI_MODELS) {
+    try {
+      return await callGeminiModel(model, prompt, imageBase64, imageMediaType);
+    } catch(e) {
+      lastError = e;
+      // Se for quota, tenta o próximo modelo
+      if (e.message && (e.message.includes('quota') || e.message.includes('RESOURCE_EXHAUSTED') || e.message.includes('limit'))) {
+        continue;
+      }
+      // Outro erro — lança imediatamente
+      throw e;
+    }
+  }
+  throw new Error('Quota Gemini esgotada em todos os modelos. Aguarda uns minutos ou verifica o teu plano em ai.dev/rate-limit');
+}
+
+// Claude API call
+async function callClaude(prompt, imageBase64, imageMediaType) {
+  // Detect local file context — Claude API blocked by CORS when opened as file://  or content://
+  const isLocal = location.protocol === 'file:' || location.protocol === 'content:';
+  if (isLocal) throw new Error('LOCAL_FILE');
+  if (!claudeKey) throw new Error('CLAUDE_NO_KEY');
+
+  let content;
+  if (imageBase64) {
+    content = [
+      { type: 'image', source: { type: 'base64', media_type: imageMediaType || 'image/jpeg', data: imageBase64 } },
+      { type: 'text', text: prompt }
+    ];
+  } else {
+    content = prompt;
+  }
+  const res = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': claudeKey,
+      'anthropic-version': '2023-06-01',
+      'anthropic-dangerous-direct-browser-access': 'true'
+    },
+    body: JSON.stringify({ model: 'claude-sonnet-4-20250514', max_tokens: 2048, messages: [{ role: 'user', content }] })
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err?.error?.message || `Erro HTTP ${res.status}`);
+  }
+  const data = await res.json();
+  if (data.error) throw new Error(data.error.message || 'Erro Claude');
+  return data.content?.[0]?.text || '';
+}
+
+async function callAI(page, prompt, imageBase64, imageMediaType) {
+  const ai = page === 'posts' ? postsAI : respAI;
+  const loaderLabel = document.getElementById(page === 'posts' ? 'posts-loader-label' : 'resp-loader-label');
+  if (loaderLabel) loaderLabel.textContent = ai === 'gemini' ? '✦ Gemini está a criar...' : '🧠 Claude está a criar...';
+
+  // If file:// or content:// context, auto-switch to Gemini with helpful message
+  const isLocal = location.protocol === 'file:' || location.protocol === 'content:';
+  if (isLocal && ai === 'claude') {
+    if (!geminiKey) throw new Error('LOCAL_FILE');
+    if (loaderLabel) loaderLabel.textContent = '✦ A usar Gemini (ficheiro local)...';
+    return callGemini(prompt, imageBase64, imageMediaType);
+  }
+
+  if (ai === 'gemini') return callGemini(prompt, imageBase64, imageMediaType);
+  return callClaude(prompt, imageBase64, imageMediaType);
+}
+
+// ===== FEATURE 1: POST COM IMAGEM =====
+let postImageBase64 = null;
+let postImageMediaType = null;
+
+function handlePostImage(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const dataUrl = e.target.result;
+    postImageBase64 = dataUrl.split(',')[1];
+    postImageMediaType = file.type || 'image/jpeg';
+    document.getElementById('post-img-thumb').src = dataUrl;
+    const wrap = document.getElementById('post-img-preview');
+    wrap.style.display = 'block';
+    showToast('🖼️ Imagem carregada! A IA vai analisá-la.');
+  };
+  reader.readAsDataURL(file);
+}
+
+function removerImagemPost() {
+  postImageBase64 = null;
+  postImageMediaType = null;
+  document.getElementById('post-img-input').value = '';
+  document.getElementById('post-img-thumb').src = '';
+  document.getElementById('post-img-preview').style.display = 'none';
+  showToast('🗑 Imagem removida');
+}
+
+async function gerarPost() {
+  const tema = document.getElementById('tema-select').value;
+  const contexto = document.getElementById('contexto-input').value.trim();
+  const emojis = document.getElementById('emoji-select').value;
+
+  const loader = document.getElementById('ai-loader');
+  const textEl = document.getElementById('ai-text');
+  const copyBar = document.getElementById('copy-bar');
+  const charCount = document.getElementById('char-count');
+
+  loader.classList.add('show');
+  textEl.style.display = 'none';
+  copyBar.style.display = 'none';
+  charCount.textContent = '';
+
+  const limites = { Facebook: 1200, Instagram: 800, WhatsApp: 600 };
+  const limite = limites[currentPlatform] || 900;
+
+  const instrucao = postImageBase64
+    ? `Analisa esta imagem e cria um post para ${currentPlatform} sobre LifeWave X39. O post deve ser inspirado no que vês na imagem e relacionar-se com os benefícios do X39.`
+    : videoInfo
+    ? `Cria um post para ${currentPlatform} sobre LifeWave X39, inspirado neste vídeo de ${videoInfo.source}:\nTítulo: ${videoInfo.title}\nContexto: ${videoInfo.description}\nRelaciona o tema do vídeo com os benefícios do X39.`
+    : `Cria um post para ${currentPlatform} sobre LifeWave X39 patches.`;
+
+  const textoPrompt = `${instrucao}
+
+Tom: ${currentTone}
+Tema: ${tema}
+${contexto ? `Contexto adicional: ${contexto}` : ''}
+Emojis: ${emojis === 'sim' ? 'Usa alguns emojis relevantes (3-5)' : emojis === 'muitos' ? 'Usa muitos emojis, torna apelativo e visual' : 'Sem emojis, texto limpo e profissional'}
+
+Regras CRÍTICAS — segue-as todas:
+1. OBRIGATÓRIO: escreve o post COMPLETO do início ao fim. NUNCA termines a meio de uma frase ou parágrafo. A última palavra deve ser o fim natural do post.
+2. O post deve ter entre 3 a 5 parágrafos curtos, cada um com uma ideia completa.
+3. Escreve em Português de Portugal (não Brasil).
+4. Tom autêntico, empático, sem pressão de vendas.
+5. Não uses palavras "compra", "urgente", "oportunidade imperdível".
+6. Para Instagram, termina com hashtags relevantes.
+7. Para WhatsApp, tom mais pessoal e direto.
+8. Para Facebook, pode ser ligeiramente mais longo e informativo.
+9. Baseia-te em benefícios reais: energia, bem-estar, recuperação, sono, fotomodulação.
+10. NÃO faças promessas médicas ou de cura.
+
+IMPORTANTE: Responde APENAS com o texto do post, sem introdução, título ou explicação. O post deve ser auto-suficiente e terminar de forma natural e completa.`;
+
+
+  try {
+    const texto = await callAI('posts', textoPrompt, postImageBase64 || null, postImageBase64 ? postImageMediaType : null);
+    lastGeneratedPost = texto;
+    textEl.textContent = texto;
+    textEl.style.display = 'block';
+    copyBar.style.display = 'flex';
+    const len = texto.length;
+    charCount.textContent = `${len} caracteres`;
+    charCount.className = 'char-count' + (len > limite ? ' over' : len > limite * 0.85 ? ' warn' : '');
+  } catch (e) {
+    if (e.message === 'CLAUDE_NO_KEY') {
+      textEl.textContent = '⚠️ Falta a chave API do Claude.\n\n👉 Introduz a tua API Key do Claude no campo abaixo do seletor de IA.\n\n🔑 Obter chave: console.anthropic.com';
+    } else if (e.message === 'GEMINI_NO_KEY' || e.message === 'LOCAL_FILE') {
+      textEl.textContent = '⚠️ A app está aberta como ficheiro local — o Claude não funciona neste modo (bloqueio CORS do browser).\n\n👉 Solução rápida: seleciona "✦ Gemini" no seletor de IA acima e introduz a tua chave API gratuita do Gemini.\n\n🔑 Obter chave grátis: aistudio.google.com/app/apikey';
+    } else if (e.message && (e.message.includes('quota') || e.message.includes('Quota') || e.message.includes('RESOURCE_EXHAUSTED'))) {
+      textEl.textContent = '⏳ Quota Gemini esgotada (limite do plano gratuito atingido).\n\nSoluções:\n1. Aguarda 1 minuto e tenta novamente\n2. Obtém uma nova chave API em aistudio.google.com/app/apikey\n3. Activa a faturação no Google Cloud para aumentar os limites (tem tier gratuito generoso)';
+    } else {
+      textEl.textContent = '❌ Erro: ' + (e.message || 'Verifica a tua conexão e tenta novamente.');
+    }
+    textEl.style.display = 'block';
+  } finally {
+    loader.classList.remove('show');
+  }
+}
+
+// ===== FEATURE: URL DE VÍDEO =====
+let videoInfo = null; // { title, description, source, thumbnailUrl }
+
+function detectarPlataformaVideo(url) {
+  if (/youtube\.com|youtu\.be/.test(url)) return { nome: 'YouTube', icone: '▶️' };
+  if (/facebook\.com|fb\.watch/.test(url)) return { nome: 'Facebook', icone: '📘' };
+  if (/instagram\.com/.test(url)) return { nome: 'Instagram', icone: '📸' };
+  if (/tiktok\.com/.test(url)) return { nome: 'TikTok', icone: '🎵' };
+  if (/vimeo\.com/.test(url)) return { nome: 'Vimeo', icone: '🎬' };
+  if (/twitter\.com|x\.com/.test(url)) return { nome: 'X/Twitter', icone: '𝕏' };
+  if (/linkedin\.com/.test(url)) return { nome: 'LinkedIn', icone: '💼' };
+  return null;
+}
+
+function extrairYouTubeId(url) {
+  const m = url.match(/(?:v=|youtu\.be\/|embed\/)([a-zA-Z0-9_-]{11})/);
+  return m ? m[1] : null;
+}
+
+function onVideoUrlInput() {
+  const url = document.getElementById('video-url-input').value.trim();
+  const iconEl = document.getElementById('video-url-icon');
+  const fetchBtn = document.getElementById('video-fetch-btn');
+  const errorEl = document.getElementById('video-error');
+  errorEl.style.display = 'none';
+
+  if (!url) {
+    iconEl.textContent = '';
+    fetchBtn.style.display = 'none';
+    return;
+  }
+  const plat = detectarPlataformaVideo(url);
+  if (plat) {
+    iconEl.textContent = plat.icone;
+    fetchBtn.style.display = 'inline-flex';
+  } else {
+    iconEl.textContent = '🔗';
+    fetchBtn.style.display = 'inline-flex';
+  }
+}
+
+async function buscarInfoVideo() {
+  const url = document.getElementById('video-url-input').value.trim();
+  if (!url) return;
+
+  const loadingEl = document.getElementById('video-loading');
+  const infoBox = document.getElementById('video-info-box');
+  const errorEl = document.getElementById('video-error');
+  const fetchBtn = document.getElementById('video-fetch-btn');
+
+  loadingEl.style.display = 'flex';
+  infoBox.style.display = 'none';
+  errorEl.style.display = 'none';
+  fetchBtn.disabled = true;
+
+  // Try YouTube oEmbed first (no key needed)
+  const ytId = extrairYouTubeId(url);
+  if (ytId) {
+    try {
+      const res = await fetch(`https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${ytId}&format=json`);
+      if (res.ok) {
+        const d = await res.json();
+        videoInfo = {
+          title: d.title || '',
+          description: `Vídeo do canal "${d.author_name}" no YouTube.`,
+          source: 'YouTube',
+          thumbnailUrl: `https://img.youtube.com/vi/${ytId}/mqdefault.jpg`
+        };
+        mostrarVideoInfo();
+        loadingEl.style.display = 'none';
+        fetchBtn.disabled = false;
+        return;
+      }
+    } catch(e) {}
+  }
+
+  // Fallback: use Claude to summarize based on the URL
+  try {
+    const plat = detectarPlataformaVideo(url) || { nome: 'plataforma desconhecida' };
+    const prompt = `O utilizador quer criar um post sobre um vídeo em ${plat.nome}.
+URL: ${url}
+
+Com base no URL, tenta inferir o tema ou assunto do vídeo (pelo slug, título na URL, etc.).
+Se não conseguires inferir nada concreto, responde com um contexto genérico sobre o tipo de conteúdo típico desta plataforma.
+
+Responde APENAS em JSON sem markdown, neste formato exato:
+{"title":"título inferido ou descrição curta","description":"1-2 frases sobre o tema provável","source":"${plat.nome}"}`;
+
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-api-key': claudeKey, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 500,
+        messages: [{ role: 'user', content: prompt }]
+      })
+    });
+    const data = await res.json();
+    const raw = data.content?.[0]?.text || '';
+    const clean = raw.replace(/```json|```/g, '').trim();
+    const parsed = JSON.parse(clean);
+    videoInfo = { title: parsed.title || '', description: parsed.description || '', source: parsed.source || plat.nome, thumbnailUrl: null };
+    mostrarVideoInfo();
+  } catch(e) {
+    // Last resort: just store the URL itself as context
+    const plat = detectarPlataformaVideo(url) || { nome: 'vídeo' };
+    videoInfo = { title: url, description: `Conteúdo de ${plat.nome}`, source: plat.nome, thumbnailUrl: null };
+    mostrarVideoInfo();
+  } finally {
+    loadingEl.style.display = 'none';
+    fetchBtn.disabled = false;
+  }
+}
+
+function mostrarVideoInfo() {
+  if (!videoInfo) return;
+  document.getElementById('video-title').textContent = videoInfo.title;
+  document.getElementById('video-desc').textContent = videoInfo.description;
+  document.getElementById('video-source').textContent = '📍 ' + videoInfo.source;
+  const thumb = document.getElementById('video-thumb');
+  if (videoInfo.thumbnailUrl) {
+    thumb.src = videoInfo.thumbnailUrl;
+    thumb.style.display = 'block';
+  } else {
+    thumb.style.display = 'none';
+  }
+  document.getElementById('video-info-box').style.display = 'block';
+  showToast('🎬 Vídeo identificado! Clica em "Gerar Post".');
+}
+
+function limparVideo() {
+  videoInfo = null;
+  document.getElementById('video-url-input').value = '';
+  document.getElementById('video-info-box').style.display = 'none';
+  document.getElementById('video-url-icon').textContent = '';
+  document.getElementById('video-fetch-btn').style.display = 'none';
+  document.getElementById('video-error').style.display = 'none';
+}
+
+// ===== FEATURE 2: IMPORTAR CONTACTOS =====
+let importContactos = [];
+
+function handleImportFile(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const ext = file.name.split('.').pop().toLowerCase();
+  const reader = new FileReader();
+
+  reader.onload = e => {
+    const content = e.target.result;
+    if (ext === 'vcf') {
+      importContactos = parseVCF(content);
+    } else if (ext === 'csv') {
+      importContactos = parseCSV(content);
+    } else {
+      showToast('❌ Formato não suportado. Usa CSV ou VCF.');
+      return;
+    }
+    renderImportPreview();
+  };
+
+  if (ext === 'vcf' || ext === 'csv') {
+    reader.readAsText(file, 'UTF-8');
+  } else {
+    showToast('❌ Por agora suportamos CSV e VCF (vCard).');
+  }
+}
+
+function parseVCF(text) {
+  const contacts = [];
+  const cards = text.split(/BEGIN:VCARD/i).filter(c => c.trim());
+  cards.forEach(card => {
+    const nome = (card.match(/FN[^:]*:(.+)/i) || card.match(/N[^:]*:([^;\n]+)/i) || [])[1]?.trim() || '';
+    const telMatch = card.match(/TEL[^:]*:([^\r\n]+)/i);
+    const emailMatch = card.match(/EMAIL[^:]*:([^\r\n]+)/i);
+    if (nome || telMatch) {
+      contacts.push({
+        nome: nome || 'Sem nome',
+        tel: telMatch ? telMatch[1].trim().replace(/\s/g,'') : '',
+        email: emailMatch ? emailMatch[1].trim() : '',
+        notas: ''
+      });
+    }
+  });
+  return contacts;
+}
+
+function parseCSV(text) {
+  const lines = text.split(/\r?\n/).filter(l => l.trim());
+  if (!lines.length) return [];
+  const header = lines[0].split(/[,;]/).map(h => h.trim().toLowerCase().replace(/['"]/g,''));
+  const idxNome = header.findIndex(h => h.includes('nome') || h.includes('name'));
+  const idxTel = header.findIndex(h => h.includes('tel') || h.includes('phone') || h.includes('mob'));
+  const idxEmail = header.findIndex(h => h.includes('email') || h.includes('mail'));
+  const idxNotas = header.findIndex(h => h.includes('nota') || h.includes('note') || h.includes('obs'));
+
+  return lines.slice(1).map(line => {
+    const cols = line.split(/[,;]/).map(c => c.trim().replace(/^["']|["']$/g,''));
+    return {
+      nome: idxNome >= 0 ? cols[idxNome] || '' : cols[0] || '',
+      tel: idxTel >= 0 ? cols[idxTel] || '' : '',
+      email: idxEmail >= 0 ? cols[idxEmail] || '' : '',
+      notas: idxNotas >= 0 ? cols[idxNotas] || '' : ''
+    };
+  }).filter(c => c.nome);
+}
+
+function renderImportPreview() {
+  const area = document.getElementById('import-preview-area');
+  const preview = document.getElementById('import-preview');
+  const countLabel = document.getElementById('import-count-label');
+  const confirmBtn = document.getElementById('import-confirm-btn');
+
+  if (!importContactos.length) {
+    showToast('❌ Nenhum contacto encontrado no ficheiro.');
+    return;
+  }
+
+  area.style.display = 'block';
+  confirmBtn.style.display = 'inline-flex';
+  countLabel.textContent = `${importContactos.length} contacto(s) encontrado(s)`;
+
+  preview.innerHTML = importContactos.map((c, i) => `
+    <div class="import-row">
+      <input type="checkbox" id="imp-${i}" checked>
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:12px;font-weight:600;color:var(--text);">${c.nome}</div>
+        <div style="font-size:11px;color:var(--text2);">${[c.tel, c.email].filter(Boolean).join(' · ') || 'Sem contacto'}</div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function selecionarTodosImport(val) {
+  importContactos.forEach((_, i) => {
+    const cb = document.getElementById(`imp-${i}`);
+    if (cb) cb.checked = val;
+  });
+}
+
+function confirmarImport() {
+  const selecionados = importContactos.filter((_, i) => {
+    const cb = document.getElementById(`imp-${i}`);
+    return cb && cb.checked;
+  });
+  if (!selecionados.length) { showToast('❌ Nenhum contacto selecionado'); return; }
+
+  let novos = 0;
+  selecionados.forEach(c => {
+    const existe = leads.some(l => l.nome === c.nome && (l.tel === c.tel || (!l.tel && !c.tel)));
+    if (!existe) {
+      leads.unshift({
+        id: gerarId(),
+        nome: c.nome,
+        tel: c.tel,
+        email: c.email,
+        mercado: 'Frio (desconhecidos)',
+        estado: 'novo',
+        fonte: 'Importação',
+        notas: c.notas,
+        data: new Date().toLocaleDateString('pt-PT'),
+        historico: [{ msg: 'Importado de ficheiro', data: new Date().toLocaleString('pt-PT') }]
+      });
+      novos++;
+    }
+  });
+
+  saveleads();
+  closeModal('modal-importar');
+  renderDashboard();
+  renderLista();
+
+  // reset
+  importContactos = [];
+  document.getElementById('import-file-input').value = '';
+  document.getElementById('import-preview-area').style.display = 'none';
+  document.getElementById('import-confirm-btn').style.display = 'none';
+
+  showToast(`✓ ${novos} contacto(s) importado(s)! ${selecionados.length - novos > 0 ? `(${selecionados.length - novos} duplicado(s) ignorado(s))` : ''}`);
+}
+
+// ===== FEATURE 3: RESPOSTA COM SCREENSHOT =====
+let screenshotBase64 = null;
+let screenshotMediaType = null;
+
+function handleScreenshot(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const dataUrl = e.target.result;
+    screenshotBase64 = dataUrl.split(',')[1];
+    screenshotMediaType = file.type || 'image/jpeg';
+    const preview = document.getElementById('screenshot-preview');
+    preview.src = dataUrl;
+    preview.style.display = 'block';
+    document.getElementById('screenshot-remove-row').style.display = 'block';
+    // Auto-select "outro" to allow override from image
+    const sel = document.getElementById('pergunta-select');
+    sel.value = 'outro';
+    document.getElementById('custom-pergunta-group').style.display = 'block';
+    document.getElementById('custom-pergunta').placeholder = 'Opcional: podes adicionar contexto extra à conversa do print...';
+    showToast('📸 Print carregado! A IA vai ler a conversa.');
+  };
+  reader.readAsDataURL(file);
+}
+
+function removerScreenshot() {
+  screenshotBase64 = null;
+  screenshotMediaType = null;
+  document.getElementById('screenshot-input').value = '';
+  document.getElementById('screenshot-preview').src = '';
+  document.getElementById('screenshot-preview').style.display = 'none';
+  document.getElementById('screenshot-remove-row').style.display = 'none';
+  showToast('🗑 Print removido');
+}
+
+// Override gerarResposta to support screenshot
+async function gerarResposta() {
+  const perguntaSelect = document.getElementById('pergunta-select').value;
+  const perguntaTexto = perguntaSelect === 'outro'
+    ? document.getElementById('custom-pergunta').value.trim()
+    : perguntaSelect;
+  const contexto = document.getElementById('resp-contexto').value.trim();
+  const linkKey = document.getElementById('link-select').value;
+
+  if (!perguntaTexto && !screenshotBase64) {
+    showToast('❌ Escreve a pergunta ou faz upload de um print');
+    return;
+  }
+
+  const loader = document.getElementById('resp-loader');
+  const textEl = document.getElementById('resp-text');
+  const copyBar = document.getElementById('resp-copy-bar');
+
+  loader.classList.add('show');
+  textEl.style.display = 'none';
+  copyBar.style.display = 'none';
+
+  const linkInfo = linkKey !== 'nenhum'
+    ? `\n\nInclui este link no final da resposta de forma natural: ${MEU_LINKS[linkKey]}`
+    : '';
+
+  const tipoMercado = { quente: 'mercado quente (amigo/familiar próximo)', morno: 'mercado morno (conhecido, colega)', frio: 'mercado frio (desconhecido)' }[currentLeadType];
+
+  let promptTexto;
+  if (screenshotBase64) {
+    promptTexto = `És o Miguel Lobato, distribuidor LifeWave X39 em Portugal.
+
+Analisa este print de conversa do ${currentMsgPlatform} e gera a melhor resposta para continuar a conversa.
+
+CONTEXTO:
+- Canal: ${currentMsgPlatform}
+- Tipo de lead: ${tipoMercado}
+${perguntaTexto ? `- Informação extra / contexto: ${perguntaTexto}` : ''}
+${contexto ? `- Nota adicional: ${contexto}` : ''}
+
+OS TEUS LINKS PESSOAIS:
+- Registo: ${MEU_LINKS.registo}
+- Funil Produto: ${MEU_LINKS.produto}
+- Funil Negócio: ${MEU_LINKS.negocio}
+- Produtos direto: ${MEU_LINKS['produtos-direto']}
+- Negócio direto: ${MEU_LINKS['negocio-direto']}
+${linkInfo}
+
+REGRAS:
+- Lê a última mensagem da pessoa e responde a ela especificamente
+- Escreve em Português de Portugal (não Brasil)
+- Tom autêntico, humano, empático — como um amigo que genuinamente quer ajudar
+- Adapta o tom ao canal: WhatsApp mais informal, Messenger ligeiramente mais formal, Instagram DM curto e casual
+- Adapta ao tipo de mercado: quente=mais pessoal, morno=mais explicativo, frio=mais cuidadoso
+- Não uses linguagem de vendas agressiva
+- Não faças promessas médicas ou de cura
+- Usa emojis com moderação (2-4 no máximo)
+- Comprimento ideal: 3-6 linhas
+
+Responde APENAS com o texto da mensagem, pronto a copiar e enviar. Sem introdução nem explicação.`;
+  } else {
+    promptTexto = `És o Miguel Lobato, distribuidor LifeWave X39 em Portugal. Vais responder a uma mensagem recebida via ${currentMsgPlatform}.
+
+PERGUNTA / MENSAGEM RECEBIDA:
+"${perguntaTexto}"
+
+CONTEXTO:
+- Canal: ${currentMsgPlatform}
+- Tipo de lead: ${tipoMercado}
+${contexto ? `- Informação extra: ${contexto}` : ''}
+
+OS TEUS LINKS PESSOAIS (usa apenas se indicado):
+- Registo: ${MEU_LINKS.registo}
+- Funil Produto: ${MEU_LINKS.produto}
+- Funil Negócio: ${MEU_LINKS.negocio}
+- Produtos direto: ${MEU_LINKS['produtos-direto']}
+- Negócio direto: ${MEU_LINKS['negocio-direto']}
+${linkInfo}
+
+REGRAS IMPORTANTES:
+- Escreve em Português de Portugal (não Brasil)
+- Tom autêntico, humano, empático — como um amigo que genuinamente quer ajudar
+- Adapta o tom ao canal: WhatsApp mais informal e direto, Messenger ligeiramente mais formal, Instagram DM curto e casual
+- Adapta ao tipo de mercado: quente=mais pessoal e direto, morno=mais explicativo, frio=mais cuidadoso e não invasivo
+- Não uses linguagem de vendas agressiva ou pressão
+- Não faças promessas médicas ou de cura
+- Se for uma objeção, acolhe-a com empatia antes de responder
+- Usa emojis com moderação (2-4 no máximo)
+- Comprimento ideal: 3-6 linhas para WhatsApp/Instagram, pode ser um pouco mais para Messenger
+- No final, se fizer sentido, inclui um convite suave para continuar a conversa ou próximo passo
+
+Responde APENAS com o texto da mensagem, pronto a copiar e enviar. Sem introdução nem explicação.`;
+  }
+
+  let mensagens;
+  if (screenshotBase64) {
+    mensagens = [{
+      role: 'user',
+      content: [
+        { type: 'image', source: { type: 'base64', media_type: screenshotMediaType, data: screenshotBase64 } },
+        { type: 'text', text: promptTexto }
+      ]
+    }];
+  } else {
+    mensagens = [{ role: 'user', content: promptTexto }];
+  }
+
+  try {
+    const texto = await callAI('resp', promptTexto, screenshotBase64 || null, screenshotBase64 ? screenshotMediaType : null);
+    textEl.textContent = texto;
+    textEl.style.display = 'block';
+    copyBar.style.display = 'flex';
+  } catch (e) {
+    if (e.message === 'CLAUDE_NO_KEY') {
+      textEl.textContent = '⚠️ Falta a chave API do Claude.\n\n👉 Introduz a tua API Key do Claude no campo abaixo do seletor de IA.\n\n🔑 Obter chave: console.anthropic.com';
+    } else if (e.message === 'GEMINI_NO_KEY' || e.message === 'LOCAL_FILE') {
+      textEl.textContent = '⚠️ A app está aberta como ficheiro local — o Claude não funciona neste modo (bloqueio CORS do browser).\n\n👉 Solução rápida: seleciona "✦ Gemini" no seletor de IA acima e introduz a tua chave API gratuita do Gemini.\n\n🔑 Obter chave grátis: aistudio.google.com/app/apikey';
+    } else if (e.message && (e.message.includes('quota') || e.message.includes('Quota') || e.message.includes('RESOURCE_EXHAUSTED'))) {
+      textEl.textContent = '⏳ Quota Gemini esgotada (limite do plano gratuito atingido).\n\nSoluções:\n1. Aguarda 1 minuto e tenta novamente\n2. Obtém uma nova chave API em aistudio.google.com/app/apikey\n3. Activa a faturação no Google Cloud para aumentar os limites (tem tier gratuito generoso)';
+    } else {
+      textEl.textContent = '❌ Erro: ' + (e.message || 'Verifica a tua conexão e tenta novamente.');
+    }
+    textEl.style.display = 'block';
+  } finally {
+    loader.classList.remove('show');
+  }
+}
+
+// ===== GOOGLE OAUTH & SYNC =====
+
+const GOOGLE_SCOPES = [
+  'https://www.googleapis.com/auth/contacts.readonly',
+  'https://www.googleapis.com/auth/calendar.events'
+].join(' ');
+
+let googleAccessToken = null;
+let googleTokenExpiry = 0;
+let pendingGoogleAction = null; // 'contacts' | 'calendar'
+let googleContactsToImport = [];
+
+function saveGoogleClientId(val) {
+  localStorage.setItem('lw_google_client_id', val.trim());
+  const st = document.getElementById('google-config-status');
+  if (st) st.innerHTML = val.trim().length > 10
+    ? '<span style="color:var(--accent)">✅ Client ID guardado</span>'
+    : '';
+}
+
+function getGoogleClientId() {
+  return localStorage.getItem('lw_google_client_id') || '';
+}
+
+function initGoogleConfigModal() {
+  const inp = document.getElementById('google-client-id-input');
+  if (inp) inp.value = getGoogleClientId();
+}
+
+function isGoogleTokenValid() {
+  return googleAccessToken && Date.now() < googleTokenExpiry - 10000;
+}
+
+// Launch Google OAuth popup using GIS (Google Identity Services)
+// (full definition with agenda support is below, near AGENDA section)
+
+// ---- CONTACTS ----
+async function syncGoogleContacts() {
+  pendingGoogleAction = 'contacts';
+  const clientId = getGoogleClientId();
+  if (!clientId) {
+    initGoogleConfigModal();
+    openModal('modal-google-config');
+    return;
+  }
+  if (!isGoogleTokenValid()) {
+    iniciarGoogleAuth('contacts');
+    return;
+  }
+  await executarSyncContacts();
+}
+
+async function executarSyncContacts() {
+  const btn = document.getElementById('btn-google-contacts');
+  const status = document.getElementById('contacts-gsync-status');
+  btn.classList.add('syncing');
+  btn.textContent = '⏳ A carregar...';
+  status.textContent = 'A obter contactos...';
+  status.className = 'gsync-status';
+
+  try {
+    const url = 'https://people.googleapis.com/v1/people/me/connections' +
+      '?personFields=names,emailAddresses,phoneNumbers' +
+      '&pageSize=500&sortOrder=FIRST_NAME_ASCENDING';
+
+    const res = await fetch(url, {
+      headers: { Authorization: `Bearer ${googleAccessToken}` }
+    });
+    if (!res.ok) throw new Error(`Erro ${res.status}: ${res.statusText}`);
+    const data = await res.json();
+    const connections = data.connections || [];
+
+    googleContactsToImport = connections.map(p => {
+      const nome = p.names?.[0]?.displayName || '';
+      const tel = p.phoneNumbers?.[0]?.value || '';
+      const email = p.emailAddresses?.[0]?.value || '';
+      return { nome, tel, email, notas: '' };
+    }).filter(c => c.nome);
+
+    status.textContent = `${googleContactsToImport.length} contactos encontrados`;
+    status.className = 'gsync-status ok';
+
+    renderGContactsPreview();
+    openModal('modal-google-contacts-preview');
+  } catch (e) {
+    status.textContent = '❌ ' + (e.message || 'Erro desconhecido');
+    status.className = 'gsync-status err';
+    showToast('❌ Erro ao obter contactos Google: ' + e.message);
+    // Token may be expired — reset
+    googleAccessToken = null;
+  } finally {
+    btn.classList.remove('syncing');
+    btn.innerHTML = '<span class="g-icon">🇬</span> Importar do Google';
+  }
+}
+
+function renderGContactsPreview() {
+  const label = document.getElementById('gcontacts-count-label');
+  const preview = document.getElementById('gcontacts-preview');
+  label.textContent = `${googleContactsToImport.length} contacto(s) encontrado(s)`;
+  preview.innerHTML = googleContactsToImport.map((c, i) => `
+    <div class="import-row">
+      <input type="checkbox" id="gc-${i}" checked>
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:12px;font-weight:600;color:var(--text);">${c.nome}</div>
+        <div style="font-size:11px;color:var(--text2);">${[c.tel, c.email].filter(Boolean).join(' · ') || 'Sem contacto'}</div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function selecionarTodosGContacts(val) {
+  googleContactsToImport.forEach((_, i) => {
+    const cb = document.getElementById(`gc-${i}`);
+    if (cb) cb.checked = val;
+  });
+}
+
+function confirmarImportGoogleContacts() {
+  const selecionados = googleContactsToImport.filter((_, i) => {
+    const cb = document.getElementById(`gc-${i}`);
+    return cb && cb.checked;
+  });
+  if (!selecionados.length) { showToast('❌ Nenhum contacto selecionado'); return; }
+
+  let novos = 0;
+  selecionados.forEach(c => {
+    const existe = leads.some(l => l.nome === c.nome && (l.tel === c.tel || (!l.tel && !c.tel)));
+    if (!existe) {
+      leads.unshift({
+        id: gerarId(),
+        nome: c.nome,
+        tel: c.tel,
+        email: c.email,
+        mercado: 'Frio (desconhecidos)',
+        estado: 'novo',
+        fonte: 'Google Contacts',
+        notas: c.notas,
+        data: new Date().toLocaleDateString('pt-PT'),
+        historico: [{ msg: 'Importado do Google Contacts', data: new Date().toLocaleString('pt-PT') }]
+      });
+      novos++;
+    }
+  });
+
+  saveleads();
+  closeModal('modal-google-contacts-preview');
+  renderDashboard();
+  renderLista();
+  const ignorados = selecionados.length - novos;
+  showToast(`✅ ${novos} contacto(s) importado(s) do Google!${ignorados > 0 ? ` (${ignorados} duplicado(s) ignorado(s))` : ''}`);
+
+  const status = document.getElementById('contacts-gsync-status');
+  if (status) { status.textContent = `✅ ${novos} importados`; status.className = 'gsync-status ok'; }
+}
+
+// ---- CALENDAR ----
+async function syncGoogleCalendar() {
+  pendingGoogleAction = 'calendar';
+  const clientId = getGoogleClientId();
+  if (!clientId) {
+    initGoogleConfigModal();
+    openModal('modal-google-config');
+    return;
+  }
+  if (!isGoogleTokenValid()) {
+    iniciarGoogleAuth('calendar');
+    return;
+  }
+  await executarSyncCalendar();
+}
+
+async function executarSyncCalendar() {
+  const btn = document.getElementById('btn-google-calendar');
+  const status = document.getElementById('calendar-gsync-status');
+
+  if (!posts.length) {
+    showToast('❌ Sem posts agendados para exportar');
+    return;
+  }
+
+  btn.classList.add('syncing');
+  btn.textContent = '⏳ A exportar...';
+  status.textContent = 'A exportar para Google Calendar...';
+  status.className = 'gsync-status';
+
+  let exportados = 0;
+  let erros = 0;
+
+  for (const post of posts) {
+    try {
+      const inicio = new Date(post.data);
+      const fim = new Date(inicio.getTime() + 30 * 60 * 1000); // +30min
+      const evento = {
+        summary: `[LW] ${post.plataforma}: ${post.texto.slice(0, 60)}${post.texto.length > 60 ? '…' : ''}`,
+        description: `Post LifeWave X39 — ${post.plataforma}\n\n${post.texto}`,
+        start: { dateTime: inicio.toISOString() },
+        end: { dateTime: fim.toISOString() },
+        colorId: post.plataforma === 'Facebook' ? '1' : post.plataforma === 'Instagram' ? '4' : '2',
+        reminders: {
+          useDefault: false,
+          overrides: [{ method: 'popup', minutes: 60 }]
+        }
+      };
+
+      const res = await fetch('https://www.googleapis.com/calendar/v3/calendars/primary/events', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${googleAccessToken}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(evento)
+      });
+
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error?.message || `HTTP ${res.status}`);
+      }
+      exportados++;
+    } catch (e) {
+      console.error('Erro ao exportar post:', e);
+      erros++;
+    }
+  }
+
+  btn.classList.remove('syncing');
+  btn.innerHTML = '<span class="g-icon">🇬</span> Exportar para Google Calendar';
+
+  if (exportados > 0) {
+    status.textContent = `✅ ${exportados} evento(s) exportado(s)`;
+    status.className = 'gsync-status ok';
+    showToast(`✅ ${exportados} post(s) exportado(s) para o Google Calendar!`);
+    if (erros > 0) showToast(`⚠️ ${erros} post(s) com erro`);
+  } else {
+    status.textContent = `❌ Erro ao exportar`;
+    status.className = 'gsync-status err';
+    showToast('❌ Erro ao exportar para Google Calendar');
+    googleAccessToken = null; // reset token
+  }
+}
+
+// ===== AGENDA =====
+let eventos = JSON.parse(localStorage.getItem('lw_eventos') || '[]');
+let agendaDate = new Date();
+let agendaSelectedDay = null;
+
+function saveEventos() { localStorage.setItem('lw_eventos', JSON.stringify(eventos)); }
+
+function renderAgenda(filtroData) {
+  const ano = agendaDate.getFullYear();
+  const mes = agendaDate.getMonth();
+  const hoje = new Date();
+  const meses = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+  document.getElementById('agenda-month-label').textContent = `${meses[mes]} ${ano}`;
+
+  const primeiroDia = new Date(ano, mes, 1).getDay();
+  const diasNoMes = new Date(ano, mes + 1, 0).getDate();
+  const container = document.getElementById('agenda-cal-days');
+
+  const dias = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
+  let html = dias.map(d => `<div class="cal-day-name">${d}</div>`).join('');
+  for (let i = 0; i < primeiroDia; i++) html += `<div class="cal-day empty"></div>`;
+
+  for (let d = 1; d <= diasNoMes; d++) {
+    const isHoje = hoje.getDate() === d && hoje.getMonth() === mes && hoje.getFullYear() === ano;
+    const dataStr = `${ano}-${String(mes+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const temEvento = eventos.some(e => e.data && e.data.startsWith(dataStr));
+    const isSelected = agendaSelectedDay === dataStr;
+    html += `<div class="cal-day ${isHoje?'today':''} ${temEvento?'has-post':''} ${isSelected?'selected-day':''}" onclick="selecionarDiaAgenda('${dataStr}')">${d}</div>`;
+  }
+  container.innerHTML = html;
+  renderEventosList(filtroData);
+}
+
+function selecionarDiaAgenda(dataStr) {
+  agendaSelectedDay = dataStr;
+  const titulo = document.getElementById('agenda-list-title');
+  const d = new Date(dataStr + 'T00:00:00');
+  titulo.textContent = `📋 Eventos — ${d.toLocaleDateString('pt-PT', { weekday:'long', day:'numeric', month:'long' })}`;
+  renderAgenda(dataStr);
+}
+
+function renderEventosList(filtroData) {
+  const container = document.getElementById('agenda-events-container');
+  let lista = [...eventos].sort((a, b) => new Date(a.data) - new Date(b.data));
+  if (filtroData) lista = lista.filter(e => e.data && e.data.startsWith(filtroData));
+
+  if (!lista.length) {
+    container.innerHTML = `<div class="empty-state"><div class="empty-icon">🗓️</div>${filtroData ? 'Sem eventos neste dia.' : 'Sem eventos agendados.'}<br><button class="btn btn-primary btn-sm" style="margin-top:12px;" onclick="openModal(\'modal-novo-evento\')">＋ Criar evento</button></div>`;
+    return;
+  }
+
+  const tipoIcon = { reuniao:'🤝', followup:'📞', entrega:'📦', webinar:'💻', pessoal:'👤', outro:'📌' };
+  container.innerHTML = lista.map(ev => {
+    const dt = new Date(ev.data);
+    const hora = ev.hora || '';
+    const icon = tipoIcon[ev.tipo] || '📌';
+    return `
+      <div class="scheduled-item">
+        <div class="scheduled-dot" style="background:${ev.cor || 'var(--accent)'}"></div>
+        <div style="flex:1;">
+          <div class="scheduled-text">${icon} <strong>${ev.titulo}</strong></div>
+          <div class="scheduled-meta">
+            ${dt.toLocaleDateString('pt-PT', { weekday:'short', day:'numeric', month:'short' })}${hora ? ` às ${hora}` : ''}
+            ${ev.lead ? ` · 👤 ${ev.lead}` : ''}
+            ${ev.notas ? `<div style="margin-top:3px;color:var(--text2);font-size:11px;">${ev.notas}</div>` : ''}
+          </div>
+          <div style="margin-top:6px;display:flex;gap:6px;">
+            <button class="btn btn-secondary btn-sm" onclick="editarEvento('${ev.id}')">✏️ Editar</button>
+            <button class="btn btn-danger btn-sm" onclick="eliminarEvento('${ev.id}')">🗑</button>
+          </div>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function changeAgendaMonth(dir) {
+  agendaDate.setMonth(agendaDate.getMonth() + dir);
+  agendaSelectedDay = null;
+  document.getElementById('agenda-list-title').textContent = '📋 Todos os Eventos';
+  renderAgenda();
+}
+
+function eliminarEvento(id) {
+  if (!confirm('Eliminar este evento?')) return;
+  eventos = eventos.filter(e => e.id !== id);
+  saveEventos();
+  renderAgenda(agendaSelectedDay);
+  showToast('🗑 Evento eliminado');
+}
+
+let editingEventoId = null;
+
+function editarEvento(id) {
+  const ev = eventos.find(e => e.id === id);
+  if (!ev) return;
+  editingEventoId = id;
+  document.getElementById('ev-titulo').value = ev.titulo || '';
+  document.getElementById('ev-data').value = ev.data ? ev.data.slice(0,10) : '';
+  document.getElementById('ev-hora').value = ev.hora || '';
+  document.getElementById('ev-tipo').value = ev.tipo || 'outro';
+  document.getElementById('ev-lead').value = ev.lead || '';
+  document.getElementById('ev-notas').value = ev.notas || '';
+  document.getElementById('modal-novo-evento-title').textContent = '✏️ Editar Evento';
+  openModal('modal-novo-evento');
+}
+
+function salvarEvento() {
+  const titulo = document.getElementById('ev-titulo').value.trim();
+  if (!titulo) { showToast('❌ Título é obrigatório'); return; }
+  const ev = {
+    id: editingEventoId || gerarId(),
+    titulo,
+    data: document.getElementById('ev-data').value,
+    hora: document.getElementById('ev-hora').value,
+    tipo: document.getElementById('ev-tipo').value,
+    lead: document.getElementById('ev-lead').value.trim(),
+    notas: document.getElementById('ev-notas').value.trim(),
+    cor: { reuniao:'#0084ff', followup:'#00d4aa', entrega:'#f5c842', webinar:'#8b9cf7', pessoal:'#ff6b35', outro:'#8a99b3' }[document.getElementById('ev-tipo').value] || '#00d4aa'
+  };
+  if (editingEventoId) {
+    const idx = eventos.findIndex(e => e.id === editingEventoId);
+    if (idx >= 0) eventos[idx] = ev;
+  } else {
+    eventos.push(ev);
+  }
+  saveEventos();
+  closeModal('modal-novo-evento');
+  editingEventoId = null;
+  renderAgenda(agendaSelectedDay);
+  showToast(editingEventoId ? '✓ Evento atualizado' : '✅ Evento criado!');
+}
+
+// Google Agenda Sync (import events from Google Calendar)
+async function syncGoogleAgenda() {
+  pendingGoogleAction = 'agenda';
+  const clientId = getGoogleClientId();
+  if (!clientId) {
+    initGoogleConfigModal();
+    openModal('modal-google-config');
+    return;
+  }
+  if (!isGoogleTokenValid()) {
+    iniciarGoogleAuth('agenda');
+    return;
+  }
+  await executarSyncAgenda();
+}
+
+async function executarSyncAgenda() {
+  const btn = document.getElementById('btn-google-agenda');
+  const status = document.getElementById('agenda-gsync-status');
+  btn.classList.add('syncing');
+  btn.textContent = '⏳ A sincronizar...';
+  status.textContent = 'A obter eventos...';
+  status.className = 'gsync-status';
+
+  try {
+    const agora = new Date().toISOString();
+    const daqui3meses = new Date(Date.now() + 90*24*3600*1000).toISOString();
+    const url = `https://www.googleapis.com/calendar/v3/calendars/primary/events?timeMin=${agora}&timeMax=${daqui3meses}&maxResults=100&singleEvents=true&orderBy=startTime`;
+    const res = await fetch(url, { headers: { Authorization: `Bearer ${googleAccessToken}` } });
+    if (!res.ok) throw new Error(`Erro ${res.status}`);
+    const data = await res.json();
+    const items = data.items || [];
+    let novos = 0;
+    items.forEach(item => {
+      const inicio = item.start?.dateTime || item.start?.date || '';
+      const dataStr = inicio.slice(0,10);
+      const hora = inicio.length > 10 ? inicio.slice(11,16) : '';
+      const existe = eventos.some(e => e.titulo === item.summary && e.data && e.data.startsWith(dataStr));
+      if (!existe) {
+        eventos.push({ id: gerarId(), titulo: item.summary || 'Sem título', data: dataStr, hora, tipo: 'outro', lead: '', notas: item.description || '', cor: '#8b9cf7' });
+        novos++;
+      }
+    });
+    saveEventos();
+    renderAgenda(agendaSelectedDay);
+    status.textContent = `✅ ${novos} evento(s) importado(s)`;
+    status.className = 'gsync-status ok';
+    showToast(`✅ ${novos} evento(s) importado(s) do Google Calendar!`);
+  } catch(e) {
+    status.textContent = '❌ ' + e.message;
+    status.className = 'gsync-status err';
+    showToast('❌ Erro: ' + e.message);
+    googleAccessToken = null;
+  } finally {
+    btn.classList.remove('syncing');
+    btn.innerHTML = '<span class="g-icon">🇬</span> Sincronizar com Google Calendar';
+  }
+}
+
+// update the callback in iniciarGoogleAuth:
+function iniciarGoogleAuth(action) {
+  pendingGoogleAction = action;
+  const clientId = getGoogleClientId();
+  if (!clientId) { showToast('❌ Configura o teu Google Client ID primeiro'); return; }
+  if (typeof google === 'undefined' || !google.accounts) { showToast('❌ Google Identity Services não carregado.'); return; }
+  const tokenClient = google.accounts.oauth2.initTokenClient({
+    client_id: clientId,
+    scope: GOOGLE_SCOPES,
+    callback: (tokenResponse) => {
+      if (tokenResponse.error) { showToast('❌ Erro Google Auth: ' + tokenResponse.error); return; }
+      googleAccessToken = tokenResponse.access_token;
+      googleTokenExpiry = Date.now() + (tokenResponse.expires_in || 3600) * 1000;
+      showToast('✅ Conta Google ligada!');
+      if (pendingGoogleAction === 'contacts') executarSyncContacts();
+      else if (pendingGoogleAction === 'calendar') executarSyncCalendar();
+      else if (pendingGoogleAction === 'agenda') executarSyncAgenda();
+    }
+  });
+  tokenClient.requestAccessToken({ prompt: 'consent' });
+}
+
+// ===== INIT =====
+// patch openModal to pre-fill date for agenda event
+const _origOpenModal = openModal;
+function openModal(id) {
+  if (id === 'modal-novo-evento' && !editingEventoId) {
+    document.getElementById('modal-novo-evento-title').textContent = '🗓️ Novo Evento';
+    document.getElementById('ev-titulo').value = '';
+    document.getElementById('ev-hora').value = '';
+    document.getElementById('ev-lead').value = '';
+    document.getElementById('ev-notas').value = '';
+    document.getElementById('ev-tipo').value = 'followup';
+    const today = agendaSelectedDay || new Date().toISOString().slice(0,10);
+    document.getElementById('ev-data').value = today;
+  }
+  if (id === 'modal-lead') {
+    editingLeadId = null;
+    document.getElementById('modal-lead-title').textContent = '➕ Novo Lead';
+    ['f-nome','f-tel','f-email','f-notas'].forEach(f => document.getElementById(f).value = '');
+    document.getElementById('f-estado').value = 'novo';
+  }
+  document.getElementById(id).classList.add('open');
+}
+
+initAISelector();
+renderDashboard();
+renderAgenda();
+
+// Auto-detect local file context and show warning
+(function detectLocalFile() {
+  const isLocal = location.protocol === 'file:' || location.protocol === 'content:';
+  if (!isLocal) return;
+  ['posts-local-warning','resp-local-warning'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = 'block';
+  });
+  // Auto-switch to Gemini if no preference saved yet
+  if (!localStorage.getItem('lw_postsAI') || localStorage.getItem('lw_postsAI') === 'claude') {
+    if (geminiKey) { setAI('posts','gemini'); setAI('resp','gemini'); }
+  }
+})();
+</script>
+<!-- MODAL: NOVO EVENTO AGENDA -->
+<div class="modal-overlay" id="modal-novo-evento">
+  <div class="modal" style="max-width:500px;">
+    <div class="modal-title">
+      <span id="modal-novo-evento-title">🗓️ Novo Evento</span>
+      <button class="modal-close" onclick="closeModal('modal-novo-evento'); editingEventoId=null;">✕</button>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Título *</label>
+      <input class="form-input" id="ev-titulo" placeholder="Ex: Follow-up com João Silva">
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Data</label>
+        <input class="form-input" type="date" id="ev-data">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Hora</label>
+        <input class="form-input" type="time" id="ev-hora">
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Tipo</label>
+        <select class="form-select" id="ev-tipo">
+          <option value="followup">📞 Follow-up</option>
+          <option value="reuniao">🤝 Reunião</option>
+          <option value="webinar">💻 Webinar / Evento</option>
+          <option value="entrega">📦 Entrega de produto</option>
+          <option value="pessoal">👤 Pessoal</option>
+          <option value="outro">📌 Outro</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Lead associado (opcional)</label>
+        <input class="form-input" id="ev-lead" placeholder="Nome do contacto">
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Notas</label>
+      <textarea class="form-textarea" id="ev-notas" placeholder="Detalhes, assunto, local..." style="min-height:70px;"></textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="closeModal('modal-novo-evento'); editingEventoId=null;">Cancelar</button>
+      <button class="btn btn-primary" onclick="salvarEvento()">✅ Guardar Evento</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: GOOGLE SYNC CONFIG -->
+<div class="modal-overlay" id="modal-google-config">
+  <div class="modal" style="max-width:480px;">
+    <div class="modal-title">
+      <span>🔑 Configurar Google API</span>
+      <button class="modal-close" onclick="closeModal('modal-google-config')">✕</button>
+    </div>
+    <div class="ai-note" style="margin-bottom:16px;">
+      <span>ℹ️</span>
+      <span>Para usar a integração Google, precisas de um <strong>Client ID OAuth 2.0</strong> do Google Cloud Console. É gratuito e leva ~5 minutos a configurar.</span>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Google OAuth Client ID</label>
+      <input class="form-input" id="google-client-id-input" placeholder="XXXXXXXX.apps.googleusercontent.com" oninput="saveGoogleClientId(this.value)">
+      <div style="font-size:11px;color:var(--text2);margin-top:6px;">
+        <a href="https://console.cloud.google.com/apis/credentials" target="_blank" style="color:var(--accent2);">→ Google Cloud Console: criar credenciais OAuth 2.0</a><br>
+        Origens JS autorizadas: adiciona a URL onde corres esta app (ex: <code style="color:var(--accent)">http://localhost</code> ou o teu domínio).
+      </div>
+    </div>
+    <div id="google-config-status" style="font-size:12px;margin-top:8px;"></div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="closeModal('modal-google-config')">Fechar</button>
+      <button class="btn btn-primary" onclick="iniciarGoogleAuth(pendingGoogleAction); closeModal('modal-google-config')">✓ Ligar ao Google</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: PREVIEW CONTACTOS GOOGLE -->
+<div class="modal-overlay" id="modal-google-contacts-preview">
+  <div class="modal" style="max-width:600px;">
+    <div class="modal-title">
+      <span>👥 Contactos do Google</span>
+      <button class="modal-close" onclick="closeModal('modal-google-contacts-preview')">✕</button>
+    </div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+      <div class="section-title" style="margin-bottom:0;" id="gcontacts-count-label">0 contactos encontrados</div>
+      <div style="display:flex;gap:8px;">
+        <button class="btn btn-secondary btn-sm" onclick="selecionarTodosGContacts(true)">✓ Todos</button>
+        <button class="btn btn-secondary btn-sm" onclick="selecionarTodosGContacts(false)">✗ Nenhum</button>
+      </div>
+    </div>
+    <div class="import-preview" id="gcontacts-preview" style="display:block;max-height:280px;overflow-y:auto;"></div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="closeModal('modal-google-contacts-preview')">Cancelar</button>
+      <button class="btn btn-primary" onclick="confirmarImportGoogleContacts()">✓ Importar Selecionados</button>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>
