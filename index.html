@@ -699,6 +699,133 @@
   .gsync-status.ok { color: var(--accent); }
   .gsync-status.err { color: #ff6b6b; }
 
+  /* MENSAGEM MODAL */
+  .msg-channel-pills { display: flex; gap: 8px; margin-bottom: 14px; flex-wrap: wrap; }
+  .msg-pill {
+    display: flex; align-items: center; gap: 6px;
+    padding: 8px 16px; border-radius: 20px;
+    border: 1.5px solid var(--border);
+    font-size: 13px; font-weight: 600; cursor: pointer;
+    background: var(--surface2); color: var(--text2);
+    transition: all 0.2s;
+  }
+  .msg-pill.active-wa  { background: rgba(37,211,102,0.15); border-color: #25d366; color: #25d366; }
+  .msg-pill.active-sms { background: rgba(0,132,255,0.15); border-color: var(--accent2); color: var(--accent2); }
+  .msg-pill.active-tel { background: rgba(0,212,170,0.15); border-color: var(--accent); color: var(--accent); }
+  .msg-textarea {
+    width: 100%; min-height: 130px; resize: vertical;
+    background: var(--surface3); border: 1px solid var(--border);
+    border-radius: var(--radius-sm); padding: 12px;
+    color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 13px;
+    line-height: 1.6;
+  }
+  .msg-textarea:focus { outline: none; border-color: var(--accent); }
+  .msg-char-count { font-size: 11px; color: var(--text2); text-align: right; margin-top: 4px; }
+  .msg-char-count.over { color: #ff6b6b; }
+  .btn-wa  { background: #25d366; color: #fff; border: none; }
+  .btn-wa:hover { background: #1da851; }
+  .btn-sms { background: var(--accent2); color: #fff; border: none; }
+  .btn-sms:hover { background: #006acc; }
+  .btn-tel { background: var(--accent); color: #111; border: none; }
+  .btn-tel:hover { background: #00b894; }
+  .msg-no-tel { background: rgba(245,200,66,0.1); border: 1px solid rgba(245,200,66,0.3); border-radius: var(--radius-sm); padding: 10px 14px; font-size: 12px; color: var(--gold); margin-bottom: 12px; }
+
+  /* LOGOUT BUTTON */
+  .btn-logout {
+    background: rgba(255,70,70,0.12);
+    color: #ff6b6b;
+    border: 1px solid rgba(255,70,70,0.25);
+    font-weight: 600;
+  }
+  .btn-logout:hover { background: rgba(255,70,70,0.22); transform: translateY(-1px); }
+
+  /* BULK MSG BUTTONS */
+  .btn-green {
+    background: #25d366;
+    color: #fff;
+    border: none;
+    font-weight: 600;
+  }
+  .btn-green:hover { background: #1da851; transform: translateY(-1px); }
+  .btn-blue {
+    background: var(--accent2);
+    color: #fff;
+    border: none;
+    font-weight: 600;
+  }
+  .btn-blue:hover { background: #006acc; transform: translateY(-1px); }
+
+  /* BULK MSG MODAL */
+  .bulk-lead-list {
+    max-height: 240px;
+    overflow-y: auto;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--surface2);
+    margin-bottom: 14px;
+  }
+  .bulk-lead-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 14px;
+    border-bottom: 1px solid var(--border);
+    font-size: 13px;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .bulk-lead-row:last-child { border-bottom: none; }
+  .bulk-lead-row:hover { background: var(--surface3); }
+  .bulk-lead-row input[type=checkbox] { accent-color: var(--accent); width: 15px; height: 15px; cursor: pointer; flex-shrink: 0; }
+  .bulk-lead-name { font-weight: 500; color: var(--text); flex: 1; }
+  .bulk-lead-tel { font-size: 11px; color: var(--text2); }
+  .bulk-select-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 10px;
+    flex-wrap: wrap;
+  }
+  .bulk-count-badge {
+    background: rgba(0,212,170,0.15);
+    color: var(--accent);
+    font-size: 11px;
+    font-weight: 700;
+    padding: 3px 9px;
+    border-radius: 20px;
+    margin-left: auto;
+  }
+  .bulk-progress-bar {
+    display: none;
+    height: 6px;
+    background: var(--surface3);
+    border-radius: 3px;
+    margin: 10px 0;
+    overflow: hidden;
+  }
+  .bulk-progress-bar.show { display: block; }
+  .bulk-progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    border-radius: 3px;
+    transition: width 0.3s;
+  }
+  .bulk-status-log {
+    max-height: 100px;
+    overflow-y: auto;
+    font-size: 11px;
+    color: var(--text2);
+    background: var(--surface2);
+    border-radius: var(--radius-sm);
+    padding: 8px 12px;
+    display: none;
+    line-height: 1.8;
+  }
+  .bulk-status-log.show { display: block; }
+  /* Quick send buttons in lead list */
+  .btn-wa-sm  { background: rgba(37,211,102,0.15); color: #25d366; border: 1px solid rgba(37,211,102,0.3); }
+  .btn-sms-sm { background: rgba(0,132,255,0.15); color: var(--accent2); border: 1px solid rgba(0,132,255,0.3); }
+
   /* LOCAL FILE WARNING */
   .local-warning {
     display: none;
@@ -897,16 +1024,526 @@
     font-size: 13px;
   }
   .empty-icon { font-size: 32px; margin-bottom: 10px; opacity: 0.5; }
+
+  /* ===== LOGIN SCREEN ===== */
+  #login-screen {
+    position: fixed;
+    inset: 0;
+    background: #0d0d0d;
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    font-family: 'DM Sans', sans-serif;
+  }
+  #login-screen.hidden { display: none; }
+
+  .login-bg {
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(ellipse 70% 50% at 20% 20%, rgba(0,212,170,0.07) 0%, transparent 60%),
+      radial-gradient(ellipse 60% 50% at 80% 80%, rgba(0,132,255,0.07) 0%, transparent 60%);
+    pointer-events: none;
+  }
+
+  .login-box {
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    max-width: 380px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0;
+  }
+
+  .login-logo {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-bottom: 48px;
+    gap: 6px;
+  }
+  .login-logo-icon {
+    font-size: 42px;
+    filter: drop-shadow(0 0 20px rgba(0,212,170,0.5));
+    margin-bottom: 4px;
+  }
+  .login-logo-name {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: 28px;
+    color: #fff;
+    letter-spacing: -0.5px;
+  }
+  .login-logo-sub {
+    font-size: 13px;
+    color: rgba(255,255,255,0.4);
+    letter-spacing: 0.5px;
+  }
+
+  .login-tagline {
+    font-family: 'Syne', sans-serif;
+    font-size: 26px;
+    font-weight: 700;
+    color: #fff;
+    text-align: center;
+    line-height: 1.25;
+    margin-bottom: 48px;
+    letter-spacing: -0.3px;
+  }
+
+  /* Google button */
+  .btn-google-login {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    background: #fff;
+    color: #1a1a1a;
+    border: none;
+    border-radius: 100px;
+    padding: 15px 24px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: 'DM Sans', sans-serif;
+  }
+  .btn-google-login:hover { background: #f0f0f0; transform: translateY(-1px); box-shadow: 0 4px 20px rgba(0,0,0,0.3); }
+  .btn-google-login:active { transform: translateY(0); }
+  .google-g {
+    width: 20px;
+    height: 20px;
+    flex-shrink: 0;
+  }
+
+  /* Divider */
+  .login-divider {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    width: 100%;
+    margin: 20px 0;
+  }
+  .login-divider::before,
+  .login-divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: rgba(255,255,255,0.1);
+  }
+  .login-divider span {
+    font-size: 12px;
+    color: rgba(255,255,255,0.35);
+    font-weight: 500;
+    letter-spacing: 1px;
+  }
+
+  /* Email input */
+  .login-email-input {
+    width: 100%;
+    background: #1a1a1a;
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 12px;
+    padding: 15px 18px;
+    font-size: 15px;
+    color: rgba(255,255,255,0.5);
+    font-family: 'DM Sans', sans-serif;
+    outline: none;
+    transition: all 0.2s;
+    margin-bottom: 10px;
+  }
+  .login-email-input:focus {
+    border-color: rgba(0,212,170,0.4);
+    color: #fff;
+    background: #1f1f1f;
+  }
+  .login-email-input::placeholder { color: rgba(255,255,255,0.25); }
+
+  .login-password-wrap {
+    width: 100%;
+    position: relative;
+    margin-bottom: 10px;
+    display: none;
+  }
+  .login-password-wrap.visible { display: block; }
+  .login-password-input {
+    width: 100%;
+    background: #1a1a1a;
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 12px;
+    padding: 15px 18px;
+    font-size: 15px;
+    color: #fff;
+    font-family: 'DM Sans', sans-serif;
+    outline: none;
+    transition: all 0.2s;
+  }
+  .login-password-input:focus { border-color: rgba(0,212,170,0.4); }
+
+  .btn-login-email {
+    width: 100%;
+    background: #1a1a1a;
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 12px;
+    padding: 15px 24px;
+    font-size: 15px;
+    font-weight: 500;
+    color: rgba(255,255,255,0.7);
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: 'DM Sans', sans-serif;
+    display: none;
+  }
+  .btn-login-email.visible { display: block; }
+  .btn-login-email:hover { border-color: rgba(0,212,170,0.4); color: #fff; }
+
+  .btn-continuar-email {
+    width: 100%;
+    background: var(--accent);
+    border: none;
+    border-radius: 12px;
+    padding: 15px 24px;
+    font-size: 15px;
+    font-weight: 600;
+    color: #0a0f1e;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: 'DM Sans', sans-serif;
+    display: none;
+  }
+  .btn-continuar-email.visible { display: block; }
+  .btn-continuar-email:hover { opacity: 0.9; transform: translateY(-1px); }
+
+  .login-error {
+    color: #ff6b6b;
+    font-size: 13px;
+    text-align: center;
+    margin-top: 8px;
+    min-height: 18px;
+  }
+
+  .login-footer {
+    position: absolute;
+    bottom: 24px;
+    left: 0; right: 0;
+    text-align: center;
+    font-size: 11.5px;
+    color: rgba(255,255,255,0.2);
+    padding: 0 24px;
+    line-height: 1.6;
+  }
+
+  /* Google config modal */
+  #modal-google-login-config {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.7);
+    z-index: 10000;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+  #modal-google-login-config.open { display: flex; }
+  .google-config-box {
+    background: #1a1a2e;
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 16px;
+    padding: 28px;
+    width: 100%;
+    max-width: 440px;
+  }
+
+  /* User avatar in sidebar */
+  .sidebar-user {
+    padding: 16px 20px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+  }
+  .sidebar-avatar {
+    width: 34px; height: 34px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px; font-weight: 700; color: #0a0f1e;
+    flex-shrink: 0;
+    overflow: hidden;
+  }
+  .sidebar-avatar img { width: 100%; height: 100%; object-fit: cover; }
+  .sidebar-user-info { flex: 1; min-width: 0; }
+  .sidebar-user-name { font-size: 13px; font-weight: 600; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .sidebar-user-email { font-size: 11px; color: var(--text2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .sidebar-logout { font-size: 16px; color: var(--text3); cursor: pointer; transition: color 0.2s; }
+  .sidebar-logout:hover { color: #ff6b6b; }
+
+  .google-guide-btn.active {
+    color: #00d4aa;
+    border-bottom-color: #00d4aa;
+  }
+
+  code {
+    font-family: 'Courier New', monospace;
+    font-size: 11px;
+  }
+
 </style>
 </head>
 <body>
+<!-- ===== LOGIN SCREEN ===== -->
+<div id="login-screen">
+  <div class="login-bg"></div>
+  <div class="login-box">
+    <div class="login-logo">
+      <div class="login-logo-icon" style="width:100px;height:100px;margin:0 auto;">
+        <svg viewBox="0 0 240 240" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:100%;max-width:120px;">
+  <defs>
+    <linearGradient id="wolfGrad1" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#00d4aa;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#0084ff;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="wolfGrad2" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#0084ff;stop-opacity:0.8" />
+      <stop offset="100%" style="stop-color:#00d4aa;stop-opacity:0.6" />
+    </linearGradient>
+    <filter id="wolfGlow">
+      <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  
+  <!-- Background glow circle -->
+  <circle cx="120" cy="120" r="110" fill="none" stroke="url(#wolfGrad1)" stroke-width="1" opacity="0.2"/>
+  
+  <!-- Wolf head base -->
+  <g filter="url(#wolfGlow)">
+    
+    <!-- Head shape (main structure) -->
+    <path d="M 120 70 Q 100 80 95 105 Q 90 125 100 145 L 120 160 L 140 145 Q 150 125 145 105 Q 140 80 120 70" 
+          fill="url(#wolfGrad2)" stroke="url(#wolfGrad1)" stroke-width="2.5"/>
+    
+    <!-- Left ear -->
+    <path d="M 95 80 L 85 50 L 92 70 Q 90 75 95 80" 
+          fill="url(#wolfGrad1)" stroke="url(#wolfGrad1)" stroke-width="2" opacity="0.9"/>
+    <path d="M 88 65 L 82 55 L 88 68" fill="#0a0f1e" opacity="0.4"/>
+    
+    <!-- Right ear -->
+    <path d="M 145 80 L 155 50 L 148 70 Q 150 75 145 80" 
+          fill="url(#wolfGrad1)" stroke="url(#wolfGrad1)" stroke-width="2" opacity="0.9"/>
+    <path d="M 152 65 L 158 55 L 152 68" fill="#0a0f1e" opacity="0.4"/>
+    
+    <!-- Left eye -->
+    <circle cx="105" cy="100" r="7" fill="#fff" stroke="url(#wolfGrad1)" stroke-width="1.5"/>
+    <circle cx="105" cy="100" r="4" fill="#0084ff" opacity="0.7"/>
+    <circle cx="106" cy="99" r="2" fill="#fff"/>
+    
+    <!-- Right eye -->
+    <circle cx="135" cy="100" r="7" fill="#fff" stroke="url(#wolfGrad1)" stroke-width="1.5"/>
+    <circle cx="135" cy="100" r="4" fill="#0084ff" opacity="0.7"/>
+    <circle cx="136" cy="99" r="2" fill="#fff"/>
+    
+    <!-- Muzzle/Snout -->
+    <ellipse cx="120" cy="125" rx="15" ry="18" fill="rgba(0,212,170,0.15)" stroke="url(#wolfGrad1)" stroke-width="1.5" opacity="0.8"/>
+    
+    <!-- Snout detail - nose -->
+    <path d="M 120 135 Q 118 140 120 143 Q 122 140 120 135" fill="#0a0f1e" opacity="0.6"/>
+    
+    <!-- Mouth line -->
+    <path d="M 120 143 Q 115 147 110 145" fill="none" stroke="url(#wolfGrad1)" stroke-width="1.2" stroke-linecap="round" opacity="0.6"/>
+    <path d="M 120 143 Q 125 147 130 145" fill="none" stroke="url(#wolfGrad1)" stroke-width="1.2" stroke-linecap="round" opacity="0.6"/>
+    
+    <!-- Left cheek fur detail -->
+    <path d="M 95 105 Q 90 110 88 115" fill="none" stroke="url(#wolfGrad1)" stroke-width="1.2" stroke-linecap="round" opacity="0.5"/>
+    <path d="M 98 110 Q 92 115 90 120" fill="none" stroke="url(#wolfGrad1)" stroke-width="1" stroke-linecap="round" opacity="0.4"/>
+    
+    <!-- Right cheek fur detail -->
+    <path d="M 145 105 Q 150 110 152 115" fill="none" stroke="url(#wolfGrad1)" stroke-width="1.2" stroke-linecap="round" opacity="0.5"/>
+    <path d="M 142 110 Q 148 115 150 120" fill="none" stroke="url(#wolfGrad1)" stroke-width="1" stroke-linecap="round" opacity="0.4"/>
+    
+  </g>
+  
+  <!-- Lightning bolt (LifeWave energy) -->
+  <g opacity="0.9" filter="url(#wolfGlow)">
+    <path d="M 155 75 L 170 95 L 160 95 L 180 135 L 150 115 L 162 85 Z" 
+          fill="url(#wolfGrad1)" stroke="url(#wolfGrad1)" stroke-width="1.5" stroke-linejoin="round"/>
+    <!-- Inner glow of lightning -->
+    <path d="M 157 80 L 168 95 L 162 95 L 178 130 L 152 115 L 162 88 Z" 
+          fill="#00d4aa" opacity="0.4"/>
+  </g>
+  
+  <!-- Top shine/highlight on head -->
+  <ellipse cx="115" cy="75" rx="8" ry="6" fill="#fff" opacity="0.15"/>
+</svg>
+      </div>
+      <div class="login-logo-name">LW CRM</div>
+      <div class="login-logo-sub">LifeWave X39 — Equipa do Lobo 🐺</div>
+    </div>
+
+    <div class="login-tagline">O CRM para o teu<br>negócio LifeWave</div>
+
+    <!-- Google login -->
+    <button class="btn-google-login" onclick="loginComGoogle()">
+      <svg class="google-g" viewBox="0 0 24 24">
+        <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+        <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+        <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/>
+        <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+      </svg>
+      Continuar com Google
+    </button>
+
+    <div class="login-divider"><span>OU</span></div>
+
+    <input class="login-email-input" id="login-email" type="email" placeholder="Digite o teu email" onkeydown="loginEmailKeydown(event)" oninput="loginEmailInput()" autocomplete="email"/>
+    <div class="login-password-wrap" id="login-pass-wrap">
+      <input class="login-password-input" id="login-password" type="password" placeholder="Palavra-passe" onkeydown="loginPassKeydown(event)" autocomplete="current-password"/>
+    </div>
+
+    <button class="btn-login-email visible" id="btn-continuar-step1" onclick="loginEmailStep()">Continuar com email</button>
+    <button class="btn-continuar-email" id="btn-entrar-step2" onclick="loginComEmail()">Entrar →</button>
+    
+    <div style="text-align:center;margin-top:12px;">
+      <button onclick="mostrarRecuperarPassword()" style="background:none;border:none;color:rgba(0,212,170,0.7);font-size:12px;cursor:pointer;text-decoration:underline;font-family:'DM Sans',sans-serif;transition:color 0.2s;" onmouseover="this.style.color='#00d4aa'" onmouseout="this.style.color='rgba(0,212,170,0.7)'">
+        Esqueci a palavra-passe
+      </button>
+    </div>
+
+    <div class="login-error" id="login-error"></div>
+  </div>
+
+  <div class="login-footer">
+    Ao continuar, concordas com os Termos de Utilização.<br>Os teus dados ficam guardados neste dispositivo.
+  </div>
+</div>
+
+<!-- Google Login Config Modal -->
+<div id="modal-google-login-config">
+  <div class="google-config-box">
+    <div style="font-family:'Syne',sans-serif;font-size:18px;font-weight:700;color:#fff;margin-bottom:4px;">🔑 Ligar ao Google</div>
+    <div style="font-size:12px;color:rgba(255,255,255,0.4);margin-bottom:20px;">5 minutos, 100% gratuito</div>
+    
+    <!-- Step selector -->
+    <div style="display:flex;gap:6px;margin-bottom:20px;border-bottom:1px solid rgba(255,255,255,0.1);padding-bottom:16px;">
+      <button onclick="mostrarGuiaGoogle(1)" class="google-guide-btn active" id="btn-guide-1" style="flex:1;padding:10px;border:none;background:none;color:rgba(255,255,255,0.5);font-size:12px;cursor:pointer;font-family:'DM Sans',sans-serif;border-bottom:2px solid transparent;transition:all 0.2s;">1️⃣ Novo Projeto</button>
+      <button onclick="mostrarGuiaGoogle(2)" class="google-guide-btn" id="btn-guide-2" style="flex:1;padding:10px;border:none;background:none;color:rgba(255,255,255,0.5);font-size:12px;cursor:pointer;font-family:'DM Sans',sans-serif;border-bottom:2px solid transparent;transition:all 0.2s;">2️⃣ OAuth 2.0</button>
+      <button onclick="mostrarGuiaGoogle(3)" class="google-guide-btn" id="btn-guide-3" style="flex:1;padding:10px;border:none;background:none;color:rgba(255,255,255,0.5);font-size:12px;cursor:pointer;font-family:'DM Sans',sans-serif;border-bottom:2px solid transparent;transition:all 0.2s;">3️⃣ Client ID</button>
+    </div>
+
+    <!-- Step 1 -->
+    <div id="guide-step-1" style="display:block;">
+      <div style="font-size:13px;color:rgba(255,255,255,0.5);line-height:1.7;margin-bottom:16px;">
+        <strong style="color:#fff;">Passo 1: Criar um novo Projeto</strong><br><br>
+        1. Vai a <a href="https://console.cloud.google.com" target="_blank" style="color:#00d4aa;">console.cloud.google.com</a><br>
+        2. No topo, clica no seletor de projeto<br>
+        3. Clica em "NOVO PROJETO"<br>
+        4. Nome: <code style="background:rgba(255,255,255,0.06);padding:2px 6px;border-radius:4px;">LW CRM</code><br>
+        5. Clica "Criar"<br>
+        6. Espera ~1 minuto
+      </div>
+      <button onclick="mostrarGuiaGoogle(2)" style="width:100%;background:#00d4aa;border:none;border-radius:10px;padding:12px;color:#0a0f1e;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;">Próximo Passo →</button>
+    </div>
+
+    <!-- Step 2 -->
+    <div id="guide-step-2" style="display:none;">
+      <div style="font-size:13px;color:rgba(255,255,255,0.5);line-height:1.7;margin-bottom:16px;">
+        <strong style="color:#fff;">Passo 2: Ativar OAuth 2.0</strong><br><br>
+        1. No menu esquerdo, procura "APIs &amp; Services"<br>
+        2. Clica em "<strong style="color:#fff;">OAuth consent screen</strong>"<br>
+        3. Seleciona "<strong style="color:#fff;">External</strong>"<br>
+        4. Clica "Criar"<br>
+        5. Preenche o formulário:
+        <div style="background:rgba(0,212,170,0.05);padding:10px;border-radius:8px;margin-top:8px;font-size:12px;">
+          • <strong>App name:</strong> LW CRM<br>
+          • <strong>User support email:</strong> O teu email<br>
+          • Rest: deixa vazio<br>
+          • Clica "Guardar e Continuar"
+        </div>
+      </div>
+      <div style="display:flex;gap:10px;">
+        <button onclick="mostrarGuiaGoogle(1)" style="flex:1;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:12px;color:rgba(255,255,255,0.6);font-size:14px;cursor:pointer;font-family:'DM Sans',sans-serif;">← Anterior</button>
+        <button onclick="mostrarGuiaGoogle(3)" style="flex:1;background:#00d4aa;border:none;border-radius:10px;padding:12px;color:#0a0f1e;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;">Próximo →</button>
+      </div>
+    </div>
+
+    <!-- Step 3 -->
+    <div id="guide-step-3" style="display:none;">
+      <div style="font-size:13px;color:rgba(255,255,255,0.5);line-height:1.7;margin-bottom:16px;">
+        <strong style="color:#fff;">Passo 3: Copiar Client ID</strong><br><br>
+        1. No menu esquerdo, clica "<strong style="color:#fff;">Credentials</strong>"<br>
+        2. Clica "+ CREATE CREDENTIALS" → "OAuth client ID"<br>
+        3. Seleciona "<strong style="color:#fff;">Web application</strong>"<br>
+        4. Em "Authorized JavaScript origins":
+        <div style="background:rgba(0,212,170,0.05);padding:10px;border-radius:8px;margin-top:8px;font-size:12px;">
+          Clica "+ ADD URI"<br>
+          Adiciona: <code style="background:rgba(255,255,255,0.06);padding:2px 6px;border-radius:4px;">http://localhost:8000</code> (ou onde corres a app)
+        </div>
+        5. Clica "Criar"<br>
+        6. Copia o <strong style="color:#fff;">Client ID</strong> (é um texto comprido com .apps.googleusercontent.com)
+      </div>
+      <input class="login-email-input" id="google-oauth-client-id" placeholder="Cola aqui o Client ID..." style="margin-bottom:14px;" oninput="salvarClientId(this.value)">
+      <div style="display:flex;gap:10px;">
+        <button onclick="fecharConfigGoogle()" style="flex:1;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:12px;color:rgba(255,255,255,0.6);font-size:14px;cursor:pointer;font-family:'DM Sans',sans-serif;">Fechar</button>
+        <button onclick="iniciarGoogleLoginComClientId()" style="flex:1;background:#00d4aa;border:none;border-radius:10px;padding:12px;color:#0a0f1e;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;">✓ Ativar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Recuperar Palavra-passe Modal -->
+<div id="modal-recuperar-password" style="position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:10000;display:none;align-items:center;justify-content:center;padding:20px;">
+  <div style="background:#1a1a2e;border:1px solid rgba(255,255,255,0.1);border-radius:16px;padding:28px;width:100%;max-width:420px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
+      <div style="font-family:'Syne',sans-serif;font-size:18px;font-weight:700;color:#fff;">🔐 Recuperar Acesso</div>
+      <button onclick="fecharRecuperarPassword()" style="background:none;border:none;color:rgba(255,255,255,0.4);font-size:20px;cursor:pointer;">✕</button>
+    </div>
+    
+    <div id="pass-reset-step1">
+      <div style="font-size:13px;color:rgba(255,255,255,0.5);margin-bottom:16px;line-height:1.6;">
+        Insere o email associado à tua conta. Vamos mostrar-te como redefinir a palavra-passe.
+      </div>
+      <input class="login-email-input" id="pass-reset-email" type="email" placeholder="O teu email" style="margin-bottom:16px;">
+      <button onclick="recuperarPasswordStep1()" style="width:100%;background:#00d4aa;border:none;border-radius:12px;padding:12px;color:#0a0f1e;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;transition:opacity 0.2s;" onmouseover="this.style.opacity='0.9'" onmouseout="this.style.opacity='1'">
+        Procurar Conta
+      </button>
+      <button onclick="fecharRecuperarPassword()" style="width:100%;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:12px;color:rgba(255,255,255,0.6);font-size:14px;cursor:pointer;font-family:'DM Sans',sans-serif;margin-top:10px;">
+        Cancelar
+      </button>
+    </div>
+    
+    <div id="pass-reset-step2" style="display:none;">
+      <div style="font-size:13px;color:rgba(255,255,255,0.5);margin-bottom:16px;line-height:1.6;">
+        Insere uma nova palavra-passe:
+      </div>
+      <input class="login-email-input" id="pass-reset-new" type="password" placeholder="Nova palavra-passe" style="margin-bottom:10px;">
+      <input class="login-email-input" id="pass-reset-confirm" type="password" placeholder="Confirma a palavra-passe" style="margin-bottom:16px;">
+      <button onclick="recuperarPasswordStep2()" style="width:100%;background:#00d4aa;border:none;border-radius:12px;padding:12px;color:#0a0f1e;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;margin-bottom:10px;">
+        ✓ Guardar Nova Palavra-passe
+      </button>
+      <button onclick="fecharRecuperarPassword()" style="width:100%;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:12px;color:rgba(255,255,255,0.6);font-size:14px;cursor:pointer;font-family:'DM Sans',sans-serif;">
+        Cancelar
+      </button>
+    </div>
+  </div>
+</div>
+
 <div class="app">
 
   <!-- SIDEBAR -->
   <aside class="sidebar">
     <div class="logo">
       <div class="logo-text">⚡ LW CRM</div>
-      <div class="logo-sub">LifeWave X39</div>
+      <div class="logo-sub">🐺 Equipa do Lobo</div>
     </div>
     <nav class="nav">
       <div class="nav-item active" onclick="goTo('dashboard')">
@@ -939,6 +1576,17 @@
         <span>Respostas Rápidas</span>
       </div>
     </nav>
+    <!-- USER PROFILE IN SIDEBAR -->
+    <div class="sidebar-user" onclick="mostrarPerfilUtilizador()">
+      <div class="sidebar-avatar" id="sidebar-avatar-wrap">
+        <span id="sidebar-avatar-initials">?</span>
+      </div>
+      <div class="sidebar-user-info">
+        <div class="sidebar-user-name" id="sidebar-user-name">—</div>
+        <div class="sidebar-user-email" id="sidebar-user-email">—</div>
+      </div>
+      <span class="sidebar-logout" onclick="event.stopPropagation(); fazerLogout()" title="Sair">⏻</span>
+    </div>
   </aside>
 
   <!-- MAIN -->
@@ -951,7 +1599,10 @@
           <div class="page-title">Dashboard</div>
           <div class="page-sub">Visão geral do teu negócio LifeWave X39</div>
         </div>
-        <button class="btn btn-primary" onclick="openModal('modal-lead')">＋ Novo Lead</button>
+        <div style="display:flex;gap:10px;align-items:center;">
+          <button class="btn btn-primary" onclick="openModal('modal-lead')">＋ Novo Lead</button>
+          <button class="btn btn-logout btn-sm" onclick="fazerLogout()" title="Terminar sessão">⏻ Logout</button>
+        </div>
       </div>
 
       <div class="stats-grid">
@@ -1016,8 +1667,11 @@
           <div class="page-title">Contactos</div>
           <div class="page-sub">Todos os teus leads e clientes</div>
         </div>
-        <div style="display:flex;gap:10px;">
-          <input class="form-input" style="width:200px;padding:8px 12px" placeholder="🔍 Pesquisar..." oninput="filtrarLista(this.value)">
+        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
+          <input class="form-input" style="width:180px;padding:8px 12px" placeholder="🔍 Pesquisar..." oninput="filtrarLista(this.value)" id="input-pesquisa">
+          <button class="btn btn-secondary btn-sm" id="btn-filtro-contacto" onclick="toggleFiltroContacto()" style="white-space:nowrap;">📞 Com contacto</button>
+          <button class="btn btn-green btn-sm" onclick="abrirMensagemMassa('whatsapp')" title="Enviar WhatsApp em massa">💬 WhatsApp Massa</button>
+          <button class="btn btn-blue btn-sm" onclick="abrirMensagemMassa('sms')" title="Enviar SMS em massa">📱 SMS Massa</button>
           <button class="btn btn-secondary" onclick="openModal('modal-importar')">📂 Importar</button>
           <button class="btn btn-primary" onclick="openModal('modal-lead')">＋ Novo Lead</button>
         </div>
@@ -1774,6 +2428,9 @@ function verLead(id) {
   document.getElementById('ver-lead-actions').innerHTML = `
     <button class="btn btn-secondary btn-sm" onclick="avancarEstado('${id}')">⏩ Avançar Estado</button>
     <button class="btn btn-secondary btn-sm" onclick="editarLead('${id}')">✏️ Editar</button>
+    ${l.tel ? `<button class="btn btn-sm btn-wa" onclick="abrirMensagem('${id}','whatsapp')">💬 WhatsApp</button>` : ''}
+    ${l.tel ? `<button class="btn btn-sm btn-sms" onclick="abrirMensagem('${id}','sms')">📱 SMS</button>` : ''}
+    ${l.tel ? `<button class="btn btn-sm btn-tel" onclick="ligar('${id}')">📞 Ligar</button>` : ''}
     <button class="btn btn-danger btn-sm" onclick="eliminarLead('${id}')">🗑 Eliminar</button>
   `;
   openModal('modal-ver-lead');
@@ -1879,11 +2536,28 @@ function renderFunil() {
 }
 
 // ===== LISTA =====
+let filtroContactoAtivo = false;
+
+function toggleFiltroContacto() {
+  filtroContactoAtivo = !filtroContactoAtivo;
+  const btn = document.getElementById('btn-filtro-contacto');
+  btn.style.background = filtroContactoAtivo ? 'var(--accent)' : '';
+  btn.style.color = filtroContactoAtivo ? '#fff' : '';
+  renderLista(document.getElementById('input-pesquisa')?.value || '');
+}
+
+function temContacto(l) {
+  return !!(l.tel || l.email || l.instagram || l.facebook || l.whatsapp || l.linkedin);
+}
+
 function renderLista(filtro = '') {
   const tbody = document.getElementById('tbody-lista');
-  const filtered = filtro
+  let filtered = filtro
     ? leads.filter(l => l.nome.toLowerCase().includes(filtro.toLowerCase()) || (l.tel||'').includes(filtro) || (l.email||'').toLowerCase().includes(filtro.toLowerCase()))
     : leads;
+  if (filtroContactoAtivo) {
+    filtered = filtered.filter(temContacto);
+  }
   if (!filtered.length) {
     tbody.innerHTML = '<tr><td colspan="7" class="empty-state">Sem resultados.</td></tr>';
     return;
@@ -1896,9 +2570,11 @@ function renderLista(filtro = '') {
       <td>${l.mercado.split(' ')[0]}</td>
       <td><span class="lead-badge b-${l.estado}">${estadoLabel(l.estado)}</span></td>
       <td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${l.notas || '—'}</td>
-      <td style="display:flex;gap:6px;">
+      <td style="display:flex;gap:6px;flex-wrap:wrap;">
         <button class="btn btn-secondary btn-sm" onclick="verLead('${l.id}')">Ver</button>
         <button class="btn btn-secondary btn-sm" onclick="editarLead('${l.id}')">✏️</button>
+        ${l.tel ? `<button class="btn btn-sm btn-wa-sm" onclick="abrirMensagem('${l.id}','whatsapp')" title="WhatsApp">💬</button>` : ''}
+        ${l.tel ? `<button class="btn btn-sm btn-sms-sm" onclick="abrirMensagem('${l.id}','sms')" title="SMS">📱</button>` : ''}
       </td>
     </tr>
   `).join('');
@@ -2902,7 +3578,9 @@ async function executarSyncContacts() {
       const nome = p.names?.[0]?.displayName || '';
       const tel = p.phoneNumbers?.[0]?.value || '';
       const email = p.emailAddresses?.[0]?.value || '';
-      return { nome, tel, email, notas: '' };
+      // Fix encoding issues with special characters
+      const nomeFixed = nome.normalize('NFC');
+      return { nome: nomeFixed, tel, email, notas: '' };
     }).filter(c => c.nome);
 
     status.textContent = `${googleContactsToImport.length} contactos encontrados`;
@@ -3281,6 +3959,391 @@ function iniciarGoogleAuth(action) {
   tokenClient.requestAccessToken({ prompt: 'consent' });
 }
 
+// ===== MENSAGENS (WhatsApp / SMS / Ligar) =====
+let msgLeadId = null;
+let msgCanal = 'whatsapp'; // 'whatsapp' | 'sms'
+
+const TEMPLATES = {
+  primeiro: (nome) => `Olá ${nome || ''}! 👋\n\nVi o teu perfil e achei que poderias ter interesse em algo que me tem mudado a vida — o X39 da LifeWave.\n\nNão é nada invasivo, é um patch de fotomodulação que ativa as tuas próprias células. Muita gente reporta mais energia e melhor recuperação.\n\nPodemos trocar dois dedos de conversa? 😊`,
+  followup: (nome) => `Olá ${nome || ''}! 🙂\n\nQueria só saber como estás e se tiveste oportunidade de pensar no que partilhei sobre o X39.\n\nEstou disponível para tirar qualquer dúvida, sem pressão! 💚`,
+  info: (nome) => `Olá ${nome || ''}!\n\nComo prometido, aqui vai mais informação sobre o X39 da LifeWave 📦\n\nÉ um patch que usa a tua própria energia corporal para ativar a produção de GHK-Cu — um peptídeo que o nosso corpo produz menos com a idade.\n\nResultados mais comuns: ✅ Mais energia ✅ Melhor sono ✅ Recuperação mais rápida\n\nQualquer dúvida, estou aqui! 😊`,
+  cliente: (nome) => `Olá ${nome || ''}! 🎉\n\nBem-vindo/a à família LifeWave!\n\nEstou aqui para te apoiar em tudo. Qualquer dúvida sobre como usar o X39, não hesites em contactar-me.\n\nVai ser uma jornada incrível! 💚✨`
+};
+
+function abrirMensagem(leadId, canal) {
+  msgLeadId = leadId;
+  msgCanal = canal || 'whatsapp';
+  const l = leads.find(x => x.id === leadId);
+  if (!l) return;
+
+  // Reset modal
+  document.getElementById('msg-texto').value = '';
+  document.getElementById('msg-char-count').textContent = '0 caracteres';
+  document.getElementById('msg-ia-loader').style.display = 'none';
+
+  // Fill number
+  const telRaw = l.tel || '';
+  const telLimpo = limparTelefone(telRaw);
+  document.getElementById('msg-numero').value = telRaw;
+  document.getElementById('msg-nome-label').textContent = l.nome;
+
+  // Show warning if no phone
+  const semTel = !telRaw;
+  document.getElementById('msg-no-tel-warn').style.display = semTel ? 'block' : 'none';
+  document.getElementById('msg-destino-row').style.display = semTel ? 'none' : 'block';
+
+  setMsgCanal(msgCanal);
+  openModal('modal-mensagem');
+}
+
+function setMsgCanal(canal) {
+  msgCanal = canal;
+  ['whatsapp','sms','tel'].forEach(c => {
+    const pill = document.getElementById('msg-pill-' + c);
+    if (pill) pill.className = 'msg-pill' + (c === canal ? ` active-${c}` : '');
+  });
+  const btn = document.getElementById('msg-enviar-btn');
+  if (canal === 'whatsapp') {
+    btn.className = 'btn btn-wa';
+    btn.textContent = '💬 Enviar WhatsApp';
+  } else if (canal === 'sms') {
+    btn.className = 'btn btn-sms';
+    btn.textContent = '📱 Enviar SMS';
+  }
+  document.getElementById('msg-modal-title').textContent =
+    canal === 'whatsapp' ? '💬 Enviar WhatsApp' : '📱 Enviar SMS';
+}
+
+function limparTelefone(tel) {
+  // Remove spaces, dashes, parens; keep + and digits
+  let t = (tel || '').replace(/[\s\-\(\)]/g, '');
+  // If Portuguese number without country code, add +351
+  if (/^[239]\d{8}$/.test(t)) t = '+351' + t;
+  // If starts with 00, convert to +
+  if (t.startsWith('00')) t = '+' + t.slice(2);
+  return t;
+}
+
+function updateMsgCount() {
+  const len = document.getElementById('msg-texto').value.length;
+  const el = document.getElementById('msg-char-count');
+  el.textContent = `${len} caracteres${msgCanal === 'sms' && len > 160 ? ` (${Math.ceil(len/153)} SMS)` : ''}`;
+  el.className = 'msg-char-count' + (msgCanal === 'sms' && len > 160 ? ' over' : '');
+}
+
+function usarTemplate(tipo) {
+  const l = leads.find(x => x.id === msgLeadId);
+  const nome = l ? l.nome.split(' ')[0] : '';
+  const fn = TEMPLATES[tipo];
+  if (fn) {
+    document.getElementById('msg-texto').value = fn(nome);
+    updateMsgCount();
+  }
+}
+
+async function gerarMsgIA() {
+  const l = leads.find(x => x.id === msgLeadId);
+  if (!l) return;
+  const loader = document.getElementById('msg-ia-loader');
+  const btn = document.getElementById('msg-ia-btn');
+  loader.style.display = 'block';
+  btn.disabled = true;
+
+  const canal = msgCanal === 'whatsapp' ? 'WhatsApp' : 'SMS';
+  const limite = msgCanal === 'sms' ? '160 caracteres' : '300 palavras';
+  const prompt = `Cria uma mensagem de ${canal} para enviar a ${l.nome} sobre o produto LifeWave X39.
+Estado atual: ${estadoLabel(l.estado)}
+Mercado: ${l.mercado}
+${l.notas ? `Notas: ${l.notas}` : ''}
+
+Regras:
+- Escreve em Português de Portugal
+- Tom pessoal, caloroso e sem pressão de vendas
+- Máximo ${limite}
+- ${canal === 'SMS' ? 'Sem emojis, texto simples' : 'Podes usar alguns emojis (máximo 3)'}
+- NÃO faças promessas médicas
+- Termina com uma pergunta aberta ou convite suave
+
+Responde APENAS com o texto da mensagem, sem título nem explicação.`;
+
+  try {
+    const texto = await callAI('posts', prompt, null, null);
+    document.getElementById('msg-texto').value = texto.trim();
+    updateMsgCount();
+  } catch(e) {
+    showToast('❌ Erro IA: ' + (e.message || 'Tenta novamente'));
+  } finally {
+    loader.style.display = 'none';
+    btn.disabled = false;
+  }
+}
+
+function enviarMensagem() {
+  const texto = document.getElementById('msg-texto').value.trim();
+  const numInput = document.getElementById('msg-numero').value.trim();
+  const tel = limparTelefone(numInput);
+
+  if (!tel) { showToast('❌ Número de telefone em falta'); return; }
+  if (!texto) { showToast('❌ Escreve ou gera uma mensagem primeiro'); return; }
+
+  const encodedTexto = encodeURIComponent(texto);
+
+  if (msgCanal === 'whatsapp') {
+    // Remove + for wa.me (needs only digits with country code)
+    const telWA = tel.replace(/^\+/, '');
+    window.open(`https://wa.me/${telWA}?text=${encodedTexto}`, '_blank');
+  } else if (msgCanal === 'sms') {
+    // sms: URI — works on mobile browsers
+    window.location.href = `sms:${tel}?body=${encodedTexto}`;
+  }
+
+  // Log in lead history
+  const l = leads.find(x => x.id === msgLeadId);
+  if (l) {
+    l.historico = l.historico || [];
+    l.historico.push({
+      msg: `${msgCanal === 'whatsapp' ? '💬 WhatsApp' : '📱 SMS'} enviado: "${texto.slice(0, 60)}${texto.length > 60 ? '…' : ''}"`,
+      data: new Date().toLocaleString('pt-PT')
+    });
+    saveleads();
+  }
+
+  closeModal('modal-mensagem');
+  showToast(msgCanal === 'whatsapp' ? '💬 A abrir WhatsApp...' : '📱 A abrir SMS...');
+}
+
+function ligar(leadId) {
+  const l = leads.find(x => x.id === leadId);
+  if (!l || !l.tel) { showToast('❌ Sem número de telefone'); return; }
+  const tel = limparTelefone(l.tel);
+  window.location.href = `tel:${tel}`;
+  l.historico = l.historico || [];
+  l.historico.push({ msg: `📞 Chamada iniciada`, data: new Date().toLocaleString('pt-PT') });
+  saveleads();
+}
+
+function ligarAtual() {
+  if (msgLeadId) ligar(msgLeadId);
+  closeModal('modal-mensagem');
+}
+
+// ===== MENSAGENS EM MASSA =====
+let massaCanal = 'whatsapp';
+let massaLeadsVisiveis = [];
+
+function abrirMensagemMassa(canal) {
+  massaCanal = canal || 'whatsapp';
+  // Use currently filtered list or all leads
+  massaLeadsVisiveis = leads.filter(l => l.tel);
+  if (!massaLeadsVisiveis.length) {
+    // fallback to all leads even without phone
+    massaLeadsVisiveis = [...leads];
+  }
+
+  renderMassaLeadList();
+  setMassaCanal(massaCanal);
+  document.getElementById('massa-texto').value = '';
+  document.getElementById('massa-char-count').textContent = '0 caracteres';
+  document.getElementById('massa-ia-loader').style.display = 'none';
+  document.getElementById('massa-progress-bar').classList.remove('show');
+  document.getElementById('massa-status-log').classList.remove('show');
+  document.getElementById('massa-status-log').innerHTML = '';
+  openModal('modal-massa');
+  atualizarContadorMassa();
+}
+
+function renderMassaLeadList() {
+  const list = document.getElementById('massa-lead-list');
+  if (!leads.length) {
+    list.innerHTML = '<div style="padding:16px;text-align:center;color:var(--text2);font-size:13px;">Sem leads ainda.</div>';
+    return;
+  }
+  list.innerHTML = leads.map((l, i) => {
+    const temTel = !!l.tel;
+    return `<div class="bulk-lead-row" onclick="toggleMassaLead(${i})">
+      <input type="checkbox" id="massa-cb-${i}" ${temTel ? 'checked' : ''} onchange="atualizarContadorMassa()">
+      <div class="bulk-lead-name">${l.nome}</div>
+      <div class="bulk-lead-tel">${l.tel || '<span style="color:#ff6b6b">sem tel.</span>'}</div>
+      <span class="lead-badge b-${l.estado}" style="font-size:9px;">${estadoLabel(l.estado)}</span>
+    </div>`;
+  }).join('');
+}
+
+function toggleMassaLead(i) {
+  const cb = document.getElementById(`massa-cb-${i}`);
+  if (cb) { cb.checked = !cb.checked; atualizarContadorMassa(); }
+}
+
+function atualizarContadorMassa() {
+  const total = leads.filter((_, i) => {
+    const cb = document.getElementById(`massa-cb-${i}`);
+    return cb && cb.checked;
+  }).length;
+  const badge = document.getElementById('massa-count-badge');
+  if (badge) badge.textContent = `${total} selecionado${total !== 1 ? 's' : ''}`;
+}
+
+function selecionarTodosMassa(val) {
+  leads.forEach((_, i) => {
+    const cb = document.getElementById(`massa-cb-${i}`);
+    if (cb) cb.checked = val;
+  });
+  atualizarContadorMassa();
+}
+
+function selecionarComTelefone() {
+  leads.forEach((l, i) => {
+    const cb = document.getElementById(`massa-cb-${i}`);
+    if (cb) cb.checked = !!l.tel;
+  });
+  atualizarContadorMassa();
+}
+
+function setMassaCanal(canal) {
+  massaCanal = canal;
+  ['whatsapp','sms'].forEach(c => {
+    const pill = document.getElementById('massa-pill-' + c);
+    if (pill) pill.className = 'msg-pill' + (c === canal ? ` active-${c}` : '');
+  });
+  const btn = document.getElementById('massa-enviar-btn');
+  const title = document.getElementById('massa-modal-title');
+  if (canal === 'whatsapp') {
+    btn.className = 'btn btn-green';
+    btn.innerHTML = '💬 Enviar WhatsApp para Selecionados';
+    if (title) title.textContent = '💬 Enviar WhatsApp em Massa';
+  } else {
+    btn.className = 'btn btn-blue';
+    btn.innerHTML = '📱 Enviar SMS para Selecionados';
+    if (title) title.textContent = '📱 Enviar SMS em Massa';
+  }
+  updateMassaCount();
+}
+
+function updateMassaCount() {
+  const len = (document.getElementById('massa-texto').value || '').length;
+  const el = document.getElementById('massa-char-count');
+  if (!el) return;
+  el.textContent = `${len} caracteres${massaCanal === 'sms' && len > 160 ? ` (${Math.ceil(len/153)} SMS)` : ''}`;
+  el.className = 'msg-char-count' + (massaCanal === 'sms' && len > 160 ? ' over' : '');
+}
+
+function usarTemplateMassa(tipo) {
+  const fn = TEMPLATES[tipo];
+  if (fn) {
+    document.getElementById('massa-texto').value = fn('{nome}');
+    updateMassaCount();
+  }
+}
+
+async function gerarMsgIAMassa() {
+  const loader = document.getElementById('massa-ia-loader');
+  const btn = document.getElementById('massa-ia-btn');
+  loader.style.display = 'block';
+  btn.disabled = true;
+
+  const canal = massaCanal === 'whatsapp' ? 'WhatsApp' : 'SMS';
+  const limite = massaCanal === 'sms' ? '160 caracteres' : '300 palavras';
+  const prompt = `Cria uma mensagem de ${canal} para enviar a vários contactos sobre o produto LifeWave X39.
+
+Regras:
+- Escreve em Português de Portugal
+- Tom pessoal, caloroso e sem pressão de vendas
+- Começa com "Olá {nome}!" para personalização
+- Máximo ${limite}
+- ${canal === 'SMS' ? 'Sem emojis, texto simples' : 'Podes usar alguns emojis (máximo 3)'}
+- NÃO faças promessas médicas
+- Termina com uma pergunta aberta ou convite suave
+- Usa {nome} como placeholder para o nome da pessoa
+
+Responde APENAS com o texto da mensagem, sem título nem explicação.`;
+
+  try {
+    const texto = await callAI('posts', prompt, null, null);
+    document.getElementById('massa-texto').value = texto.trim();
+    updateMassaCount();
+  } catch(e) {
+    showToast('❌ Erro IA: ' + (e.message || 'Tenta novamente'));
+  } finally {
+    loader.style.display = 'none';
+    btn.disabled = false;
+  }
+}
+
+async function enviarMensagemMassa() {
+  const template = document.getElementById('massa-texto').value.trim();
+  if (!template) { showToast('❌ Escreve ou gera uma mensagem primeiro'); return; }
+
+  const selecionados = leads.filter((l, i) => {
+    const cb = document.getElementById(`massa-cb-${i}`);
+    return cb && cb.checked;
+  });
+
+  if (!selecionados.length) { showToast('❌ Seleciona pelo menos um contacto'); return; }
+
+  const semTel = selecionados.filter(l => !l.tel);
+  if (semTel.length === selecionados.length) {
+    showToast('❌ Nenhum dos selecionados tem número de telefone');
+    return;
+  }
+
+  const comTel = selecionados.filter(l => l.tel);
+
+  // Show progress
+  const progressBar = document.getElementById('massa-progress-bar');
+  const progressFill = document.getElementById('massa-progress-fill');
+  const statusLog = document.getElementById('massa-status-log');
+  progressBar.classList.add('show');
+  statusLog.classList.add('show');
+  statusLog.innerHTML = '';
+
+  let enviados = 0;
+  const total = comTel.length;
+
+  for (let i = 0; i < comTel.length; i++) {
+    const l = comTel[i];
+    const mensagem = template.replace(/\{nome\}/gi, l.nome.split(' ')[0]);
+    const tel = limparTelefone(l.tel);
+    const encodedMsg = encodeURIComponent(mensagem);
+
+    // Update progress
+    progressFill.style.width = `${Math.round(((i) / total) * 100)}%`;
+
+    if (massaCanal === 'whatsapp') {
+      const telWA = tel.replace(/^\+/, '');
+      window.open(`https://wa.me/${telWA}?text=${encodedMsg}`, '_blank');
+    } else {
+      window.open(`sms:${tel}?body=${encodedMsg}`, '_blank');
+    }
+
+    // Log in history
+    l.historico = l.historico || [];
+    l.historico.push({
+      msg: `${massaCanal === 'whatsapp' ? '💬 WhatsApp' : '📱 SMS'} em massa: "${mensagem.slice(0,60)}${mensagem.length > 60 ? '…' : ''}"`,
+      data: new Date().toLocaleString('pt-PT')
+    });
+
+    enviados++;
+    statusLog.innerHTML += `<div>✅ ${l.nome} — ${l.tel}</div>`;
+    statusLog.scrollTop = statusLog.scrollHeight;
+
+    // Small delay to avoid popup blockers
+    await new Promise(r => setTimeout(r, 600));
+  }
+
+  progressFill.style.width = '100%';
+  saveleads();
+
+  const ignorados = selecionados.length - comTel.length;
+  let msg = `✅ ${enviados} mensagem(ns) abertas para envio`;
+  if (ignorados > 0) msg += ` · ⚠️ ${ignorados} sem telefone ignorado(s)`;
+  showToast(msg);
+
+  statusLog.innerHTML += `<div style="color:var(--accent);font-weight:600;margin-top:6px;">✅ Concluído — ${enviados} enviados</div>`;
+  if (semTel.length > 0) {
+    statusLog.innerHTML += `<div style="color:var(--gold);">⚠️ Sem telefone: ${semTel.map(l => l.nome).join(', ')}</div>`;
+  }
+}
+
 // ===== INIT =====
 // patch openModal to pre-fill date for agenda event
 const _origOpenModal = openModal;
@@ -3304,9 +4367,316 @@ function openModal(id) {
   document.getElementById(id).classList.add('open');
 }
 
+
+// ===== AUTH / LOGIN SYSTEM =====
+// Each user's data is stored with their email as key prefix
+// e.g. lw_leads_joao@gmail.com, lw_posts_joao@gmail.com
+
+let currentUser = null; // { email, name, picture, method }
+
+const AUTH_KEY = 'lw_auth_user';
+const GOOGLE_CLIENT_ID_KEY = 'lw_google_client_id';
+
+function getUserStorageKey(key) {
+  if (!currentUser) return key;
+  const safe = currentUser.email.replace(/[^a-zA-Z0-9_]/g, '_');
+  return key + '_' + safe;
+}
+
+// Override localStorage access to be user-scoped
+// Wrap leads/posts loading to be user-aware
+function loadUserData() {
+  const leadsKey = getUserStorageKey('lw_leads');
+  const postsKey = getUserStorageKey('lw_posts');
+  leads = JSON.parse(localStorage.getItem(leadsKey) || '[]');
+  posts = JSON.parse(localStorage.getItem(postsKey) || '[]');
+}
+
+function saveleads() {
+  localStorage.setItem(getUserStorageKey('lw_leads'), JSON.stringify(leads));
+  updateBadge();
+}
+
+function savePosts() {
+  localStorage.setItem(getUserStorageKey('lw_posts'), JSON.stringify(posts));
+}
+
+// ---- Login Screen Logic ----
+
+function loginEmailInput() {
+  // No special state changes needed here
+}
+
+function loginEmailKeydown(e) {
+  if (e.key === 'Enter') loginEmailStep();
+}
+
+function loginPassKeydown(e) {
+  if (e.key === 'Enter') loginComEmail();
+}
+
+function loginEmailStep() {
+  const email = document.getElementById('login-email').value.trim();
+  if (!email || !email.includes('@')) {
+    mostrarErroLogin('Por favor insere um email válido.');
+    return;
+  }
+  // Show password field
+  document.getElementById('login-pass-wrap').classList.add('visible');
+  document.getElementById('btn-continuar-step1').classList.remove('visible');
+  document.getElementById('btn-entrar-step2').classList.add('visible');
+  document.getElementById('login-password').focus();
+  document.getElementById('login-error').textContent = '';
+}
+
+function loginComEmail() {
+  const email = document.getElementById('login-email').value.trim().toLowerCase();
+  const password = document.getElementById('login-password').value;
+
+  if (!email) { mostrarErroLogin('Insere o teu email.'); return; }
+  if (!password) { mostrarErroLogin('Insere a tua palavra-passe.'); return; }
+
+  // Check if user exists
+  const usersKey = 'lw_users';
+  const users = JSON.parse(localStorage.getItem(usersKey) || '{}');
+
+  if (users[email]) {
+    // Existing user: verify password (simple hash)
+    const hash = simpleHash(password);
+    if (users[email].hash !== hash) {
+      mostrarErroLogin('Palavra-passe incorreta. Tenta novamente.');
+      return;
+    }
+    // Login success
+    entrarNaApp({ email, name: users[email].name || email.split('@')[0], picture: null, method: 'email' });
+  } else {
+    // New user: register
+    const name = email.split('@')[0].replace(/[._]/g, ' ').replace(/\w/g, c => c.toUpperCase());
+    users[email] = { hash: simpleHash(password), name };
+    localStorage.setItem(usersKey, JSON.stringify(users));
+    entrarNaApp({ email, name, picture: null, method: 'email' });
+  }
+}
+
+function simpleHash(str) {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    const char = str.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash;
+  }
+  return hash.toString(36);
+}
+
+function mostrarErroLogin(msg) {
+  document.getElementById('login-error').textContent = msg;
+}
+
+// ---- Google OAuth Login ----
+
+function loginComGoogle() {
+  const clientId = localStorage.getItem(GOOGLE_CLIENT_ID_KEY);
+  if (!clientId) {
+    // Show config modal
+    document.getElementById('modal-google-login-config').classList.add('open');
+    const saved = localStorage.getItem(GOOGLE_CLIENT_ID_KEY) || '';
+    document.getElementById('google-oauth-client-id').value = saved;
+    return;
+  }
+  iniciarGoogleLoginComClientId();
+}
+
+function salvarClientId(val) {
+  localStorage.setItem(GOOGLE_CLIENT_ID_KEY, val.trim());
+}
+
+function fecharConfigGoogle() {
+  document.getElementById('modal-google-login-config').classList.remove('open');
+}
+
+function iniciarGoogleLoginComClientId() {
+  const clientId = document.getElementById('google-oauth-client-id')?.value.trim()
+    || localStorage.getItem(GOOGLE_CLIENT_ID_KEY);
+  if (!clientId) { mostrarErroLogin('Insere o Client ID do Google.'); return; }
+  localStorage.setItem(GOOGLE_CLIENT_ID_KEY, clientId);
+  fecharConfigGoogle();
+
+  // Init Google Identity Services
+  google.accounts.id.initialize({
+    client_id: clientId,
+    callback: handleGoogleCredential,
+    auto_select: false,
+    cancel_on_tap_outside: true,
+  });
+  google.accounts.id.prompt();
+}
+
+function handleGoogleCredential(response) {
+  try {
+    const payload = JSON.parse(atob(response.credential.split('.')[1]));
+    entrarNaApp({
+      email: payload.email,
+      name: payload.name || payload.email.split('@')[0],
+      picture: payload.picture || null,
+      method: 'google'
+    });
+  } catch(e) {
+    mostrarErroLogin('Erro ao processar login Google. Tenta novamente.');
+  }
+}
+
+// ---- Entry point after successful login ----
+
+function entrarNaApp(user) {
+  currentUser = user;
+  localStorage.setItem(AUTH_KEY, JSON.stringify(user));
+
+  // Update sidebar
+  atualizarSidebarUser(user);
+
+  // Load this user's data
+  loadUserData();
+
+  // Hide login screen, show app
+  document.getElementById('login-screen').classList.add('hidden');
+  document.querySelector('.app').style.display = 'flex';
+
+  // Re-render
+  renderDashboard();
+  renderAgenda();
+  updateBadge();
+}
+
+function atualizarSidebarUser(user) {
+  const initials = (user.name || user.email).split(' ').map(w => w[0]).slice(0,2).join('').toUpperCase();
+  document.getElementById('sidebar-user-name').textContent = user.name || user.email;
+  document.getElementById('sidebar-user-email').textContent = user.email;
+  const wrap = document.getElementById('sidebar-avatar-wrap');
+  if (user.picture) {
+    wrap.innerHTML = `<img src="${user.picture}" alt="${user.name}" onerror="this.parentElement.innerHTML='<span>${initials}</span>'">`;
+  } else {
+    wrap.innerHTML = `<span>${initials}</span>`;
+  }
+}
+
+function fazerLogout() {
+  if (!confirm('Tens a certeza que queres sair?')) return;
+  localStorage.removeItem(AUTH_KEY);
+  currentUser = null;
+  leads = [];
+  posts = [];
+  // Reset login form
+  document.getElementById('login-email').value = '';
+  document.getElementById('login-password').value = '';
+  document.getElementById('login-pass-wrap').classList.remove('visible');
+  document.getElementById('btn-continuar-step1').classList.add('visible');
+  document.getElementById('btn-entrar-step2').classList.remove('visible');
+  document.getElementById('login-error').textContent = '';
+  // Show login screen
+  document.getElementById('login-screen').classList.remove('hidden');
+  document.querySelector('.app').style.display = 'none';
+  // Sign out from Google too
+  try { google.accounts.id.disableAutoSelect(); } catch(e) {}
+}
+
+function mostrarPerfilUtilizador() {
+  if (!currentUser) return;
+  showToast(`👤 ${currentUser.name} — ${currentUser.email}`);
+}
+
+
+// ---- Google Guide ----
+function mostrarGuiaGoogle(step) {
+  for (let i = 1; i <= 3; i++) {
+    document.getElementById('guide-step-' + i).style.display = i === step ? 'block' : 'none';
+    const btn = document.getElementById('btn-guide-' + i);
+    if (btn) {
+      if (i === step) btn.classList.add('active');
+      else btn.classList.remove('active');
+      btn.style.color = i === step ? '#00d4aa' : 'rgba(255,255,255,0.5)';
+      btn.style.borderBottomColor = i === step ? '#00d4aa' : 'transparent';
+    }
+  }
+}
+
+// ---- Recuperar Palavra-passe ----
+function mostrarRecuperarPassword() {
+  document.getElementById('pass-reset-step1').style.display = 'block';
+  document.getElementById('pass-reset-step2').style.display = 'none';
+  document.getElementById('pass-reset-email').value = '';
+  document.getElementById('pass-reset-new').value = '';
+  document.getElementById('pass-reset-confirm').value = '';
+  document.getElementById('modal-recuperar-password').style.display = 'flex';
+}
+
+function fecharRecuperarPassword() {
+  document.getElementById('modal-recuperar-password').style.display = 'none';
+}
+
+function recuperarPasswordStep1() {
+  const email = document.getElementById('pass-reset-email').value.trim().toLowerCase();
+  if (!email || !email.includes('@')) {
+    mostrarErroLogin('Email inválido.');
+    return;
+  }
+  const users = JSON.parse(localStorage.getItem('lw_users') || '{}');
+  if (!users[email]) {
+    mostrarErroLogin('Nenhuma conta com este email. Cria uma nova conta com ele.');
+    return;
+  }
+  // Show step 2
+  document.getElementById('pass-reset-step1').style.display = 'none';
+  document.getElementById('pass-reset-step2').style.display = 'block';
+  document.getElementById('pass-reset-new').focus();
+}
+
+function recuperarPasswordStep2() {
+  const email = document.getElementById('pass-reset-email').value.trim().toLowerCase();
+  const newPass = document.getElementById('pass-reset-new').value;
+  const confirm = document.getElementById('pass-reset-confirm').value;
+  
+  if (!newPass || !confirm) {
+    mostrarErroLogin('Preenche os dois campos.');
+    return;
+  }
+  if (newPass !== confirm) {
+    mostrarErroLogin('As palavras-passe não correspondem.');
+    return;
+  }
+  if (newPass.length < 6) {
+    mostrarErroLogin('Mínimo 6 caracteres.');
+    return;
+  }
+  
+  // Update password
+  const users = JSON.parse(localStorage.getItem('lw_users') || '{}');
+  if (users[email]) {
+    users[email].hash = simpleHash(newPass);
+    localStorage.setItem('lw_users', JSON.stringify(users));
+    mostrarErroLogin('✓ Palavra-passe atualizada! Entra com a nova password.');
+    setTimeout(() => fecharRecuperarPassword(), 1500);
+  }
+}
+
+// ---- Boot: check if already logged in ----
+(function initAuth() {
+  const saved = localStorage.getItem(AUTH_KEY);
+  if (saved) {
+    try {
+      const user = JSON.parse(saved);
+      if (user && user.email) {
+        entrarNaApp(user);
+        return;
+      }
+    } catch(e) {}
+  }
+  // Not logged in: hide app, show login
+  document.querySelector('.app').style.display = 'none';
+})();
+
 initAISelector();
-renderDashboard();
-renderAgenda();
+// renderDashboard and renderAgenda called after login
+
 
 // Auto-detect local file context and show warning
 (function detectLocalFile() {
@@ -3416,6 +4786,136 @@ renderAgenda();
     <div class="modal-actions">
       <button class="btn btn-secondary" onclick="closeModal('modal-google-contacts-preview')">Cancelar</button>
       <button class="btn btn-primary" onclick="confirmarImportGoogleContacts()">✓ Importar Selecionados</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: ENVIAR MENSAGEM EM MASSA -->
+<div class="modal-overlay" id="modal-massa">
+  <div class="modal" style="max-width:620px;">
+    <div class="modal-title">
+      <span id="massa-modal-title">💬 Enviar Mensagem em Massa</span>
+      <button class="modal-close" onclick="closeModal('modal-massa')">✕</button>
+    </div>
+
+    <!-- Canal ativo -->
+    <div style="display:flex;gap:8px;margin-bottom:14px;">
+      <div class="msg-pill" id="massa-pill-whatsapp" onclick="setMassaCanal('whatsapp')">💬 WhatsApp</div>
+      <div class="msg-pill" id="massa-pill-sms" onclick="setMassaCanal('sms')">📱 SMS</div>
+    </div>
+
+    <!-- Variável personalização -->
+    <div style="background:rgba(0,212,170,0.07);border:1px solid rgba(0,212,170,0.2);border-radius:var(--radius-sm);padding:10px 14px;font-size:12px;color:var(--text2);margin-bottom:14px;">
+      💡 Usa <code style="color:var(--accent);">{nome}</code> para personalizar com o nome de cada contacto. Ex: <em>Olá {nome}, como estás?</em>
+    </div>
+
+    <!-- Selecionar destinatários -->
+    <div class="form-label" style="margin-bottom:8px;">Destinatários</div>
+    <div class="bulk-select-bar">
+      <button class="btn btn-secondary btn-sm" onclick="selecionarTodosMassa(true)">✓ Todos</button>
+      <button class="btn btn-secondary btn-sm" onclick="selecionarTodosMassa(false)">✗ Nenhum</button>
+      <button class="btn btn-secondary btn-sm" onclick="selecionarComTelefone()">📞 Só com tel.</button>
+      <span class="bulk-count-badge" id="massa-count-badge">0 selecionados</span>
+    </div>
+    <div class="bulk-lead-list" id="massa-lead-list"></div>
+
+    <!-- Mensagem -->
+    <div class="form-group">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+        <label class="form-label" style="margin:0;">Mensagem</label>
+        <button class="btn btn-secondary btn-sm" id="massa-ia-btn" onclick="gerarMsgIAMassa()">🤖 Gerar com IA</button>
+      </div>
+      <textarea class="msg-textarea" id="massa-texto" placeholder="Escreve aqui a mensagem. Usa {nome} para personalizar..." oninput="updateMassaCount()"></textarea>
+      <div class="msg-char-count" id="massa-char-count">0 caracteres</div>
+    </div>
+
+    <!-- Templates rápidos -->
+    <div style="margin-bottom:14px;">
+      <div class="form-label" style="margin-bottom:8px;">⚡ Templates rápidos</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;">
+        <button class="btn btn-secondary btn-sm" onclick="usarTemplateMassa('primeiro')">👋 Primeiro contacto</button>
+        <button class="btn btn-secondary btn-sm" onclick="usarTemplateMassa('followup')">🔄 Follow-up</button>
+        <button class="btn btn-secondary btn-sm" onclick="usarTemplateMassa('info')">📦 Info produto</button>
+        <button class="btn btn-secondary btn-sm" onclick="usarTemplateMassa('cliente')">🎉 Bem-vindo cliente</button>
+      </div>
+    </div>
+
+    <!-- IA loader -->
+    <div id="massa-ia-loader" style="display:none;text-align:center;padding:10px 0;font-size:13px;color:var(--text2);">
+      🤖 A gerar mensagem com IA...
+    </div>
+
+    <!-- Progresso de envio -->
+    <div class="bulk-progress-bar" id="massa-progress-bar">
+      <div class="bulk-progress-fill" id="massa-progress-fill" style="width:0%"></div>
+    </div>
+    <div class="bulk-status-log" id="massa-status-log"></div>
+
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="closeModal('modal-massa')">Cancelar</button>
+      <button class="btn btn-green" id="massa-enviar-btn" onclick="enviarMensagemMassa()">💬 Enviar para Selecionados</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: ENVIAR MENSAGEM -->
+<div class="modal-overlay" id="modal-mensagem">
+  <div class="modal" style="max-width:520px;">
+    <div class="modal-title">
+      <span id="msg-modal-title">💬 Enviar Mensagem</span>
+      <button class="modal-close" onclick="closeModal('modal-mensagem')">✕</button>
+    </div>
+
+    <!-- Canal -->
+    <div class="msg-channel-pills">
+      <div class="msg-pill active-wa" id="msg-pill-whatsapp" onclick="setMsgCanal('whatsapp')">💬 WhatsApp</div>
+      <div class="msg-pill" id="msg-pill-sms" onclick="setMsgCanal('sms')">📱 SMS</div>
+      <div class="msg-pill" id="msg-pill-tel" onclick="ligarAtual()">📞 Ligar</div>
+    </div>
+
+    <!-- Aviso sem telefone -->
+    <div class="msg-no-tel" id="msg-no-tel-warn" style="display:none;">
+      ⚠️ Este contacto não tem número de telefone. <button class="btn btn-secondary btn-sm" style="margin-left:8px;" onclick="editarLead(msgLeadId); closeModal('modal-mensagem')">Adicionar número</button>
+    </div>
+
+    <!-- Destino -->
+    <div class="form-group" id="msg-destino-row">
+      <label class="form-label">Para</label>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <input class="form-input" id="msg-numero" placeholder="+351 9XX XXX XXX" style="flex:1;">
+        <span id="msg-nome-label" style="font-size:12px;color:var(--text2);white-space:nowrap;"></span>
+      </div>
+    </div>
+
+    <!-- Texto -->
+    <div class="form-group">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+        <label class="form-label" style="margin:0;">Mensagem</label>
+        <button class="btn btn-secondary btn-sm" id="msg-ia-btn" onclick="gerarMsgIA()">🤖 Gerar com IA</button>
+      </div>
+      <textarea class="msg-textarea" id="msg-texto" placeholder="Escreve a tua mensagem aqui..." oninput="updateMsgCount()"></textarea>
+      <div class="msg-char-count" id="msg-char-count">0 caracteres</div>
+    </div>
+
+    <!-- Templates rápidos -->
+    <div style="margin-bottom:14px;">
+      <div class="form-label" style="margin-bottom:8px;">⚡ Templates rápidos</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;">
+        <button class="btn btn-secondary btn-sm" onclick="usarTemplate('primeiro')">👋 Primeiro contacto</button>
+        <button class="btn btn-secondary btn-sm" onclick="usarTemplate('followup')">🔄 Follow-up</button>
+        <button class="btn btn-secondary btn-sm" onclick="usarTemplate('info')">📦 Info produto</button>
+        <button class="btn btn-secondary btn-sm" onclick="usarTemplate('cliente')">🎉 Bem-vindo cliente</button>
+      </div>
+    </div>
+
+    <!-- IA loader -->
+    <div id="msg-ia-loader" style="display:none;text-align:center;padding:10px 0;font-size:13px;color:var(--text2);">
+      🤖 A gerar mensagem com IA...
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="closeModal('modal-mensagem')">Cancelar</button>
+      <button class="btn btn-wa" id="msg-enviar-btn" onclick="enviarMensagem()">💬 Enviar WhatsApp</button>
     </div>
   </div>
 </div>
