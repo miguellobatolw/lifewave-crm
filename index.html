@@ -300,6 +300,9 @@
     opacity: 0;
     pointer-events: none;
     transition: opacity 0.2s;
+    padding: 12px 0;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
   }
   .modal-overlay.open { opacity: 1; pointer-events: all; }
   .modal {
@@ -310,6 +313,8 @@
     max-width: 520px;
     max-height: 88vh;
     overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
     padding: 28px;
     transform: translateY(20px);
     transition: transform 0.2s;
@@ -671,6 +676,19 @@
     /* Bottom nav compact for many items */
     .bn-item { padding: 3px 6px; font-size: 9px; min-width: 52px; }
     .bn-item .bn-icon { font-size: 18px; }
+
+    /* Modal fixes for mobile */
+    .modal {
+      max-height: 92dvh;
+      width: 96%;
+      padding: 20px 16px;
+      margin: auto;
+      border-radius: 14px;
+    }
+    .modal-overlay {
+      align-items: flex-start;
+      padding: 16px 0 80px;
+    }
   }
 
   @media (min-width: 769px) {
@@ -708,6 +726,7 @@
   .bn-icon-wrap { position: relative; }
 
   /* LINK ITEM */
+  .link-item {
     background: var(--surface2);
     border: 1px solid var(--border);
     border-radius: var(--radius-sm);
@@ -1220,9 +1239,10 @@
     flex-direction: column;
     align-items: center;
     justify-content: flex-start;
-    padding: 0 24px 24px;
+    padding: 0 24px 40px;
     font-family: 'DM Sans', sans-serif;
     overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
   }
   #login-screen.hidden { display: none; }
 
@@ -1244,7 +1264,8 @@
     flex-direction: column;
     align-items: center;
     gap: 0;
-    padding-top: 0;
+    padding-top: 40px;
+    padding-bottom: 20px;
   }
 
   .login-logo {
@@ -1416,14 +1437,17 @@
   }
 
   .login-footer {
-    position: absolute;
-    bottom: 24px;
-    left: 0; right: 0;
+    position: relative;
+    bottom: auto;
+    left: auto;
+    right: auto;
     text-align: center;
     font-size: 11.5px;
     color: rgba(255,255,255,0.2);
-    padding: 0 24px;
+    padding: 20px 24px 0;
     line-height: 1.6;
+    width: 100%;
+    max-width: 380px;
   }
 
   /* Google config modal */
@@ -1539,11 +1563,10 @@
   }
   .filtros-resumo {
     margin-top: 10px;
-    display: flex;
+    display: none;
     align-items: center;
     gap: 8px;
     flex-wrap: wrap;
-    display: none;
   }
   .filtros-resumo.visible { display: flex; }
   .filtro-tag {
@@ -1998,9 +2021,348 @@
     .coach-bubble { max-width: 92%; }
     .coach-suggestions { gap: 6px; }
     .coach-sugg { font-size: 11px; padding: 6px 11px; }
-    .coach-layout { height: calc(100vh - 160px); }
+    .coach-layout { height: calc(100dvh - 160px); }
   }
 
+
+  /* ===== BANNER PROMOÇÕES ATIVAS ===== */
+  .promo-banner-wrap {
+    margin-bottom: 18px;
+  }
+  .promo-banner {
+    background: linear-gradient(135deg, rgba(245,200,66,0.12) 0%, rgba(255,107,53,0.10) 50%, rgba(0,212,170,0.08) 100%);
+    border: 1px solid rgba(245,200,66,0.35);
+    border-radius: var(--radius);
+    padding: 0;
+    overflow: hidden;
+    position: relative;
+  }
+  .promo-banner-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 18px;
+    cursor: pointer;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .promo-banner-header:hover { background: rgba(255,255,255,0.02); }
+  .promo-banner-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex: 1;
+    min-width: 0;
+  }
+  .promo-banner-icon {
+    font-size: 24px;
+    flex-shrink: 0;
+  }
+  .promo-banner-title {
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 14px;
+    color: var(--gold);
+    line-height: 1.3;
+  }
+  .promo-banner-sub {
+    font-size: 11px;
+    color: var(--text2);
+    margin-top: 2px;
+  }
+  .promo-banner-right {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-shrink: 0;
+  }
+  .promo-countdown {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+  }
+  .promo-cd-unit {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    background: rgba(0,0,0,0.25);
+    border: 1px solid rgba(245,200,66,0.2);
+    border-radius: 6px;
+    padding: 4px 8px;
+    min-width: 38px;
+  }
+  .promo-cd-num {
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 16px;
+    color: var(--gold);
+    line-height: 1;
+  }
+  .promo-cd-lbl {
+    font-size: 9px;
+    color: var(--text2);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-top: 2px;
+  }
+  .promo-cd-sep {
+    font-size: 14px;
+    color: var(--gold);
+    opacity: 0.5;
+    font-weight: 700;
+    margin-bottom: 6px;
+  }
+  .promo-toggle-btn {
+    background: rgba(245,200,66,0.12);
+    border: 1px solid rgba(245,200,66,0.25);
+    color: var(--gold);
+    border-radius: 6px;
+    padding: 5px 10px;
+    font-size: 11px;
+    cursor: pointer;
+    font-family: 'DM Sans', sans-serif;
+    white-space: nowrap;
+    transition: all 0.2s;
+  }
+  .promo-toggle-btn:hover { background: rgba(245,200,66,0.2); }
+  .promo-banner-body {
+    display: none;
+    padding: 0 18px 16px;
+    border-top: 1px solid rgba(245,200,66,0.12);
+  }
+  .promo-banner-body.open { display: block; }
+  .promo-items-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 12px;
+    margin-top: 14px;
+  }
+  .promo-item {
+    background: rgba(0,0,0,0.2);
+    border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 10px;
+    padding: 14px;
+    position: relative;
+    overflow: hidden;
+  }
+  .promo-item.active-promo { border-color: rgba(0,212,170,0.3); }
+  .promo-item.ending-soon { border-color: rgba(255,107,53,0.4); }
+  .promo-item-badge {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 3px 8px;
+    border-radius: 20px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .promo-item-badge.live { background: rgba(0,212,170,0.15); color: var(--accent); }
+  .promo-item-badge.soon { background: rgba(255,107,53,0.2); color: var(--accent3); }
+  .promo-item-badge.ended { background: rgba(255,255,255,0.06); color: var(--text3); }
+  .promo-item-name {
+    font-weight: 600;
+    font-size: 13px;
+    color: var(--text);
+    margin-bottom: 4px;
+    padding-right: 60px;
+  }
+  .promo-item-desc {
+    font-size: 12px;
+    color: var(--text2);
+    line-height: 1.5;
+    margin-bottom: 10px;
+  }
+  .promo-item-dates {
+    font-size: 11px;
+    color: var(--text2);
+    margin-bottom: 8px;
+  }
+  .promo-item-highlight {
+    background: rgba(245,200,66,0.08);
+    border: 1px solid rgba(245,200,66,0.2);
+    border-radius: 6px;
+    padding: 8px 10px;
+    font-size: 12px;
+    color: var(--gold);
+    line-height: 1.5;
+  }
+  .promo-item-highlight strong { display: block; font-size: 13px; margin-bottom: 2px; }
+  .promo-mini-tags {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-top: 10px;
+  }
+  .promo-mini-tag {
+    font-size: 10px;
+    padding: 2px 8px;
+    border-radius: 20px;
+    background: rgba(255,255,255,0.06);
+    color: var(--text2);
+  }
+  .promo-urgency-bar {
+    height: 3px;
+    border-radius: 2px;
+    background: rgba(255,255,255,0.06);
+    margin-top: 10px;
+    overflow: hidden;
+  }
+  .promo-urgency-fill {
+    height: 100%;
+    border-radius: 2px;
+    transition: width 0.3s;
+  }
+  .promo-no-active {
+    text-align: center;
+    padding: 16px;
+    color: var(--text2);
+    font-size: 13px;
+  }
+
+  /* UPLOAD ZONE */
+  .promo-upload-zone {
+    margin-top: 18px;
+    padding-top: 16px;
+    border-top: 1px solid rgba(255,255,255,0.07);
+  }
+  .promo-upload-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 4px;
+  }
+  .promo-upload-sub {
+    font-size: 11px;
+    color: var(--text2);
+    margin-bottom: 12px;
+    line-height: 1.5;
+  }
+  .promo-upload-drop {
+    border: 2px dashed rgba(0,212,170,0.25);
+    border-radius: 10px;
+    padding: 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: rgba(0,212,170,0.03);
+  }
+  .promo-upload-drop:hover, .promo-upload-drop.drag-over {
+    border-color: var(--accent);
+    background: rgba(0,212,170,0.07);
+  }
+  .promo-ia-status-box {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: rgba(0,132,255,0.08);
+    border: 1px solid rgba(0,132,255,0.2);
+    border-radius: 8px;
+    padding: 12px 14px;
+    font-size: 12px;
+    color: var(--accent2);
+    margin-top: 10px;
+  }
+  .promo-ia-spinner {
+    width: 16px;
+    height: 16px;
+    border: 2px solid rgba(0,132,255,0.2);
+    border-top-color: var(--accent2);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    flex-shrink: 0;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .promo-ia-resultado-box {
+    margin-top: 10px;
+    font-size: 12px;
+  }
+
+  /* ESTRATÉGIA IA */
+  .promo-estrategia-box {
+    margin-top: 10px;
+    border: 1px solid rgba(0,212,170,0.2);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  .promo-estrategia-title {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 12px;
+    background: rgba(0,212,170,0.07);
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--accent);
+    cursor: pointer;
+    user-select: none;
+  }
+  .promo-estrategia-title:hover { background: rgba(0,212,170,0.12); }
+  .promo-estrategia-content {
+    padding: 12px;
+    font-size: 12px;
+    color: var(--text2);
+    line-height: 1.7;
+    background: rgba(0,0,0,0.15);
+    max-height: 300px;
+    overflow-y: auto;
+  }
+  .promo-estrategia-content strong { color: var(--text); }
+
+  /* PROMO AI SELECTOR */
+  .promo-ai-selector {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 12px;
+    align-items: center;
+  }
+  .promo-ai-selector span {
+    font-size: 11px;
+    color: var(--text2);
+    white-space: nowrap;
+  }
+  .promo-ai-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    border: 1.5px solid var(--border);
+    color: var(--text2);
+    background: var(--surface2);
+    transition: all 0.18s;
+  }
+  .promo-ai-btn.active-claude { border-color: var(--accent2); color: var(--accent2); background: rgba(0,132,255,0.1); }
+  .promo-ai-btn.active-gemini { border-color: #4285f4; color: #4285f4; background: rgba(66,133,244,0.1); }
+  .promo-ai-key-row {
+    display: none;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 10px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 10px;
+  }
+  .promo-ai-key-row.show { display: flex; }
+  .promo-ai-key-row label { font-size: 11px; color: var(--text2); white-space: nowrap; }
+  .promo-ai-key-row input {
+    flex: 1;
+    background: var(--surface3);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 6px 10px;
+    color: var(--text);
+    font-size: 12px;
+    outline: none;
+    font-family: 'DM Sans', sans-serif;
+  }
+  .promo-ai-key-row input:focus { border-color: var(--accent2); }
+  .promo-ai-key-status { font-size: 11px; color: var(--accent); white-space: nowrap; }
 </style>
 </head>
 <body>
@@ -2219,6 +2581,20 @@
         <span class="nav-icon">💰</span>
         <span>Comissões</span>
       </div>
+      <div class="nav-item" onclick="goTo('luminate')">
+        <span class="nav-icon">✈️</span>
+        <span>Luminate 2026</span>
+        <span id="badge-luminate" style="background:var(--accent3);color:#fff;font-size:9px;font-weight:700;padding:2px 6px;border-radius:20px;margin-left:auto;"></span>
+      </div>
+      <div class="nav-item" onclick="goTo('calculadora')">
+        <span class="nav-icon">🧮</span>
+        <span>Calculadora</span>
+      </div>
+      <div class="nav-item" onclick="goTo('plano-comp')" id="nav-plano-comp" style="position:relative;">
+        <span class="nav-icon">📋</span>
+        <span>Plano Comp.</span>
+        <span id="nav-plano-badge" style="display:none;background:var(--accent3);color:#fff;font-size:9px;font-weight:700;padding:2px 6px;border-radius:20px;margin-left:auto;">IA</span>
+      </div>
       <div class="nav-item" onclick="abrirPerfilModal(false)" id="nav-perfil" style="margin-top:8px;border-top:1px solid var(--border);padding-top:12px;">
         <span class="nav-icon">⚙️</span>
         <span>Meu Perfil & Links</span>
@@ -2275,6 +2651,9 @@
         </div>
         <div class="followup-list" id="followup-list"></div>
       </div>
+
+      <!-- PROMOÇÕES ATIVAS BANNER -->
+      <div class="promo-banner-wrap" id="promo-banner-wrap"></div>
 
       <div class="stats-grid">
         <div class="stat-card c1">
@@ -3276,7 +3655,419 @@
         <div id="com-tabela-vendas" style="min-height:120px;"></div>
       </div>
 
-    </div>
+    </div><!-- end page-comissoes -->
+
+    <div id="page-luminate" class="page">
+      <div class="page-header">
+        <div>
+          <div class="page-title">✈️ Viagens de Incentivo</div>
+          <div class="page-sub">Acompanha os teus pontos para viagens e prémios. Faz upload do PDF/imagem oficial e a IA configura tudo.</div>
+        </div>
+      </div>
+
+      <!-- UPLOAD ZONE -->
+      <div class="card" style="margin-bottom:20px;">
+        <div class="section-title" style="margin-bottom:6px;">📎 Adicionar Viagem via PDF / Imagem</div>
+        <div style="font-size:13px;color:var(--text2);margin-bottom:16px;line-height:1.6;">
+          Faz upload do documento oficial de qualquer viagem ou prémio de incentivo (Luminate, Conferências, etc.).
+          A IA lê o documento e configura automaticamente <strong style="color:var(--text);">o nome, datas, meta de pontos e regras de pontuação</strong>.
+        </div>
+
+        <!-- AI selector (reaproveita o seletor do Plano de Compensação) -->
+        <div class="ai-selector-bar" style="margin-bottom:14px;">
+          <span class="ai-selector-label">IA para análise:</span>
+          <button class="ai-btn active-claude" id="viagem-btn-claude" onclick="viagemSetAI('claude')">🧠 Claude</button>
+          <button class="ai-btn" id="viagem-btn-gemini" onclick="viagemSetAI('gemini')">✦ Gemini</button>
+        </div>
+        <div class="gemini-key-row" id="viagem-gemini-key-row">
+          <input type="password" id="viagem-gemini-key" placeholder="Chave API Gemini (AIza...) — grátis em aistudio.google.com" oninput="saveViagemGeminiKey(this.value)">
+          <span class="gemini-key-status" id="viagem-gemini-status"></span>
+        </div>
+        <div class="gemini-key-row show" id="viagem-claude-key-row">
+          <input type="password" id="viagem-claude-key" placeholder="Chave API Claude (sk-ant-...)" oninput="saveViagemClaudeKey(this.value)">
+          <span class="gemini-key-status" id="viagem-claude-status"></span>
+        </div>
+
+        <!-- Drop zone -->
+        <div id="viagem-drop-zone"
+          style="border:2px dashed var(--border);border-radius:var(--radius-sm);padding:28px 20px;text-align:center;cursor:pointer;transition:all 0.2s;background:var(--surface2);position:relative;margin-bottom:12px;"
+          onclick="document.getElementById('viagem-file-input').click()"
+          ondragover="event.preventDefault();this.style.borderColor='var(--accent3)';this.style.background='rgba(255,107,53,0.05)'"
+          ondragleave="this.style.borderColor='var(--border)';this.style.background='var(--surface2)'"
+          ondrop="viagemHandleDrop(event)">
+          <div id="viagem-drop-icon" style="font-size:36px;margin-bottom:8px;">✈️</div>
+          <div id="viagem-drop-label" style="font-size:14px;font-weight:600;color:var(--text);">Clica ou arrasta o PDF/Imagem da viagem</div>
+          <div style="font-size:11px;color:var(--text2);margin-top:4px;">PDF, JPG, PNG ou WEBP · máx. 20MB</div>
+          <input type="file" id="viagem-file-input" accept=".pdf,.jpg,.jpeg,.png,.webp" style="display:none" onchange="viagemHandleFile(this.files[0])">
+        </div>
+
+        <div id="viagem-upload-preview" style="display:none;margin-bottom:12px;"></div>
+
+        <div id="viagem-upload-actions" style="display:none;gap:8px;flex-wrap:wrap;">
+          <button class="btn btn-ai" onclick="viagemAnalisarIA()">🧠 Analisar e Adicionar Viagem</button>
+          <button class="btn btn-secondary" onclick="viagemCancelarUpload()">✕ Cancelar</button>
+        </div>
+
+        <!-- Status IA -->
+        <div id="viagem-ia-status" style="display:none;align-items:center;gap:12px;padding:14px;background:var(--surface2);border-radius:var(--radius-sm);border:1px solid var(--border);margin-top:12px;">
+          <div class="spinner"></div>
+          <div>
+            <div style="font-size:13px;font-weight:600;color:var(--text);" id="viagem-ia-status-text">A analisar documento...</div>
+            <div style="font-size:11px;color:var(--text2);margin-top:2px;">Isto pode demorar alguns segundos.</div>
+          </div>
+        </div>
+
+        <!-- Resultado -->
+        <div id="viagem-ia-resultado" style="display:none;margin-top:12px;"></div>
+      </div>
+
+      <!-- SELETOR DE VIAGEM -->
+      <div id="viagem-seletor-wrap" style="margin-bottom:16px;"></div>
+
+      <!-- DETALHE DA VIAGEM SELECIONADA -->
+      <div id="viagem-detalhe-wrap"></div>
+
+    </div><!-- end page-luminate -->
+
+
+
+    <!-- ============================================================ -->
+    <!-- PAGE: CALCULADORA DE BÓNUS 2.0                               -->
+    <!-- ============================================================ -->
+    <div id="page-calculadora" class="page">
+      <div class="page-header">
+        <div>
+          <div class="page-title">🧮 Calculadora de Bónus 2.0</div>
+          <div class="page-sub">Calcula os teus ganhos semanais com o Plano de Compensação LifeWave 2.0</div>
+        </div>
+        <button class="btn btn-secondary" onclick="resetCalculadora()">🔄 Limpar</button>
+      </div>
+
+      <!-- SELECTOR DE CATEGORIA -->
+      <div class="card" style="margin-bottom:20px;">
+        <div class="section-title" style="margin-bottom:14px;">📊 A tua Categoria de Pagamento esta semana</div>
+        <div id="calc-categoria-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px;"></div>
+      </div>
+
+      <!-- INPUTS PRINCIPAIS -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:20px;" class="stats-row-2">
+
+        <!-- Coluna esquerda: volumes -->
+        <div style="display:flex;flex-direction:column;gap:16px;">
+
+          <div class="card">
+            <div class="section-title" style="margin-bottom:12px;">📦 Volumes da Semana</div>
+            <div class="form-group">
+              <label class="form-label">Volume Pessoal (PV) — teu + clientes (31 dias)</label>
+              <input class="form-input" type="number" id="calc-pv" placeholder="Ex: 110" min="0" oninput="calcularBonus()">
+              <div style="font-size:11px;color:var(--text3);margin-top:4px;">Mínimo 55 para Ativo · 110 para Manager · 200 para Executive+</div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">QV dos teus Clientes (31 dias) — para Prémio Clientes</label>
+              <input class="form-input" type="number" id="calc-qv-clientes" placeholder="Ex: 400" min="0" oninput="calcularBonus()">
+              <div style="font-size:11px;color:var(--text3);margin-top:4px;">300-599 = 5% · 600-1199 = 10% · 1200+ = 20%</div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">QV semanal dos Clientes (esta semana)</label>
+              <input class="form-input" type="number" id="calc-qv-semana" placeholder="Ex: 200" min="0" oninput="calcularBonus()">
+              <div style="font-size:11px;color:var(--text3);margin-top:4px;">Base para calcular o Prémio por Clientes desta semana</div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="section-title" style="margin-bottom:12px;">👥 Bónus de Ganhos por Nível</div>
+            <div class="form-group">
+              <label class="form-label">BV total dos teus Nível 1 (Brand Partners diretos)</label>
+              <input class="form-input" type="number" id="calc-bv-n1" placeholder="Ex: 1000" min="0" oninput="calcularBonus()">
+            </div>
+            <div class="form-group">
+              <label class="form-label">BV total dos teus Nível 2</label>
+              <input class="form-input" type="number" id="calc-bv-n2" placeholder="Ex: 800" min="0" oninput="calcularBonus()">
+            </div>
+            <div class="form-group">
+              <label class="form-label">BV total dos teus Nível 3</label>
+              <input class="form-input" type="number" id="calc-bv-n3" placeholder="Ex: 500" min="0" oninput="calcularBonus()">
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Coluna direita: bónus específicos -->
+        <div style="display:flex;flex-direction:column;gap:16px;">
+
+          <div class="card">
+            <div class="section-title" style="margin-bottom:12px;">🔄 Bónus Binário</div>
+            <div class="form-group">
+              <label class="form-label">BV na tua Secção de Pagamento (lado mais fraco)</label>
+              <input class="form-input" type="number" id="calc-bv-binario" placeholder="Ex: 50000" min="0" oninput="calcularBonus()">
+              <div style="font-size:11px;color:var(--text3);margin-top:4px;">Mínimo 300 BV para activar o bónus binário (a partir de 3-Star Manager)</div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="section-title" style="margin-bottom:12px;">🤝 Mentor Matching Bonus</div>
+            <div class="form-group">
+              <label class="form-label">Bónus Binário + Nível total dos líderes Gen 1</label>
+              <input class="form-input" type="number" id="calc-mmb-g1" placeholder="Ex: 2000" min="0" oninput="calcularBonus()">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Bónus total dos líderes Gen 2</label>
+              <input class="form-input" type="number" id="calc-mmb-g2" placeholder="Ex: 1500" min="0" oninput="calcularBonus()">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Bónus total dos líderes Gen 3</label>
+              <input class="form-input" type="number" id="calc-mmb-g3" placeholder="Ex: 800" min="0" oninput="calcularBonus()">
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="section-title" style="margin-bottom:12px;">🆕 Bónus de Arranque (BLB)</div>
+            <div class="form-group">
+              <label class="form-label">Nº de novos BPs na semana (1-Star Manager)</label>
+              <input class="form-input" type="number" id="calc-blb-1s" placeholder="0" min="0" oninput="calcularBonus()">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Nº de novos BPs na semana (2-Star Manager ou superior)</label>
+              <input class="form-input" type="number" id="calc-blb-2s" placeholder="0" min="0" oninput="calcularBonus()">
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="section-title" style="margin-bottom:12px;">📦 PIB — Bónus por Introdução</div>
+            <div style="display:flex;flex-direction:column;gap:6px;" id="calc-pib-inputs">
+              <div style="display:flex;align-items:center;gap:8px;">
+                <span style="font-size:12px;color:var(--text2);min-width:100px;">Core (33€)</span>
+                <input class="form-input" type="number" min="0" placeholder="0" id="calc-pib-core" oninput="calcularBonus()" style="width:70px;">
+                <span style="font-size:11px;color:var(--text3);">inscrições</span>
+              </div>
+              <div style="display:flex;align-items:center;gap:8px;">
+                <span style="font-size:12px;color:var(--text2);min-width:100px;">Advanced (71€)</span>
+                <input class="form-input" type="number" min="0" placeholder="0" id="calc-pib-adv" oninput="calcularBonus()" style="width:70px;">
+              </div>
+              <div style="display:flex;align-items:center;gap:8px;">
+                <span style="font-size:12px;color:var(--text2);min-width:100px;">Adv. Plus (157€)</span>
+                <input class="form-input" type="number" min="0" placeholder="0" id="calc-pib-advp" oninput="calcularBonus()" style="width:70px;">
+              </div>
+              <div style="display:flex;align-items:center;gap:8px;">
+                <span style="font-size:12px;color:var(--text2);min-width:100px;">Premium (385€)</span>
+                <input class="form-input" type="number" min="0" placeholder="0" id="calc-pib-prem" oninput="calcularBonus()" style="width:70px;">
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- RESULTADO TOTAL -->
+      <div class="card" id="calc-resultado" style="background:linear-gradient(135deg,rgba(0,212,170,0.07),rgba(0,132,255,0.05));border-color:rgba(0,212,170,0.3);margin-bottom:20px;">
+        <div class="section-title" style="margin-bottom:16px;">💶 Resultado — Ganhos desta Semana</div>
+        <div id="calc-resultado-breakdown" style="display:flex;flex-direction:column;gap:8px;margin-bottom:20px;"></div>
+        <div style="border-top:2px solid rgba(0,212,170,0.3);padding-top:16px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
+          <div>
+            <div style="font-size:13px;color:var(--text2);text-transform:uppercase;letter-spacing:0.7px;">TOTAL ESTIMADO ESTA SEMANA</div>
+            <div id="calc-total" style="font-family:'Syne',sans-serif;font-size:38px;font-weight:800;color:var(--accent);">0 €</div>
+          </div>
+          <div style="text-align:right;">
+            <div style="font-size:11px;color:var(--text3);">Projeção mensal (~4 semanas)</div>
+            <div id="calc-mensal" style="font-family:'Syne',sans-serif;font-size:22px;font-weight:700;color:var(--accent2);">0 €</div>
+          </div>
+        </div>
+        <div id="calc-aviso" style="margin-top:12px;font-size:12px;color:var(--gold);display:none;"></div>
+      </div>
+
+      <!-- TABELA DE REFERÊNCIA RÁPIDA -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:20px;" class="stats-row-2">
+
+        <div class="card">
+          <div class="section-title" style="margin-bottom:12px;">📋 Referência — Bónus Binário Máx.</div>
+          <div style="font-size:12px;">
+            <table style="width:100%;border-collapse:collapse;">
+              <tr style="color:var(--text2);font-size:11px;border-bottom:1px solid var(--border);">
+                <th style="text-align:left;padding:6px 4px;">Categoria</th>
+                <th style="text-align:center;padding:6px 4px;">%</th>
+                <th style="text-align:right;padding:6px 4px;">Máx/semana</th>
+              </tr>
+              <tr style="border-bottom:1px solid rgba(255,255,255,0.04);"><td style="padding:5px 4px;color:var(--text);">3-Star Manager</td><td style="text-align:center;color:var(--accent2);">5%</td><td style="text-align:right;color:var(--text2);">1.425€</td></tr>
+              <tr style="border-bottom:1px solid rgba(255,255,255,0.04);"><td style="padding:5px 4px;color:var(--text);">1-Star Director</td><td style="text-align:center;color:var(--accent2);">7%</td><td style="text-align:right;color:var(--text2);">2.375€</td></tr>
+              <tr style="border-bottom:1px solid rgba(255,255,255,0.04);"><td style="padding:5px 4px;color:var(--text);">2-Star Director</td><td style="text-align:center;color:var(--accent2);">9%</td><td style="text-align:right;color:var(--text2);">3.325€</td></tr>
+              <tr style="border-bottom:1px solid rgba(255,255,255,0.04);"><td style="padding:5px 4px;color:var(--text);">3-Star Director</td><td style="text-align:center;color:var(--accent2);">10%</td><td style="text-align:right;color:var(--text2);">4.750€</td></tr>
+              <tr style="border-bottom:1px solid rgba(255,255,255,0.04);"><td style="padding:5px 4px;color:var(--text);">1-Star Executive</td><td style="text-align:center;color:var(--accent2);">10%</td><td style="text-align:right;color:var(--text2);">7.125€</td></tr>
+              <tr style="border-bottom:1px solid rgba(255,255,255,0.04);"><td style="padding:5px 4px;color:var(--text);">2-Star Executive</td><td style="text-align:center;color:var(--accent2);">10%</td><td style="text-align:right;color:var(--text2);">9.500€</td></tr>
+              <tr style="border-bottom:1px solid rgba(255,255,255,0.04);"><td style="padding:5px 4px;color:var(--text);">3-Star Executive</td><td style="text-align:center;color:var(--accent2);">10%</td><td style="text-align:right;color:var(--text2);">14.250€</td></tr>
+              <tr style="border-bottom:1px solid rgba(255,255,255,0.04);"><td style="padding:5px 4px;color:var(--text);">1-Star Presidential</td><td style="text-align:center;color:var(--accent2);">10%</td><td style="text-align:right;color:var(--gold);">19.000€</td></tr>
+              <tr style="border-bottom:1px solid rgba(255,255,255,0.04);"><td style="padding:5px 4px;color:var(--text);">2-Star Presidential</td><td style="text-align:center;color:var(--accent2);">10%</td><td style="text-align:right;color:var(--gold);">23.750€</td></tr>
+              <tr><td style="padding:5px 4px;color:var(--text);">3-Star Presidential</td><td style="text-align:center;color:var(--accent2);">10%</td><td style="text-align:right;color:var(--gold);">23.750€</td></tr>
+            </table>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="section-title" style="margin-bottom:12px;">🏆 Incentivos de Crescimento</div>
+          <div style="font-size:12px;">
+            <table style="width:100%;border-collapse:collapse;">
+              <tr style="color:var(--text2);font-size:11px;border-bottom:1px solid var(--border);">
+                <th style="text-align:left;padding:6px 4px;">Título de Carreira</th>
+                <th style="text-align:right;padding:6px 4px;">Prémio Total</th>
+              </tr>
+              <tr style="border-bottom:1px solid rgba(255,255,255,0.04);"><td style="padding:5px 4px;color:var(--text);">1-Star Director</td><td style="text-align:right;color:var(--accent);">475€</td></tr>
+              <tr style="border-bottom:1px solid rgba(255,255,255,0.04);"><td style="padding:5px 4px;color:var(--text);">1-Star Executive</td><td style="text-align:right;color:var(--accent);">4.750€</td></tr>
+              <tr style="border-bottom:1px solid rgba(255,255,255,0.04);"><td style="padding:5px 4px;color:var(--text);">1-Star Presidential</td><td style="text-align:right;color:var(--gold);">47.500€</td></tr>
+              <tr style="border-bottom:1px solid rgba(255,255,255,0.04);"><td style="padding:5px 4px;color:var(--text);">2-Star Presidential</td><td style="text-align:right;color:var(--gold);">71.250€</td></tr>
+              <tr><td style="padding:5px 4px;color:var(--text);">3-Star Presidential</td><td style="text-align:right;color:var(--gold);">95.000€</td></tr>
+            </table>
+            <div style="margin-top:12px;padding:10px;background:rgba(245,200,66,0.08);border-radius:8px;border:1px solid rgba(245,200,66,0.2);">
+              <div style="font-size:11px;color:var(--gold);font-weight:600;margin-bottom:4px;">💡 Como funciona</div>
+              <div style="font-size:11px;color:var(--text2);line-height:1.6;">Parte 1: paga na semana em que atinges o título.<br>Parte 2: paga após 4 semanas adicionais na mesma categoria (em 52 semanas).</div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- TABELA COMPLETA GANHOS POR NÍVEL -->
+      <div class="card" style="margin-bottom:20px;">
+        <div class="section-title" style="margin-bottom:12px;">📊 Bónus de Ganhos por Nível — Percentagens por Categoria</div>
+        <div style="overflow-x:auto;">
+          <table style="width:100%;border-collapse:collapse;font-size:11px;min-width:600px;">
+            <tr style="background:rgba(0,212,170,0.08);color:var(--text2);font-size:10px;text-transform:uppercase;">
+              <th style="padding:8px 6px;text-align:left;border-bottom:1px solid var(--border);">Nível</th>
+              <th style="padding:8px 4px;text-align:center;border-bottom:1px solid var(--border);">BP Ativo</th>
+              <th style="padding:8px 4px;text-align:center;border-bottom:1px solid var(--border);">1★ Mgr</th>
+              <th style="padding:8px 4px;text-align:center;border-bottom:1px solid var(--border);">2★ Mgr</th>
+              <th style="padding:8px 4px;text-align:center;border-bottom:1px solid var(--border);">3★ Mgr</th>
+              <th style="padding:8px 4px;text-align:center;border-bottom:1px solid var(--border);">1★ Dir</th>
+              <th style="padding:8px 4px;text-align:center;border-bottom:1px solid var(--border);">2★ Dir</th>
+              <th style="padding:8px 4px;text-align:center;border-bottom:1px solid var(--border);">3★ Dir+</th>
+            </tr>
+            <tr style="border-bottom:1px solid rgba(255,255,255,0.04);">
+              <td style="padding:6px;color:var(--text);font-weight:600;">Nível 1</td>
+              <td style="text-align:center;color:var(--accent);">3%</td>
+              <td style="text-align:center;color:var(--accent);">5%</td>
+              <td style="text-align:center;color:var(--accent);">7%</td>
+              <td style="text-align:center;color:var(--accent);">7%</td>
+              <td style="text-align:center;color:var(--accent);">7%</td>
+              <td style="text-align:center;color:var(--accent);">7%</td>
+              <td style="text-align:center;color:var(--accent);">7%</td>
+            </tr>
+            <tr style="border-bottom:1px solid rgba(255,255,255,0.04);">
+              <td style="padding:6px;color:var(--text);font-weight:600;">Nível 2</td>
+              <td style="text-align:center;color:var(--text3);">—</td>
+              <td style="text-align:center;color:var(--text3);">—</td>
+              <td style="text-align:center;color:var(--accent2);">2%</td>
+              <td style="text-align:center;color:var(--accent2);">3%</td>
+              <td style="text-align:center;color:var(--accent2);">5%</td>
+              <td style="text-align:center;color:var(--accent2);">5%</td>
+              <td style="text-align:center;color:var(--accent2);">5%</td>
+            </tr>
+            <tr>
+              <td style="padding:6px;color:var(--text);font-weight:600;">Nível 3</td>
+              <td style="text-align:center;color:var(--text3);">—</td>
+              <td style="text-align:center;color:var(--text3);">—</td>
+              <td style="text-align:center;color:var(--text3);">—</td>
+              <td style="text-align:center;color:var(--text3);">—</td>
+              <td style="text-align:center;color:var(--gold);">1%</td>
+              <td style="text-align:center;color:var(--gold);">2%</td>
+              <td style="text-align:center;color:var(--gold);">3%</td>
+            </tr>
+          </table>
+        </div>
+      </div>
+
+    </div><!-- end page-calculadora -->
+
+    <!-- ============================================================ -->
+    <!-- PAGE: PLANO DE COMPENSAÇÃO — ATUALIZAÇÃO VIA IA              -->
+    <!-- ============================================================ -->
+    <div id="page-plano-comp" class="page">
+      <div class="page-header">
+        <div>
+          <div class="page-title">📋 Plano de Compensação</div>
+          <div class="page-sub">Mantém os valores do plano sempre atualizados — faz upload do PDF e a IA trata do resto</div>
+        </div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
+          <button class="btn btn-secondary btn-sm" onclick="planoCompVerHistorico()">🕑 Histórico</button>
+          <button class="btn btn-danger btn-sm" onclick="planoCompResetarBase()">↩️ Repor Original</button>
+        </div>
+      </div>
+
+      <!-- STATUS ATUAL -->
+      <div id="plano-comp-status-banner" style="margin-bottom:20px;"></div>
+
+      <!-- UPLOAD ZONE -->
+      <div class="card" style="margin-bottom:20px;">
+        <div class="section-title" style="margin-bottom:6px;">📎 Atualizar Plano de Compensação via PDF / Imagem</div>
+        <div style="font-size:13px;color:var(--text2);margin-bottom:16px;line-height:1.6;">
+          Quando a LifeWave alterar o Plano de Compensação, faz o download do PDF oficial e carrega-o aqui.
+          A IA lê o documento e atualiza automaticamente <strong style="color:var(--text);">todas as categorias, percentagens de bónus, limites binários, qualificações e produtos</strong> em toda a app.
+        </div>
+
+        <!-- AI selector -->
+        <div class="ai-selector-bar" style="margin-bottom:14px;">
+          <span class="ai-selector-label">IA para análise:</span>
+          <button class="ai-btn active-claude" id="plano-btn-claude" onclick="planoSetAI('claude')">🧠 Claude</button>
+          <button class="ai-btn" id="plano-btn-gemini" onclick="planoSetAI('gemini')">✦ Gemini</button>
+        </div>
+        <div class="gemini-key-row" id="plano-gemini-key-row">
+          <input type="password" id="plano-gemini-key" placeholder="Chave API Gemini (AIza...) — grátis em aistudio.google.com" oninput="savePlanoGeminiKey(this.value)">
+          <span class="gemini-key-status" id="plano-gemini-status"></span>
+        </div>
+        <div class="gemini-key-row show" id="plano-claude-key-row">
+          <input type="password" id="plano-claude-key" placeholder="Chave API Claude (sk-ant-...)" oninput="savePlanoClaudeKey(this.value)">
+          <span class="gemini-key-status" id="plano-claude-status"></span>
+        </div>
+
+        <!-- Drop zone -->
+        <div id="plano-drop-zone"
+          style="border:2px dashed var(--border);border-radius:var(--radius-sm);padding:28px 20px;text-align:center;cursor:pointer;transition:all 0.2s;background:var(--surface2);position:relative;margin-bottom:12px;"
+          onclick="document.getElementById('plano-file-input').click()"
+          ondragover="event.preventDefault();this.style.borderColor='var(--accent3)';this.style.background='rgba(255,107,53,0.05)'"
+          ondragleave="this.style.borderColor='var(--border)';this.style.background='var(--surface2)'"
+          ondrop="planoHandleDrop(event)">
+          <div id="plano-drop-icon" style="font-size:36px;margin-bottom:8px;">📄</div>
+          <div id="plano-drop-label" style="font-size:14px;font-weight:600;color:var(--text);">Clica ou arrasta o PDF do Plano de Compensação</div>
+          <div style="font-size:11px;color:var(--text2);margin-top:4px;">PDF, JPG, PNG ou WEBP · máx. 20MB</div>
+          <input type="file" id="plano-file-input" accept=".pdf,.jpg,.jpeg,.png,.webp" style="display:none" onchange="planoHandleFile(this.files[0])">
+        </div>
+
+        <div id="plano-upload-preview" style="display:none;margin-bottom:12px;"></div>
+
+        <div id="plano-upload-actions" style="display:none;gap:8px;flex-wrap:wrap;">
+          <button class="btn btn-ai" onclick="planoAnalisarIA()">🧠 Analisar e Atualizar com IA</button>
+          <button class="btn btn-secondary" onclick="planoCancelarUpload()">✕ Cancelar</button>
+        </div>
+
+        <!-- Status IA -->
+        <div id="plano-ia-status" style="display:none;align-items:center;gap:12px;padding:14px;background:var(--surface2);border-radius:var(--radius-sm);border:1px solid var(--border);margin-top:12px;">
+          <div class="spinner"></div>
+          <div>
+            <div style="font-size:13px;font-weight:600;color:var(--text);" id="plano-ia-status-text">A analisar documento...</div>
+            <div style="font-size:11px;color:var(--text2);margin-top:2px;" id="plano-ia-status-sub">Isto pode demorar alguns segundos.</div>
+          </div>
+        </div>
+
+        <!-- Resultado -->
+        <div id="plano-ia-resultado" style="display:none;margin-top:12px;"></div>
+      </div>
+
+      <!-- VISUALIZAÇÃO DO PLANO ATUAL -->
+      <div class="card" style="margin-bottom:20px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:16px;">
+          <div class="section-title" style="margin:0;">📊 Valores Ativos no Plano</div>
+          <div id="plano-comp-versao" style="font-size:11px;color:var(--text2);"></div>
+        </div>
+        <div id="plano-comp-visualizacao"></div>
+      </div>
+
+      <!-- HISTÓRICO -->
+      <div class="card" id="plano-historico-wrap" style="display:none;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+          <div class="section-title" style="margin:0;">🕑 Histórico de Versões</div>
+          <button class="btn btn-secondary btn-sm" onclick="document.getElementById('plano-historico-wrap').style.display='none'">Fechar</button>
+        </div>
+        <div id="plano-historico-lista"></div>
+      </div>
+
+    </div><!-- end page-plano-comp -->
 
   </main>
 
@@ -3331,6 +4122,18 @@
     <div class="bn-item" id="bn-comissoes" onclick="goTo('comissoes')">
       <div class="bn-icon-wrap"><span class="bn-icon">💰</span></div>
       <span>Comissões</span>
+    </div>
+    <div class="bn-item" id="bn-luminate" onclick="goTo('luminate')">
+      <div class="bn-icon-wrap"><span class="bn-icon">✈️</span></div>
+      <span>Luminate</span>
+    </div>
+    <div class="bn-item" id="bn-calculadora" onclick="goTo('calculadora')">
+      <div class="bn-icon-wrap"><span class="bn-icon">🧮</span></div>
+      <span>Calculadora</span>
+    </div>
+    <div class="bn-item" id="bn-plano-comp" onclick="goTo('plano-comp')">
+      <div class="bn-icon-wrap"><span class="bn-icon">📋</span></div>
+      <span>Plano Comp.</span>
     </div>
   </nav>
 
@@ -3395,7 +4198,7 @@
       <textarea class="form-textarea" id="f-notas" placeholder="Interesses, dores, histórico de conversa..."></textarea>
     </div>
     <div class="modal-actions">
-      <button class="btn btn-secondary" onclick="closeModal('modal-lead')">Cancelar</button>
+      <button class="btn btn-secondary" onclick="closeModal('modal-lead'); editingLeadId=null;">Cancelar</button>
       <button class="btn btn-primary" onclick="salvarLead()">✓ Guardar Lead</button>
     </div>
   </div>
@@ -3560,7 +4363,7 @@ function goTo(page) {
   document.querySelectorAll('.bn-item').forEach(n => n.classList.remove('active'));
   document.getElementById('page-' + page).classList.add('active');
   const items = document.querySelectorAll('.nav-item');
-  const map = { dashboard: 0, acoes: 1, funil: 2, lista: 3, posts: 4, calendario: 5, agenda: 6, respostas: 7, coach: 8, stats: 9, equipa: 10, comissoes: 11 };
+  const map = { dashboard: 0, acoes: 1, funil: 2, lista: 3, posts: 4, calendario: 5, agenda: 6, respostas: 7, coach: 8, stats: 9, equipa: 10, comissoes: 11, luminate: 12, calculadora: 13 };
   if (map[page] !== undefined && items[map[page]]) items[map[page]].classList.add('active');
   const bnEl = document.getElementById('bn-' + page);
   if (bnEl) bnEl.classList.add('active');
@@ -3574,6 +4377,8 @@ function goTo(page) {
   if (page === 'stats') renderStats();
   if (page === 'equipa') renderEquipa();
   if (page === 'comissoes') renderComissoes();
+  if (page === 'luminate') renderLuminate();
+  if (page === 'calculadora') renderCalculadora();
   window.scrollTo(0, 0);
 }
 
@@ -3613,10 +4418,12 @@ function salvarLead() {
   }
   saveleads();
   closeModal('modal-lead');
+  const foiEdicao = !!editingLeadId;
+  editingLeadId = null;
   renderDashboard();
   renderFunil();
   renderLista();
-  showToast(editingLeadId ? '✓ Lead atualizado' : '✓ Lead adicionado');
+  showToast(foiEdicao ? '✓ Lead atualizado' : '✓ Lead adicionado');
 }
 
 function editarLead(id) {
@@ -4017,7 +4824,7 @@ function renderListaFiltrada(filtered) {
       <td><strong>${l.nome}</strong><br>${scoreBadgeHtml(l)}</td>
       <td>${l.tel || '—'}</td>
       <td>${l.email || '—'}</td>
-      <td>${l.mercado.split(' ')[0]}</td>
+      <td>${(l.mercado||'').split(' ')[0]}</td>
       <td><span class="lead-badge b-${l.estado}">${estadoLabel(l.estado)}</span></td>
       <td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${l.notas || '—'}</td>
       <td style="display:flex;gap:6px;flex-wrap:wrap;">
@@ -4085,7 +4892,7 @@ function agendarPost() {
   if (!texto || !data) { showToast('❌ Preenche o texto e a data'); return; }
   const post = { id: gerarId(), texto, data, plataforma };
   posts.push(post);
-  localStorage.setItem('lw_posts', JSON.stringify(posts));
+  savePosts();
   closeModal('modal-agendar');
   renderCalendario();
   showToast('📅 Post agendado!');
@@ -4146,7 +4953,7 @@ function renderCalendario() {
 
 function eliminarPost(id) {
   posts = posts.filter(p => p.id !== id);
-  localStorage.setItem('lw_posts', JSON.stringify(posts));
+  savePosts();
   renderCalendario();
   showToast('🗑 Post removido');
 }
@@ -5303,11 +6110,13 @@ async function executarSyncCalendar() {
 }
 
 // ===== AGENDA =====
-let eventos = JSON.parse(localStorage.getItem('lw_eventos') || '[]');
+let eventos = [];
 let agendaDate = new Date();
 let agendaSelectedDay = null;
 
-function saveEventos() { localStorage.setItem('lw_eventos', JSON.stringify(eventos)); }
+function saveEventos() { localStorage.setItem(getUserStorageKey('lw_eventos'), JSON.stringify(eventos)); }
+
+function loadEventos() { eventos = JSON.parse(localStorage.getItem(getUserStorageKey('lw_eventos')) || '[]'); }
 
 function renderAgenda(filtroData) {
   const ano = agendaDate.getFullYear();
@@ -5430,9 +6239,10 @@ function salvarEvento() {
   }
   saveEventos();
   closeModal('modal-novo-evento');
+  const foiEdicao = !!editingEventoId;
   editingEventoId = null;
   renderAgenda(agendaSelectedDay);
-  showToast(editingEventoId ? '✓ Evento atualizado' : '✅ Evento criado!');
+  showToast(foiEdicao ? '✓ Evento atualizado' : '✅ Evento criado!');
 }
 
 // Google Agenda Sync (import events from Google Calendar)
@@ -5903,8 +6713,7 @@ async function enviarMensagemMassa() {
 }
 
 // ===== INIT =====
-// patch openModal to pre-fill date for agenda event
-const _origOpenModal = openModal;
+// openModal handles modal pre-filling and opening
 function openModal(id) {
   if (id === 'modal-novo-evento' && !editingEventoId) {
     document.getElementById('modal-novo-evento-title').textContent = '🗓️ Novo Evento';
@@ -5916,19 +6725,34 @@ function openModal(id) {
     const today = agendaSelectedDay || new Date().toISOString().slice(0,10);
     document.getElementById('ev-data').value = today;
   }
-  if (id === 'modal-lead') {
-    editingLeadId = null;
+  if (id === 'modal-lead' && !editingLeadId) {
     document.getElementById('modal-lead-title').textContent = '➕ Novo Lead';
     ['f-nome','f-tel','f-email','f-notas'].forEach(f => document.getElementById(f).value = '');
     document.getElementById('f-estado').value = 'novo';
   }
   if (id === 'modal-nova-venda' && !editingVendaId) {
-    abrirNovaVenda();
-    return;
+    // Reset fields inline (avoid calling abrirNovaVenda which would recurse)
+    editingVendaId = null;
+    document.getElementById('modal-venda-title').textContent = '💰 Registar Venda';
+    document.getElementById('v-cliente').value = '';
+    document.getElementById('v-data').value = new Date().toISOString().slice(0,10);
+    document.getElementById('v-produto').value = 'X39';
+    document.getElementById('v-tipo').value = 'preferido';
+    document.getElementById('v-valor').value = '';
+    document.getElementById('v-pct-comissao').value = '25';
+    document.getElementById('v-estado').value = 'confirmada';
+    document.getElementById('v-notas').value = '';
+    document.getElementById('v-comissao-preview').style.display = 'none';
+    const dl = document.getElementById('v-clientes-list');
+    if (dl) dl.innerHTML = leads.filter(l => l.estado === 'cliente').map(l => `<option value="${l.nome}">`).join('');
+    // fall through — do NOT return, let it reach classList.add('open')
   }
   if (id === 'modal-meta-mensal') {
-    abrirMetaMensal();
-    return;
+    const m = getMetaMensal();
+    document.getElementById('meta-receita').value = m.receita || '';
+    document.getElementById('meta-comissao').value = m.comissao || '';
+    document.getElementById('meta-clientes').value = m.clientes || '';
+    // fall through to classList.add('open')
   }
   if (id === 'modal-membro' && !editingMembroId) {
     document.getElementById('modal-membro-title').textContent = '👤 Adicionar Membro da Equipa';
@@ -5968,7 +6792,13 @@ function loadUserData() {
   leads = JSON.parse(localStorage.getItem(leadsKey) || '[]');
   posts = JSON.parse(localStorage.getItem(postsKey) || '[]');
   membros = JSON.parse(localStorage.getItem(membrosKey) || '[]');
+  viagens = JSON.parse(localStorage.getItem(getUserStorageKey('lw_viagens')) || 'null');
+  if (viagens === null) { viagens = [viagemPadraoLuminate()]; saveViagens(); }
+  viagemAtividades = JSON.parse(localStorage.getItem(getUserStorageKey('lw_viagem_atividades')) || '[]');
+  viagemSelecionadaId = localStorage.getItem(getUserStorageKey('lw_viagem_selecionada')) || (viagens[0]?.id || null);
+  loadEventos();
   loadVendas();
+  updateBadgeLuminate();
 }
 
 function saveleads() {
@@ -6163,6 +6993,9 @@ function fazerLogout() {
   currentUser = null;
   leads = [];
   posts = [];
+  membros = [];
+  eventos = [];
+  vendas = [];
   // Reset login form
   document.getElementById('login-email').value = '';
   document.getElementById('login-password').value = '';
@@ -7820,6 +8653,561 @@ function atualizarCategoriaPreview() {
 let membros = JSON.parse(localStorage.getItem(getUserStorageKey('lw_membros')) || '[]');
 let editingMembroId = null;
 
+// ===================================================
+// VIAGENS DE INCENTIVO — TRACKER GENÉRICO DE PONTOS
+// ===================================================
+let viagens = JSON.parse(localStorage.getItem(getUserStorageKey('lw_viagens')) || 'null');
+let viagemAtividades = JSON.parse(localStorage.getItem(getUserStorageKey('lw_viagem_atividades')) || '[]');
+let viagemSelecionadaId = localStorage.getItem(getUserStorageKey('lw_viagem_selecionada')) || null;
+
+// Viagem padrão pré-carregada: Luminate 2026 (Experiência VIP Anaheim)
+function viagemPadraoLuminate() {
+  return {
+    id: 'luminate-2026',
+    nome: 'Luminate 2026 — Conferência VIP',
+    icone: '✈️',
+    descricao: 'Experiência de Conferência VIP da LifeWave para duas pessoas em Anaheim (14-17 out 2026), com crédito de viagem de 1.425€, receção exclusiva, Breakout privado com David Schmidt, lugares preferenciais e bilhete Disneyland.',
+    metaPontos: 500,
+    inicio: '2026-06-08',
+    fim: '2026-08-17',
+    regras: [
+      { id: 'cliente', label: 'Novo Cliente patrocinado (encomenda ≥ 94,95€)', pts: 10 },
+      { id: 'pacote-core', label: 'Venda Pacote Core a novo BP', pts: 15 },
+      { id: 'pacote-advanced', label: 'Venda Pacote Advanced a novo BP', pts: 20 },
+      { id: 'pacote-advanced-plus', label: 'Venda Pacote Advanced Plus a novo BP', pts: 30 },
+      { id: 'pacote-premium', label: 'Venda Pacote Premium a novo BP', pts: 50 },
+      { id: 'rango-1star-manager', label: 'BP patrocinado subiu a 1-Star Manager', pts: 35 },
+      { id: 'rango-2star-manager', label: 'BP patrocinado subiu a 2-Star Manager', pts: 55 },
+      { id: 'rango-3star-manager', label: 'BP patrocinado subiu a 3-Star Manager', pts: 70 },
+      { id: 'rango-1star-director', label: 'BP patrocinado subiu a 1-Star Director', pts: 90 },
+    ],
+    notas: '💡 As vendas de pacotes a novos Brand Partners durante o PIB Boost (25 mai – 7 jun 2026) também contam para os pontos. Enrollments iniciais (inscrição do próprio kit) não contam pontos.',
+  };
+}
+
+// Inicialização: se nunca houve viagens guardadas, pré-carrega a Luminate 2026
+if (viagens === null) {
+  viagens = [viagemPadraoLuminate()];
+  saveViagens();
+}
+if (!viagemSelecionadaId && viagens.length) {
+  viagemSelecionadaId = viagens[0].id;
+}
+
+function saveViagens() {
+  localStorage.setItem(getUserStorageKey('lw_viagens'), JSON.stringify(viagens));
+  updateBadgeLuminate();
+}
+
+function saveViagemAtividades() {
+  localStorage.setItem(getUserStorageKey('lw_viagem_atividades'), JSON.stringify(viagemAtividades));
+  updateBadgeLuminate();
+}
+
+function saveViagemSelecionada() {
+  if (viagemSelecionadaId) localStorage.setItem(getUserStorageKey('lw_viagem_selecionada'), viagemSelecionadaId);
+}
+
+function getViagemAtual() {
+  return viagens.find(v => v.id === viagemSelecionadaId) || viagens[0] || null;
+}
+
+function pontosViagem(viagemId) {
+  return viagemAtividades
+    .filter(a => a.viagemId === viagemId)
+    .reduce((acc, a) => acc + (a.pts || 0), 0);
+}
+
+function updateBadgeLuminate() {
+  const badge = document.getElementById('badge-luminate');
+  if (!badge) return;
+  const v = getViagemAtual();
+  if (!v) { badge.style.display = 'none'; return; }
+  const total = pontosViagem(v.id);
+  if (total > 0) {
+    badge.textContent = total + ' pts';
+    badge.style.display = 'inline-block';
+  } else {
+    badge.style.display = 'none';
+  }
+}
+
+function selecionarViagem(id) {
+  viagemSelecionadaId = id;
+  saveViagemSelecionada();
+  renderLuminate();
+}
+
+function removerViagem(id) {
+  if (!confirm('Remover esta viagem e todas as atividades registadas para ela?')) return;
+  viagens = viagens.filter(v => v.id !== id);
+  viagemAtividades = viagemAtividades.filter(a => a.viagemId !== id);
+  if (viagemSelecionadaId === id) viagemSelecionadaId = viagens[0]?.id || null;
+  saveViagens();
+  saveViagemAtividades();
+  saveViagemSelecionada();
+  renderLuminate();
+}
+
+// --- Registo de atividades ---
+function viagemAdicionarAtividade(viagemId) {
+  const tipoEl = document.getElementById('vg-tipo');
+  const nomeEl = document.getElementById('vg-nome');
+  const dataEl = document.getElementById('vg-data');
+  if (!tipoEl || !nomeEl) return;
+
+  const regraId = tipoEl.value;
+  const nome = nomeEl.value.trim();
+  const data = dataEl.value || new Date().toISOString().slice(0,10);
+
+  if (!nome) { showToast('❌ Indica o nome do cliente/BP'); return; }
+
+  const viagem = viagens.find(v => v.id === viagemId);
+  if (!viagem) return;
+  const regra = viagem.regras.find(r => r.id === regraId);
+  if (!regra) return;
+
+  // Validação de datas com tolerância de 1 dia (períodos com horas específicas em CEST/GMT)
+  if (viagem.inicio && viagem.fim) {
+    const dataAtividade = new Date(data + 'T12:00:00');
+    const inicio = new Date(viagem.inicio + 'T00:00:00');
+    const fim = new Date(viagem.fim + 'T23:59:59');
+    if (dataAtividade < inicio || dataAtividade > fim) {
+      showToast(`⚠️ Data fora do período de qualificação (${viagem.inicio} a ${viagem.fim})`);
+      return;
+    }
+  }
+
+  viagemAtividades.push({
+    id: gerarId(),
+    viagemId,
+    regraId,
+    nome,
+    data,
+    pts: regra.pts,
+  });
+  saveViagemAtividades();
+  nomeEl.value = '';
+  dataEl.value = '';
+  showToast('✅ Atividade registada! +' + regra.pts + ' pts');
+  renderLuminate();
+}
+
+function viagemRemoverAtividade(id) {
+  viagemAtividades = viagemAtividades.filter(a => a.id !== id);
+  saveViagemAtividades();
+  renderLuminate();
+}
+
+// --- Render ---
+function renderLuminate() {
+  updateBadgeLuminate();
+
+  const seletorWrap = document.getElementById('viagem-seletor-wrap');
+  const detalheWrap = document.getElementById('viagem-detalhe-wrap');
+  if (!seletorWrap || !detalheWrap) return;
+
+  if (!viagens.length) {
+    seletorWrap.innerHTML = '';
+    detalheWrap.innerHTML = `
+      <div class="card" style="text-align:center;padding:30px 20px;">
+        <div style="font-size:36px;margin-bottom:8px;">✈️</div>
+        <div style="font-size:14px;color:var(--text2);">Ainda não tens viagens configuradas. Faz upload de um PDF/imagem acima para adicionares a primeira.</div>
+      </div>
+    `;
+    return;
+  }
+
+  if (!viagemSelecionadaId || !viagens.find(v => v.id === viagemSelecionadaId)) {
+    viagemSelecionadaId = viagens[0].id;
+    saveViagemSelecionada();
+  }
+
+  // Seletor (se houver mais que uma viagem)
+  if (viagens.length > 1) {
+    seletorWrap.innerHTML = `
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        ${viagens.map(v => `
+          <button class="btn ${v.id === viagemSelecionadaId ? 'btn-primary' : 'btn-secondary'} btn-sm" onclick="selecionarViagem('${v.id}')">
+            ${v.icone || '✈️'} ${v.nome}
+          </button>
+        `).join('')}
+      </div>
+    `;
+  } else {
+    seletorWrap.innerHTML = '';
+  }
+
+  const viagem = getViagemAtual();
+  if (!viagem) { detalheWrap.innerHTML = ''; return; }
+
+  const total = pontosViagem(viagem.id);
+  const meta = viagem.metaPontos || 0;
+  const pct = meta > 0 ? Math.min(100, Math.round((total / meta) * 100)) : 0;
+  const agora = new Date();
+  const inicio = viagem.inicio ? new Date(viagem.inicio + 'T00:00:00') : null;
+  const fim = viagem.fim ? new Date(viagem.fim + 'T23:59:59') : null;
+  const aindaNaoComecou = inicio && agora < inicio;
+  const diasRestantes = fim ? Math.max(0, Math.ceil((fim - agora) / (1000*60*60*24))) : null;
+
+  let statusTexto, statusCor;
+  if (meta > 0 && total >= meta) {
+    statusTexto = '🎉 Meta atingida! Parabéns — confirma os detalhes com a LifeWave.';
+    statusCor = 'var(--accent)';
+  } else if (aindaNaoComecou) {
+    statusTexto = `O período de qualificação ainda não começou (inicia ${viagem.inicio}).`;
+    statusCor = 'var(--text2)';
+  } else if (diasRestantes !== null && diasRestantes > 0) {
+    statusTexto = `${diasRestantes} dia(s) restantes${meta ? ` para atingir os ${fmtNum(meta)} pontos` : ''}.`;
+    statusCor = 'var(--gold)';
+  } else if (fim) {
+    statusTexto = `O período de qualificação terminou (${viagem.fim}).`;
+    statusCor = 'var(--text2)';
+  } else {
+    statusTexto = 'Sem datas de qualificação definidas.';
+    statusCor = 'var(--text2)';
+  }
+
+  const atividadesViagem = viagemAtividades.filter(a => a.viagemId === viagem.id);
+  const ordenadas = [...atividadesViagem].sort((a,b) => (b.data || '').localeCompare(a.data || ''));
+
+  detalheWrap.innerHTML = `
+    <div style="margin-bottom:24px;">
+      <div class="card" style="background:linear-gradient(135deg,rgba(0,212,170,0.06),rgba(0,132,255,0.04));border-color:rgba(0,212,170,0.2);">
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:12px;">
+          <div>
+            <div class="section-title" style="margin-bottom:2px;">${viagem.icone || '🎯'} ${viagem.nome}</div>
+            <div style="font-size:12px;color:${statusCor};">${statusTexto}</div>
+          </div>
+          ${meta > 0 ? `
+            <div style="text-align:right;">
+              <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:28px;color:var(--accent);">${fmtNum(total)} <span style="font-size:14px;color:var(--text2);">/ ${fmtNum(meta)} pts</span></div>
+            </div>
+          ` : `
+            <div style="text-align:right;">
+              <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:28px;color:var(--accent);">${fmtNum(total)} <span style="font-size:14px;color:var(--text2);">pts</span></div>
+            </div>
+          `}
+        </div>
+        ${meta > 0 ? `
+          <div style="background:var(--surface3);border-radius:8px;height:12px;overflow:hidden;">
+            <div style="height:100%;border-radius:8px;background:linear-gradient(90deg,var(--accent),var(--accent2));width:${pct}%;transition:width 0.4s ease;"></div>
+          </div>
+          <div style="font-size:11px;color:var(--text2);margin-top:6px;">${pct}% concluído</div>
+        ` : ''}
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1.3fr 1fr;gap:20px;" class="stats-row-2">
+      <!-- Registo de atividades -->
+      <div class="card">
+        <div class="section-title" style="margin-bottom:6px;">➕ Registar Atividade</div>
+        <div style="font-size:12px;color:var(--text2);margin-bottom:14px;">
+          ${viagem.inicio && viagem.fim ? `Regista as atividades que contam pontos durante o período de qualificação (${viagem.inicio} a ${viagem.fim}).` : 'Regista as atividades que contam pontos para esta viagem.'}
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Tipo de Atividade</label>
+          <select class="form-input" id="vg-tipo">
+            ${viagem.regras.map(r => `<option value="${r.id}">${r.label} — ${r.pts} pts</option>`).join('')}
+          </select>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Nome (cliente / BP)</label>
+            <input class="form-input" id="vg-nome" placeholder="Ex: Maria Costa">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Data</label>
+            <input class="form-input" type="date" id="vg-data">
+          </div>
+        </div>
+        <button class="btn btn-primary" onclick="viagemAdicionarAtividade('${viagem.id}')">＋ Adicionar Atividade</button>
+
+        <div style="margin-top:18px;">
+          <div class="section-title" style="margin-bottom:10px;">📋 Atividades Registadas</div>
+          <div style="min-height:80px;">
+            ${!ordenadas.length ? `<div style="font-size:13px;color:var(--text2);text-align:center;padding:20px 0;">Ainda não registaste nenhuma atividade. Começa por adicionar a primeira! 🚀</div>` : ordenadas.map(a => {
+              const regra = viagem.regras.find(r => r.id === a.regraId);
+              return `
+                <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);">
+                  <div>
+                    <div style="font-size:13px;font-weight:700;">${a.nome}</div>
+                    <div style="font-size:11px;color:var(--text2);">${regra ? regra.label : a.regraId} · ${a.data}</div>
+                  </div>
+                  <div style="display:flex;align-items:center;gap:10px;">
+                    <div style="font-size:14px;font-weight:700;color:var(--accent);">+${a.pts} pts</div>
+                    <button class="btn btn-sm" style="background:rgba(255,70,70,0.1);border:1px solid rgba(255,70,70,0.2);color:#ff6b6b;font-size:11px;padding:4px 8px;" onclick="viagemRemoverAtividade('${a.id}')" title="Remover">🗑️</button>
+                  </div>
+                </div>
+              `;
+            }).join('')}
+          </div>
+        </div>
+      </div>
+
+      <!-- Info da viagem -->
+      <div style="display:flex;flex-direction:column;gap:16px;">
+        <div class="card">
+          <div class="section-title" style="margin-bottom:10px;">🏝️ A Recompensa</div>
+          <div style="font-size:13px;color:var(--text2);line-height:1.7;">
+            ${viagem.descricao || 'Sem descrição disponível.'}
+          </div>
+          ${viagem.beneficios && viagem.beneficios.length ? `
+            <ul style="font-size:12px;color:var(--text2);line-height:1.8;margin:10px 0 0 18px;padding:0;">
+              ${viagem.beneficios.map(b => `<li>${b}</li>`).join('')}
+            </ul>
+          ` : ''}
+        </div>
+
+        ${viagem.inicio && viagem.fim ? `
+          <div class="card">
+            <div class="section-title" style="margin-bottom:10px;">📅 Período de Qualificação</div>
+            <div style="font-size:13px;color:var(--text2);line-height:1.8;">
+              <strong style="color:var(--text);">Início:</strong> ${viagem.inicio}<br>
+              <strong style="color:var(--text);">Fim:</strong> ${viagem.fim}
+            </div>
+          </div>
+        ` : ''}
+
+        ${viagem.notas ? `
+          <div class="card" style="background:rgba(255,107,53,0.06);border-color:rgba(255,107,53,0.2);">
+            <div style="font-size:12px;color:var(--text2);">${viagem.notas}</div>
+          </div>
+        ` : ''}
+
+        <button class="btn btn-secondary btn-sm" onclick="removerViagem('${viagem.id}')">🗑️ Remover esta viagem</button>
+      </div>
+    </div>
+  `;
+}
+
+// ===================================================
+// VIAGENS — UPLOAD E ANÁLISE IA (reaproveita o padrão do Plano de Compensação)
+// ===================================================
+let viagemUploadBase64 = null;
+let viagemUploadMediaType = null;
+let viagemUploadIsPdf = false;
+let viagemAI = localStorage.getItem('lw_viagemAI') || 'claude';
+let viagemClaudeKey = localStorage.getItem('lw_claude_key') || '';
+let viagemGeminiKey = localStorage.getItem('lw_gemini_key') || '';
+
+function viagemSetAI(ai) {
+  viagemAI = ai;
+  localStorage.setItem('lw_viagemAI', ai);
+  const bC = document.getElementById('viagem-btn-claude');
+  const bG = document.getElementById('viagem-btn-gemini');
+  const rC = document.getElementById('viagem-claude-key-row');
+  const rG = document.getElementById('viagem-gemini-key-row');
+  if (bC) bC.className = 'ai-btn' + (ai === 'claude' ? ' active-claude' : '');
+  if (bG) bG.className = 'ai-btn' + (ai === 'gemini' ? ' active-gemini' : '');
+  if (rC) rC.classList.toggle('show', ai === 'claude');
+  if (rG) rG.classList.toggle('show', ai === 'gemini');
+}
+function saveViagemClaudeKey(v) {
+  viagemClaudeKey = v.trim();
+  localStorage.setItem('lw_claude_key', viagemClaudeKey);
+  if (typeof claudeKey !== 'undefined') window.claudeKey = viagemClaudeKey;
+  const st = document.getElementById('viagem-claude-status');
+  if (st) st.textContent = viagemClaudeKey.length > 10 ? '✅ Guardada' : '';
+}
+function saveViagemGeminiKey(v) {
+  viagemGeminiKey = v.trim();
+  localStorage.setItem('lw_gemini_key', viagemGeminiKey);
+  const st = document.getElementById('viagem-gemini-status');
+  if (st) st.textContent = viagemGeminiKey.length > 10 ? '✅ Guardada' : '';
+}
+
+function viagemHandleDrop(e) {
+  e.preventDefault();
+  const dz = document.getElementById('viagem-drop-zone');
+  if (dz) { dz.style.borderColor = 'var(--border)'; dz.style.background = 'var(--surface2)'; }
+  const file = e.dataTransfer.files[0];
+  if (file) viagemHandleFile(file);
+}
+
+function viagemHandleFile(file) {
+  if (!file) return;
+  if (file.size > 20 * 1024 * 1024) { showToast('⚠️ Ficheiro demasiado grande (máx. 20MB)'); return; }
+  const isPdf = file.type === 'application/pdf';
+  const isImg = file.type.startsWith('image/');
+  if (!isPdf && !isImg) { showToast('⚠️ Apenas PDF, JPG, PNG ou WEBP'); return; }
+
+  viagemUploadIsPdf = isPdf;
+  viagemUploadMediaType = file.type;
+
+  const reader = new FileReader();
+  reader.onload = ev => {
+    viagemUploadBase64 = ev.target.result.split(',')[1];
+    const prev = document.getElementById('viagem-upload-preview');
+    prev.style.display = 'block';
+    prev.innerHTML = `
+      <div style="display:flex;align-items:center;gap:10px;background:rgba(0,0,0,0.2);border:1px solid var(--border);border-radius:8px;padding:10px;">
+        ${isImg ? `<img src="${ev.target.result}" style="max-height:72px;max-width:110px;border-radius:6px;object-fit:contain;">` : '<span style="font-size:30px;">📄</span>'}
+        <div>
+          <div style="font-size:12px;font-weight:600;color:var(--text);">${isPdf ? '📄' : '🖼️'} ${file.name}</div>
+          <div style="font-size:11px;color:var(--text2);margin-top:2px;">${(file.size/1024).toFixed(0)} KB · ${isPdf ? 'PDF' : 'Imagem'}</div>
+        </div>
+      </div>`;
+    const acts = document.getElementById('viagem-upload-actions');
+    if (acts) acts.style.display = 'flex';
+    const lbl = document.getElementById('viagem-drop-label');
+    if (lbl) lbl.textContent = '✅ Ficheiro carregado — clica "Analisar e Adicionar Viagem"';
+    const icon = document.getElementById('viagem-drop-icon');
+    if (icon) icon.textContent = isPdf ? '📄' : '🖼️';
+  };
+  reader.readAsDataURL(file);
+}
+
+function viagemCancelarUpload() {
+  viagemUploadBase64 = null; viagemUploadMediaType = null; viagemUploadIsPdf = false;
+  ['viagem-upload-preview','viagem-ia-status','viagem-ia-resultado'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.style.display = 'none';
+  });
+  const acts = document.getElementById('viagem-upload-actions');
+  if (acts) acts.style.display = 'none';
+  const lbl = document.getElementById('viagem-drop-label');
+  if (lbl) lbl.textContent = 'Clica ou arrasta o PDF/Imagem da viagem';
+  const icon = document.getElementById('viagem-drop-icon');
+  if (icon) icon.textContent = '✈️';
+  const inp = document.getElementById('viagem-file-input');
+  if (inp) inp.value = '';
+}
+
+// ---- PROMPT ----
+const VIAGEM_PROMPT = `És um especialista em programas de incentivo e viagens de empresas de marketing em rede (LifeWave e similares).
+
+Analisa este documento (PDF ou imagem de uma viagem/prémio de incentivo) e extrai TODOS os dados estruturados.
+
+Responde APENAS em JSON válido, sem markdown, sem explicações, neste schema exato:
+
+{
+  "nome": "string curto — nome da viagem/prémio, ex: 'Luminate 2026 — Conferência VIP'",
+  "icone": "1 emoji representativo, ex: '✈️'",
+  "descricao": "string — descrição da recompensa em português, 1-3 frases",
+  "metaPontos": 500,
+  "inicio": "YYYY-MM-DD — data de início do período de qualificação",
+  "fim": "YYYY-MM-DD — data de fim do período de qualificação",
+  "regras": [
+    {"id": "string curto sem espaços, ex: 'cliente'", "label": "string — descrição da atividade que dá pontos", "pts": 10}
+  ],
+  "beneficios": ["string — cada benefício/regalia da viagem, um por item"],
+  "notas": "string — notas importantes, exceções, prazos especiais (ex: PIB Boost). Vazio se não houver."
+}
+
+Se um campo não estiver no documento, usa null, 0, ou array vazio []. Não inventes valores — apenas extrai o que está explicitamente no documento. Garante que "regras" tem pelo menos uma entrada por cada forma de ganhar pontos descrita no documento.`;
+
+// ---- ANÁLISE IA ----
+async function viagemAnalisarIA() {
+  if (!viagemUploadBase64) { showToast('⚠️ Carrega primeiro um ficheiro'); return; }
+  const key = viagemAI === 'claude' ? viagemClaudeKey : viagemGeminiKey;
+  if (!key) { showToast(`⚠️ Precisas da chave API ${viagemAI === 'claude' ? 'Claude' : 'Gemini'}`); return; }
+
+  const statusBox = document.getElementById('viagem-ia-status');
+  const statusTxt = document.getElementById('viagem-ia-status-text');
+  const resultBox = document.getElementById('viagem-ia-resultado');
+  const acts = document.getElementById('viagem-upload-actions');
+
+  if (!statusBox || !statusTxt || !resultBox) return;
+  statusBox.style.display = 'flex';
+  resultBox.style.display = 'none';
+  if (acts) acts.style.display = 'none';
+  statusTxt.textContent = viagemAI === 'gemini' ? '✦ Gemini a ler o documento...' : '🧠 Claude a ler o documento...';
+
+  try {
+    let rawText = '';
+
+    if (viagemAI === 'gemini') {
+      if (typeof callGemini !== 'function') throw new Error('Função Gemini não disponível.');
+      rawText = await callGemini(VIAGEM_PROMPT, viagemUploadBase64, viagemUploadIsPdf ? 'application/pdf' : viagemUploadMediaType);
+    } else {
+      const content = viagemUploadIsPdf
+        ? [{ type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: viagemUploadBase64 } }, { type: 'text', text: VIAGEM_PROMPT }]
+        : [{ type: 'image',    source: { type: 'base64', media_type: viagemUploadMediaType, data: viagemUploadBase64 } }, { type: 'text', text: VIAGEM_PROMPT }];
+
+      const res = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': viagemClaudeKey,
+          'anthropic-version': '2023-06-01',
+          'anthropic-dangerous-direct-browser-access': 'true'
+        },
+        body: JSON.stringify({ model: 'claude-sonnet-4-6', max_tokens: 3000, messages: [{ role: 'user', content }] })
+      });
+      if (!res.ok) { const e = await res.json().catch(()=>({})); throw new Error(e?.error?.message || `HTTP ${res.status}`); }
+      const data = await res.json();
+      rawText = data.content?.[0]?.text || '';
+    }
+
+    // Parse JSON
+    let dados;
+    try {
+      const clean = rawText.replace(/```json|```/g,'').trim();
+      dados = JSON.parse(clean);
+    } catch(e) {
+      throw new Error('A IA não devolveu JSON válido. Tenta com um ficheiro mais claro ou de melhor qualidade.');
+    }
+
+    if (!dados.nome || !dados.regras || !dados.regras.length) {
+      throw new Error('Não foram encontrados dados suficientes no documento (nome e regras de pontuação são obrigatórios).');
+    }
+
+    // Montar nova viagem
+    const novaViagem = {
+      id: 'viagem-' + Date.now(),
+      nome: dados.nome,
+      icone: dados.icone || '✈️',
+      descricao: dados.descricao || '',
+      metaPontos: dados.metaPontos || 0,
+      inicio: dados.inicio || '',
+      fim: dados.fim || '',
+      regras: (dados.regras || []).map((r, i) => ({ id: r.id || ('regra-' + i), label: r.label || '', pts: r.pts || 0 })),
+      beneficios: dados.beneficios || [],
+      notas: dados.notas || '',
+    };
+
+    viagens.push(novaViagem);
+    viagemSelecionadaId = novaViagem.id;
+    saveViagens();
+    saveViagemSelecionada();
+
+    statusBox.style.display = 'none';
+    resultBox.style.display = 'block';
+    resultBox.innerHTML = `
+      <div style="background:rgba(0,212,170,0.08);border:1px solid rgba(0,212,170,0.25);border-radius:10px;padding:14px 16px;">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+          <span style="font-size:22px;">✅</span>
+          <div>
+            <div style="font-size:13px;font-weight:700;color:var(--accent);">Viagem adicionada com sucesso!</div>
+            <div style="font-size:11px;color:var(--text2);">${novaViagem.icone} ${novaViagem.nome}</div>
+          </div>
+        </div>
+        <div style="font-size:12px;color:var(--text2);">
+          ${novaViagem.metaPontos ? `🎯 Meta: <strong style="color:var(--text);">${fmtNum(novaViagem.metaPontos)} pts</strong> · ` : ''}
+          📋 <strong style="color:var(--text);">${novaViagem.regras.length}</strong> regras de pontuação
+          ${novaViagem.inicio && novaViagem.fim ? ` · 📅 ${novaViagem.inicio} a ${novaViagem.fim}` : ''}
+        </div>
+        <button class="btn btn-primary btn-sm" style="margin-top:12px;" onclick="viagemCancelarUpload();renderLuminate();">
+          📋 Ver viagem ↓
+        </button>
+      </div>`;
+    showToast('✅ Viagem adicionada com sucesso!');
+    renderLuminate();
+
+  } catch(err) {
+    statusBox.style.display = 'none';
+    resultBox.style.display = 'block';
+    resultBox.innerHTML = `
+      <div style="color:#ff6b6b;font-size:12px;padding:12px;background:rgba(255,70,70,0.08);border:1px solid rgba(255,70,70,0.2);border-radius:8px;">
+        ❌ <strong>Erro:</strong> ${err.message}<br>
+        <span style="color:var(--text2);font-size:11px;margin-top:4px;display:block;">Verifica a chave API ou tenta com outro ficheiro.</span>
+      </div>`;
+    if (acts) acts.style.display = 'flex';
+  }
+}
+
+
 function saveMembros() {
   localStorage.setItem(getUserStorageKey('lw_membros'), JSON.stringify(membros));
   updateBadgeEquipa();
@@ -8288,15 +9676,13 @@ function enviarRecursoWA() {
 }
 
 function enviarWAGrupo() {
-  const perfil = JSON.parse(localStorage.getItem(getUserStorageKey('lw_perfil')) || '{}');
-  const nome = perfil.nome || 'Líder';
+  const perfil = getUserPerfil();
+  const nome = perfil.nomeDisplay || 'Líder';
   const msg = encodeURIComponent(`Olá equipa! 🐺\n\nAqui é o/a ${nome}. Mensagem para toda a equipa LifeWave!\n\n[Escreve a tua mensagem aqui]\n\n💚 Vamos crescer juntos!`);
   window.open(`https://wa.me/?text=${msg}`, '_blank');
 }
 
 async function gerarMsgMotivacao() {
-  const claudeKey = localStorage.getItem('lw_claudeKey');
-  const geminiKey = localStorage.getItem('lw_geminiKey');
   if (!claudeKey && !geminiKey) {
     showToast('⚠️ Precisas de uma chave API (Claude ou Gemini) nas definições');
     goTo('posts');
@@ -8306,30 +9692,13 @@ async function gerarMsgMotivacao() {
   const prompt = `Escreve uma mensagem motivacional curta (máx 5 frases) para enviar via WhatsApp à minha equipa LifeWave. A equipa chama-se "Equipa do Lobo" e tem ${membros.length} membros: ${equipa}. Tom: energético, positivo, de líder. Sem formatação markdown, só texto simples com emojis.`;
   showToast('🤖 A gerar mensagem...');
   try {
-    let texto = '';
-    if (claudeKey) {
-      const res = await fetch('https://api.anthropic.com/v1/messages', {
-        method:'POST',
-        headers:{'Content-Type':'application/json','x-api-key':claudeKey,'anthropic-version':'2023-06-01'},
-        body: JSON.stringify({ model:'claude-haiku-4-5', max_tokens:300, messages:[{role:'user',content:prompt}] })
-      });
-      const data = await res.json();
-      texto = data.content?.[0]?.text || '';
-    } else {
-      const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${geminiKey}`, {
-        method:'POST',
-        headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({ contents:[{parts:[{text:prompt}]}] })
-      });
-      const data = await res.json();
-      texto = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
-    }
+    const texto = await callAI('posts', prompt, null, null);
     if (!texto) { showToast('❌ Erro ao gerar mensagem'); return; }
     document.getElementById('recurso-titulo').textContent = '🤖 Mensagem de Motivação';
     document.getElementById('recurso-conteudo').textContent = texto;
     openModal('modal-recurso');
   } catch(e) {
-    showToast('❌ Erro de ligação');
+    showToast('❌ Erro de ligação: ' + (e.message || ''));
   }
 }
 
@@ -8375,8 +9744,9 @@ function calcularComissaoPreview() {
 function salvarVenda() {
   const cliente = document.getElementById('v-cliente').value.trim();
   const valor = parseFloat(document.getElementById('v-valor').value) || 0;
+  const tipo = document.getElementById('v-tipo').value;
   if (!cliente) { showToast('❌ Nome do cliente obrigatório'); return; }
-  if (valor <= 0) { showToast('❌ Valor da venda inválido'); return; }
+  if (valor <= 0 && tipo !== 'preferido') { showToast('❌ Valor da venda inválido'); return; }
 
   const pct = parseFloat(document.getElementById('v-pct-comissao').value) || 25;
   const venda = {
@@ -8402,9 +9772,10 @@ function salvarVenda() {
 
   saveVendas();
   closeModal('modal-nova-venda');
+  const foiEdicao = !!editingVendaId;
   editingVendaId = null;
   renderComissoes();
-  showToast(editingVendaId ? '✓ Venda atualizada' : '✓ Venda registada!');
+  showToast(foiEdicao ? '✓ Venda atualizada' : '✓ Venda registada!');
 }
 
 function editarVenda(id) {
@@ -8795,6 +10166,183 @@ function renderSimuladorBonus() {
 
   html += `</div>`;
   container.innerHTML = html;
+}
+// ===================================================
+
+// ===================================================
+// CALCULADORA DE BÓNUS 2.0
+// ===================================================
+
+const CALC_CATEGORIAS = [
+  { id:'bp-ativo',     label:'BP Ativo',        pv:55,  n1:3,  n2:0,  n3:0,  bin:0,    binMax:0,      mmb:[0,0,0,0,0,0],     mmbMax:0 },
+  { id:'1sm',          label:'1★ Manager',      pv:110, n1:5,  n2:0,  n3:0,  bin:0,    binMax:0,      mmb:[0,0,0,0,0,0],     mmbMax:0 },
+  { id:'2sm',          label:'2★ Manager',      pv:110, n1:7,  n2:2,  n3:0,  bin:0,    binMax:0,      mmb:[0,0,0,0,0,0],     mmbMax:0 },
+  { id:'3sm',          label:'3★ Manager',      pv:110, n1:7,  n2:3,  n3:0,  bin:5,    binMax:1425,   mmb:[0,0,0,0,0,0],     mmbMax:0 },
+  { id:'1sd',          label:'1★ Director',     pv:110, n1:7,  n2:5,  n3:1,  bin:7,    binMax:2375,   mmb:[5,0,0,0,0,0],     mmbMax:475 },
+  { id:'2sd',          label:'2★ Director',     pv:110, n1:7,  n2:5,  n3:2,  bin:9,    binMax:3325,   mmb:[7,5,0,0,0,0],     mmbMax:950 },
+  { id:'3sd',          label:'3★ Director',     pv:110, n1:7,  n2:5,  n3:3,  bin:10,   binMax:4750,   mmb:[10,7,5,0,0,0],    mmbMax:1900 },
+  { id:'1se',          label:'1★ Executive',    pv:200, n1:7,  n2:5,  n3:3,  bin:10,   binMax:7125,   mmb:[12,10,7,5,0,0],   mmbMax:3325 },
+  { id:'2se',          label:'2★ Executive',    pv:200, n1:7,  n2:5,  n3:3,  bin:10,   binMax:9500,   mmb:[15,12,10,7,0,0],  mmbMax:4750 },
+  { id:'3se',          label:'3★ Executive',    pv:200, n1:7,  n2:5,  n3:3,  bin:10,   binMax:14250,  mmb:[18,15,12,10,3,0], mmbMax:7125 },
+  { id:'1sp',          label:'1★ Presidential', pv:200, n1:7,  n2:5,  n3:3,  bin:10,   binMax:19000,  mmb:[20,18,15,12,5,3], mmbMax:9500 },
+  { id:'2sp',          label:'2★ Presidential', pv:200, n1:7,  n2:5,  n3:3,  bin:10,   binMax:23750,  mmb:[20,18,15,12,7,5], mmbMax:14250 },
+  { id:'3sp',          label:'3★ Presidential', pv:200, n1:7,  n2:5,  n3:3,  bin:10,   binMax:23750,  mmb:[20,18,15,12,10,7],mmbMax:19000 },
+];
+
+let calcCategoriaAtual = '3sm';
+
+function renderCalculadora() {
+  const grid = document.getElementById('calc-categoria-grid');
+  if (!grid) return;
+  const cores = {
+    'bp-ativo':'rgba(139,156,247,0.15)', '1sm':'rgba(0,212,170,0.1)', '2sm':'rgba(0,212,170,0.12)',
+    '3sm':'rgba(0,212,170,0.15)', '1sd':'rgba(0,132,255,0.15)', '2sd':'rgba(0,132,255,0.18)',
+    '3sd':'rgba(0,132,255,0.22)', '1se':'rgba(245,200,66,0.15)', '2se':'rgba(245,200,66,0.2)',
+    '3se':'rgba(245,200,66,0.25)', '1sp':'rgba(255,107,53,0.15)', '2sp':'rgba(255,107,53,0.2)',
+    '3sp':'rgba(255,107,53,0.3)'
+  };
+  grid.innerHTML = CALC_CATEGORIAS.map(c => `
+    <div onclick="selecionarCategoria('${c.id}')" id="calc-cat-${c.id}"
+      style="padding:10px 12px;border-radius:var(--radius-sm);border:2px solid ${calcCategoriaAtual===c.id?'var(--accent)':'var(--border)'};
+      background:${calcCategoriaAtual===c.id?'rgba(0,212,170,0.12)':cores[c.id]||'var(--surface2)'};
+      cursor:pointer;text-align:center;transition:all 0.15s;">
+      <div style="font-size:12px;font-weight:${calcCategoriaAtual===c.id?'700':'500'};color:${calcCategoriaAtual===c.id?'var(--accent)':'var(--text)'};">${c.label}</div>
+      <div style="font-size:10px;color:var(--text2);margin-top:2px;">PV min: ${c.pv}</div>
+    </div>
+  `).join('');
+  calcularBonus();
+}
+
+function selecionarCategoria(id) {
+  calcCategoriaAtual = id;
+  renderCalculadora();
+}
+
+function getNum(id) { return parseFloat(document.getElementById(id)?.value || '0') || 0; }
+
+function calcularBonus() {
+  const cat = CALC_CATEGORIAS.find(c => c.id === calcCategoriaAtual);
+  if (!cat) return;
+
+  // Atualiza visual seleção
+  CALC_CATEGORIAS.forEach(c => {
+    const el = document.getElementById('calc-cat-' + c.id);
+    if (!el) return;
+    el.style.borderColor = c.id === calcCategoriaAtual ? 'var(--accent)' : 'var(--border)';
+    el.style.background = c.id === calcCategoriaAtual ? 'rgba(0,212,170,0.12)' : '';
+    el.querySelector('div').style.fontWeight = c.id === calcCategoriaAtual ? '700' : '500';
+    el.querySelector('div').style.color = c.id === calcCategoriaAtual ? 'var(--accent)' : 'var(--text)';
+  });
+
+  const pv = getNum('calc-pv');
+  const qvCli = getNum('calc-qv-clientes');
+  const qvSemana = getNum('calc-qv-semana');
+  const bvN1 = getNum('calc-bv-n1');
+  const bvN2 = getNum('calc-bv-n2');
+  const bvN3 = getNum('calc-bv-n3');
+  const bvBin = getNum('calc-bv-binario');
+  const mmbG1 = getNum('calc-mmb-g1');
+  const mmbG2 = getNum('calc-mmb-g2');
+  const mmbG3 = getNum('calc-mmb-g3');
+  const blb1s = getNum('calc-blb-1s');
+  const blb2s = getNum('calc-blb-2s');
+  const pibCore = getNum('calc-pib-core');
+  const pibAdv  = getNum('calc-pib-adv');
+  const pibAdvP = getNum('calc-pib-advp');
+  const pibPrem = getNum('calc-pib-prem');
+
+  const ativo = pv >= 55;
+  const avisos = [];
+  if (!ativo) avisos.push('⚠️ PV abaixo de 55 — não és considerado Ativo esta semana. A maioria dos bónus não se aplica.');
+
+  // 1. Prémio por Clientes
+  let pctClientes = 0;
+  if (qvCli >= 1200) pctClientes = 20;
+  else if (qvCli >= 600) pctClientes = 10;
+  else if (qvCli >= 300) pctClientes = 5;
+  const premioClientes = ativo && qvSemana > 0 ? (qvSemana * pctClientes / 100) : 0;
+
+  // 2. Bónus de Ganhos por Nível
+  const ganhoN1 = ativo ? (bvN1 * cat.n1 / 100) : 0;
+  const ganhoN2 = ativo ? (bvN2 * cat.n2 / 100) : 0;
+  const ganhoN3 = ativo ? (bvN3 * cat.n3 / 100) : 0;
+  const ganhoNivel = ganhoN1 + ganhoN2 + ganhoN3;
+
+  // 3. Bónus Binário
+  let ganhoBin = 0;
+  if (cat.bin > 0 && bvBin >= 300 && ativo) {
+    ganhoBin = Math.min(bvBin * cat.bin / 100, cat.binMax);
+  }
+  if (cat.bin === 0 && bvBin > 0) avisos.push('ℹ️ O Bónus Binário começa a partir de 3-Star Manager.');
+
+  // 4. Mentor Matching Bonus (simplificado: Gen1, Gen2, Gen3)
+  let ganhoMMB = 0;
+  if (cat.mmb[0] > 0 && ativo) {
+    const m1 = mmbG1 * cat.mmb[0] / 100;
+    const m2 = mmbG2 * (cat.mmb[1]||0) / 100;
+    const m3 = mmbG3 * (cat.mmb[2]||0) / 100;
+    ganhoMMB = m1 + m2 + m3;
+  }
+  if (cat.mmb[0] === 0 && (mmbG1+mmbG2+mmbG3) > 0) avisos.push('ℹ️ O Mentor Matching Bonus começa a partir de 1-Star Director.');
+
+  // 5. BLB — Bónus de Arranque
+  // O inscrito recebe, o inscriptor recebe matching 50%
+  let ganhoBLB = 0;
+  if (ativo) {
+    // Inscriptor: 12,50€ por 1SM ou 25€ por 2SM+
+    ganhoBLB = (blb1s * 12) + (blb2s * 24);
+  }
+
+  // 6. PIB
+  let ganhoPIB = 0;
+  if (ativo) {
+    ganhoPIB = (pibCore * 33) + (pibAdv * 71) + (pibAdvP * 157) + (pibPrem * 385);
+  }
+
+  const total = premioClientes + ganhoNivel + ganhoBin + ganhoMMB + ganhoBLB + ganhoPIB;
+  const mensal = total * 4;
+
+  // Render breakdown
+  const linhas = [
+    { label:'🛍️ Prémio por Clientes', val: premioClientes, detalhe: pctClientes > 0 ? `${qvSemana} QV × ${pctClientes}%` : qvCli > 0 ? 'QV clientes insuficiente (<300)' : 'Sem dados' },
+    { label:'📶 Ganhos por Nível (N1+N2+N3)', val: ganhoNivel, detalhe: `${bvN1}BV×${cat.n1}% + ${bvN2}BV×${cat.n2}% + ${bvN3}BV×${cat.n3}%` },
+    { label:'🔄 Bónus Binário', val: ganhoBin, detalhe: cat.bin > 0 ? `${bvBin}BV × ${cat.bin}% (máx ${cat.binMax}€)` : 'Não disponível nesta categoria' },
+    { label:'🤝 Mentor Matching Bonus', val: ganhoMMB, detalhe: cat.mmb[0] > 0 ? `Gen1 ${cat.mmb[0]}% + Gen2 ${cat.mmb[1]}% + Gen3 ${cat.mmb[2]||0}%` : 'Não disponível nesta categoria' },
+    { label:'🆕 Bónus de Arranque (BLB)', val: ganhoBLB, detalhe: `${blb1s} × 12€ + ${blb2s} × 24€` },
+    { label:'📦 PIB — Introdução de Produtos', val: ganhoPIB, detalhe: `${pibCore}×33 + ${pibAdv}×71 + ${pibAdvP}×157 + ${pibPrem}×385` },
+  ];
+
+  document.getElementById('calc-resultado-breakdown').innerHTML = linhas.map(l => `
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:${l.val>0?'rgba(0,212,170,0.06)':'rgba(255,255,255,0.02)'};border-radius:8px;border:1px solid ${l.val>0?'rgba(0,212,170,0.15)':'var(--border)'};">
+      <div>
+        <div style="font-size:13px;font-weight:600;color:var(--text);">${l.label}</div>
+        <div style="font-size:11px;color:var(--text2);margin-top:2px;">${l.detalhe}</div>
+      </div>
+      <div style="font-family:'Syne',sans-serif;font-size:18px;font-weight:700;color:${l.val>0?'var(--accent)':'var(--text3)'};">
+        ${l.val > 0 ? '+' + l.val.toFixed(0) + '€' : '—'}
+      </div>
+    </div>
+  `).join('');
+
+  document.getElementById('calc-total').textContent = total.toFixed(0) + ' €';
+  document.getElementById('calc-mensal').textContent = '≈ ' + mensal.toFixed(0) + ' €';
+
+  const avisoEl = document.getElementById('calc-aviso');
+  if (avisos.length) {
+    avisoEl.style.display = 'block';
+    avisoEl.innerHTML = avisos.join('<br>');
+  } else {
+    avisoEl.style.display = 'none';
+  }
+}
+
+function resetCalculadora() {
+  ['calc-pv','calc-qv-clientes','calc-qv-semana','calc-bv-n1','calc-bv-n2','calc-bv-n3',
+   'calc-bv-binario','calc-mmb-g1','calc-mmb-g2','calc-mmb-g3',
+   'calc-blb-1s','calc-blb-2s','calc-pib-core','calc-pib-adv','calc-pib-advp','calc-pib-prem']
+  .forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+  calcularBonus();
+  showToast('🔄 Calculadora limpa');
 }
 // ===================================================
 
@@ -9306,7 +10854,7 @@ function renderSimuladorBonus() {
     <div class="form-row">
       <div class="form-group">
         <label class="form-label">Valor da Venda (€)</label>
-        <input class="form-input" type="number" id="v-valor" placeholder="0.00" min="0" step="0.01" oninput="calcularComissaoPreview()">
+        <input class="form-input" type="number" id="v-valor" placeholder="0.00" min="0" step="0.01" value="" oninput="calcularComissaoPreview()">
       </div>
       <div class="form-group">
         <label class="form-label">% Comissão</label>
@@ -9363,5 +10911,1208 @@ function renderSimuladorBonus() {
   </div>
 </div>
 
+<script>
+// ===================================================
+// MÓDULO: PROMOÇÕES ATIVAS — v2.0
+// Upload PDF/Imagem → IA extrai + gera estratégia
+// ===================================================
+
+// --- STORAGE de promoções personalizadas (localStorage) ---
+function carregarPromosCustom() {
+  try { return JSON.parse(localStorage.getItem('lw_promos_custom') || '[]'); } catch(e) { return []; }
+}
+function guardarPromosCustom(arr) {
+  localStorage.setItem('lw_promos_custom', JSON.stringify(arr));
+}
+
+// Promoções base (hard-coded) — nunca se apagam
+const LW_PROMOCOES_BASE = [
+  {
+    id: 'blb-duplo-2026',
+    nome: '🎯 BLB Duplo — Arranque em Força!',
+    descricao: 'O Bónus de Arranque do Negócio (BLB) está duplicado! Inscreve um novo BP e tanto o BLB como o teu Matching Bonus são 2× por cada semana qualificada.',
+    inicio: new Date('2026-06-08T07:00:00+02:00'),
+    fim: new Date('2026-07-13T06:59:00+02:00'),
+    cor: '#f5c842', icone: '🚀',
+    valores: [
+      { cat: '1-Star Manager', normal: '25€/sem', duplo: '50€/sem', match: '12.50€', matchDuplo: '25€' },
+      { cat: '2-Star Manager', normal: '48€/sem', duplo: '96€/sem', match: '24€', matchDuplo: '48€' }
+    ],
+    maxNovoBP: '900€ (9 semanas)', maxMatch: '450€ (9 semanas)',
+    tags: ['EMEA', 'Novo BP', 'BLB', 'Matching Bonus'],
+    isCustom: false
+  }
+];
+
+function getLW_PROMOCOES() {
+  const custom = carregarPromosCustom().map(p => ({
+    ...p,
+    inicio: new Date(p.inicio),
+    fim: new Date(p.fim),
+    isCustom: true
+  }));
+  return [...LW_PROMOCOES_BASE, ...custom];
+}
+
+let promoExpandido = false;
+let promoUploadBase64 = null;
+let promoUploadMediaType = null;
+let promoUploadIsPdf = false;
+let promoAI = localStorage.getItem('lw_promoAI') || 'claude';
+
+function setPromoAI(ai) {
+  promoAI = ai;
+  localStorage.setItem('lw_promoAI', ai);
+  const btnClaude = document.getElementById('promo-btn-claude');
+  const btnGemini = document.getElementById('promo-btn-gemini');
+  const rowClaude = document.getElementById('promo-claude-key-row');
+  const rowGemini = document.getElementById('promo-gemini-key-row');
+  if (btnClaude) btnClaude.className = 'promo-ai-btn' + (ai === 'claude' ? ' active-claude' : '');
+  if (btnGemini) btnGemini.className = 'promo-ai-btn' + (ai === 'gemini' ? ' active-gemini' : '');
+  if (rowClaude) rowClaude.classList.toggle('show', ai === 'claude');
+  if (rowGemini) rowGemini.classList.toggle('show', ai === 'gemini');
+}
+
+function syncPromoKeyInputs() {
+  const inpC = document.getElementById('promo-claude-key');
+  const stC  = document.getElementById('promo-claude-status');
+  const inpG = document.getElementById('promo-gemini-key');
+  const stG  = document.getElementById('promo-gemini-status');
+  if (inpC) inpC.value = claudeKey;
+  if (stC)  stC.textContent = claudeKey.length > 10 ? '✅ Guardada' : '';
+  if (inpG) inpG.value = geminiKey;
+  if (stG)  stG.textContent = geminiKey.length > 10 ? '✅ Guardada' : '';
+  setPromoAI(promoAI);
+}
+
+// --- RENDER PRINCIPAL ---
+function renderPromoBanner() {
+  const wrap = document.getElementById('promo-banner-wrap');
+  if (!wrap) return;
+
+  const LW_PROMOCOES = getLW_PROMOCOES();
+  const agora = new Date();
+  const ativas = LW_PROMOCOES.filter(p => agora >= p.inicio && agora <= p.fim);
+  const proximas = LW_PROMOCOES.filter(p => agora < p.inicio);
+  const todas = [...ativas, ...proximas];
+
+  const principal = ativas.length ? ativas[0] : (proximas.length ? proximas[0] : null);
+  const isPrincipalAtiva = ativas.length > 0;
+
+  const badge = ativas.length > 0
+    ? `<span style="background:rgba(0,212,170,0.15);color:var(--accent);font-size:10px;font-weight:700;padding:3px 9px;border-radius:20px;">🟢 ${ativas.length} ATIVA${ativas.length>1?'S':''}</span>`
+    : proximas.length
+      ? `<span style="background:rgba(245,200,66,0.12);color:var(--gold);font-size:10px;font-weight:700;padding:3px 9px;border-radius:20px;">⏳ EM BREVE</span>`
+      : '';
+
+  const cdHtml = principal ? buildCountdownHtml(isPrincipalAtiva ? principal.fim : principal.inicio, principal.id) : '';
+
+  const itemsHtml = LW_PROMOCOES.map(p => renderPromoItem(p, agora)).join('');
+
+  const semPromos = !todas.length;
+
+  wrap.innerHTML = `
+    <div class="promo-banner">
+      <div class="promo-banner-header" onclick="togglePromoExpand()">
+        <div class="promo-banner-left">
+          <div class="promo-banner-icon">${principal ? principal.icone : '📢'}</div>
+          <div>
+            <div class="promo-banner-title">
+              ${principal
+                ? (isPrincipalAtiva ? '🔥 Promoção Ativa Agora!' : '⏳ Promoção Em Breve')
+                : '📢 Promoções LifeWave'
+              } &nbsp;${badge}
+            </div>
+            <div class="promo-banner-sub">
+              ${principal ? principal.nome.replace(/^.{2}\s/,'') + (isPrincipalAtiva ? ' — Não percas!' : '') : 'Adiciona uma promoção via upload de PDF ou imagem'}
+            </div>
+          </div>
+        </div>
+        <div class="promo-banner-right">
+          ${cdHtml}
+          <button class="promo-toggle-btn" onclick="event.stopPropagation();togglePromoExpand()">${promoExpandido ? '▲ Fechar' : '▼ Ver detalhes'}</button>
+        </div>
+      </div>
+      <div class="promo-banner-body ${promoExpandido ? 'open' : ''}">
+        ${semPromos ? '<div class="promo-no-active">Sem promoções activas. Adiciona uma abaixo ↓</div>' : `<div class="promo-items-grid">${itemsHtml}</div>`}
+
+        <!-- ZONA UPLOAD IA -->
+        <div class="promo-upload-zone">
+          <div class="promo-upload-title">📎 Adicionar nova promoção via PDF ou Imagem</div>
+          <div class="promo-upload-sub">A IA lê o documento, extrai os detalhes e gera uma estratégia personalizada para a tua equipa.</div>
+
+          <div class="promo-ai-selector">
+            <span>IA:</span>
+            <button class="promo-ai-btn" id="promo-btn-claude" onclick="setPromoAI('claude')">🧠 Claude</button>
+            <button class="promo-ai-btn" id="promo-btn-gemini" onclick="setPromoAI('gemini')">✦ Gemini</button>
+          </div>
+          <div class="promo-ai-key-row" id="promo-claude-key-row">
+            <label>🔑</label>
+            <input type="password" id="promo-claude-key" placeholder="Chave API Claude (sk-ant-...)" oninput="saveClaudeKey(this.value)">
+            <span class="promo-ai-key-status" id="promo-claude-status"></span>
+          </div>
+          <div class="promo-ai-key-row" id="promo-gemini-key-row">
+            <label>🔑</label>
+            <input type="password" id="promo-gemini-key" placeholder="Chave API Gemini (AIza...) — grátis em aistudio.google.com" oninput="saveGeminiKey(this.value)">
+            <span class="promo-ai-key-status" id="promo-gemini-status"></span>
+          </div>
+
+          <div class="promo-upload-drop" id="promo-drop-zone"
+            onclick="document.getElementById('promo-file-input').click()"
+            ondragover="event.preventDefault();this.classList.add('drag-over')"
+            ondragleave="this.classList.remove('drag-over')"
+            ondrop="promoHandleDrop(event)">
+            <div id="promo-drop-icon" style="font-size:32px;margin-bottom:8px;">📄</div>
+            <div id="promo-drop-label" style="font-size:13px;font-weight:600;color:var(--text);">Clica ou arrasta um ficheiro aqui</div>
+            <div style="font-size:11px;color:var(--text2);margin-top:4px;">PDF, JPG, PNG ou WEBP · máx. 20MB</div>
+            <input type="file" id="promo-file-input" accept=".pdf,.jpg,.jpeg,.png,.webp" style="display:none" onchange="promoHandleFile(this.files[0])">
+          </div>
+
+          <div id="promo-upload-preview" style="display:none;margin-top:10px;"></div>
+
+          <div id="promo-ia-status" style="display:none;" class="promo-ia-status-box">
+            <div class="promo-ia-spinner"></div>
+            <span id="promo-ia-status-text">A analisar documento...</span>
+          </div>
+
+          <div id="promo-ia-resultado" style="display:none;" class="promo-ia-resultado-box"></div>
+
+          <div id="promo-upload-actions" style="display:none;margin-top:12px;gap:8px;flex-wrap:wrap;">
+            <button class="btn btn-primary btn-sm" onclick="promoAnalisarIA()">🧠 Analisar com IA</button>
+            <button class="btn btn-secondary btn-sm" onclick="promoCancelarUpload()">✕ Cancelar</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+
+  iniciarCountdownTick();
+  syncPromoKeyInputs();
+}
+
+function renderPromoItem(p, agora) {
+  const isAtiva = agora >= p.inicio && agora <= p.fim;
+  const isProxima = agora < p.inicio;
+  const isTerminada = agora > p.fim;
+  const pct = isAtiva ? Math.round(((agora-p.inicio)/(p.fim-p.inicio))*100) : (isTerminada?100:0);
+  const diasR = isAtiva ? Math.ceil((p.fim-agora)/86400000) : null;
+  const urgente = isAtiva && diasR !== null && diasR <= 7;
+  const periodoFmt = `${formatDataPromo(p.inicio)} → ${formatDataPromo(p.fim)}`;
+
+  const valoresHtml = (p.valores||[]).map(v => `
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:1px solid rgba(255,255,255,0.05);font-size:11px;">
+      <span style="color:var(--text2);">${v.cat}</span>
+      <span style="color:var(--text2);">Normal: <span style="color:var(--text);font-weight:600;">${v.normal}</span></span>
+      <span style="color:var(--gold);font-weight:700;">Duplo: ${v.duplo||'—'}</span>
+    </div>`).join('');
+
+  const matchHtml = (p.valores||[]).filter(v=>v.match).map(v => `
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:1px solid rgba(255,255,255,0.05);font-size:11px;">
+      <span style="color:var(--text2);">Match ${v.cat}</span>
+      <span style="color:var(--text2);">Normal: <span style="color:var(--text);font-weight:600;">${v.match}</span></span>
+      <span style="color:var(--accent);font-weight:700;">Duplo: ${v.matchDuplo||'—'}</span>
+    </div>`).join('');
+
+  const estrategiaHtml = p.estrategia ? `
+    <div class="promo-estrategia-box" id="est-box-${p.id}">
+      <div class="promo-estrategia-title" onclick="toggleEstrategia('${p.id}')">
+        🎯 Ver Estratégia IA <span id="est-chevron-${p.id}">▼</span>
+      </div>
+      <div class="promo-estrategia-content" id="est-content-${p.id}" style="display:none;">
+        ${p.estrategia.replace(/\n/g,'<br>').replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>')}
+      </div>
+    </div>` : (isAtiva ? `
+    <button class="btn btn-secondary btn-sm" style="margin-top:8px;font-size:11px;" onclick="promoGerarEstrategia('${p.id}')">
+      🧠 Gerar Estratégia IA
+    </button>` : '');
+
+  const apagaBtnHtml = p.isCustom ? `
+    <button class="btn btn-sm" style="background:rgba(255,70,70,0.1);border:1px solid rgba(255,70,70,0.2);color:#ff6b6b;font-size:10px;margin-top:6px;" onclick="promoApagar('${p.id}')">
+      🗑️ Remover
+    </button>` : '';
+
+  return `
+    <div class="promo-item ${isAtiva?(urgente?'ending-soon':'active-promo'):''}">
+      <span class="promo-item-badge ${isAtiva?(urgente?'soon':'live'):(isProxima?'soon':'ended')}">
+        ${isAtiva?(urgente?'⚠️ A terminar':'🟢 Ativa'):(isProxima?'⏳ Em breve':'✓ Terminada')}
+      </span>
+      <div class="promo-item-name">${p.icone||'📢'} ${p.nome.replace(/^.{2}\s/,'')}</div>
+      <div class="promo-item-desc">${p.descricao||''}</div>
+      <div class="promo-item-dates">📅 ${periodoFmt}</div>
+      ${isAtiva && valoresHtml ? `<div style="margin-bottom:8px;">${valoresHtml}${matchHtml}</div>` : ''}
+      ${isAtiva && (p.maxNovoBP||p.maxMatch) ? `
+      <div class="promo-item-highlight">
+        <strong>💰 Máximo por novo BP:</strong>
+        ${p.maxNovoBP ? `Novo BP até <strong style="color:var(--gold);">${p.maxNovoBP}</strong>` : ''}
+        ${p.maxMatch ? `&nbsp;·&nbsp; Match até <strong style="color:var(--accent);">${p.maxMatch}</strong>` : ''}
+      </div>` : ''}
+      ${isAtiva ? `
+      <div class="promo-urgency-bar" style="margin-top:8px;">
+        <div class="promo-urgency-fill" style="width:${pct}%;background:${urgente?'var(--accent3)':'var(--accent)'};"></div>
+      </div>
+      <div style="font-size:10px;color:var(--text2);margin-top:3px;">${pct}% decorrido · ${diasR} dias restantes</div>` : ''}
+      ${estrategiaHtml}
+      <div class="promo-mini-tags" style="margin-top:8px;">${(p.tags||[]).map(t=>`<span class="promo-mini-tag">${t}</span>`).join('')}</div>
+      ${apagaBtnHtml}
+    </div>`;
+}
+
+// --- TOGGLE ---
+function togglePromoExpand() {
+  promoExpandido = !promoExpandido;
+  const body = document.querySelector('.promo-banner-body');
+  const btn = document.querySelector('.promo-toggle-btn');
+  if (body) body.classList.toggle('open', promoExpandido);
+  if (btn) btn.textContent = promoExpandido ? '▲ Fechar' : '▼ Ver detalhes';
+}
+
+function toggleEstrategia(id) {
+  const c = document.getElementById(`est-content-${id}`);
+  const ch = document.getElementById(`est-chevron-${id}`);
+  if (!c) return;
+  const open = c.style.display !== 'none';
+  c.style.display = open ? 'none' : 'block';
+  if (ch) ch.textContent = open ? '▼' : '▲';
+}
+
+// --- UPLOAD HANDLERS ---
+function promoHandleDrop(e) {
+  e.preventDefault();
+  document.getElementById('promo-drop-zone').classList.remove('drag-over');
+  const file = e.dataTransfer.files[0];
+  if (file) promoHandleFile(file);
+}
+
+function promoHandleFile(file) {
+  if (!file) return;
+  const maxMB = 20;
+  if (file.size > maxMB * 1024 * 1024) { showToast(`⚠️ Ficheiro demasiado grande (máx. ${maxMB}MB)`); return; }
+
+  const isPdf = file.type === 'application/pdf';
+  const isImg = file.type.startsWith('image/');
+  if (!isPdf && !isImg) { showToast('⚠️ Apenas PDF, JPG, PNG ou WEBP'); return; }
+
+  promoUploadIsPdf = isPdf;
+  promoUploadMediaType = file.type;
+
+  const reader = new FileReader();
+  reader.onload = function(ev) {
+    const b64 = ev.target.result.split(',')[1];
+    promoUploadBase64 = b64;
+
+    // Preview
+    const prev = document.getElementById('promo-upload-preview');
+    prev.style.display = 'block';
+    if (isImg) {
+      prev.innerHTML = `
+        <div style="display:flex;align-items:center;gap:10px;background:rgba(0,0,0,0.2);border:1px solid var(--border);border-radius:8px;padding:10px;">
+          <img src="${ev.target.result}" style="max-height:80px;max-width:120px;border-radius:6px;object-fit:contain;">
+          <div>
+            <div style="font-size:12px;font-weight:600;color:var(--text);">📷 ${file.name}</div>
+            <div style="font-size:11px;color:var(--text2);margin-top:2px;">${(file.size/1024).toFixed(0)} KB · Imagem</div>
+          </div>
+        </div>`;
+    } else {
+      prev.innerHTML = `
+        <div style="display:flex;align-items:center;gap:10px;background:rgba(0,0,0,0.2);border:1px solid var(--border);border-radius:8px;padding:10px;">
+          <span style="font-size:32px;">📄</span>
+          <div>
+            <div style="font-size:12px;font-weight:600;color:var(--text);">${file.name}</div>
+            <div style="font-size:11px;color:var(--text2);margin-top:2px;">${(file.size/1024).toFixed(0)} KB · PDF</div>
+          </div>
+        </div>`;
+    }
+
+    // Mostrar botões de acção
+    const acts = document.getElementById('promo-upload-actions');
+    acts.style.display = 'flex';
+
+    // Drop zone feedback
+    document.getElementById('promo-drop-label').textContent = '✅ Ficheiro carregado — clica "Analisar com IA"';
+    document.getElementById('promo-drop-icon').textContent = isPdf ? '📄' : '🖼️';
+  };
+  reader.readAsDataURL(file);
+}
+
+function promoCancelarUpload() {
+  promoUploadBase64 = null;
+  promoUploadMediaType = null;
+  promoUploadIsPdf = false;
+  document.getElementById('promo-upload-preview').style.display = 'none';
+  document.getElementById('promo-upload-actions').style.display = 'none';
+  document.getElementById('promo-ia-status').style.display = 'none';
+  document.getElementById('promo-ia-resultado').style.display = 'none';
+  document.getElementById('promo-drop-label').textContent = 'Clica ou arrasta um ficheiro aqui';
+  document.getElementById('promo-drop-icon').textContent = '📄';
+  document.getElementById('promo-file-input').value = '';
+}
+
+// --- ANÁLISE IA ---
+async function promoAnalisarIA() {
+  if (!promoUploadBase64) { showToast('⚠️ Carrega primeiro um ficheiro'); return; }
+  if (promoAI === 'claude' && !claudeKey) { showToast('⚠️ Precisas da chave API Claude'); return; }
+  if (promoAI === 'gemini' && !geminiKey) { showToast('⚠️ Precisas da chave API Gemini'); return; }
+
+  const statusBox = document.getElementById('promo-ia-status');
+  const statusTxt = document.getElementById('promo-ia-status-text');
+  const resultBox = document.getElementById('promo-ia-resultado');
+  const acts = document.getElementById('promo-upload-actions');
+
+  if (!statusBox || !statusTxt || !resultBox) { showToast('⚠️ Erro interno: elementos não encontrados. Tenta recarregar.'); return; }
+  statusBox.style.display = 'flex';
+  resultBox.style.display = 'none';
+  if (acts) acts.style.display = 'none';
+  statusTxt.textContent = promoAI === 'gemini' ? '✦ Gemini a ler o documento...' : '🧠 Claude a ler o documento...';
+
+  const promptExtracao = `És um assistente especializado em planos de compensação LifeWave EMEA.
+
+Analisa este documento (pode ser PDF ou imagem de uma promoção LifeWave) e extrai TODOS os detalhes relevantes.
+
+Responde APENAS em JSON válido, sem markdown, sem texto adicional, neste formato exato:
+{
+  "nome": "Nome curto da promoção (máx 60 chars)",
+  "descricao": "Descrição clara e objetiva em português (máx 200 chars)",
+  "icone": "1 emoji representativo",
+  "inicio_iso": "Data de início em ISO 8601 (ex: 2026-06-08T07:00:00+02:00) — se não encontrares, usa hoje",
+  "fim_iso": "Data de fim em ISO 8601 — se não encontrares, usa 30 dias a partir de hoje",
+  "valores": [
+    {"cat": "categoria do BP", "normal": "valor normal", "duplo": "valor durante promoção", "match": "matching normal se aplicável", "matchDuplo": "matching duplo se aplicável"}
+  ],
+  "maxNovoBP": "Máximo que um novo BP pode ganhar (string)",
+  "maxMatch": "Máximo de matching que o patrocinador pode ganhar (string)",
+  "tags": ["tag1", "tag2"],
+  "mercados": ["EMEA", "Portugal"],
+  "condicoes": "Condições principais em 1-2 frases"
+}
+
+Se algum campo não estiver no documento, usa null ou array vazio.`;
+
+  const promptEstrategia = (promoData) => `És um coach de negócios LifeWave X39 especializado no mercado português/EMEA.
+
+Com base nesta promoção:
+Nome: ${promoData.nome}
+Descrição: ${promoData.descricao}
+Período: ${promoData.inicio_iso} até ${promoData.fim_iso}
+Valores: ${JSON.stringify(promoData.valores)}
+Máximo novo BP: ${promoData.maxNovoBP}
+Máximo match: ${promoData.maxMatch}
+Condições: ${promoData.condicoes}
+
+Gera uma estratégia PRÁTICA e CONCRETA para um distribuidor LifeWave português aproveitar esta promoção ao máximo.
+
+Estrutura a resposta assim:
+**🎯 Objetivo da Promoção**
+(1-2 frases sobre o que é e porquê é importante)
+
+**💡 As 3 Ações Prioritárias**
+1. (Ação específica com detalhe prático)
+2. (Ação específica com detalhe prático)
+3. (Ação específica com detalhe prático)
+
+**📱 O Que Dizer nos Contactos**
+(Mensagem curta de WhatsApp/Instagram para recrutar neste período)
+
+**📊 Simulação de Ganhos**
+(Exemplo concreto: "Se inscrevereis 2 BPs esta semana que atinjam 1-Star Manager, ganhas X€ extra")
+
+**⚠️ Não Percas**
+(1-2 lembretes críticos sobre prazos ou condições)
+
+Responde em português europeu, tom motivador mas realista.`;
+
+  try {
+    let rawText = '';
+
+    if (promoAI === 'gemini') {
+      // Gemini suporta imagens e PDFs via inline_data
+      statusTxt.textContent = '✦ Gemini a extrair detalhes da promoção...';
+      rawText = await callGemini(promptExtracao, promoUploadBase64, promoUploadIsPdf ? 'application/pdf' : promoUploadMediaType);
+    } else {
+      // Claude
+      let content;
+      if (promoUploadIsPdf) {
+        content = [
+          { type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: promoUploadBase64 } },
+          { type: 'text', text: promptExtracao }
+        ];
+      } else {
+        content = [
+          { type: 'image', source: { type: 'base64', media_type: promoUploadMediaType, data: promoUploadBase64 } },
+          { type: 'text', text: promptExtracao }
+        ];
+      }
+      statusTxt.textContent = '🧠 Claude a extrair detalhes da promoção...';
+      const res = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': claudeKey,
+          'anthropic-version': '2023-06-01',
+          'anthropic-dangerous-direct-browser-access': 'true'
+        },
+        body: JSON.stringify({ model: 'claude-sonnet-4-6', max_tokens: 2000, messages: [{ role: 'user', content }] })
+      });
+      if (!res.ok) { const e = await res.json().catch(()=>({})); throw new Error(e?.error?.message||`HTTP ${res.status}`); }
+      const data = await res.json();
+      rawText = data.content?.[0]?.text || '';
+    }
+
+    // Parse JSON
+    let promoData;
+    try {
+      const clean = rawText.replace(/```json|```/g,'').trim();
+      promoData = JSON.parse(clean);
+    } catch(e) {
+      throw new Error('A IA não devolveu JSON válido. Tenta com outro ficheiro.');
+    }
+
+    statusTxt.textContent = promoAI === 'gemini' ? '✦ Gemini a gerar estratégia...' : '🧠 Claude a gerar estratégia...';
+
+    // Gerar estratégia
+    let estrategia = '';
+    if (promoAI === 'gemini') {
+      estrategia = await callGemini(promptEstrategia(promoData));
+    } else {
+      const res2 = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': claudeKey,
+          'anthropic-version': '2023-06-01',
+          'anthropic-dangerous-direct-browser-access': 'true'
+        },
+        body: JSON.stringify({ model: 'claude-sonnet-4-6', max_tokens: 1500, messages: [{ role: 'user', content: promptEstrategia(promoData) }] })
+      });
+      if (!res2.ok) { const e = await res2.json().catch(()=>({})); throw new Error(e?.error?.message||`HTTP ${res2.status}`); }
+      const data2 = await res2.json();
+      estrategia = data2.content?.[0]?.text || '';
+    }
+
+    // Montar objecto promoção
+    const novaPromo = {
+      id: 'custom-' + Date.now(),
+      nome: (promoData.icone||'📢') + ' ' + (promoData.nome||'Nova Promoção'),
+      descricao: promoData.descricao || '',
+      inicio: promoData.inicio_iso || new Date().toISOString(),
+      fim: promoData.fim_iso || new Date(Date.now()+30*86400000).toISOString(),
+      cor: '#00d4aa',
+      icone: promoData.icone || '📢',
+      valores: promoData.valores || [],
+      maxNovoBP: promoData.maxNovoBP || '',
+      maxMatch: promoData.maxMatch || '',
+      tags: [...(promoData.tags||[]), ...(promoData.mercados||[])],
+      condicoes: promoData.condicoes || '',
+      estrategia: estrategia,
+      isCustom: true
+    };
+
+    // Guardar
+    const custom = carregarPromosCustom();
+    custom.push(novaPromo);
+    guardarPromosCustom(custom);
+
+    // Mostrar resultado
+    statusBox.style.display = 'none';
+    resultBox.style.display = 'block';
+    resultBox.innerHTML = `
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
+        <span style="font-size:20px;">✅</span>
+        <div>
+          <div style="font-size:13px;font-weight:700;color:var(--accent);">Promoção adicionada com sucesso!</div>
+          <div style="font-size:11px;color:var(--text2);">Detalhes extraídos e estratégia gerada pela IA.</div>
+        </div>
+      </div>
+      <div style="background:rgba(0,0,0,0.2);border:1px solid var(--border);border-radius:8px;padding:12px;font-size:12px;color:var(--text2);line-height:1.6;max-height:180px;overflow-y:auto;">
+        ${estrategia.replace(/\n/g,'<br>').replace(/\*\*(.*?)\*\*/g,'<strong style="color:var(--text);">$1</strong>')}
+      </div>
+      <button class="btn btn-primary btn-sm" style="margin-top:10px;" onclick="promoCancelarUpload();renderPromoBanner();">
+        🔄 Atualizar painel
+      </button>
+    `;
+
+    showToast('✅ Promoção adicionada com estratégia IA!');
+
+  } catch(err) {
+    statusBox.style.display = 'none';
+    resultBox.style.display = 'block';
+    resultBox.innerHTML = `
+      <div style="color:#ff6b6b;font-size:12px;padding:10px;background:rgba(255,70,70,0.08);border:1px solid rgba(255,70,70,0.2);border-radius:8px;">
+        ❌ Erro: ${err.message}<br>
+        <span style="color:var(--text2);font-size:11px;">Verifica a tua chave API ou tenta com outro ficheiro.</span>
+      </div>`;
+    if (acts) acts.style.display = 'flex';
+  }
+}
+async function promoGerarEstrategia(promoId) {
+  const aiAtual = promoAI;
+  if (aiAtual === 'claude' && !claudeKey) { showToast('⚠️ Precisas da chave API Claude'); return; }
+  if (aiAtual === 'gemini' && !geminiKey) { showToast('⚠️ Precisas da chave API Gemini'); return; }
+
+  const LW_PROMOCOES = getLW_PROMOCOES();
+  const p = LW_PROMOCOES.find(x => x.id === promoId);
+  if (!p) return;
+
+  showToast(aiAtual === 'gemini' ? '✦ Gemini a gerar estratégia...' : '🧠 Claude a gerar estratégia...');
+
+  const prompt = `És um coach de negócios LifeWave X39 especializado no mercado português/EMEA.
+
+Promoção: ${p.nome}
+Descrição: ${p.descricao}
+Período: ${formatDataPromo(p.inicio)} até ${formatDataPromo(p.fim)}
+Valores: ${JSON.stringify(p.valores||[])}
+Máximo novo BP: ${p.maxNovoBP||'N/D'}
+Máximo match: ${p.maxMatch||'N/D'}
+
+Gera uma estratégia PRÁTICA e CONCRETA em português europeu:
+
+**🎯 Objetivo da Promoção**
+(1-2 frases sobre o que é e porquê é importante)
+
+**💡 As 3 Ações Prioritárias**
+1. (Ação específica com detalhe prático)
+2. (Ação específica com detalhe prático)
+3. (Ação específica com detalhe prático)
+
+**📱 O Que Dizer nos Contactos**
+(Mensagem curta de WhatsApp/Instagram para recrutar neste período)
+
+**📊 Simulação de Ganhos**
+(Exemplo concreto com números)
+
+**⚠️ Não Percas**
+(1-2 lembretes críticos sobre prazos)`;
+
+  try {
+    let estrategia = '';
+    if (aiAtual === 'gemini') {
+      estrategia = await callGemini(prompt);
+    } else {
+      const res = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: { 'Content-Type':'application/json','x-api-key':claudeKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true' },
+        body: JSON.stringify({ model:'claude-sonnet-4-6', max_tokens:1200, messages:[{role:'user',content:prompt}] })
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      estrategia = data.content?.[0]?.text || '';
+    }
+
+    // Guardar estratégia
+    if (p.isCustom) {
+      const custom = carregarPromosCustom();
+      const idx = custom.findIndex(x => x.id === promoId);
+      if (idx >= 0) { custom[idx].estrategia = estrategia; guardarPromosCustom(custom); }
+    } else {
+      // Para promos base, guarda numa chave separada
+      const baseEst = JSON.parse(localStorage.getItem('lw_base_estrategias')||'{}');
+      baseEst[promoId] = estrategia;
+      localStorage.setItem('lw_base_estrategias', JSON.stringify(baseEst));
+    }
+
+    renderPromoBanner();
+    // Re-abrir expandido e mostrar estratégia
+    if (!promoExpandido) { promoExpandido = true; }
+    setTimeout(() => {
+      const body = document.querySelector('.promo-banner-body');
+      if (body) body.classList.add('open');
+      toggleEstrategia(promoId);
+    }, 100);
+
+    showToast('✅ Estratégia gerada!');
+  } catch(err) {
+    showToast('❌ Erro: ' + err.message);
+  }
+}
+
+// --- APAGAR promoção custom ---
+function promoApagar(id) {
+  if (!confirm('Remover esta promoção?')) return;
+  const custom = carregarPromosCustom().filter(p => p.id !== id);
+  guardarPromosCustom(custom);
+  renderPromoBanner();
+  showToast('🗑️ Promoção removida');
+}
+
+// --- ESTRATÉGIAS BASE (para promos hard-coded) ---
+function getEstrategiaBase(id) {
+  try { return JSON.parse(localStorage.getItem('lw_base_estrategias')||'{}')[id] || null; } catch(e) { return null; }
+}
+
+// Patch: injectar estratégias guardadas nas promos base ao renderizar
+const _origRenderPromoItem = renderPromoItem;
+renderPromoItem = function(p, agora) {
+  if (!p.isCustom && !p.estrategia) {
+    const est = getEstrategiaBase(p.id);
+    if (est) p = { ...p, estrategia: est };
+  }
+  return _origRenderPromoItem(p, agora);
+};
+
+// --- COUNTDOWN ---
+function buildCountdownHtml(target, id) {
+  const agora = new Date();
+  const diff = target - agora;
+  if (diff <= 0) return '<span style="font-size:12px;color:var(--text2);">Terminada</span>';
+  const dias = Math.floor(diff/86400000);
+  const horas = Math.floor((diff%86400000)/3600000);
+  const mins = Math.floor((diff%3600000)/60000);
+  const segs = Math.floor((diff%60000)/1000);
+  return `
+    <div class="promo-countdown" id="countdown-${id}">
+      <div class="promo-cd-unit"><span class="promo-cd-num" id="cd-d-${id}">${String(dias).padStart(2,'0')}</span><span class="promo-cd-lbl">dias</span></div>
+      <span class="promo-cd-sep">:</span>
+      <div class="promo-cd-unit"><span class="promo-cd-num" id="cd-h-${id}">${String(horas).padStart(2,'0')}</span><span class="promo-cd-lbl">hrs</span></div>
+      <span class="promo-cd-sep">:</span>
+      <div class="promo-cd-unit"><span class="promo-cd-num" id="cd-m-${id}">${String(mins).padStart(2,'0')}</span><span class="promo-cd-lbl">min</span></div>
+      <span class="promo-cd-sep">:</span>
+      <div class="promo-cd-unit"><span class="promo-cd-num" id="cd-s-${id}">${String(segs).padStart(2,'0')}</span><span class="promo-cd-lbl">seg</span></div>
+    </div>`;
+}
+
+let countdownInterval = null;
+function iniciarCountdownTick() {
+  if (countdownInterval) clearInterval(countdownInterval);
+  countdownInterval = setInterval(() => {
+    const agora = new Date();
+    getLW_PROMOCOES().forEach(p => {
+      const isAtiva = agora >= p.inicio && agora <= p.fim;
+      const target = isAtiva ? p.fim : (agora < p.inicio ? p.inicio : null);
+      if (!target) return;
+      const diff = target - agora;
+      if (diff <= 0) { renderPromoBanner(); return; }
+      const dias=Math.floor(diff/86400000), horas=Math.floor((diff%86400000)/3600000),
+            mins=Math.floor((diff%3600000)/60000), segs=Math.floor((diff%60000)/1000);
+      const dEl=document.getElementById(`cd-d-${p.id}`), hEl=document.getElementById(`cd-h-${p.id}`),
+            mEl=document.getElementById(`cd-m-${p.id}`), sEl=document.getElementById(`cd-s-${p.id}`);
+      if(dEl) dEl.textContent=String(dias).padStart(2,'0');
+      if(hEl) hEl.textContent=String(horas).padStart(2,'0');
+      if(mEl) mEl.textContent=String(mins).padStart(2,'0');
+      if(sEl) sEl.textContent=String(segs).padStart(2,'0');
+    });
+  }, 1000);
+}
+
+function formatDataPromo(d) {
+  if (!d) return '—';
+  const dt = d instanceof Date ? d : new Date(d);
+  return dt.toLocaleDateString('pt-PT', { day:'2-digit', month:'short', year:'numeric' });
+}
+
+// --- INICIALIZAÇÃO ---
+document.addEventListener('DOMContentLoaded', () => {
+  // Patch renderDashboard para incluir promoções
+  const origRD = window.renderDashboard;
+  if (origRD) {
+    window.renderDashboard = function() {
+      origRD();
+      renderPromoBanner();
+    };
+  }
+  renderPromoBanner();
+});
+</script>
+
+<script>
+// ===================================================================
+// MÓDULO: PLANO DE COMPENSAÇÃO — Atualização via IA  v1.0
+// Permite carregar PDF/imagem do plano oficial LifeWave e extrair
+// automaticamente todos os valores (categorias, bónus, qualificações,
+// produtos) atualizando toda a app sem perder dados existentes.
+// ===================================================================
+
+// ---- STORAGE ----
+const PLANO_STORAGE_KEY   = 'lw_plano_comp_custom';
+const PLANO_HISTORY_KEY   = 'lw_plano_comp_historico';
+const PLANO_AI_KEY        = 'lw_plano_ai';
+
+function carregarPlanoComp() {
+  try { return JSON.parse(localStorage.getItem(PLANO_STORAGE_KEY) || 'null'); } catch(e) { return null; }
+}
+function guardarPlanoComp(plano) {
+  plano.atualizadoEm = new Date().toISOString();
+  // Guardar histórico (máx. 5 versões)
+  const hist = carregarPlanoHistorico();
+  const anterior = carregarPlanoComp();
+  if (anterior) {
+    hist.unshift(anterior);
+    if (hist.length > 5) hist.pop();
+    localStorage.setItem(PLANO_HISTORY_KEY, JSON.stringify(hist));
+  }
+  localStorage.setItem(PLANO_STORAGE_KEY, JSON.stringify(plano));
+}
+function carregarPlanoHistorico() {
+  try { return JSON.parse(localStorage.getItem(PLANO_HISTORY_KEY) || '[]'); } catch(e) { return []; }
+}
+
+// ---- ESTADO ----
+let planoUploadBase64   = null;
+let planoUploadMediaType = null;
+let planoUploadIsPdf    = false;
+let planoAI = localStorage.getItem(PLANO_AI_KEY) || 'claude';
+let planoClaudeKey = localStorage.getItem('lw_claude_key') || '';
+let planoGeminiKey = localStorage.getItem('lw_gemini_key') || '';
+
+function planoSetAI(ai) {
+  planoAI = ai;
+  localStorage.setItem(PLANO_AI_KEY, ai);
+  const bC = document.getElementById('plano-btn-claude');
+  const bG = document.getElementById('plano-btn-gemini');
+  const rC = document.getElementById('plano-claude-key-row');
+  const rG = document.getElementById('plano-gemini-key-row');
+  if (bC) bC.className = 'ai-btn' + (ai === 'claude' ? ' active-claude' : '');
+  if (bG) bG.className = 'ai-btn' + (ai === 'gemini' ? ' active-gemini' : '');
+  if (rC) rC.classList.toggle('show', ai === 'claude');
+  if (rG) rG.classList.toggle('show', ai === 'gemini');
+}
+function savePlanoClaudeKey(v) {
+  planoClaudeKey = v.trim();
+  localStorage.setItem('lw_claude_key', planoClaudeKey);
+  // sync with global claudeKey if available
+  if (typeof claudeKey !== 'undefined') window.claudeKey = planoClaudeKey;
+  const st = document.getElementById('plano-claude-status');
+  if (st) st.textContent = planoClaudeKey.length > 10 ? '✅ Guardada' : '';
+}
+function savePlanoGeminiKey(v) {
+  planoGeminiKey = v.trim();
+  localStorage.setItem('lw_gemini_key', planoGeminiKey);
+  const st = document.getElementById('plano-gemini-status');
+  if (st) st.textContent = planoGeminiKey.length > 10 ? '✅ Guardada' : '';
+}
+
+// ---- UPLOAD ----
+function planoHandleDrop(e) {
+  e.preventDefault();
+  const dz = document.getElementById('plano-drop-zone');
+  if (dz) { dz.style.borderColor = 'var(--border)'; dz.style.background = 'var(--surface2)'; }
+  const file = e.dataTransfer.files[0];
+  if (file) planoHandleFile(file);
+}
+
+function planoHandleFile(file) {
+  if (!file) return;
+  if (file.size > 20 * 1024 * 1024) { showToast('⚠️ Ficheiro demasiado grande (máx. 20MB)'); return; }
+  const isPdf = file.type === 'application/pdf';
+  const isImg = file.type.startsWith('image/');
+  if (!isPdf && !isImg) { showToast('⚠️ Apenas PDF, JPG, PNG ou WEBP'); return; }
+
+  planoUploadIsPdf    = isPdf;
+  planoUploadMediaType = file.type;
+
+  const reader = new FileReader();
+  reader.onload = ev => {
+    planoUploadBase64 = ev.target.result.split(',')[1];
+    const prev = document.getElementById('plano-upload-preview');
+    prev.style.display = 'block';
+    prev.innerHTML = `
+      <div style="display:flex;align-items:center;gap:10px;background:rgba(0,0,0,0.2);border:1px solid var(--border);border-radius:8px;padding:10px;">
+        ${isImg ? `<img src="${ev.target.result}" style="max-height:72px;max-width:110px;border-radius:6px;object-fit:contain;">` : '<span style="font-size:30px;">📄</span>'}
+        <div>
+          <div style="font-size:12px;font-weight:600;color:var(--text);">${isPdf ? '📄' : '🖼️'} ${file.name}</div>
+          <div style="font-size:11px;color:var(--text2);margin-top:2px;">${(file.size/1024).toFixed(0)} KB · ${isPdf ? 'PDF' : 'Imagem'}</div>
+        </div>
+      </div>`;
+    const acts = document.getElementById('plano-upload-actions');
+    if (acts) acts.style.display = 'flex';
+    const lbl = document.getElementById('plano-drop-label');
+    if (lbl) lbl.textContent = '✅ Ficheiro carregado — clica "Analisar e Atualizar com IA"';
+    const icon = document.getElementById('plano-drop-icon');
+    if (icon) icon.textContent = isPdf ? '📄' : '🖼️';
+  };
+  reader.readAsDataURL(file);
+}
+
+function planoCancelarUpload() {
+  planoUploadBase64 = null; planoUploadMediaType = null; planoUploadIsPdf = false;
+  ['plano-upload-preview','plano-ia-status','plano-ia-resultado'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.style.display = 'none';
+  });
+  const acts = document.getElementById('plano-upload-actions');
+  if (acts) acts.style.display = 'none';
+  const lbl = document.getElementById('plano-drop-label');
+  if (lbl) lbl.textContent = 'Clica ou arrasta o PDF do Plano de Compensação';
+  const icon = document.getElementById('plano-drop-icon');
+  if (icon) icon.textContent = '📄';
+  const inp = document.getElementById('plano-file-input');
+  if (inp) inp.value = '';
+}
+
+// ---- PROMPT ----
+const PLANO_PROMPT = `És um especialista em planos de compensação LifeWave.
+
+Analisa este documento (PDF ou imagem do Plano de Compensação LifeWave 2.0 / Compensation Plan) e extrai TODOS os dados estruturados.
+
+Responde APENAS em JSON válido, sem markdown, sem explicações, neste schema exato:
+
+{
+  "versao": "string — ex: 'Compensation Plan 2.0 — EMEA — Junho 2026'",
+  "moeda": "EUR",
+  "categorias": [
+    {
+      "nome": "string — ex: 'Brand Partner (BP) Ativo'",
+      "codigo": "string curto — ex: 'bp-ativo'",
+      "ordem": 1,
+      "requisitos": {
+        "pv_minimo": 55,
+        "qdv_minimo": 0,
+        "descricao": "string — requisitos em texto"
+      },
+      "bonus_nivel": [
+        {"nivel": 1, "pct": 3},
+        {"nivel": 2, "pct": 0}
+      ],
+      "bonus_binario": {
+        "elegivel": false,
+        "pct": 0,
+        "max_semanal": 0
+      },
+      "mentor_matching": {
+        "elegivel": false,
+        "geracoes": [],
+        "pcts": []
+      },
+      "blb": {
+        "elegivel": false,
+        "valor_semanal": 0,
+        "max_semanas": 0
+      },
+      "premio_clientes": {
+        "elegivel": false,
+        "escaloes": []
+      }
+    }
+  ],
+  "incentivos_crescimento": [
+    {"titulo": "string", "premio_total": 0, "parte1": 0, "parte2": 0, "descricao": "string"}
+  ],
+  "produtos": [
+    {"nome": "string", "pv": 0, "bv": 0, "preco_preferido": 0}
+  ],
+  "regras_gerais": [
+    "string — regras e notas importantes"
+  ],
+  "notas_extra": "string — qualquer informação relevante não capturada acima"
+}
+
+Se um campo não estiver no documento, usa null ou array vazio []. Não inventes valores — apenas extrai o que está explicitamente no documento.`;
+
+// ---- ANÁLISE IA ----
+async function planoAnalisarIA() {
+  if (!planoUploadBase64) { showToast('⚠️ Carrega primeiro um ficheiro'); return; }
+  const key = planoAI === 'claude' ? planoClaudeKey : planoGeminiKey;
+  if (!key) { showToast(`⚠️ Precisas da chave API ${planoAI === 'claude' ? 'Claude' : 'Gemini'}`); return; }
+
+  const statusBox = document.getElementById('plano-ia-status');
+  const statusTxt = document.getElementById('plano-ia-status-text');
+  const statusSub = document.getElementById('plano-ia-status-sub');
+  const resultBox = document.getElementById('plano-ia-resultado');
+  const acts      = document.getElementById('plano-upload-actions');
+
+  if (!statusBox || !statusTxt || !resultBox) return;
+  statusBox.style.display = 'flex';
+  resultBox.style.display = 'none';
+  if (acts) acts.style.display = 'none';
+  statusTxt.textContent = planoAI === 'gemini' ? '✦ Gemini a ler o documento...' : '🧠 Claude a ler o plano...';
+  if (statusSub) statusSub.textContent = 'A extrair categorias, bónus e qualificações...';
+
+  try {
+    let rawText = '';
+
+    if (planoAI === 'gemini') {
+      // Gemini via callGemini global
+      if (typeof callGemini !== 'function') throw new Error('Função Gemini não disponível.');
+      rawText = await callGemini(PLANO_PROMPT, planoUploadBase64, planoUploadIsPdf ? 'application/pdf' : planoUploadMediaType);
+    } else {
+      // Claude
+      const content = planoUploadIsPdf
+        ? [{ type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: planoUploadBase64 } }, { type: 'text', text: PLANO_PROMPT }]
+        : [{ type: 'image',    source: { type: 'base64', media_type: planoUploadMediaType, data: planoUploadBase64 } }, { type: 'text', text: PLANO_PROMPT }];
+
+      const res = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': planoClaudeKey,
+          'anthropic-version': '2023-06-01',
+          'anthropic-dangerous-direct-browser-access': 'true'
+        },
+        body: JSON.stringify({ model: 'claude-sonnet-4-6', max_tokens: 4000, messages: [{ role: 'user', content }] })
+      });
+      if (!res.ok) { const e = await res.json().catch(()=>({})); throw new Error(e?.error?.message || `HTTP ${res.status}`); }
+      const data = await res.json();
+      rawText = data.content?.[0]?.text || '';
+    }
+
+    // Parse JSON
+    let plano;
+    try {
+      const clean = rawText.replace(/```json|```/g,'').trim();
+      plano = JSON.parse(clean);
+    } catch(e) {
+      throw new Error('A IA não devolveu JSON válido. Tenta com um ficheiro mais claro ou de melhor qualidade.');
+    }
+
+    if (!plano.categorias || !plano.categorias.length) {
+      throw new Error('Não foram encontradas categorias no documento. Certifica-te que é o Plano de Compensação oficial.');
+    }
+
+    // Guardar
+    guardarPlanoComp(plano);
+
+    statusBox.style.display = 'none';
+    resultBox.style.display = 'block';
+    resultBox.innerHTML = planoSucessoHtml(plano);
+    showToast('✅ Plano de Compensação atualizado com sucesso!');
+    renderPlanoCompVisualizacao();
+    renderPlanoCompStatusBanner();
+    // Mostrar badge na nav
+    const badge = document.getElementById('nav-plano-badge');
+    if (badge) badge.style.display = 'inline';
+
+  } catch(err) {
+    statusBox.style.display = 'none';
+    resultBox.style.display = 'block';
+    resultBox.innerHTML = `
+      <div style="color:#ff6b6b;font-size:12px;padding:12px;background:rgba(255,70,70,0.08);border:1px solid rgba(255,70,70,0.2);border-radius:8px;">
+        ❌ <strong>Erro:</strong> ${err.message}<br>
+        <span style="color:var(--text2);font-size:11px;margin-top:4px;display:block;">Verifica a chave API ou tenta com outro ficheiro.</span>
+      </div>`;
+    if (acts) acts.style.display = 'flex';
+  }
+}
+
+function planoSucessoHtml(plano) {
+  const nCat = plano.categorias?.length || 0;
+  const nProd = plano.produtos?.length || 0;
+  const nInc = plano.incentivos_crescimento?.length || 0;
+  return `
+    <div style="background:rgba(0,212,170,0.08);border:1px solid rgba(0,212,170,0.25);border-radius:10px;padding:14px 16px;">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+        <span style="font-size:22px;">✅</span>
+        <div>
+          <div style="font-size:13px;font-weight:700;color:var(--accent);">Plano atualizado com sucesso!</div>
+          <div style="font-size:11px;color:var(--text2);">${plano.versao || 'Versão sem título'}</div>
+        </div>
+      </div>
+      <div style="display:flex;gap:12px;flex-wrap:wrap;font-size:12px;color:var(--text2);">
+        <span>📊 <strong style="color:var(--text);">${nCat}</strong> categorias</span>
+        ${nProd ? `<span>📦 <strong style="color:var(--text);">${nProd}</strong> produtos</span>` : ''}
+        ${nInc ? `<span>🏆 <strong style="color:var(--text);">${nInc}</strong> incentivos</span>` : ''}
+      </div>
+      <button class="btn btn-primary btn-sm" style="margin-top:12px;" onclick="planoCancelarUpload();renderPlanoCompVisualizacao();">
+        📋 Ver plano atualizado ↓
+      </button>
+    </div>`;
+}
+
+// ---- VISUALIZAÇÃO ----
+function renderPlanoCompVisualizacao() {
+  const el = document.getElementById('plano-comp-visualizacao');
+  const verEl = document.getElementById('plano-comp-versao');
+  if (!el) return;
+
+  const plano = carregarPlanoComp();
+  if (!plano) {
+    el.innerHTML = `
+      <div class="empty-state">
+        <div class="empty-icon">📋</div>
+        <div style="margin-bottom:8px;">Nenhum plano carregado ainda</div>
+        <div style="font-size:12px;color:var(--text3);">Faz upload do PDF oficial LifeWave acima para começar.</div>
+      </div>`;
+    return;
+  }
+
+  if (verEl) {
+    const dt = plano.atualizadoEm ? new Date(plano.atualizadoEm).toLocaleDateString('pt-PT',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}) : '';
+    verEl.textContent = `${plano.versao || ''} · Atualizado: ${dt}`;
+  }
+
+  // Categorias
+  const cats = plano.categorias || [];
+  const catHtml = cats.map(cat => {
+    const niveis = (cat.bonus_nivel || []).filter(n => n.pct > 0);
+    const bin = cat.bonus_binario;
+    const blb = cat.blb;
+    return `
+      <div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:10px;">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-bottom:8px;">
+          <div style="font-size:13px;font-weight:700;color:var(--text);">${cat.nome}</div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;">
+            ${bin?.elegivel ? `<span style="font-size:10px;padding:2px 8px;border-radius:20px;background:rgba(0,132,255,0.12);color:var(--accent2);font-weight:600;">Binário ${bin.pct}%</span>` : ''}
+            ${blb?.elegivel ? `<span style="font-size:10px;padding:2px 8px;border-radius:20px;background:rgba(245,200,66,0.12);color:var(--gold);font-weight:600;">BLB ${blb.valor_semanal}€/sem</span>` : ''}
+          </div>
+        </div>
+        ${cat.requisitos?.descricao ? `<div style="font-size:11px;color:var(--text2);margin-bottom:8px;">📌 ${cat.requisitos.descricao}</div>` : ''}
+        ${niveis.length ? `
+          <div style="display:flex;gap:6px;flex-wrap:wrap;">
+            ${niveis.map(n => `<span style="font-size:11px;padding:3px 9px;border-radius:20px;background:rgba(0,212,170,0.1);color:var(--accent);font-weight:600;">Nível ${n.nivel}: ${n.pct}%</span>`).join('')}
+          </div>` : ''}
+        ${bin?.max_semanal > 0 ? `<div style="font-size:11px;color:var(--text3);margin-top:6px;">Binário máx: ${bin.max_semanal}€/sem</div>` : ''}
+      </div>`;
+  }).join('');
+
+  // Produtos
+  const prods = plano.produtos || [];
+  const prodHtml = prods.length ? `
+    <div style="margin-top:16px;">
+      <div class="section-title" style="margin-bottom:10px;">📦 Produtos</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:8px;">
+        ${prods.map(p => `
+          <div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 12px;">
+            <div style="font-size:12px;font-weight:600;color:var(--text);">📦 ${p.nome}</div>
+            <div style="font-size:11px;color:var(--text2);margin-top:4px;">
+              ${p.pv ? `PV: <strong style="color:var(--accent);">${p.pv}</strong>` : ''}
+              ${p.bv ? ` · BV: <strong style="color:var(--accent2);">${p.bv}</strong>` : ''}
+              ${p.preco_preferido ? ` · <strong style="color:var(--text);">${p.preco_preferido}€</strong>` : ''}
+            </div>
+          </div>`).join('')}
+      </div>
+    </div>` : '';
+
+  // Incentivos
+  const incs = plano.incentivos_crescimento || [];
+  const incHtml = incs.length ? `
+    <div style="margin-top:16px;">
+      <div class="section-title" style="margin-bottom:10px;">🏆 Incentivos de Crescimento</div>
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        ${incs.map(i => `
+          <div style="display:flex;align-items:center;gap:12px;background:var(--surface2);border:1px solid rgba(245,200,66,0.15);border-radius:8px;padding:10px 14px;">
+            <div style="flex:1;">
+              <div style="font-size:12px;font-weight:600;color:var(--text);">${i.titulo}</div>
+              ${i.descricao ? `<div style="font-size:11px;color:var(--text2);margin-top:2px;">${i.descricao}</div>` : ''}
+            </div>
+            <div style="text-align:right;flex-shrink:0;">
+              <div style="font-family:'Syne',sans-serif;font-size:16px;font-weight:700;color:var(--gold);">${i.premio_total ? i.premio_total.toLocaleString('pt-PT') + '€' : '—'}</div>
+            </div>
+          </div>`).join('')}
+      </div>
+    </div>` : '';
+
+  // Regras gerais
+  const regras = plano.regras_gerais || [];
+  const regrasHtml = regras.length ? `
+    <div style="margin-top:16px;">
+      <div class="section-title" style="margin-bottom:10px;">📌 Regras Gerais</div>
+      <div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:14px;">
+        ${regras.map(r => `<div style="font-size:12px;color:var(--text2);padding:4px 0;border-bottom:1px solid rgba(255,255,255,0.04);">• ${r}</div>`).join('')}
+      </div>
+    </div>` : '';
+
+  el.innerHTML = `
+    <div class="section-title" style="margin-bottom:10px;">📊 Categorias de Pagamento (${cats.length})</div>
+    ${catHtml || '<div style="color:var(--text2);font-size:13px;">Sem categorias extraídas.</div>'}
+    ${prodHtml}${incHtml}${regrasHtml}
+    ${plano.notas_extra ? `<div style="margin-top:14px;background:rgba(0,132,255,0.06);border:1px solid rgba(0,132,255,0.15);border-radius:8px;padding:12px;font-size:12px;color:var(--text2);"><strong style="color:var(--accent2);">💡 Notas:</strong> ${plano.notas_extra}</div>` : ''}`;
+}
+
+// ---- STATUS BANNER ----
+function renderPlanoCompStatusBanner() {
+  const el = document.getElementById('plano-comp-status-banner');
+  if (!el) return;
+  const plano = carregarPlanoComp();
+  if (!plano) {
+    el.innerHTML = `
+      <div style="background:rgba(245,200,66,0.08);border:1px solid rgba(245,200,66,0.25);border-radius:10px;padding:12px 16px;display:flex;align-items:center;gap:12px;">
+        <span style="font-size:20px;">⚠️</span>
+        <div style="font-size:12px;color:var(--gold);">
+          <strong>A usar valores predefinidos da app.</strong> Carrega o PDF oficial LifeWave para manter o plano atualizado automaticamente.
+        </div>
+      </div>`;
+    return;
+  }
+  const dt = new Date(plano.atualizadoEm).toLocaleDateString('pt-PT',{day:'2-digit',month:'long',year:'numeric'});
+  el.innerHTML = `
+    <div style="background:rgba(0,212,170,0.07);border:1px solid rgba(0,212,170,0.2);border-radius:10px;padding:12px 16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+      <span style="font-size:20px;">✅</span>
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:13px;font-weight:600;color:var(--accent);">Plano personalizado ativo</div>
+        <div style="font-size:11px;color:var(--text2);">${plano.versao || 'Versão importada'} · Atualizado em ${dt}</div>
+      </div>
+      <button class="btn btn-secondary btn-sm" onclick="planoCompVerHistorico()">🕑 Histórico</button>
+    </div>`;
+}
+
+// ---- HISTÓRICO ----
+function planoCompVerHistorico() {
+  const wrap = document.getElementById('plano-historico-wrap');
+  const lista = document.getElementById('plano-historico-lista');
+  if (!wrap || !lista) return;
+  const hist = carregarPlanoHistorico();
+  wrap.style.display = 'block';
+  wrap.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  if (!hist.length) {
+    lista.innerHTML = '<div style="color:var(--text2);font-size:13px;text-align:center;padding:20px 0;">Sem versões anteriores guardadas.</div>';
+    return;
+  }
+  lista.innerHTML = hist.map((p, i) => {
+    const dt = p.atualizadoEm ? new Date(p.atualizadoEm).toLocaleDateString('pt-PT',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}) : '—';
+    return `
+      <div style="display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--border);">
+        <div style="width:28px;height:28px;border-radius:50%;background:var(--surface3);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:var(--text2);flex-shrink:0;">${i+1}</div>
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:12px;font-weight:600;color:var(--text);">${p.versao || 'Versão sem título'}</div>
+          <div style="font-size:11px;color:var(--text2);">${dt} · ${p.categorias?.length||0} categorias</div>
+        </div>
+        <button class="btn btn-secondary btn-sm" onclick="planoRestaurarVersao(${i})" title="Restaurar esta versão">↩️ Usar</button>
+      </div>`;
+  }).join('');
+}
+
+function planoRestaurarVersao(idx) {
+  if (!confirm('Restaurar esta versão do plano?')) return;
+  const hist = carregarPlanoHistorico();
+  const versao = hist[idx];
+  if (!versao) return;
+  guardarPlanoComp(versao);
+  renderPlanoCompVisualizacao();
+  renderPlanoCompStatusBanner();
+  showToast('↩️ Versão restaurada com sucesso!');
+  const wrap = document.getElementById('plano-historico-wrap');
+  if (wrap) wrap.style.display = 'none';
+}
+
+// ---- RESET ----
+function planoCompResetarBase() {
+  if (!confirm('Apagar o plano personalizado e voltar aos valores predefinidos da app?\n\nO histórico de versões será mantido.')) return;
+  localStorage.removeItem(PLANO_STORAGE_KEY);
+  renderPlanoCompVisualizacao();
+  renderPlanoCompStatusBanner();
+  showToast('↩️ Plano reposto para valores originais da app.');
+}
+
+// ---- INIT PAGE ----
+function initPagePlanoComp() {
+  renderPlanoCompStatusBanner();
+  renderPlanoCompVisualizacao();
+
+  // Sync keys
+  const kc = localStorage.getItem('lw_claude_key') || '';
+  const kg = localStorage.getItem('lw_gemini_key') || '';
+  planoClaudeKey = kc; planoGeminiKey = kg;
+  const inpC = document.getElementById('plano-claude-key');
+  const inpG = document.getElementById('plano-gemini-key');
+  if (inpC) { inpC.value = kc; }
+  if (inpG) { inpG.value = kg; }
+  const stC = document.getElementById('plano-claude-status');
+  const stG = document.getElementById('plano-gemini-status');
+  if (stC) stC.textContent = kc.length > 10 ? '✅ Guardada' : '';
+  if (stG) stG.textContent = kg.length > 10 ? '✅ Guardada' : '';
+  planoSetAI(planoAI);
+}
+
+// ---- Hook no goTo() ----
+// Patch para chamar init quando a página é aberta
+(function() {
+  const _origGoTo = window.goTo;
+  if (typeof _origGoTo === 'function') {
+    window.goTo = function(page) {
+      _origGoTo(page);
+      if (page === 'plano-comp') {
+        setTimeout(initPagePlanoComp, 50);
+      }
+    };
+  }
+})();
+
+</script>
+
 </body>
-</html>
