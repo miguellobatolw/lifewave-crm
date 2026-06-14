@@ -1757,6 +1757,139 @@
     padding: 8px 0;
   }
   /* Snooze button */
+  /* Metas widget */
+  .metas-widget {
+    background: var(--surface2);
+    border: 1px solid rgba(99,179,237,0.25);
+    border-radius: 14px;
+    padding: 16px 18px;
+    margin-bottom: 16px;
+  }
+  .metas-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 14px;
+  }
+  .metas-titulo {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 14px; font-weight: 600; color: var(--text);
+  }
+  .metas-mes { font-size: 11px; color: var(--text2); margin-top: 1px; }
+  .metas-grid { display: flex; flex-direction: column; gap: 12px; }
+  .meta-item {}
+  .meta-top {
+    display: flex; justify-content: space-between; align-items: baseline;
+    margin-bottom: 5px;
+  }
+  .meta-nome { font-size: 12px; font-weight: 600; color: var(--text); }
+  .meta-nums { font-size: 12px; color: var(--text2); }
+  .meta-nums strong { color: var(--text); font-weight: 700; }
+  .meta-bar-bg {
+    height: 8px; border-radius: 99px;
+    background: var(--surface3);
+    overflow: hidden;
+  }
+  .meta-bar {
+    height: 100%; border-radius: 99px;
+    transition: width 0.6s cubic-bezier(.4,0,.2,1);
+    min-width: 4px;
+  }
+  .meta-bar.c1 { background: var(--accent); }
+  .meta-bar.c2 { background: var(--accent2); }
+  .meta-bar.c3 { background: var(--gold); }
+  .meta-bar.done { background: #22c55e; }
+  .meta-badge-done {
+    font-size: 10px; font-weight: 700; color: #22c55e;
+    background: rgba(34,197,94,0.12); padding: 1px 7px;
+    border-radius: 20px; margin-left: 6px;
+  }
+
+  /* Streak widget */
+  .streak-widget {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    background: var(--surface2);
+    border: 1px solid rgba(255,140,0,0.3);
+    border-radius: 14px;
+    padding: 14px 18px;
+    margin-bottom: 16px;
+  }
+  .streak-fire {
+    font-size: 36px;
+    line-height: 1;
+    filter: drop-shadow(0 0 8px rgba(255,140,0,0.5));
+  }
+  .streak-fire.cold { filter: grayscale(1); opacity: 0.4; }
+  .streak-info { flex: 1; }
+  .streak-count {
+    font-size: 28px;
+    font-weight: 800;
+    color: #ff8c00;
+    line-height: 1;
+  }
+  .streak-count.cold { color: var(--text2); }
+  .streak-label {
+    font-size: 12px;
+    color: var(--text2);
+    margin-top: 3px;
+  }
+  .streak-best {
+    font-size: 11px;
+    color: var(--text2);
+    text-align: right;
+  }
+  .streak-best span {
+    display: block;
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--gold);
+  }
+  .streak-days {
+    display: flex;
+    gap: 5px;
+    margin-top: 10px;
+  }
+  .streak-day {
+    width: 28px; height: 28px;
+    border-radius: 6px;
+    background: var(--surface3);
+    border: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 10px; color: var(--text2);
+    flex-direction: column;
+    gap: 1px;
+  }
+  .streak-day.ativo { background: rgba(255,140,0,0.2); border-color: #ff8c00; color: #ff8c00; }
+  .streak-day.hoje { background: rgba(255,140,0,0.35); border-color: #ff8c00; color: #ff8c00; font-weight: 700; }
+
+  /* Aniversários banner */
+  .aniv-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: var(--surface3);
+    border-radius: 10px;
+    padding: 10px 14px;
+  }
+  .aniv-avatar {
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    background: rgba(255,180,0,0.18);
+    color: #ffb400;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700; font-size: 13px; flex-shrink: 0;
+  }
+  .aniv-info { flex: 1; min-width: 0; }
+  .aniv-nome { font-size: 13px; font-weight: 600; color: var(--text); }
+  .aniv-data { font-size: 11px; color: var(--text2); margin-top: 2px; }
+  .aniv-tag {
+    font-size: 11px; font-weight: 600; padding: 3px 9px;
+    border-radius: 20px; background: rgba(255,180,0,0.15); color: #ffb400;
+    white-space: nowrap;
+  }
+  .aniv-tag.hoje { background: rgba(255,107,107,0.15); color: #ff6b6b; }
   .btn-snooze {
     background: rgba(255,255,255,0.06);
     border: 1px solid var(--border);
@@ -2607,6 +2740,10 @@
         <span>Formação</span>
         <span id="nav-formacao-badge" style="background:var(--accent);color:var(--bg);font-size:9px;font-weight:700;padding:2px 6px;border-radius:20px;margin-left:auto;">Novo</span>
       </div>
+      <div class="nav-item" onclick="goTo('catalogo')">
+        <span class="nav-icon">📦</span>
+        <span>Catálogo</span>
+      </div>
       <div class="nav-item" onclick="abrirPerfilModal(false)" id="nav-perfil" style="margin-top:8px;border-top:1px solid var(--border);padding-top:12px;">
         <span class="nav-icon">⚙️</span>
         <span>Meu Perfil & Links</span>
@@ -2666,6 +2803,18 @@
       </div>
 
       <!-- PROMOÇÕES ATIVAS BANNER -->
+      <!-- ANIVERSÁRIOS BANNER -->
+      <div id="aniversarios-banner" style="display:none;margin-bottom:16px;background:var(--surface2);border:1px solid rgba(255,180,0,0.35);border-radius:14px;padding:16px 18px;">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">
+          <span style="font-size:22px;">🎂</span>
+          <div>
+            <div style="font-size:14px;font-weight:600;color:var(--text);">Aniversários em breve</div>
+            <div style="font-size:12px;color:var(--text2);">Envia uma mensagem especial e fortalece a relação</div>
+          </div>
+        </div>
+        <div id="aniversarios-lista" style="display:flex;flex-direction:column;gap:8px;"></div>
+      </div>
+
       <div class="promo-banner-wrap" id="promo-banner-wrap"></div>
 
       <!-- VIAGENS COUNTDOWN -->
@@ -2691,6 +2840,31 @@
           <div class="stat-label">Clientes</div>
           <div class="stat-value" id="stat-cli">0</div>
           <div class="stat-trend">Conversões concluídas</div>
+        </div>
+      </div>
+
+      <!-- METAS MENSAIS -->
+      <div class="metas-widget" id="metas-widget">
+        <div class="metas-header">
+          <div>
+            <div class="metas-titulo">🎯 Metas do Mês</div>
+            <div class="metas-mes" id="metas-mes-label"></div>
+          </div>
+          <button class="btn btn-secondary btn-sm" onclick="abrirModalMetas()" style="font-size:11px;">✏️ Definir</button>
+        </div>
+        <div class="metas-grid" id="metas-grid"></div>
+      </div>
+
+      <!-- STREAK DIÁRIO -->
+      <div id="streak-widget" class="streak-widget">
+        <div class="streak-fire" id="streak-fire">🔥</div>
+        <div class="streak-info">
+          <div class="streak-count" id="streak-count">0</div>
+          <div class="streak-label" id="streak-label">dias seguidos no CRM</div>
+          <div class="streak-days" id="streak-days"></div>
+        </div>
+        <div class="streak-best">
+          Recorde<span id="streak-best">0</span>dias
         </div>
       </div>
 
@@ -4217,6 +4391,72 @@
 
     </div><!-- end page-formacao -->
 
+    <!-- ============================================================ -->
+    <!-- PAGE: CATÁLOGO DE PRODUTOS                                   -->
+    <!-- ============================================================ -->
+    <div id="page-catalogo" class="page">
+      <div class="page-header">
+        <div>
+          <div class="page-title">📦 Catálogo de Produtos</div>
+          <div class="page-sub">Preços, lucros e scripts de venda — valores reais do Plano de Compensação 2.0</div>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+          <select id="cat-tipo-cliente" onchange="renderCatalogo()" style="background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:7px 10px;font-size:12px;font-family:'DM Sans',sans-serif;cursor:pointer;">
+            <option value="direto">👤 Venda Direta (Retalho)</option>
+            <option value="preferencial">⭐ Cliente Preferencial / CP+</option>
+            <option value="bp">🤝 Brand Partner</option>
+          </select>
+          <select id="cat-moeda" onchange="renderCatalogo()" style="background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:7px 10px;font-size:12px;font-family:'DM Sans',sans-serif;cursor:pointer;">
+            <option value="eur">€ EUR</option>
+            <option value="usd">$ USD</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- FILTROS DE CATEGORIA -->
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px;">
+        <button class="btn btn-secondary btn-sm cat-filtro-btn active" onclick="filtrarCatalogo('todos',this)">Todos</button>
+        <button class="btn btn-secondary btn-sm cat-filtro-btn" onclick="filtrarCatalogo('patches',this)">🩹 Patches</button>
+        <button class="btn btn-secondary btn-sm cat-filtro-btn" onclick="filtrarCatalogo('sistemas',this)">📦 Sistemas</button>
+        <button class="btn btn-secondary btn-sm cat-filtro-btn" onclick="filtrarCatalogo('pele',this)">✨ Cuidados da Pele</button>
+        <button class="btn btn-secondary btn-sm cat-filtro-btn" onclick="filtrarCatalogo('pib',this)">🆕 Pacotes Inscrição (PIB)</button>
+      </div>
+
+      <!-- GRID DE PRODUTOS -->
+      <div id="cat-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px;margin-bottom:24px;"></div>
+
+      <!-- MODAL DETALHE PRODUTO -->
+      <div id="cat-modal-detalhe" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:1000;display:none;align-items:center;justify-content:center;padding:20px;" onclick="fecharDetalhe(event)">
+        <div style="background:var(--surface);border-radius:var(--radius);max-width:540px;width:100%;padding:24px;max-height:90vh;overflow-y:auto;" onclick="event.stopPropagation()">
+          <div id="cat-modal-content"></div>
+        </div>
+      </div>
+
+      <!-- RESUMO RÁPIDO -->
+      <div class="card" style="background:linear-gradient(135deg,rgba(0,212,170,0.06),rgba(0,132,255,0.04));border-color:rgba(0,212,170,0.2);">
+        <div class="section-title" style="margin-bottom:14px;">💡 Estratégia de Vendas Rápida</div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px;">
+          <div style="background:var(--surface2);border-radius:8px;padding:14px;">
+            <div style="font-size:13px;font-weight:700;color:var(--accent);margin-bottom:6px;">🥇 Maior Lucro Direto</div>
+            <div style="font-size:12px;color:var(--text2);line-height:1.6;">X39 e X49: <strong style="color:var(--text);">50$/48€</strong> por embalagem em venda direta. O teu produto estrela!</div>
+          </div>
+          <div style="background:var(--surface2);border-radius:8px;padding:14px;">
+            <div style="font-size:13px;font-weight:700;color:var(--gold);margin-bottom:6px;">⭐ Melhor para Clientes</div>
+            <div style="font-size:12px;color:var(--text2);line-height:1.6;">Converte para <strong style="color:var(--text);">Cliente Preferencial</strong> — paga menos, tu ganhas QV para Prémio por Clientes (5-20%).</div>
+          </div>
+          <div style="background:var(--surface2);border-radius:8px;padding:14px;">
+            <div style="font-size:13px;font-weight:700;color:var(--accent2);margin-bottom:6px;">🚀 Maior PIB ao Recrutar</div>
+            <div style="font-size:12px;color:var(--text2);line-height:1.6;">Pacote <strong style="color:var(--text);">Premium</strong>: ganhas <strong style="color:var(--text);">385€</strong> de PIB imediato por cada novo BP inscrito.</div>
+          </div>
+          <div style="background:var(--surface2);border-radius:8px;padding:14px;">
+            <div style="font-size:13px;font-weight:700;color:var(--accent3);margin-bottom:6px;">📦 Compra em Volume</div>
+            <div style="font-size:12px;color:var(--text2);line-height:1.6;">3 embalagens do mesmo produto = preço reduzido + maior lucro direto (20€/emb em vez de 15€).</div>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- end page-catalogo -->
+
   </main>
 
   <!-- BOTTOM NAV (mobile) -->
@@ -4287,6 +4527,10 @@
       <div class="bn-icon-wrap"><span class="bn-icon">🎓</span></div>
       <span>Formação</span>
     </div>
+    <div class="bn-item" id="bn-catalogo" onclick="goTo('catalogo')">
+      <div class="bn-icon-wrap"><span class="bn-icon">📦</span></div>
+      <span>Catálogo</span>
+    </div>
   </nav>
 
 </div>
@@ -4347,11 +4591,45 @@
     </div>
     <div class="form-group">
       <label class="form-label">Notas / Observações</label>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">🎂 Data de Aniversário</label>
+          <input class="form-input" id="f-aniversario" type="date" title="Dia e mês de aniversário">
+        </div>
+        <div class="form-group"></div>
+      </div>
       <textarea class="form-textarea" id="f-notas" placeholder="Interesses, dores, histórico de conversa..."></textarea>
     </div>
     <div class="modal-actions">
       <button class="btn btn-secondary" onclick="closeModal('modal-lead'); editingLeadId=null;">Cancelar</button>
       <button class="btn btn-primary" onclick="salvarLead()">✓ Guardar Lead</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: METAS MENSAIS -->
+<div class="modal-overlay" id="modal-metas">
+  <div class="modal" style="max-width:420px;">
+    <div class="modal-title">🎯 Definir Metas do Mês
+      <button class="modal-close" onclick="closeModal('modal-metas')">✕</button>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:14px;margin-top:8px;">
+      <div class="form-group">
+        <label class="form-label">📥 Novos Leads (meta mensal)</label>
+        <input class="form-input" id="meta-novos-leads" type="number" min="0" placeholder="Ex: 20">
+      </div>
+      <div class="form-group">
+        <label class="form-label">🤝 Novos Clientes (conversões)</label>
+        <input class="form-input" id="meta-clientes" type="number" min="0" placeholder="Ex: 3">
+      </div>
+      <div class="form-group">
+        <label class="form-label">💬 Contactos Realizados</label>
+        <input class="form-input" id="meta-contactos" type="number" min="0" placeholder="Ex: 50">
+      </div>
+    </div>
+    <div class="modal-actions" style="margin-top:20px;">
+      <button class="btn btn-secondary" onclick="closeModal('modal-metas')">Cancelar</button>
+      <button class="btn btn-primary" onclick="salvarMetas()">✓ Guardar Metas</button>
     </div>
   </div>
 </div>
@@ -4536,7 +4814,7 @@ function goTo(page) {
   document.querySelectorAll('.bn-item').forEach(n => n.classList.remove('active'));
   document.getElementById('page-' + page).classList.add('active');
   const items = document.querySelectorAll('.nav-item');
-  const map = { dashboard: 0, acoes: 1, funil: 2, lista: 3, posts: 4, calendario: 5, agenda: 6, respostas: 7, coach: 8, stats: 9, equipa: 10, comissoes: 11, luminate: 12, calculadora: 13, 'plano-comp': 14, formacao: 15 };
+  const map = { dashboard: 0, acoes: 1, funil: 2, lista: 3, posts: 4, calendario: 5, agenda: 6, respostas: 7, coach: 8, stats: 9, equipa: 10, comissoes: 11, luminate: 12, calculadora: 13, 'plano-comp': 14, formacao: 15, catalogo: 16 };
   if (map[page] !== undefined && items[map[page]]) items[map[page]].classList.add('active');
   const bnEl = document.getElementById('bn-' + page);
   if (bnEl) bnEl.classList.add('active');
@@ -4553,6 +4831,7 @@ function goTo(page) {
   if (page === 'luminate') { renderLuminate(); viagemSetAI(viagemAI); }
   if (page === 'calculadora') renderCalculadora();
   if (page === 'formacao') formacaoInit();
+  if (page === 'catalogo') renderCatalogo();
   window.scrollTo(0, 0);
 }
 
@@ -4577,6 +4856,7 @@ function salvarLead() {
     estado: document.getElementById('f-estado').value,
     fonte: document.getElementById('f-fonte').value,
     notas: document.getElementById('f-notas').value.trim(),
+    aniversario: document.getElementById('f-aniversario').value || '',
     data: new Date().toLocaleDateString('pt-PT'),
     historico: editingLeadId ? (leads.find(l => l.id === editingLeadId)?.historico || []) : []
   };
@@ -4612,6 +4892,7 @@ function editarLead(id) {
   document.getElementById('f-estado').value = l.estado;
   document.getElementById('f-fonte').value = l.fonte;
   document.getElementById('f-notas').value = l.notas;
+  document.getElementById('f-aniversario').value = l.aniversario || '';
   closeModal('modal-ver-lead');
   openModal('modal-lead');
 }
@@ -4693,6 +4974,7 @@ function verLead(id) {
     <div class="detail-row"><div class="detail-label">📌 Estado</div><div class="detail-val"><span class="lead-badge b-${l.estado}">${estadoLabel(l.estado)}</span></div></div>
     <div class="detail-row"><div class="detail-label">🔍 Fonte</div><div class="detail-val">${l.fonte}</div></div>
     <div class="detail-row"><div class="detail-label">📅 Adicionado</div><div class="detail-val">${l.data}</div></div>
+    ${l.aniversario ? `<div class="detail-row"><div class="detail-label">🎂 Aniversário</div><div class="detail-val">${formatarAniversario(l.aniversario)}</div></div>` : ''}
     ${l.notas ? `<div class="detail-row"><div class="detail-label">📝 Notas</div><div class="detail-val">${l.notas}</div></div>` : ''}
 
     <div class="section-title" style="margin-top:18px;margin-bottom:10px;">📋 Registar Interação</div>
@@ -4764,6 +5046,12 @@ function renderDashboard() {
   renderDashboardViagemCountdown();
   // Refresh follow-up alerts
   if (typeof renderFollowUps === 'function') renderFollowUps();
+  // Refresh aniversários
+  if (typeof renderAniversarios === 'function') renderAniversarios();
+  // Refresh metas
+  if (typeof renderMetas === 'function') renderMetas();
+  // Refresh streak
+  if (typeof renderStreak === 'function') renderStreak();
   // Refresh acoes badge
   if (typeof renderAcoes === 'function') renderAcoes();
   const tbody = document.getElementById('tbody-recentes');
@@ -6912,7 +7200,7 @@ function openModal(id) {
   }
   if (id === 'modal-lead' && !editingLeadId) {
     document.getElementById('modal-lead-title').textContent = '➕ Novo Lead';
-    ['f-nome','f-tel','f-email','f-notas'].forEach(f => document.getElementById(f).value = '');
+    ['f-nome','f-tel','f-email','f-notas','f-aniversario'].forEach(f => document.getElementById(f).value = '');
     document.getElementById('f-estado').value = 'novo';
   }
   if (id === 'modal-nova-venda' && !editingVendaId) {
@@ -7141,6 +7429,10 @@ function entrarNaApp(user) {
   // Re-render
   renderDashboard();
   renderFollowUps();
+  renderAniversarios();
+  renderMetas();
+  registarAtividadeHoje();
+  renderStreak();
   renderAgenda();
   renderAcoes();
   updateBadge();
@@ -8505,6 +8797,226 @@ function snoozeFollowUp(leadId, days) {
     setTimeout(() => renderFollowUps(), 320);
   }
   showToast(`⏸ Follow-up adiado ${days} dias`);
+}
+
+// ===== METAS MENSAIS =====
+function getMetasKey() { return getUserStorageKey('lw_metas'); }
+
+function loadMetas() {
+  return JSON.parse(localStorage.getItem(getMetasKey()) || 'null') || { novosLeads: 0, clientes: 0, contactos: 0 };
+}
+
+function salvarMetas() {
+  const m = {
+    novosLeads: parseInt(document.getElementById('meta-novos-leads').value) || 0,
+    clientes: parseInt(document.getElementById('meta-clientes').value) || 0,
+    contactos: parseInt(document.getElementById('meta-contactos').value) || 0,
+  };
+  localStorage.setItem(getMetasKey(), JSON.stringify(m));
+  closeModal('modal-metas');
+  renderMetas();
+  showToast('🎯 Metas guardadas!');
+}
+
+function abrirModalMetas() {
+  const m = loadMetas();
+  document.getElementById('meta-novos-leads').value = m.novosLeads || '';
+  document.getElementById('meta-clientes').value = m.clientes || '';
+  document.getElementById('meta-contactos').value = m.contactos || '';
+  openModal('modal-metas');
+}
+
+function renderMetas() {
+  const grid = document.getElementById('metas-grid');
+  const mesLabel = document.getElementById('metas-mes-label');
+  if (!grid) return;
+
+  const m = loadMetas();
+  const temMetas = m.novosLeads > 0 || m.clientes > 0 || m.contactos > 0;
+
+  // Calcular progresso do mês atual
+  const agora = new Date();
+  const inicioMes = new Date(agora.getFullYear(), agora.getMonth(), 1);
+  const nomeMes = agora.toLocaleDateString('pt-PT', { month: 'long', year: 'numeric' });
+  if (mesLabel) mesLabel.textContent = nomeMes.charAt(0).toUpperCase() + nomeMes.slice(1);
+
+  // Leads adicionados este mês
+  const leadsEsteMes = leads.filter(l => {
+    if (!l.data) return false;
+    const partes = l.data.split('/');
+    if (partes.length !== 3) return false;
+    const d = new Date(parseInt(partes[2]), parseInt(partes[1]) - 1, parseInt(partes[0]));
+    return d >= inicioMes;
+  }).length;
+
+  // Clientes conquistados este mês (estado = cliente)
+  const clientesEsteMes = leads.filter(l => {
+    if (l.estado !== 'cliente' || !l.data) return false;
+    const partes = l.data.split('/');
+    if (partes.length !== 3) return false;
+    const d = new Date(parseInt(partes[2]), parseInt(partes[1]) - 1, parseInt(partes[0]));
+    return d >= inicioMes;
+  }).length;
+
+  // Contactos realizados (histórico de mensagens este mês)
+  const contactosEsteMes = leads.reduce((acc, l) => {
+    if (!l.historico) return acc;
+    return acc + l.historico.filter(h => {
+      if (h.tipo !== 'mensagem') return false;
+      const d = new Date(h.data);
+      return !isNaN(d) && d >= inicioMes;
+    }).length;
+  }, 0);
+
+  if (!temMetas) {
+    grid.innerHTML = `<div style="text-align:center;padding:8px 0;color:var(--text2);font-size:13px;">
+      Clica em <strong style="color:var(--text)">✏️ Definir</strong> para configurar as tuas metas mensais
+    </div>`;
+    return;
+  }
+
+  const itens = [];
+  if (m.novosLeads > 0) itens.push({ nome: '📥 Novos Leads', atual: leadsEsteMes, meta: m.novosLeads, cor: 'c1' });
+  if (m.clientes > 0) itens.push({ nome: '🤝 Novos Clientes', atual: clientesEsteMes, meta: m.clientes, cor: 'c2' });
+  if (m.contactos > 0) itens.push({ nome: '💬 Contactos', atual: contactosEsteMes, meta: m.contactos, cor: 'c3' });
+
+  grid.innerHTML = itens.map(({ nome, atual, meta, cor }) => {
+    const pct = Math.min(100, Math.round((atual / meta) * 100));
+    const done = pct >= 100;
+    const barClass = done ? 'meta-bar done' : `meta-bar ${cor}`;
+    return `
+      <div class="meta-item">
+        <div class="meta-top">
+          <span class="meta-nome">${nome}${done ? '<span class="meta-badge-done">✓ Meta!</span>' : ''}</span>
+          <span class="meta-nums"><strong>${atual}</strong> / ${meta} (${pct}%)</span>
+        </div>
+        <div class="meta-bar-bg">
+          <div class="${barClass}" style="width:${pct}%"></div>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+// ===== STREAK DIÁRIO =====
+function getStreakKey() { return getUserStorageKey('lw_streak'); }
+
+function loadStreak() {
+  return JSON.parse(localStorage.getItem(getStreakKey()) || 'null') || { atual: 0, recorde: 0, dias: [] };
+}
+
+function saveStreak(data) {
+  localStorage.setItem(getStreakKey(), JSON.stringify(data));
+}
+
+function registarAtividadeHoje() {
+  const hoje = new Date().toISOString().slice(0, 10);
+  const s = loadStreak();
+  if (s.dias.includes(hoje)) return; // já registado hoje
+
+  const ontem = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+  const continuou = s.dias.length > 0 && s.dias[s.dias.length - 1] === ontem;
+
+  s.dias.push(hoje);
+  // Manter só os últimos 30 dias
+  if (s.dias.length > 30) s.dias = s.dias.slice(-30);
+
+  s.atual = continuou ? s.atual + 1 : 1;
+  s.recorde = Math.max(s.recorde, s.atual);
+  saveStreak(s);
+}
+
+function renderStreak() {
+  const s = loadStreak();
+  const fireEl = document.getElementById('streak-fire');
+  const countEl = document.getElementById('streak-count');
+  const labelEl = document.getElementById('streak-label');
+  const bestEl = document.getElementById('streak-best');
+  const daysEl = document.getElementById('streak-days');
+  if (!fireEl) return;
+
+  const ativo = s.atual > 0;
+  fireEl.className = 'streak-fire' + (ativo ? '' : ' cold');
+  countEl.className = 'streak-count' + (ativo ? '' : ' cold');
+  countEl.textContent = s.atual;
+  bestEl.textContent = s.recorde;
+
+  if (s.atual === 0) {
+    labelEl.textContent = 'Começa hoje o teu streak! 💪';
+  } else if (s.atual === 1) {
+    labelEl.textContent = 'Primeiro dia — mantém o ritmo!';
+  } else if (s.atual < 7) {
+    labelEl.textContent = `${s.atual} dias seguidos — continua! 🔥`;
+  } else if (s.atual < 30) {
+    labelEl.textContent = `${s.atual} dias seguidos — incrível! 🔥🔥`;
+  } else {
+    labelEl.textContent = `${s.atual} dias seguidos — lendário! 🔥🔥🔥`;
+  }
+
+  // Últimos 7 dias
+  const dias = ['D','S','T','Q','Q','S','S'];
+  daysEl.innerHTML = Array.from({ length: 7 }).map((_, i) => {
+    const d = new Date(Date.now() - (6 - i) * 86400000);
+    const iso = d.toISOString().slice(0, 10);
+    const isHoje = i === 6;
+    const ativo = s.dias.includes(iso);
+    const cls = isHoje ? 'streak-day hoje' : ativo ? 'streak-day ativo' : 'streak-day';
+    return `<div class="${cls}" title="${iso}">${ativo || isHoje ? '✓' : dias[d.getDay()]}</div>`;
+  }).join('');
+}
+
+// ===== ANIVERSÁRIOS =====
+function formatarAniversario(dateStr) {
+  if (!dateStr) return '';
+  const [ano, mes, dia] = dateStr.split('-');
+  const meses = ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
+  const m = meses[parseInt(mes, 10) - 1] || '';
+  const anoTxt = ano && ano !== '0000' ? ` de ${ano}` : '';
+  return `${parseInt(dia, 10)} de ${m}${anoTxt}`;
+}
+
+function diasParaAniversario(dateStr) {
+  if (!dateStr) return null;
+  const [, mes, dia] = dateStr.split('-').map(Number);
+  const hoje = new Date();
+  const hojeSemHora = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate());
+  let aniv = new Date(hoje.getFullYear(), mes - 1, dia);
+  if (aniv < hojeSemHora) aniv = new Date(hoje.getFullYear() + 1, mes - 1, dia);
+  return Math.round((aniv - hojeSemHora) / 86400000);
+}
+
+function renderAniversarios() {
+  const banner = document.getElementById('aniversarios-banner');
+  const lista = document.getElementById('aniversarios-lista');
+  if (!banner || !lista) return;
+
+  const JANELA = 14;
+  const proximos = leads
+    .filter(l => l.aniversario)
+    .map(l => ({ l, dias: diasParaAniversario(l.aniversario) }))
+    .filter(({ dias }) => dias !== null && dias <= JANELA)
+    .sort((a, b) => a.dias - b.dias);
+
+  if (!proximos.length) { banner.style.display = 'none'; return; }
+
+  banner.style.display = 'block';
+  lista.innerHTML = proximos.map(({ l, dias }) => {
+    const iniciais = l.nome.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
+    const tagTxt = dias === 0 ? '🎉 Hoje!' : dias === 1 ? 'Amanhã' : `Em ${dias} dias`;
+    const tagClass = dias === 0 ? 'hoje' : '';
+    return `
+      <div class="aniv-item">
+        <div class="aniv-avatar">${iniciais}</div>
+        <div class="aniv-info">
+          <div class="aniv-nome">${l.nome}</div>
+          <div class="aniv-data">🎂 ${formatarAniversario(l.aniversario)} · ${estadoLabel(l.estado)}</div>
+        </div>
+        <span class="aniv-tag ${tagClass}">${tagTxt}</span>
+        ${l.tel ? `<button class="btn btn-sm btn-wa-sm" onclick="abrirMensagem('${l.id}','whatsapp')" title="Enviar parabéns">💬</button>` : ''}
+        <button class="btn btn-secondary btn-sm" onclick="verLead('${l.id}')" title="Ver lead" style="padding:5px 8px;">👁</button>
+      </div>
+    `;
+  }).join('');
 }
 
 // Register a contact event when messaging
@@ -10979,6 +11491,341 @@ function resetCalculadora() {
   .forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
   calcularBonus();
   showToast('🔄 Calculadora limpa');
+}
+// ===================================================
+
+// ===================================================
+// CATÁLOGO DE PRODUTOS
+// ===================================================
+const CATALOGO_PRODUTOS = [
+  // PATCHES
+  { id:'x39', nome:'LifeWave X39®', cat:'patches', emoji:'🩹',
+    cor:'#00d4aa', destaque:true,
+    desc:'O patch mais avançado da LifeWave. Activa células estaminais através da fotobiomodulação e estimula a produção de GHK-Cu. Resultados em energia, recuperação, sono e vitalidade.',
+    beneficios:['Activação de células estaminais','Aumento de energia e vitalidade','Melhoria do sono','Recuperação mais rápida','Redução de dores e inflamação'],
+    uso:'Aplicar no ponto BL-23 (zona lombar) ou em pontos de dor. 12h com patch, 12h sem.',
+    direto_1_eur:142, direto_1_usd:149.95, lucro_direto_eur:48, lucro_direto_usd:50,
+    pref_1_eur:95, pref_1_usd:99.95, lucro_pref_eur:19, lucro_pref_usd:20,
+    bp_1_eur:95, bp_1_usd:99.95,
+    qv:77, bv_direto:77, bv_pref:43,
+    script:'Olá [Nome]! Deixa-me partilhar algo incrível — o X39 é o único patch do mundo que activa as tuas próprias células estaminais usando a luz do teu corpo. Sem agulhas, sem comprimidos. Só colocas na pele 12 horas. Muitas pessoas reportam mais energia, melhor sono e menos dores. Posso enviar-te mais informação?'
+  },
+  { id:'x49', nome:'LifeWave X49®', cat:'patches', emoji:'🏋️',
+    cor:'#0084ff', destaque:true,
+    desc:'Foco em performance, força muscular e energia. Ideal para desportistas ou quem quer maximizar o desempenho físico. Complemento perfeito ao X39.',
+    beneficios:['Aumento de força e massa muscular','Melhoria da performance física','Energia sustentada','Recuperação muscular acelerada','Composição corporal melhorada'],
+    uso:'Aplicar no ponto ST-36 (abaixo do joelho) ou em zona de treino. 12h com patch, 12h sem.',
+    direto_1_eur:142, direto_1_usd:149.95, lucro_direto_eur:48, lucro_direto_usd:50,
+    pref_1_eur:95, pref_1_usd:99.95, lucro_pref_eur:19, lucro_pref_usd:20,
+    bp_1_eur:95, bp_1_usd:99.95,
+    qv:77, bv_direto:77, bv_pref:43,
+    script:'Para quem quer performance e resultados físicos, o X49 é revolucionário. Atletas e pessoas activas usam-no para recuperar mais rápido e ter mais força. Funciona com a luz do teu próprio corpo. Queres experimentar?'
+  },
+  { id:'icewave', nome:'IceWave®', cat:'patches', emoji:'❄️',
+    cor:'#8b9cf7',
+    desc:'Alívio rápido de dores musculares e articulares. Dois patches (branco e bege) que criam um campo bioelétrico para reduzir a inflamação local sem medicamentos.',
+    beneficios:['Alívio rápido de dores','Sem medicamentos ou efeitos secundários','Redução de inflamação local','Ideal para dores crónicas','Funciona em minutos'],
+    uso:'Usar 2 patches em simultâneo: 1 branco e 1 bege na zona de dor. Máx 12h.',
+    direto_1_eur:76, direto_1_usd:79.95, lucro_direto_eur:14, lucro_direto_usd:15,
+    direto_3_eur:66, direto_3_usd:69.95, lucro_3_eur:19, lucro_3_usd:20,
+    pref_1_eur:66, pref_1_usd:69.95, lucro_pref_eur:10, lucro_pref_usd:10,
+    bp_1_eur:66, bp_1_usd:69.95,
+    qv:55, bv_direto:55, bv_pref:39,
+    script:'Tens dores musculares ou articulares? O IceWave é um patch natural que alivia dores em minutos sem comprimidos. Muitas pessoas usam para costas, joelhos, pescoço. Sem efeitos secundários. Queres saber como funciona?'
+  },
+  { id:'energy', nome:'Energy Enhancer®', cat:'patches', emoji:'⚡',
+    cor:'#f5c842',
+    desc:'Aumenta a energia e reduz a fadiga de forma natural. Melhora a produção de ATP nas células, dando energia sustentada ao longo do dia.',
+    beneficios:['Energia natural e sustentada','Redução de fadiga','Melhoria de resistência','Sem cafeína ou estimulantes','Ideal para o dia a dia'],
+    uso:'Aplicar um patch branco à esquerda e um bege à direita no abdómen. 12h máx.',
+    direto_1_eur:76, direto_1_usd:79.95, lucro_direto_eur:14, lucro_direto_usd:15,
+    direto_3_eur:66, direto_3_usd:69.95, lucro_3_eur:19, lucro_3_usd:20,
+    pref_1_eur:66, pref_1_usd:69.95, lucro_pref_eur:10, lucro_pref_usd:10,
+    bp_1_eur:66, bp_1_usd:69.95,
+    qv:55, bv_direto:55, bv_pref:39,
+    script:'Sentes-te cansado com frequência? O Energy Enhancer aumenta a energia de forma natural, sem cafeína. Muitas pessoas sentem a diferença logo no 1º dia. É um patch simples que colocas no abdómen de manhã.'
+  },
+  { id:'silent', nome:'Silent Nights®', cat:'patches', emoji:'🌙',
+    cor:'#a855f7',
+    desc:'Melhora a qualidade do sono de forma natural. Estimula a produção de melatonina através de fotobiomodulação, sem hormonas externas.',
+    beneficios:['Adormecimento mais rápido','Sono mais profundo e reparador','Sem dependência','Sem hormonas externas','Acorda com mais energia'],
+    uso:'Aplicar no pescoço (ponto GV-14) 30 minutos antes de dormir. Retirar ao acordar.',
+    direto_1_eur:76, direto_1_usd:79.95, lucro_direto_eur:14, lucro_direto_usd:15,
+    direto_3_eur:66, direto_3_usd:69.95, lucro_3_eur:19, lucro_3_usd:20,
+    pref_1_eur:66, pref_1_usd:69.95, lucro_pref_eur:10, lucro_pref_usd:10,
+    bp_1_eur:66, bp_1_usd:69.95,
+    qv:55, bv_direto:55, bv_pref:39,
+    script:'Tens dificuldade em dormir? O Silent Nights é um patch natural que colocas no pescoço antes de dormir e ajuda o teu corpo a produzir a sua própria melatonina. Sem comprimidos, sem dependência. Funciona mesmo!'
+  },
+  { id:'aeon', nome:'Y-Age Aeon®', cat:'patches', emoji:'✨',
+    cor:'#00d4aa',
+    desc:'Anti-inflamatório e anti-envelhecimento. Reduz o stress oxidativo e a inflamação sistémica, apoiando a longevidade e o bem-estar geral.',
+    beneficios:['Redução da inflamação sistémica','Anti-envelhecimento celular','Redução do stress oxidativo','Melhoria do bem-estar geral','Complemento ideal ao X39'],
+    uso:'Aplicar no ponto GV-14 (nuca) ou ponto CV-6 (abdómen). 12h máx. Ideal com X39.',
+    direto_1_eur:76, direto_1_usd:79.95, lucro_direto_eur:14, lucro_direto_usd:15,
+    direto_3_eur:66, direto_3_usd:69.95, lucro_3_eur:19, lucro_3_usd:20,
+    pref_1_eur:66, pref_1_usd:69.95, lucro_pref_eur:10, lucro_pref_usd:10,
+    bp_1_eur:66, bp_1_usd:69.95,
+    qv:55, bv_direto:55, bv_pref:39,
+    script:'O Aeon é o patch anti-inflamatório da LifeWave. Reduz o stress oxidativo e ajuda o corpo a combater a inflamação crónica — que está na base de muitas doenças. Muitos usam-no com o X39 para potenciar os resultados.'
+  },
+  { id:'glut', nome:'Y-Age® Glutathione', cat:'patches', emoji:'🛡️',
+    cor:'#ff6b35',
+    desc:'Estimula a produção do "antioxidante mestre" do corpo — a glutationa. Essencial para desintoxicação, imunidade e saúde celular.',
+    beneficios:['Aumento da glutationa endógena','Desintoxicação celular','Reforço imunitário','Saúde hepática','Anti-envelhecimento profundo'],
+    uso:'Aplicar no ponto CV-6 (5cm abaixo do umbigo). 12h máx.',
+    direto_1_eur:76, direto_1_usd:79.95, lucro_direto_eur:14, lucro_direto_usd:15,
+    direto_3_eur:66, direto_3_usd:69.95, lucro_3_eur:19, lucro_3_usd:20,
+    pref_1_eur:66, pref_1_usd:69.95, lucro_pref_eur:10, lucro_pref_usd:10,
+    bp_1_eur:66, bp_1_usd:69.95,
+    qv:55, bv_direto:55, bv_pref:39,
+    script:'A glutationa é o antioxidante mais poderoso do corpo. Com a idade, os níveis caem. O patch Glutathione estimula o teu corpo a produzir mais, naturalmente. Resulta em desintoxicação, imunidade mais forte e anti-envelhecimento.'
+  },
+  { id:'carn', nome:'Y-Age® Carnosine', cat:'patches', emoji:'🧬',
+    cor:'#0084ff',
+    desc:'Apoia o desempenho cognitivo, a saúde muscular e a regeneração celular. A carnosina é essencial para a saúde do cérebro e dos músculos.',
+    beneficios:['Melhoria cognitiva e memória','Saúde muscular e recuperação','Regeneração celular','Anti-envelhecimento neurológico','Complemento ao X39 e X49'],
+    uso:'Aplicar no ponto GV-24.5 (entre as sobrancelhas) ou ponto SI-19 (orelha). 12h máx.',
+    direto_1_eur:76, direto_1_usd:79.95, lucro_direto_eur:14, lucro_direto_usd:15,
+    direto_3_eur:66, direto_3_usd:69.95, lucro_3_eur:19, lucro_3_usd:20,
+    pref_1_eur:66, pref_1_usd:69.95, lucro_pref_eur:10, lucro_pref_usd:10,
+    bp_1_eur:66, bp_1_usd:69.95,
+    qv:55, bv_direto:55, bv_pref:39,
+    script:'O Carnosine apoia o cérebro e os músculos. Muitos utilizadores reportam maior clareza mental, melhor memória e mais vitalidade muscular. É excelente para quem quer performance mental e física.'
+  },
+  { id:'sp6', nome:'SP6® Complete', cat:'patches', emoji:'🌿',
+    cor:'#22c55e',
+    desc:'Apoia o controlo do apetite e o equilíbrio hormonal. Ideal para quem quer gerir o peso de forma natural e reduzir os desejos alimentares.',
+    beneficios:['Controlo natural do apetite','Equilíbrio hormonal','Gestão de peso','Redução de desejos alimentares','Sem estimulantes'],
+    uso:'Aplicar no ponto SP-6 (tornozelo interno). 12h máx. Não usar em grávidas.',
+    direto_1_eur:76, direto_1_usd:79.95, lucro_direto_eur:14, lucro_direto_usd:15,
+    direto_3_eur:66, direto_3_usd:69.95, lucro_3_eur:19, lucro_3_usd:20,
+    pref_1_eur:66, pref_1_usd:69.95, lucro_pref_eur:10, lucro_pref_usd:10,
+    bp_1_eur:66, bp_1_usd:69.95,
+    qv:55, bv_direto:55, bv_pref:39,
+    script:'Lutas com desejos alimentares ou controlo do peso? O SP6 Complete é um patch natural que ajuda a equilibrar o apetite e os hormônios. Muitas pessoas usam-no como parte do seu plano de bem-estar.'
+  },
+  // SISTEMAS
+  { id:'yage-system', nome:'Y-Age® System Kit', cat:'sistemas', emoji:'🎁',
+    cor:'#f5c842', destaque:true,
+    desc:'O kit completo com os 3 patches Y-Age: Aeon, Glutathione e Carnosine. A combinação mais poderosa para anti-envelhecimento, imunidade e saúde celular completa.',
+    beneficios:['Anti-envelhecimento completo','Máxima desintoxicação','Saúde cognitiva e muscular','Imunidade reforçada','Melhor relação qualidade-preço'],
+    uso:'Rotacionar os 3 patches: Aeon (2ª/5ª), Glutathione (3ª/6ª), Carnosine (4ª/7ª). Ou conforme protocolo do teu upline.',
+    direto_1_eur:199, direto_1_usd:209.85, lucro_direto_eur:57, lucro_direto_usd:60,
+    pref_1_eur:142, pref_1_usd:149.85, lucro_pref_eur:29, lucro_pref_usd:30,
+    bp_1_eur:142, bp_1_usd:149.85,
+    qv:117, bv_direto:117, bv_pref:66,
+    script:'O Y-Age System Kit inclui os 3 patches de anti-envelhecimento mais poderosos da LifeWave num preço especial. Em vez de comprar separado, poupas e tens um protocolo completo para imunidade, desintoxicação e saúde cerebral.'
+  },
+  { id:'x39x49', nome:'X39® + X49® Performance Bundle', cat:'sistemas', emoji:'💪',
+    cor:'#00d4aa', destaque:true,
+    desc:'A combinação definitiva para quem quer activar células estaminais (X39) E maximizar a performance física (X49). O pack mais vendido para desportistas e pessoas activas.',
+    beneficios:['Activação de células estaminais','Máxima performance física','Recuperação acelerada','Energia e vitalidade','O melhor dos dois mundos'],
+    uso:'X39 de manhã + X49 antes do treino ou na tarde. Retirar ao fim de 12h cada.',
+    direto_1_eur:266, direto_1_usd:279.95, lucro_direto_eur:95, lucro_direto_usd:100,
+    pref_1_eur:171, pref_1_usd:171.95, lucro_pref_eur:38, lucro_pref_usd:40,
+    bp_1_eur:171, bp_1_usd:179.95,
+    qv:140, bv_direto:140, bv_pref:73,
+    script:'Para quem quer o máximo, o bundle X39+X49 é imbatível. Activação celular + performance física num só protocolo. Os atletas adoram. E sai muito mais em conta do que comprar separado!'
+  },
+  // PELE
+  { id:'alavida-trio', nome:'Alavida® Regenerating Trio', cat:'pele', emoji:'💆',
+    cor:'#a855f7',
+    desc:'O kit completo de cuidado da pele LifeWave. Inclui creme de dia, creme de noite e creme de olhos com tecnologia de fotobiomodulação integrada nos produtos.',
+    beneficios:['Regeneração celular da pele','Redução de rugas e linhas','Hidratação profunda','Luminosidade e firmeza','Tecnologia LifeWave aplicada à pele'],
+    uso:'Manhã: Facial Nectar. Noite: Restore Creme. Manhã e noite: Eye Cream. Usar diariamente.',
+    direto_1_eur:190, direto_1_usd:199.95, lucro_direto_eur:48, lucro_direto_usd:50,
+    pref_1_eur:142, pref_1_usd:149.95, lucro_pref_eur:38, lucro_pref_usd:40,
+    bp_1_eur:142, bp_1_usd:149.95,
+    qv:119, bv_direto:119, bv_pref:51,
+    script:'Para quem quer cuidar da pele com a tecnologia LifeWave, o Trio Alavida é perfeito. Resultados visíveis em poucas semanas — pele mais firme, luminosa e hidratada. Ideal como presente ou para complementar o uso do X39.'
+  },
+  // PACOTES DE INSCRIÇÃO (PIB)
+  { id:'pib-starter', nome:'Pacote Starter', cat:'pib', emoji:'🌱',
+    cor:'#8b9cf7',
+    desc:'Entrada sem produtos. Apenas o acesso ao negócio LifeWave. Ideal para quem quer começar sem investimento em stock.',
+    beneficios:['Acesso ao backoffice','Link de afiliado','Sem stock inicial','Boa para testar o negócio'],
+    direto_1_eur:24, direto_1_usd:25, lucro_direto_eur:0, lucro_direto_usd:0,
+    pib_eur:0, pib_usd:0, qv:0,
+    script:'O Starter é a forma mais simples de começar. Sem investimento em produtos, só tens acesso ao negócio e ao teu link. Perfeito para quem quer testar primeiro.'
+  },
+  { id:'pib-core', nome:'Pacote Core', cat:'pib', emoji:'📦',
+    cor:'#0084ff',
+    desc:'3 ou 6 embalagens de produtos à escolha. Bom equilíbrio entre investimento e resultado. Activa o Bónus por Introdução de 33€.',
+    beneficios:['3 a 6 embalagens incluídas','PIB de 33€ para o teu inscrito','QV de 180 para qualificação','Bom para começar com produto'],
+    direto_1_eur:280, direto_1_usd:295, lucro_direto_eur:0, lucro_direto_usd:0,
+    pib_eur:33, pib_usd:35, qv:180,
+    script:'O Core é um ótimo início — inclui 3 a 6 embalagens para experimentar os produtos e partilhar com quem queres apresentar. E tu, como inscrito, recebes já 33€ de bónus!'
+  },
+  { id:'pib-adv', nome:'Pacote Advanced', cat:'pib', emoji:'🚀',
+    cor:'#f5c842',
+    desc:'6 ou 12 embalagens. Ideal para quem quer arrancar com mais produto e stock. PIB de 71€ para o Brand Partner que faz a inscrição.',
+    beneficios:['6 a 12 embalagens incluídas','PIB de 71€','QV de 300','Mais stock para demonstrações','Melhor para arranque sólido'],
+    direto_1_eur:508, direto_1_usd:535, lucro_direto_eur:0, lucro_direto_usd:0,
+    pib_eur:71, pib_usd:75, qv:300,
+    script:'O Advanced é o mais escolhido para quem quer arrancar a sério. 6 a 12 embalagens, QV alto e tu recebes 71€ de PIB imediato. É o investimento que faz sentido quando a pessoa está comprometida.'
+  },
+  { id:'pib-advp', nome:'Pacote Advanced Plus', cat:'pib', emoji:'⭐',
+    cor:'#ff6b35',
+    desc:'11 ou 22 embalagens. Para quem quer arrancar com máxima força e stock para toda a equipa e clientes. PIB de 157€.',
+    beneficios:['11 a 22 embalagens','PIB de 157€','QV de 500','Stock para clientes e equipa','Posicionamento forte desde o 1º dia'],
+    direto_1_eur:926, direto_1_usd:975, lucro_direto_eur:0, lucro_direto_usd:0,
+    pib_eur:157, pib_usd:165, qv:500,
+    script:'O Advanced Plus é para líderes que querem começar a todo o gás. Stock para toda a equipa, QV de 500 e tu ganhas 157€ de PIB. É o pacote dos que têm visão!'
+  },
+  { id:'pib-premium', nome:'Pacote Premium', cat:'pib', emoji:'👑',
+    cor:'#a855f7', destaque:true,
+    desc:'O maior pacote. 20 a 40 embalagens. PIB de 385€ — o maior bónus de inscrição. QV de 775 distribuído em 3 meses para manter o estatuto Ativo.',
+    beneficios:['20 a 40 embalagens','PIB de 385€ — máximo!','QV de 775 (3 meses)','Arranque com máxima credibilidade','Para líderes com ambição'],
+    direto_1_eur:1663, direto_1_usd:1750, lucro_direto_eur:0, lucro_direto_usd:0,
+    pib_eur:385, pib_usd:405, qv:775,
+    script:'O Premium é o topo! 385€ de bónus imediato para mim, e o novo membro arranca com stock para meses. É o pacote dos Presidentials em formação. Quem pega no Premium está a dizer que é a sério.'
+  },
+];
+
+let catFiltroAtual = 'todos';
+
+function renderCatalogo() {
+  const tipo = document.getElementById('cat-tipo-cliente')?.value || 'direto';
+  const moeda = document.getElementById('cat-moeda')?.value || 'eur';
+  const grid = document.getElementById('cat-grid');
+  if (!grid) return;
+
+  const filtrados = catFiltroAtual === 'todos'
+    ? CATALOGO_PRODUTOS
+    : CATALOGO_PRODUTOS.filter(p => p.cat === catFiltroAtual);
+
+  grid.innerHTML = filtrados.map(p => {
+    // Preço e lucro conforme tipo
+    let preco = 0, lucro = 0, precoLabel = '', lucroLabel = '';
+    const sym = moeda === 'eur' ? '€' : '$';
+    if (p.cat === 'pib') {
+      preco = moeda === 'eur' ? p.direto_1_eur : p.direto_1_usd;
+      lucro = moeda === 'eur' ? (p.pib_eur||0) : (p.pib_usd||0);
+      precoLabel = `Preço do pacote: <strong>${preco}${sym}</strong>`;
+      lucroLabel = lucro > 0 ? `PIB (teu bónus): <strong style="color:var(--accent);">${lucro}${sym}</strong>` : 'Sem PIB neste pacote';
+    } else if (tipo === 'direto') {
+      preco = moeda === 'eur' ? p.direto_1_eur : p.direto_1_usd;
+      lucro = moeda === 'eur' ? p.lucro_direto_eur : p.lucro_direto_usd;
+      precoLabel = `Preço venda direta: <strong>${preco}${sym}</strong>`;
+      lucroLabel = `Lucro direto: <strong style="color:var(--accent);">${lucro}${sym}</strong>`;
+    } else if (tipo === 'preferencial') {
+      preco = moeda === 'eur' ? p.pref_1_eur : p.pref_1_usd;
+      lucro = moeda === 'eur' ? (p.lucro_pref_eur||0) : (p.lucro_pref_usd||0);
+      precoLabel = `Preço CP: <strong>${preco}${sym}</strong>`;
+      lucroLabel = `Lucro retalho: <strong style="color:var(--accent);">${lucro}${sym}</strong>`;
+    } else {
+      preco = moeda === 'eur' ? p.bp_1_eur : p.bp_1_usd;
+      precoLabel = `Preço BP: <strong>${preco}${sym}</strong>`;
+      lucroLabel = `QV: <strong style="color:var(--accent2);">${p.qv||0}</strong>`;
+    }
+
+    return `
+    <div style="background:var(--surface);border:1px solid ${p.destaque?p.cor+'55':'var(--border)'};border-radius:var(--radius);overflow:hidden;cursor:pointer;transition:transform 0.15s,box-shadow 0.15s;"
+      onmouseenter="this.style.transform='translateY(-2px)';this.style.boxShadow='0 8px 24px rgba(0,0,0,0.2)'"
+      onmouseleave="this.style.transform='';this.style.boxShadow=''"
+      onclick="abrirDetalhe('${p.id}')">
+      <!-- Header colorido -->
+      <div style="background:linear-gradient(135deg,${p.cor}22,${p.cor}08);padding:16px 18px;border-bottom:1px solid ${p.cor}33;display:flex;justify-content:space-between;align-items:flex-start;">
+        <div>
+          ${p.destaque ? `<div style="font-size:10px;font-weight:700;color:${p.cor};text-transform:uppercase;letter-spacing:0.7px;margin-bottom:4px;">⭐ Mais Vendido</div>` : ''}
+          <div style="font-size:22px;margin-bottom:4px;">${p.emoji}</div>
+          <div style="font-family:'Syne',sans-serif;font-size:15px;font-weight:700;color:var(--text);">${p.nome}</div>
+        </div>
+        <div style="text-align:right;">
+          <div style="font-family:'Syne',sans-serif;font-size:22px;font-weight:800;color:${p.cor};">${preco > 0 ? preco + sym : '—'}</div>
+          ${lucro > 0 ? `<div style="font-size:12px;font-weight:700;color:var(--accent);">+${lucro}${sym} ${p.cat==='pib'?'PIB':'lucro'}</div>` : ''}
+        </div>
+      </div>
+      <!-- Body -->
+      <div style="padding:14px 18px;">
+        <p style="font-size:12px;color:var(--text2);line-height:1.6;margin-bottom:12px;">${p.desc.substring(0,120)}...</p>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px;">
+          ${(p.beneficios||[]).slice(0,3).map(b => `<span style="font-size:10px;background:${p.cor}15;color:${p.cor};padding:3px 8px;border-radius:20px;">✓ ${b}</span>`).join('')}
+        </div>
+        <div style="font-size:11px;color:var(--text2);border-top:1px solid var(--border);padding-top:10px;display:flex;justify-content:space-between;flex-wrap:wrap;gap:6px;">
+          <span>${precoLabel}</span>
+          <span>${lucroLabel}</span>
+        </div>
+        ${p.qv && p.cat !== 'pib' ? `<div style="font-size:10px;color:var(--text3);margin-top:4px;">QV: ${p.qv} · BV: ${p.bv_direto||p.qv}</div>` : ''}
+      </div>
+      <div style="padding:0 18px 14px;">
+        <button class="btn btn-primary btn-sm" style="width:100%;" onclick="event.stopPropagation();abrirDetalhe('${p.id}')">Ver detalhes + Script de venda</button>
+      </div>
+    </div>`;
+  }).join('') || '<div class="empty-state"><div class="empty-icon">📦</div>Sem produtos nesta categoria</div>';
+}
+
+function filtrarCatalogo(cat, btn) {
+  catFiltroAtual = cat;
+  document.querySelectorAll('.cat-filtro-btn').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  renderCatalogo();
+}
+
+function abrirDetalhe(id) {
+  const p = CATALOGO_PRODUTOS.find(x => x.id === id);
+  if (!p) return;
+  const tipo = document.getElementById('cat-tipo-cliente')?.value || 'direto';
+  const moeda = document.getElementById('cat-moeda')?.value || 'eur';
+  const sym = moeda === 'eur' ? '€' : '$';
+  let preco = moeda === 'eur' ? p.direto_1_eur : p.direto_1_usd;
+  let lucro = moeda === 'eur' ? p.lucro_direto_eur : p.lucro_direto_usd;
+  if (tipo === 'preferencial') { preco = moeda==='eur'?p.pref_1_eur:p.pref_1_usd; lucro = moeda==='eur'?(p.lucro_pref_eur||0):(p.lucro_pref_usd||0); }
+  if (tipo === 'bp') { preco = moeda==='eur'?p.bp_1_eur:p.bp_1_usd; lucro = 0; }
+  const pib = p.cat === 'pib' ? (moeda==='eur'?(p.pib_eur||0):(p.pib_usd||0)) : 0;
+
+  document.getElementById('cat-modal-content').innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px;">
+      <div style="display:flex;align-items:center;gap:12px;">
+        <span style="font-size:32px;">${p.emoji}</span>
+        <div>
+          <div style="font-family:'Syne',sans-serif;font-size:18px;font-weight:800;color:var(--text);">${p.nome}</div>
+          <div style="font-size:12px;color:${p.cor};font-weight:600;text-transform:uppercase;">${{patches:'Patch',sistemas:'Sistema/Bundle',pele:'Cuidados da Pele',pib:'Pacote de Inscrição'}[p.cat]||p.cat}</div>
+        </div>
+      </div>
+      <button onclick="fecharDetalhe()" style="background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:6px 12px;cursor:pointer;font-size:13px;">✕ Fechar</button>
+    </div>
+    <p style="font-size:13px;color:var(--text2);line-height:1.7;margin-bottom:16px;">${p.desc}</p>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;">
+      <div style="background:var(--surface2);border-radius:8px;padding:12px;text-align:center;">
+        <div style="font-size:10px;color:var(--text2);text-transform:uppercase;margin-bottom:4px;">Preço</div>
+        <div style="font-family:'Syne',sans-serif;font-size:22px;font-weight:800;color:var(--text);">${preco > 0 ? preco+sym : '—'}</div>
+      </div>
+      <div style="background:rgba(0,212,170,0.08);border-radius:8px;padding:12px;text-align:center;border:1px solid rgba(0,212,170,0.2);">
+        <div style="font-size:10px;color:var(--text2);text-transform:uppercase;margin-bottom:4px;">${p.cat==='pib'?'PIB (teu bónus)':'Lucro Direto'}</div>
+        <div style="font-family:'Syne',sans-serif;font-size:22px;font-weight:800;color:var(--accent);">${(pib||lucro) > 0 ? '+'+(pib||lucro)+sym : '—'}</div>
+      </div>
+    </div>
+    ${p.beneficios?.length ? `
+    <div style="margin-bottom:16px;">
+      <div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:8px;">✅ Benefícios</div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px;">${p.beneficios.map(b=>`<span style="font-size:11px;background:${p.cor}15;color:${p.cor};padding:4px 10px;border-radius:20px;">✓ ${b}</span>`).join('')}</div>
+    </div>` : ''}
+    ${p.uso ? `
+    <div style="margin-bottom:16px;background:var(--surface2);border-radius:8px;padding:12px;">
+      <div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:6px;">📍 Como usar</div>
+      <div style="font-size:12px;color:var(--text2);line-height:1.6;">${p.uso}</div>
+    </div>` : ''}
+    ${p.script ? `
+    <div style="background:rgba(0,132,255,0.06);border:1px solid rgba(0,132,255,0.2);border-radius:8px;padding:14px;margin-bottom:14px;">
+      <div style="font-size:12px;font-weight:700;color:var(--accent2);margin-bottom:8px;">💬 Script de Venda Pronto</div>
+      <div style="font-size:12px;color:var(--text2);line-height:1.7;white-space:pre-wrap;">${p.script}</div>
+      <div style="display:flex;gap:8px;margin-top:10px;">
+        <button class="btn btn-secondary btn-sm" onclick="navigator.clipboard.writeText(document.querySelector('#cat-modal-content .script-txt')?.textContent||'${p.script.replace(/'/g,'').substring(0,50)}').then(()=>showToast('📋 Script copiado!'))">📋 Copiar</button>
+        <button class="btn btn-wa btn-sm" onclick="window.open('https://wa.me/?text='+encodeURIComponent('${p.script.replace(/'/g,'').substring(0,300)}'),'_blank')">💬 Enviar WA</button>
+      </div>
+    </div>` : ''}
+    <div style="font-size:11px;color:var(--text3);">QV: ${p.qv||0} · BV Direto: ${p.bv_direto||0} · BV Pref: ${p.bv_pref||0}</div>
+  `;
+  const modal = document.getElementById('cat-modal-detalhe');
+  if (modal) modal.style.display = 'flex';
+}
+
+function fecharDetalhe(e) {
+  if (e && e.target !== document.getElementById('cat-modal-detalhe')) return;
+  const modal = document.getElementById('cat-modal-detalhe');
+  if (modal) modal.style.display = 'none';
 }
 // ===================================================
 
