@@ -357,6 +357,8 @@
     padding: 16px;
     flex: 1;
     min-height: 220px;
+    max-height: 60vh;
+    overflow-y: auto;
     font-size: 13.5px;
     line-height: 1.7;
     color: var(--text);
@@ -2363,6 +2365,11 @@
   }
   .promo-ai-key-row input:focus { border-color: var(--accent2); }
   .promo-ai-key-status { font-size: 11px; color: var(--accent); white-space: nowrap; }
+
+  @keyframes slideUpFade {
+    from { opacity: 0; transform: translateX(-50%) translateY(16px); }
+    to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+  }
 </style>
 </head>
 <body>
@@ -2595,6 +2602,11 @@
         <span>Plano Comp.</span>
         <span id="nav-plano-badge" style="display:none;background:var(--accent3);color:#fff;font-size:9px;font-weight:700;padding:2px 6px;border-radius:20px;margin-left:auto;">IA</span>
       </div>
+      <div class="nav-item" onclick="goTo('formacao')" id="nav-formacao">
+        <span class="nav-icon">🎓</span>
+        <span>Formação</span>
+        <span id="nav-formacao-badge" style="background:var(--accent);color:var(--bg);font-size:9px;font-weight:700;padding:2px 6px;border-radius:20px;margin-left:auto;">Novo</span>
+      </div>
       <div class="nav-item" onclick="abrirPerfilModal(false)" id="nav-perfil" style="margin-top:8px;border-top:1px solid var(--border);padding-top:12px;">
         <span class="nav-icon">⚙️</span>
         <span>Meu Perfil & Links</span>
@@ -2627,6 +2639,7 @@
           <div class="page-sub">Visão geral do teu negócio LifeWave X39</div>
         </div>
         <div style="display:flex;gap:10px;align-items:center;">
+          <button class="btn btn-secondary btn-sm" onclick="abrirPerfilModal(false)" title="Editar Perfil">👤 Perfil</button>
           <button class="btn btn-primary" onclick="openModal('modal-lead')">＋ Novo Lead</button>
           <button class="btn btn-logout btn-sm" onclick="fazerLogout()" title="Terminar sessão">⏻ Logout</button>
         </div>
@@ -2654,6 +2667,9 @@
 
       <!-- PROMOÇÕES ATIVAS BANNER -->
       <div class="promo-banner-wrap" id="promo-banner-wrap"></div>
+
+      <!-- VIAGENS COUNTDOWN -->
+      <div id="dashboard-viagem-wrap"></div>
 
       <div class="stats-grid">
         <div class="stat-card c1">
@@ -2732,6 +2748,17 @@
           <button class="acoes-tab" data-filtro="novo" onclick="setAcaoFiltro(this)">
             🆕 Novos <span class="tab-badge" id="tab-n-novo">0</span>
           </button>
+        </div>
+      </div>
+
+      <!-- Pesquisa de ações -->
+      <div class="filtros-bar" style="margin-top:10px;margin-bottom:0;">
+        <div class="filtros-top">
+          <div class="filtro-search-wrap">
+            <span class="filtro-search-icon">🔍</span>
+            <input class="form-input" id="input-pesquisa-acoes" placeholder="Pesquisar por nome, estado, mercado..." oninput="filtrarAcoesPorTexto(this.value)">
+          </div>
+          <button class="btn-limpar-filtros" onclick="limparPesquisaAcoes()" title="Limpar pesquisa">✕ Limpar</button>
         </div>
       </div>
 
@@ -4069,6 +4096,127 @@
 
     </div><!-- end page-plano-comp -->
 
+    <!-- ============================================================ -->
+    <!-- PAGE: FORMAÇÃO DA EQUIPA                                     -->
+    <!-- ============================================================ -->
+    <div id="page-formacao" class="page">
+      <div class="page-header">
+        <div>
+          <div class="page-title">🎓 Centro de Formação</div>
+          <div class="page-sub">Caminho dos Primeiros 30 Dias & Biblioteca de Recursos</div>
+        </div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;">
+          <button class="btn btn-secondary" onclick="formacaoAbrirRecurso()">＋ Adicionar Recurso</button>
+          <button class="btn btn-primary" onclick="formacaoAbrirTarefa()">＋ Nova Tarefa</button>
+        </div>
+      </div>
+
+      <!-- PROGRESSO GERAL -->
+      <div id="formacao-progresso-banner" style="margin-bottom:24px;"></div>
+
+      <!-- TABS -->
+      <div style="display:flex;gap:0;margin-bottom:24px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;">
+        <button id="ftab-btn-plano" onclick="formacaoTab('plano')" style="flex:1;padding:12px 16px;border:none;background:var(--accent);color:var(--bg);font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer;transition:all 0.2s;">📅 Plano 30 Dias</button>
+        <button id="ftab-btn-biblioteca" onclick="formacaoTab('biblioteca')" style="flex:1;padding:12px 16px;border:none;background:none;color:var(--text2);font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer;transition:all 0.2s;">📚 Biblioteca</button>
+        <button id="ftab-btn-equipa" onclick="formacaoTab('equipa')" style="flex:1;padding:12px 16px;border:none;background:none;color:var(--text2);font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer;transition:all 0.2s;">👥 Progresso da Equipa</button>
+        <button id="ftab-btn-ia" onclick="formacaoTab('ia')" style="flex:1;padding:12px 16px;border:none;background:none;color:var(--text2);font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer;transition:all 0.2s;">🤖 Plano IA</button>
+      </div>
+
+      <!-- TAB: PLANO 30 DIAS -->
+      <div id="ftab-plano">
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;" id="formacao-semanas-grid"></div>
+      </div>
+
+      <!-- TAB: BIBLIOTECA -->
+      <div id="ftab-biblioteca" style="display:none;">
+        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:20px;">
+          <input class="form-input" id="formacao-busca" placeholder="🔍 Pesquisar recursos..." oninput="formacaoFiltrarBiblioteca()" style="flex:1;min-width:200px;height:40px;">
+          <select class="form-select" id="formacao-filtro-tipo" onchange="formacaoFiltrarBiblioteca()" style="width:160px;height:40px;">
+            <option value="">Todos os tipos</option>
+            <option value="video">🎬 Vídeo</option>
+            <option value="pdf">📄 PDF/Doc</option>
+            <option value="link">🔗 Link</option>
+            <option value="guiao">📝 Guião</option>
+            <option value="imagem">🖼️ Imagem</option>
+          </select>
+          <select class="form-select" id="formacao-filtro-cat" onchange="formacaoFiltrarBiblioteca()" style="width:180px;height:40px;">
+            <option value="">Todas as categorias</option>
+            <option value="produto">Produto X39</option>
+            <option value="negocio">Negócio/MLM</option>
+            <option value="vendas">Técnicas de Venda</option>
+            <option value="redes">Redes Sociais</option>
+            <option value="motivacao">Motivação</option>
+          </select>
+        </div>
+        <div id="formacao-biblioteca-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px;"></div>
+      </div>
+
+      <!-- TAB: PROGRESSO DA EQUIPA -->
+      <div id="ftab-equipa" style="display:none;">
+        <div id="formacao-equipa-lista"></div>
+      </div>
+
+      <!-- TAB: PLANO IA -->
+      <div id="ftab-ia" style="display:none;">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
+          <div class="card">
+            <div class="section-title" style="margin-bottom:16px;">🤖 Gerar Plano de Formação com IA</div>
+            <div class="form-group">
+              <label class="form-label">Perfil do novo membro</label>
+              <select class="form-select" id="formacao-ia-perfil">
+                <option value="iniciante">Iniciante total (nunca fez MLM)</option>
+                <option value="experiente">Experiente em vendas</option>
+                <option value="timido">Introvertido / tímido</option>
+                <option value="online">Só trabalha online</option>
+                <option value="pouco-tempo">Pouco tempo disponível</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Objetivo principal</label>
+              <select class="form-select" id="formacao-ia-objetivo">
+                <option value="renda-extra">Renda extra (500-1000€/mês)</option>
+                <option value="tempo-inteiro">Trabalho a tempo inteiro</option>
+                <option value="produto">Usar só o produto</option>
+                <option value="equipa">Construir equipa grande</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Horas disponíveis por semana</label>
+              <select class="form-select" id="formacao-ia-horas">
+                <option value="5">Menos de 5h</option>
+                <option value="10">5-10h</option>
+                <option value="20">10-20h</option>
+                <option value="40">Tempo inteiro (+20h)</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Notas adicionais (opcional)</label>
+              <textarea class="form-textarea" id="formacao-ia-notas" placeholder="Ex: Tem medo de rejeição, é muito ativa nas redes sociais, quer focar em Instagram..." style="min-height:80px;"></textarea>
+            </div>
+            <button class="btn btn-ai" style="width:100%;justify-content:center;" onclick="formacaoGerarPlanoIA()">
+              🤖 Gerar Plano Personalizado
+            </button>
+          </div>
+          <div class="card" style="display:flex;flex-direction:column;">
+            <div class="section-title" style="margin-bottom:12px;">📋 Plano Gerado</div>
+            <div id="formacao-ia-resultado" style="flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:16px;min-height:300px;font-size:13px;line-height:1.7;color:var(--text);white-space:pre-wrap;overflow-y:auto;position:relative;">
+              <div id="formacao-ia-loader" style="display:none;position:absolute;inset:0;background:var(--surface2);border-radius:var(--radius-sm);display:none;align-items:center;justify-content:center;flex-direction:column;gap:12px;">
+                <div class="spinner"></div>
+                <div style="font-size:12px;color:var(--text2);">A IA está a criar o plano...</div>
+              </div>
+              <span style="color:var(--text3);font-style:italic;">O plano personalizado aparecerá aqui. Preenche as opções e clica em "Gerar".</span>
+            </div>
+            <div id="formacao-ia-acoes" style="display:none;margin-top:12px;display:none;gap:8px;flex-wrap:wrap;">
+              <button class="btn btn-primary btn-sm" onclick="formacaoGuardarPlanoIA()">💾 Guardar como Tarefa</button>
+              <button class="btn btn-secondary btn-sm" onclick="formacaoCopiarPlanoIA()">📋 Copiar</button>
+              <button class="btn btn-secondary btn-sm" onclick="formacaoPartilharPlanoIA()">💬 Partilhar via WhatsApp</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- end page-formacao -->
+
   </main>
 
   <!-- BOTTOM NAV (mobile) -->
@@ -4125,7 +4273,7 @@
     </div>
     <div class="bn-item" id="bn-luminate" onclick="goTo('luminate')">
       <div class="bn-icon-wrap"><span class="bn-icon">✈️</span></div>
-      <span>Luminate</span>
+      <span>Viagens</span>
     </div>
     <div class="bn-item" id="bn-calculadora" onclick="goTo('calculadora')">
       <div class="bn-icon-wrap"><span class="bn-icon">🧮</span></div>
@@ -4134,6 +4282,10 @@
     <div class="bn-item" id="bn-plano-comp" onclick="goTo('plano-comp')">
       <div class="bn-icon-wrap"><span class="bn-icon">📋</span></div>
       <span>Plano Comp.</span>
+    </div>
+    <div class="bn-item" id="bn-formacao" onclick="goTo('formacao')">
+      <div class="bn-icon-wrap"><span class="bn-icon">🎓</span></div>
+      <span>Formação</span>
     </div>
   </nav>
 
@@ -4253,6 +4405,27 @@
       </div>
     </div>
 
+    <!-- Tom e Canal -->
+    <div style="display:flex;gap:12px;margin-bottom:14px;flex-wrap:wrap;">
+      <div class="form-group" style="flex:1;min-width:130px;margin-bottom:0;">
+        <div class="form-label">Tom</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px;" id="guiao-tom-pills">
+          <div class="guiao-obj-pill active" data-tom="informal" onclick="setGuiaoTom(this)" style="border-color:var(--accent);color:var(--accent);">😊 Informal</div>
+          <div class="guiao-obj-pill" data-tom="formal" onclick="setGuiaoTom(this)">👔 Formal</div>
+          <div class="guiao-obj-pill" data-tom="empatico" onclick="setGuiaoTom(this)">🤝 Empático</div>
+          <div class="guiao-obj-pill" data-tom="direto" onclick="setGuiaoTom(this)">⚡ Direto</div>
+        </div>
+      </div>
+      <div class="form-group" style="flex:1;min-width:130px;margin-bottom:0;">
+        <div class="form-label">Canal</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px;" id="guiao-canal-pills">
+          <div class="guiao-obj-pill active" data-canal="WhatsApp" onclick="setGuiaoCanal(this)" style="border-color:var(--accent);color:var(--accent);">💬 WhatsApp</div>
+          <div class="guiao-obj-pill" data-canal="Instagram DM" onclick="setGuiaoCanal(this)">📸 Instagram</div>
+          <div class="guiao-obj-pill" data-canal="SMS" onclick="setGuiaoCanal(this)">📱 SMS</div>
+        </div>
+      </div>
+    </div>
+
     <!-- Contexto extra -->
     <div class="form-group" style="margin-bottom:14px;">
       <div class="form-label">Contexto extra (opcional)</div>
@@ -4363,7 +4536,7 @@ function goTo(page) {
   document.querySelectorAll('.bn-item').forEach(n => n.classList.remove('active'));
   document.getElementById('page-' + page).classList.add('active');
   const items = document.querySelectorAll('.nav-item');
-  const map = { dashboard: 0, acoes: 1, funil: 2, lista: 3, posts: 4, calendario: 5, agenda: 6, respostas: 7, coach: 8, stats: 9, equipa: 10, comissoes: 11, luminate: 12, calculadora: 13 };
+  const map = { dashboard: 0, acoes: 1, funil: 2, lista: 3, posts: 4, calendario: 5, agenda: 6, respostas: 7, coach: 8, stats: 9, equipa: 10, comissoes: 11, luminate: 12, calculadora: 13, 'plano-comp': 14, formacao: 15 };
   if (map[page] !== undefined && items[map[page]]) items[map[page]].classList.add('active');
   const bnEl = document.getElementById('bn-' + page);
   if (bnEl) bnEl.classList.add('active');
@@ -4377,8 +4550,9 @@ function goTo(page) {
   if (page === 'stats') renderStats();
   if (page === 'equipa') renderEquipa();
   if (page === 'comissoes') renderComissoes();
-  if (page === 'luminate') renderLuminate();
+  if (page === 'luminate') { renderLuminate(); viagemSetAI(viagemAI); }
   if (page === 'calculadora') renderCalculadora();
+  if (page === 'formacao') formacaoInit();
   window.scrollTo(0, 0);
 }
 
@@ -4587,6 +4761,7 @@ function renderDashboard() {
   document.getElementById('stat-neg').textContent = leads.filter(l => l.estado === 'negociacao').length;
   document.getElementById('stat-cli').textContent = leads.filter(l => l.estado === 'cliente').length;
   updateBadge();
+  renderDashboardViagemCountdown();
   // Refresh follow-up alerts
   if (typeof renderFollowUps === 'function') renderFollowUps();
   // Refresh acoes badge
@@ -5137,10 +5312,20 @@ let respAI  = localStorage.getItem('lw_respAI')  || 'claude';
 let geminiKey = localStorage.getItem('lw_geminiKey') || '';
 let claudeKey = localStorage.getItem('lw_claudeKey') || '';
 
+// Migração: versões antigas guardavam as chaves noutras localStorage keys
+if (!claudeKey) {
+  const old = localStorage.getItem('lw_claude_key');
+  if (old) { claudeKey = old; localStorage.setItem('lw_claudeKey', claudeKey); }
+}
+if (!geminiKey) {
+  const old = localStorage.getItem('lw_gemini_key');
+  if (old) { geminiKey = old; localStorage.setItem('lw_geminiKey', geminiKey); }
+}
+
 function saveClaudeKey(val) {
   claudeKey = val.trim();
   localStorage.setItem('lw_claudeKey', claudeKey);
-  ['posts','resp'].forEach(p => {
+  ['posts','resp','viagem','plano','promo'].forEach(p => {
     const st = document.getElementById(p + '-claude-status');
     if (st) st.textContent = claudeKey.length > 10 ? '✅ Guardada' : '';
     const inp = document.getElementById(p + '-claude-key');
@@ -5151,7 +5336,7 @@ function saveClaudeKey(val) {
 function saveGeminiKey(val) {
   geminiKey = val.trim();
   localStorage.setItem('lw_geminiKey', geminiKey);
-  ['posts','resp'].forEach(p => {
+  ['posts','resp','viagem','plano','promo'].forEach(p => {
     const st = document.getElementById(p + '-gemini-status');
     if (st) st.textContent = geminiKey.length > 10 ? '✅ Guardada' : '';
     const inp = document.getElementById(p + '-gemini-key');
@@ -5215,8 +5400,8 @@ function initAISelector() {
 // Gemini API call — tenta modelos por ordem até encontrar um que funcione
 const GEMINI_MODELS = [
   'gemini-2.5-flash',
-  'gemini-2.0-flash',
-  'gemini-1.5-flash'
+  'gemini-2.5-pro',
+  'gemini-2.0-flash'
 ];
 
 async function callGeminiModel(model, prompt, imageBase64, imageMediaType) {
@@ -5247,15 +5432,15 @@ async function callGemini(prompt, imageBase64, imageMediaType) {
       return await callGeminiModel(model, prompt, imageBase64, imageMediaType);
     } catch(e) {
       lastError = e;
-      // Se for quota, tenta o próximo modelo
-      if (e.message && (e.message.includes('quota') || e.message.includes('RESOURCE_EXHAUSTED') || e.message.includes('limit'))) {
+      // Se for quota ou modelo indisponível, tenta o próximo modelo
+      if (e.message && (e.message.includes('quota') || e.message.includes('RESOURCE_EXHAUSTED') || e.message.includes('limit') || e.message.includes('not found') || e.message.includes('404') || e.message.includes('is not supported'))) {
         continue;
       }
       // Outro erro — lança imediatamente
       throw e;
     }
   }
-  throw new Error('Quota Gemini esgotada em todos os modelos. Aguarda uns minutos ou verifica o teu plano em ai.dev/rate-limit');
+  throw new Error(lastError ? lastError.message : 'Erro Gemini: nenhum modelo disponível respondeu.');
 }
 
 // Claude API call
@@ -5282,7 +5467,7 @@ async function callClaude(prompt, imageBase64, imageMediaType) {
       'anthropic-version': '2023-06-01',
       'anthropic-dangerous-direct-browser-access': 'true'
     },
-    body: JSON.stringify({ model: 'claude-sonnet-4-6', max_tokens: 2048, messages: [{ role: 'user', content }] })
+    body: JSON.stringify({ model: 'claude-sonnet-4-6', max_tokens: 3000, messages: [{ role: 'user', content }] })
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
@@ -5784,7 +5969,7 @@ REGRAS:
 - Não uses linguagem de vendas agressiva
 - Não faças promessas médicas ou de cura
 - Usa emojis com moderação (2-4 no máximo)
-- Comprimento ideal: 3-6 linhas
+- Comprimento ideal: 4-10 linhas — escreve SEMPRE a mensagem COMPLETA, nunca cortes a meio de uma frase
 
 Responde APENAS com o texto da mensagem, pronto a copiar e enviar. Sem introdução nem explicação.`;
   } else {
@@ -5815,7 +6000,7 @@ REGRAS IMPORTANTES:
 - Não faças promessas médicas ou de cura
 - Se for uma objeção, acolhe-a com empatia antes de responder
 - Usa emojis com moderação (2-4 no máximo)
-- Comprimento ideal: 3-6 linhas para WhatsApp/Instagram, pode ser um pouco mais para Messenger
+- Comprimento ideal: 4-10 linhas para WhatsApp/Instagram, pode ser mais para Messenger — escreve SEMPRE a mensagem COMPLETA, nunca cortes a meio de uma frase
 - No final, se fizer sentido, inclui um convite suave para continuar a conversa ou próximo passo
 
 Responde APENAS com o texto da mensagem, pronto a copiar e enviar. Sem introdução nem explicação.`;
@@ -7306,7 +7491,10 @@ function coachPerguntar(texto) {
 let guiaoLeadId = null;
 let guiaoTipoAtivo = 'primeiro-contacto';
 let guiaoObjAtivas = new Set();
+let guiaoTom = 'informal';
+let guiaoCanal = 'WhatsApp';
 let guiaoTextoGerado = '';
+let guiaoProximoPasso = '';
 
 const GUIAO_TIPO_LABELS = {
   'primeiro-contacto': 'Primeiro Contacto',
@@ -7316,6 +7504,26 @@ const GUIAO_TIPO_LABELS = {
   'fechar-venda': 'Fechar a Venda',
   'reativar': 'Reativar Lead Frio'
 };
+
+function setGuiaoTom(el) {
+  guiaoTom = el.dataset.tom;
+  document.querySelectorAll('#guiao-tom-pills .guiao-obj-pill').forEach(p => {
+    p.classList.remove('active');
+    p.style.borderColor = ''; p.style.color = '';
+  });
+  el.classList.add('active');
+  el.style.borderColor = 'var(--accent)'; el.style.color = 'var(--accent)';
+}
+
+function setGuiaoCanal(el) {
+  guiaoCanal = el.dataset.canal;
+  document.querySelectorAll('#guiao-canal-pills .guiao-obj-pill').forEach(p => {
+    p.classList.remove('active');
+    p.style.borderColor = ''; p.style.color = '';
+  });
+  el.classList.add('active');
+  el.style.borderColor = 'var(--accent)'; el.style.color = 'var(--accent)';
+}
 
 function setGuiaoTipo(el) {
   guiaoTipoAtivo = el.dataset.tipo;
@@ -7340,7 +7548,18 @@ function abrirGuiaoIA(leadId) {
   guiaoLeadId = leadId;
   guiaoTipoAtivo = 'primeiro-contacto';
   guiaoObjAtivas = new Set();
+  guiaoTom = 'informal';
+  guiaoCanal = 'WhatsApp';
+  // Reset tom pills
+  document.querySelectorAll('#guiao-tom-pills .guiao-obj-pill').forEach((p,i) => {
+    p.classList.toggle('active', i===0); p.style.borderColor=i===0?'var(--accent)':''; p.style.color=i===0?'var(--accent)':'';
+  });
+  // Reset canal pills
+  document.querySelectorAll('#guiao-canal-pills .guiao-obj-pill').forEach((p,i) => {
+    p.classList.toggle('active', i===0); p.style.borderColor=i===0?'var(--accent)':''; p.style.color=i===0?'var(--accent)':'';
+  });
   guiaoTextoGerado = '';
+  guiaoProximoPasso = '';
 
   // Reset UI
   document.querySelectorAll('.guiao-tipo-btn').forEach((b,i) => b.classList.toggle('active', i===0));
@@ -7398,8 +7617,9 @@ async function gerarGuiaoIA() {
   const objecoesStr = guiaoObjAtivas.size > 0
     ? Array.from(guiaoObjAtivas).join(', ')
     : 'Nenhuma objeção conhecida ainda.';
+  const tomDesc = { informal: 'descontraído e amigável, como conversa entre amigos — usa a 1ª pessoa (eu)', formal: 'profissional e respeitoso — escreve sempre na 1ª pessoa (eu/meu), mas trata o destinatário por "você" em vez de "tu"', empatico: 'muito empático, foca nas emoções e dores da pessoa — usa a 1ª pessoa (eu)', direto: 'direto ao ponto, sem rodeios, mas gentil — usa a 1ª pessoa (eu)' }[guiaoTom] || 'descontraído e amigável';
 
-  const prompt = `És um coach especialista em vendas LifeWave X39. Gera um guião de mensagem PRONTO A ENVIAR para o WhatsApp/Instagram.
+  const prompt = `És um coach especialista em vendas LifeWave X39. Gera um guião de mensagem PRONTO A ENVIAR para ${guiaoCanal}.
 
 DADOS DO LEAD:
 - Nome: ${l.nome}
@@ -7413,7 +7633,7 @@ ${histResumo}
 ${contextoExtra ? `\nContexto adicional: ${contextoExtra}` : ''}
 
 DADOS DO DISTRIBUIDOR:
-- Nome: ${nomeDistribuidor}
+- Nome próprio (usa APENAS este nome, nunca usernames): ${nomeDistribuidor}
 - País: ${p.pais || 'Portugal'}
 - Link produto: ${links.produto || '(configurar no perfil)'}
 - Link negócio: ${links.negocio || '(configurar no perfil)'}
@@ -7421,17 +7641,39 @@ DADOS DO DISTRIBUIDOR:
 
 OBJETIVO DO GUIÃO: ${GUIAO_TIPO_LABELS[guiaoTipoAtivo]}
 
+CONTEXTO ESPECÍFICO DO TIPO DE GUIÃO:
+${guiaoTipoAtivo === 'primeiro-contacto' ? `
+- É LITERALMENTE a primeira vez que ${nomeDistribuidor} contacta esta pessoa sobre LifeWave
+- NÃO menciones o X39 diretamente logo no início — quebra o gelo primeiro
+- NÃO uses frases como "como médico" se não souberes a profissão com certeza
+- Sê natural e curioso, como se quisesses reconectar ou conhecer melhor a pessoa
+- Só no fim, de forma muito suave, podes insinuar que tens algo interessante a partilhar` :
+guiaoTipoAtivo === 'follow-up' ? `
+- Já houve contacto anterior — referencia algo concreto do histórico
+- Começa com algo leve para quebrar o gelo, não com pitch imediato
+- Mostra que te lembraste desta pessoa especificamente` :
+guiaoTipoAtivo === 'apresentacao-produto' ? `
+- A pessoa já sabe quem és — vai direto ao X39 com entusiasmo genuíno
+- Foca nos benefícios mais relevantes para o perfil desta pessoa` :
+guiaoTipoAtivo === 'apresentacao-negocio' ? `
+- A pessoa já conhece o produto — apresenta agora a oportunidade de negócio
+- Foca na liberdade financeira e no modelo de distribuição` :
+guiaoTipoAtivo === 'fechar-venda' ? `
+- A pessoa está quase a decidir — remove a última barreira
+- Sê direto mas sem pressão, ajuda-a a dar o passo final` :
+`- A pessoa estava fria/inativa — reativa com algo genuíno e sem pressão
+- Não faças pitch imediato, reconecta primeiro como pessoa`}
+
 INSTRUÇÕES:
-1. Escreve uma mensagem para WhatsApp em Português de Portugal, na primeira pessoa como ${nomeDistribuidor}
-2. Tom: autêntico, humano, sem pressão — como uma conversa entre amigos
+1. Escreve uma mensagem para ${guiaoCanal} em Português de Portugal. O teu nome é ${nomeDistribuidor} (usa APENAS este nome, nunca usernames)
+2. Tom: ${tomDesc}
 3. Adapta TOTALMENTE ao estado atual e histórico do lead — não sejas genérico
 4. Se há objeções conhecidas, inclui uma forma natural de as antecipar/responder
-5. Inclui o link correto apenas se for natural na mensagem (não forçar)
-6. Máximo 3-4 parágrafos curtos — mensagem de WhatsApp, não email
-7. No final, adiciona uma linha separada: "💡 PRÓXIMO PASSO:" com a sugestão de ação concreta (ex: aguardar resposta 2 dias, ligar amanhã, etc.)
-8. Se for follow-up ou reativação, começa com algo que quebre o gelo antes de qualquer pitch
+5. Inclui o link correto apenas se for natural e o objetivo o justificar (não forçar)
+6. IMPORTANTE: NO MÁXIMO 5 frases curtas. Mensagem de ${guiaoCanal}, não email. Escreve COMPLETA, sem cortar.
+7. No final, numa linha separada, escreve exatamente: "💡 PRÓXIMO PASSO:" seguido da sugestão de ação concreta
 
-Escreve APENAS a mensagem + próximo passo. Sem explicações nem introduções.`;
+Escreve APENAS a mensagem + próximo passo. Sem explicações nem introduções. A mensagem tem de estar SEMPRE completa.`;
 
   const btn = document.getElementById('btn-gerar-guiao');
   btn.disabled = true; btn.textContent = '⏳ A gerar...';
@@ -7444,7 +7686,7 @@ Escreve APENAS a mensagem + próximo passo. Sem explicações nem introduções.
     if (ai === 'gemini') {
       const body = {
         contents: [{ role: 'user', parts: [{ text: prompt }] }],
-        generationConfig: { maxOutputTokens: 1200, temperature: 0.75 }
+        generationConfig: { maxOutputTokens: 3000, temperature: 0.75 }
       };
       let lastErr;
       for (const model of GEMINI_MODELS) {
@@ -7470,7 +7712,7 @@ Escreve APENAS a mensagem + próximo passo. Sem explicações nem introduções.
         },
         body: JSON.stringify({
           model: 'claude-sonnet-4-6',
-          max_tokens: 1200,
+          max_tokens: 3000,
           messages: [{ role: 'user', content: prompt }]
         })
       });
@@ -7479,8 +7721,15 @@ Escreve APENAS a mensagem + próximo passo. Sem explicações nem introduções.
       texto = data.content?.[0]?.text || '';
     }
 
-    guiaoTextoGerado = texto;
-    resultEl.innerHTML = texto.replace(/\n/g, '<br>');
+    // Separar a mensagem do próximo passo
+    const proximoPassoMatch = texto.match(/([\s\S]*?)([💡\u2022\-]*\s*PR[ÓO]XIMO PASSO[\s\S]*)/i);
+    const mensagemTexto = proximoPassoMatch ? proximoPassoMatch[1].trim() : texto.trim();
+    const proximoPassoTexto = proximoPassoMatch ? proximoPassoMatch[2].trim() : '';
+
+    guiaoTextoGerado = mensagemTexto;
+    guiaoProximoPasso = proximoPassoTexto;
+
+    resultEl.innerHTML = mensagemTexto.replace(/\n/g, '<br>');
     document.getElementById('guiao-actions').style.display = 'flex';
 
   } catch(e) {
@@ -7494,7 +7743,98 @@ Escreve APENAS a mensagem + próximo passo. Sem explicações nem introduções.
 
 function copiarGuiao() {
   if (!guiaoTextoGerado) return;
-  navigator.clipboard.writeText(guiaoTextoGerado).then(() => showToast('📋 Guião copiado!'));
+
+  // Copia o texto (com fallback para ficheiros locais)
+  try {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(guiaoTextoGerado).catch(function() {
+        copiarFallback(guiaoTextoGerado);
+      });
+    } else {
+      copiarFallback(guiaoTextoGerado);
+    }
+  } catch(e) {
+    copiarFallback(guiaoTextoGerado);
+  }
+
+  // Mostra popup ou toast SEMPRE (não depende da promise do clipboard)
+  if (guiaoProximoPasso) {
+    mostrarPopupProximoPasso(guiaoProximoPasso);
+  } else {
+    showToast('📋 Guião copiado!');
+  }
+}
+
+function copiarFallback(texto) {
+  var ta = document.createElement('textarea');
+  ta.value = texto;
+  ta.style.position = 'fixed';
+  ta.style.opacity = '0';
+  document.body.appendChild(ta);
+  ta.focus();
+  ta.select();
+  try { document.execCommand('copy'); } catch(e) {}
+  document.body.removeChild(ta);
+}
+
+function mostrarPopupProximoPasso(texto) {
+  var existente = document.getElementById('popup-proximo-passo');
+  if (existente) existente.remove();
+
+  var textoLimpo = texto.replace(/^[^\w]*(PROXIMO PASSO|PRÓXIMO PASSO)[:\s]*/i, '').trim();
+
+  var popup = document.createElement('div');
+  popup.id = 'popup-proximo-passo';
+  popup.style.position = 'fixed';
+  popup.style.bottom = '80px';
+  popup.style.left = '50%';
+  popup.style.transform = 'translateX(-50%)';
+  popup.style.zIndex = '9999';
+  popup.style.background = '#1a2235';
+  popup.style.border = '1px solid rgba(0,212,170,0.35)';
+  popup.style.borderRadius = '14px';
+  popup.style.padding = '16px 20px';
+  popup.style.maxWidth = '320px';
+  popup.style.width = '90%';
+  popup.style.boxShadow = '0 8px 32px rgba(0,0,0,0.5)';
+  popup.style.animation = 'slideUpFade 0.25s ease';
+
+  var btnFechar = document.createElement('button');
+  btnFechar.textContent = '✕';
+  btnFechar.style.cssText = 'background:none;border:none;color:#8a99b3;cursor:pointer;font-size:16px;flex-shrink:0;padding:0;line-height:1;';
+  btnFechar.onclick = function() { popup.remove(); };
+
+  var divTexto = document.createElement('div');
+  divTexto.style.cssText = 'font-size:13px;color:#e8edf5;line-height:1.5;';
+  divTexto.textContent = textoLimpo;
+
+  var divLabel = document.createElement('div');
+  divLabel.style.cssText = 'font-size:11px;text-transform:uppercase;letter-spacing:0.8px;color:#00d4aa;font-weight:700;margin-bottom:6px;';
+  divLabel.textContent = 'Próximo Passo';
+
+  var divConteudo = document.createElement('div');
+  divConteudo.style.flex = '1';
+  divConteudo.appendChild(divLabel);
+  divConteudo.appendChild(divTexto);
+
+  var emoji = document.createElement('span');
+  emoji.style.cssText = 'font-size:20px;flex-shrink:0;';
+  emoji.textContent = '💡';
+
+  var divTopo = document.createElement('div');
+  divTopo.style.cssText = 'display:flex;align-items:flex-start;gap:10px;';
+  divTopo.appendChild(emoji);
+  divTopo.appendChild(divConteudo);
+  divTopo.appendChild(btnFechar);
+
+  var divRodape = document.createElement('div');
+  divRodape.style.cssText = 'font-size:11px;color:#4a5568;margin-top:10px;border-top:1px solid rgba(255,255,255,0.06);padding-top:8px;';
+  divRodape.textContent = '📋 Guião copiado para a área de transferência';
+
+  popup.appendChild(divTopo);
+  popup.appendChild(divRodape);
+  document.body.appendChild(popup);
+  setTimeout(function() { if (popup.parentNode) popup.remove(); }, 8000);
 }
 
 function guardarGuiaoNoLead() {
@@ -7798,6 +8138,7 @@ function diasSemContacto(l) {
 // ===================================================
 
 let acoesFiltroAtivo = 'todas';
+let acoesFiltroTexto = '';
 
 // Sugestões de ação por contexto
 const SUGESTOES_ACAO = {
@@ -7853,6 +8194,18 @@ function setAcaoFiltro(el) {
   acoesFiltroAtivo = el.dataset.filtro;
   document.querySelectorAll('.acoes-tab').forEach(t => t.classList.remove('active'));
   el.classList.add('active');
+  renderAcoesLista();
+}
+
+function filtrarAcoesPorTexto(val) {
+  acoesFiltroTexto = (val || '').toLowerCase().trim();
+  renderAcoesLista();
+}
+
+function limparPesquisaAcoes() {
+  acoesFiltroTexto = '';
+  const inp = document.getElementById('input-pesquisa-acoes');
+  if (inp) inp.value = '';
   renderAcoesLista();
 }
 
@@ -7956,9 +8309,21 @@ function renderAcoesLista() {
   const lista = document.getElementById('acoes-lista');
   if (!lista || !window._acoesData) return;
 
-  const filtradas = acoesFiltroAtivo === 'todas'
+  let filtradas = acoesFiltroAtivo === 'todas'
     ? window._acoesData
     : window._acoesData.filter(a => a.prioridade === acoesFiltroAtivo);
+
+  if (acoesFiltroTexto) {
+    filtradas = filtradas.filter(({ l }) => {
+      const txt = acoesFiltroTexto;
+      return (l.nome || '').toLowerCase().includes(txt)
+        || (l.estado || '').toLowerCase().includes(txt)
+        || (l.mercado || '').toLowerCase().includes(txt)
+        || (l.tel || '').toLowerCase().includes(txt)
+        || (l.email || '').toLowerCase().includes(txt)
+        || (l.notas || '').toLowerCase().includes(txt);
+    });
+  }
 
   if (!filtradas.length) {
     const msgs = {
@@ -8732,6 +9097,243 @@ function updateBadgeLuminate() {
   }
 }
 
+// --- VIAGENS COUNTDOWN (Dashboard) ---
+let dashboardViagemInterval = null;
+let dashboardViagemExpandido = false;
+function toggleDashboardViagemExpand() {
+  dashboardViagemExpandido = !dashboardViagemExpandido;
+  const body = document.querySelector('#dashboard-viagem-wrap .promo-banner-body');
+  const btn = document.getElementById('dashboard-viagem-toggle-btn');
+  if (body) body.classList.toggle('open', dashboardViagemExpandido);
+  if (btn) btn.textContent = dashboardViagemExpandido ? '▲ Fechar' : '▼ Ver detalhes';
+}
+function toggleDashboardViagemEstrategia() {
+  const content = document.getElementById('viagem-dash-est-content');
+  const chevron = document.getElementById('viagem-dash-est-chevron');
+  if (!content) return;
+  const isOpen = content.style.display !== 'none';
+  content.style.display = isOpen ? 'none' : 'block';
+  if (chevron) chevron.textContent = isOpen ? '▼' : '▲';
+}
+
+// --- ESTRATÉGIA IA da Viagem (Dashboard) ---
+function getEstrategiaViagem(id) {
+  try { return JSON.parse(localStorage.getItem(getUserStorageKey('lw_viagem_estrategias'))||'{}')[id] || null; } catch(e) { return null; }
+}
+function setEstrategiaViagem(id, texto) {
+  const all = JSON.parse(localStorage.getItem(getUserStorageKey('lw_viagem_estrategias'))||'{}');
+  all[id] = texto;
+  localStorage.setItem(getUserStorageKey('lw_viagem_estrategias'), JSON.stringify(all));
+}
+function toggleEstrategiaViagem() {
+  const c = document.getElementById('viagem-est-content');
+  const ch = document.getElementById('viagem-est-chevron');
+  if (!c) return;
+  const open = c.style.display !== 'none';
+  c.style.display = open ? 'none' : 'block';
+  if (ch) ch.textContent = open ? '▼' : '▲';
+}
+function toggleEstrategiaViagemPage() {
+  const c = document.getElementById('viagem-page-est-content');
+  const ch = document.getElementById('viagem-page-est-chevron');
+  if (!c) return;
+  const open = c.style.display !== 'none';
+  c.style.display = open ? 'none' : 'block';
+  if (ch) ch.textContent = open ? '▼' : '▲';
+}
+async function viagemGerarEstrategia(viagemId) {
+  const aiAtual = promoAI;
+  if (aiAtual === 'claude' && !claudeKey) { showToast('⚠️ Precisas da chave API Claude'); return; }
+  if (aiAtual === 'gemini' && !geminiKey) { showToast('⚠️ Precisas da chave API Gemini'); return; }
+
+  const v = viagens.find(x => x.id === viagemId);
+  if (!v) return;
+
+  const total = pontosViagem(v.id);
+
+  showToast(aiAtual === 'gemini' ? '✦ Gemini a gerar estratégia...' : '🧠 Claude a gerar estratégia...');
+
+  const prompt = `És um coach de negócios LifeWave X39 especializado no mercado português/EMEA.
+
+Viagem/Prémio: ${v.nome}
+Descrição: ${v.descricao || ''}
+Período: ${formatDataPromo(v.inicio)} até ${formatDataPromo(v.fim)}
+Meta de pontos: ${v.metaPontos || 'N/D'}
+Pontos atuais: ${total}
+Regras de pontuação: ${JSON.stringify((v.regras||[]).map(r=>`${r.label}: +${r.pts} pts`))}
+Notas: ${v.notas || ''}
+
+Gera uma estratégia PRÁTICA e CONCRETA em português europeu para ajudar a atingir a meta de pontos a tempo:
+
+**🎯 Objetivo da Viagem**
+(1-2 frases sobre o prémio e porquê vale a pena)
+
+**💡 As 3 Ações Prioritárias**
+1. (Ação específica com detalhe prático)
+2. (Ação específica com detalhe prático)
+3. (Ação específica com detalhe prático)
+
+**📱 O Que Dizer nos Contactos**
+(Mensagem curta de WhatsApp/Instagram para recrutar/vender neste período)
+
+**📊 Plano para Atingir a Meta**
+(Quantas ações de cada tipo são necessárias até ao fim do prazo, com números)
+
+**⚠️ Não Percas**
+(1-2 lembretes críticos sobre prazos)`;
+
+  try {
+    let estrategia = '';
+    if (aiAtual === 'gemini') {
+      estrategia = await callGemini(prompt);
+    } else {
+      const res = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: { 'Content-Type':'application/json','x-api-key':claudeKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true' },
+        body: JSON.stringify({ model:'claude-sonnet-4-6', max_tokens:1200, messages:[{role:'user',content:prompt}] })
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      estrategia = data.content?.[0]?.text || '';
+    }
+
+    setEstrategiaViagem(viagemId, estrategia);
+
+    if (document.getElementById('viagem-detalhe-wrap')) {
+      renderLuminate();
+      setTimeout(() => toggleEstrategiaViagemPage(), 100);
+    }
+    if (document.getElementById('dashboard-viagem-wrap')) {
+      renderDashboardViagemCountdown();
+      dashboardViagemExpandido = true;
+      setTimeout(() => {
+        const body = document.querySelector('#dashboard-viagem-wrap .promo-banner-body');
+        if (body) body.classList.add('open');
+        const btn = document.getElementById('dashboard-viagem-toggle-btn');
+        if (btn) btn.textContent = '▲ Fechar';
+        toggleEstrategiaViagem();
+      }, 100);
+    }
+
+    showToast('✅ Estratégia gerada!');
+  } catch(err) {
+    showToast('❌ Erro: ' + err.message);
+  }
+}
+function renderDashboardViagemCountdown() {
+  const wrap = document.getElementById('dashboard-viagem-wrap');
+  if (!wrap) return;
+  const v = getViagemAtual();
+  if (!v) { wrap.innerHTML = ''; return; }
+
+  const agora = new Date();
+  const fim = v.fim ? new Date(v.fim + 'T23:59:59') : null;
+  const inicio = v.inicio ? new Date(v.inicio + 'T00:00:00') : null;
+  if (!fim) { wrap.innerHTML = ''; return; }
+
+  const target = (inicio && agora < inicio) ? inicio : fim;
+  const label = (inicio && agora < inicio) ? 'Início da viagem em' : 'Termina em';
+  const total = pontosViagem(v.id);
+  const meta = v.metaPontos;
+  const periodoFmt = `${formatDataPromo(v.inicio)} → ${formatDataPromo(v.fim)}`;
+
+  const agoraTime = agora.getTime();
+  const inicioTime = inicio ? inicio.getTime() : agoraTime;
+  const fimTime = fim.getTime();
+  const isAtiva = agora >= inicio && agora <= fim;
+  const isProxima = inicio && agora < inicio;
+  const pctTempo = isAtiva ? Math.round(((agoraTime-inicioTime)/(fimTime-inicioTime))*100) : (isProxima ? 0 : 100);
+  const diasR = Math.ceil((fimTime-agoraTime)/86400000);
+
+  const regrasHtml = (v.regras||[]).map(r => `
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:1px solid rgba(255,255,255,0.05);font-size:11px;">
+      <span style="color:var(--text2);">${r.label}</span>
+      <span style="color:var(--accent);font-weight:700;">+${r.pts} pts</span>
+    </div>`).join('');
+
+  const estrategiaViagem = getEstrategiaViagem(v.id);
+  const estrategiaHtml = estrategiaViagem ? `
+    <div class="promo-estrategia-box" id="viagem-est-box">
+      <div class="promo-estrategia-title" onclick="event.stopPropagation();toggleEstrategiaViagem()">
+        🎯 Ver Estratégia IA <span id="viagem-est-chevron">▼</span>
+      </div>
+      <div class="promo-estrategia-content" id="viagem-est-content" style="display:none;">
+        ${estrategiaViagem.replace(/\n/g,'<br>').replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>')}
+      </div>
+    </div>` : '';
+
+  const ativaPillHtml = isAtiva
+    ? `<span style="background:rgba(0,212,170,0.15);color:var(--accent);font-size:10px;font-weight:700;padding:3px 9px;border-radius:20px;">🟢 ATIVA</span>`
+    : (isProxima
+        ? `<span style="background:rgba(245,200,66,0.12);color:var(--gold);font-size:10px;font-weight:700;padding:3px 9px;border-radius:20px;">⏳ EM BREVE</span>`
+        : `<span style="background:rgba(255,255,255,0.06);color:var(--text3);font-size:10px;font-weight:700;padding:3px 9px;border-radius:20px;">✓ TERMINADA</span>`);
+
+  wrap.innerHTML = `
+    <div class="promo-banner-wrap">
+      <div class="promo-banner">
+        <div class="promo-banner-header" style="flex-wrap:wrap;" onclick="toggleDashboardViagemExpand()">
+          <div class="promo-banner-left">
+            <div class="promo-banner-icon">${v.icone || '✈️'}</div>
+            <div>
+              <div class="promo-banner-title">${v.nome}</div>
+              <div class="promo-banner-sub" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+                ${ativaPillHtml}
+                <span>${label}${meta ? ` · ${fmtNum(total)} / ${fmtNum(meta)} pontos` : ''}</span>
+              </div>
+            </div>
+          </div>
+          <div class="promo-banner-right">
+            ${buildCountdownHtml(target, 'viagem-dash')}
+            <button class="promo-toggle-btn" id="dashboard-viagem-toggle-btn" onclick="event.stopPropagation();toggleDashboardViagemExpand()">${dashboardViagemExpandido ? '▲ Fechar' : '▼ Ver detalhes'}</button>
+          </div>
+        </div>
+        <div class="promo-banner-body ${dashboardViagemExpandido ? 'open' : ''}">
+          <div class="promo-item ${isAtiva ? 'active-promo' : ''}">
+            <div class="promo-item-desc">${v.descricao || ''}</div>
+            <div class="promo-item-dates">📅 ${periodoFmt}</div>
+            ${meta ? `
+            <div style="background:rgba(245,200,66,0.08);border:1px solid rgba(245,200,66,0.2);border-radius:6px;padding:8px 10px;font-size:12px;color:var(--gold);line-height:1.5;margin-bottom:8px;">
+              <strong style="display:block;font-size:13px;margin-bottom:2px;">🎯 Progresso de pontos</strong>
+              <span style="color:var(--accent);font-weight:700;">${fmtNum(total)} / ${fmtNum(meta)} pts</span>
+            </div>` : ''}
+            <div class="promo-urgency-bar" style="margin-top:8px;">
+              <div class="promo-urgency-fill" style="width:${pctTempo}%;background:${pctTempo>=80?'var(--accent3)':'var(--accent)'};"></div>
+            </div>
+            <div style="font-size:10px;color:var(--text2);margin-top:3px;">${pctTempo}% decorrido · ${diasR} dias restantes</div>
+            ${regrasHtml || v.notas ? `
+            <div class="promo-estrategia-box">
+              <div class="promo-estrategia-title" onclick="event.stopPropagation();toggleDashboardViagemEstrategia()">
+                🎯 Ver Regras de Pontuação <span id="viagem-dash-est-chevron">▼</span>
+              </div>
+              <div class="promo-estrategia-content" id="viagem-dash-est-content" style="display:none;">
+                ${regrasHtml}
+                ${v.notas ? `<div style="margin-top:10px;">${v.notas}</div>` : ''}
+              </div>
+            </div>` : ''}
+            ${estrategiaHtml}
+            <button class="btn btn-secondary btn-sm" style="margin-top:10px;" onclick="goTo('luminate')">✈️ Abrir Viagens</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+
+  if (dashboardViagemInterval) clearInterval(dashboardViagemInterval);
+  dashboardViagemInterval = setInterval(() => {
+    const now = new Date();
+    const diff = target - now;
+    if (diff <= 0) { renderDashboardViagemCountdown(); return; }
+    const dias=Math.floor(diff/86400000), horas=Math.floor((diff%86400000)/3600000),
+          mins=Math.floor((diff%3600000)/60000), segs=Math.floor((diff%60000)/1000);
+    const dEl=document.getElementById('cd-d-viagem-dash'), hEl=document.getElementById('cd-h-viagem-dash'),
+          mEl=document.getElementById('cd-m-viagem-dash'), sEl=document.getElementById('cd-s-viagem-dash');
+    if(dEl) dEl.textContent=String(dias).padStart(2,'0');
+    if(hEl) hEl.textContent=String(horas).padStart(2,'0');
+    if(mEl) mEl.textContent=String(mins).padStart(2,'0');
+    if(sEl) sEl.textContent=String(segs).padStart(2,'0');
+  }, 1000);
+}
+
 function selecionarViagem(id) {
   viagemSelecionadaId = id;
   saveViagemSelecionada();
@@ -8976,6 +9578,34 @@ function renderLuminate() {
           </div>
         ` : ''}
 
+        <div class="card">
+          <div class="section-title" style="margin-bottom:10px;">🎯 Estratégia IA</div>
+          ${(() => {
+            const est = getEstrategiaViagem(viagem.id);
+            if (est) {
+              return `
+                <div class="promo-estrategia-box" id="viagem-page-est-box">
+                  <div class="promo-estrategia-title" onclick="toggleEstrategiaViagemPage()">
+                    🎯 Ver Estratégia IA <span id="viagem-page-est-chevron">▼</span>
+                  </div>
+                  <div class="promo-estrategia-content" id="viagem-page-est-content" style="display:none;">
+                    ${est.replace(/\n/g,'<br>').replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>')}
+                  </div>
+                </div>
+                <button class="btn btn-secondary btn-sm" style="margin-top:8px;font-size:11px;" onclick="viagemGerarEstrategia('${viagem.id}')">
+                  🔄 Regenerar Estratégia IA
+                </button>
+              `;
+            }
+            return `
+              <div style="font-size:12px;color:var(--text2);margin-bottom:10px;">A IA analisa a viagem, o progresso e as regras de pontuação e gera um plano de ação para atingires a meta.</div>
+              <button class="btn btn-secondary btn-sm" onclick="viagemGerarEstrategia('${viagem.id}')" id="viagem-gerar-est-btn-page">
+                🧠 Gerar Estratégia IA
+              </button>
+            `;
+          })()}
+        </div>
+
         <button class="btn btn-secondary btn-sm" onclick="removerViagem('${viagem.id}')">🗑️ Remover esta viagem</button>
       </div>
     </div>
@@ -8989,8 +9619,6 @@ let viagemUploadBase64 = null;
 let viagemUploadMediaType = null;
 let viagemUploadIsPdf = false;
 let viagemAI = localStorage.getItem('lw_viagemAI') || 'claude';
-let viagemClaudeKey = localStorage.getItem('lw_claude_key') || '';
-let viagemGeminiKey = localStorage.getItem('lw_gemini_key') || '';
 
 function viagemSetAI(ai) {
   viagemAI = ai;
@@ -9003,19 +9631,27 @@ function viagemSetAI(ai) {
   if (bG) bG.className = 'ai-btn' + (ai === 'gemini' ? ' active-gemini' : '');
   if (rC) rC.classList.toggle('show', ai === 'claude');
   if (rG) rG.classList.toggle('show', ai === 'gemini');
+  syncViagemKeyInputs();
+}
+function syncViagemKeyInputs() {
+  const inpC = document.getElementById('viagem-claude-key');
+  const stC  = document.getElementById('viagem-claude-status');
+  const inpG = document.getElementById('viagem-gemini-key');
+  const stG  = document.getElementById('viagem-gemini-status');
+  if (inpC) inpC.value = claudeKey;
+  if (stC)  stC.textContent = claudeKey.length > 10 ? '✅ Guardada' : '';
+  if (inpG) inpG.value = geminiKey;
+  if (stG)  stG.textContent = geminiKey.length > 10 ? '✅ Guardada' : '';
 }
 function saveViagemClaudeKey(v) {
-  viagemClaudeKey = v.trim();
-  localStorage.setItem('lw_claude_key', viagemClaudeKey);
-  if (typeof claudeKey !== 'undefined') window.claudeKey = viagemClaudeKey;
+  saveClaudeKey(v);
   const st = document.getElementById('viagem-claude-status');
-  if (st) st.textContent = viagemClaudeKey.length > 10 ? '✅ Guardada' : '';
+  if (st) st.textContent = claudeKey.length > 10 ? '✅ Guardada' : '';
 }
 function saveViagemGeminiKey(v) {
-  viagemGeminiKey = v.trim();
-  localStorage.setItem('lw_gemini_key', viagemGeminiKey);
+  saveGeminiKey(v);
   const st = document.getElementById('viagem-gemini-status');
-  if (st) st.textContent = viagemGeminiKey.length > 10 ? '✅ Guardada' : '';
+  if (st) st.textContent = geminiKey.length > 10 ? '✅ Guardada' : '';
 }
 
 function viagemHandleDrop(e) {
@@ -9100,7 +9736,7 @@ Se um campo não estiver no documento, usa null, 0, ou array vazio []. Não inve
 // ---- ANÁLISE IA ----
 async function viagemAnalisarIA() {
   if (!viagemUploadBase64) { showToast('⚠️ Carrega primeiro um ficheiro'); return; }
-  const key = viagemAI === 'claude' ? viagemClaudeKey : viagemGeminiKey;
+  const key = viagemAI === 'claude' ? claudeKey : geminiKey;
   if (!key) { showToast(`⚠️ Precisas da chave API ${viagemAI === 'claude' ? 'Claude' : 'Gemini'}`); return; }
 
   const statusBox = document.getElementById('viagem-ia-status');
@@ -9129,7 +9765,7 @@ async function viagemAnalisarIA() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'x-api-key': viagemClaudeKey,
+          'x-api-key': claudeKey,
           'anthropic-version': '2023-06-01',
           'anthropic-dangerous-direct-browser-access': 'true'
         },
@@ -10590,9 +11226,9 @@ function resetCalculadora() {
     </div>
 
     <div class="form-group">
-      <label class="form-label">👤 Nome de Apresentação</label>
-      <input class="form-input" id="perfil-nome" placeholder="Ex: João Silva">
-      <div style="font-size:11px;color:var(--text2);margin-top:4px;">O nome que o Coach IA vai usar ao falar contigo</div>
+      <label class="form-label">👤 Nome Próprio</label>
+      <input class="form-input" id="perfil-nome" placeholder="Ex: Miguel Lobato">
+      <div style="font-size:11px;color:var(--text2);margin-top:4px;">O teu nome real (não username) — usado nos guiões e mensagens IA</div>
     </div>
 
     <div class="form-group">
@@ -11649,8 +12285,6 @@ let planoUploadBase64   = null;
 let planoUploadMediaType = null;
 let planoUploadIsPdf    = false;
 let planoAI = localStorage.getItem(PLANO_AI_KEY) || 'claude';
-let planoClaudeKey = localStorage.getItem('lw_claude_key') || '';
-let planoGeminiKey = localStorage.getItem('lw_gemini_key') || '';
 
 function planoSetAI(ai) {
   planoAI = ai;
@@ -11665,18 +12299,14 @@ function planoSetAI(ai) {
   if (rG) rG.classList.toggle('show', ai === 'gemini');
 }
 function savePlanoClaudeKey(v) {
-  planoClaudeKey = v.trim();
-  localStorage.setItem('lw_claude_key', planoClaudeKey);
-  // sync with global claudeKey if available
-  if (typeof claudeKey !== 'undefined') window.claudeKey = planoClaudeKey;
+  saveClaudeKey(v);
   const st = document.getElementById('plano-claude-status');
-  if (st) st.textContent = planoClaudeKey.length > 10 ? '✅ Guardada' : '';
+  if (st) st.textContent = claudeKey.length > 10 ? '✅ Guardada' : '';
 }
 function savePlanoGeminiKey(v) {
-  planoGeminiKey = v.trim();
-  localStorage.setItem('lw_gemini_key', planoGeminiKey);
+  saveGeminiKey(v);
   const st = document.getElementById('plano-gemini-status');
-  if (st) st.textContent = planoGeminiKey.length > 10 ? '✅ Guardada' : '';
+  if (st) st.textContent = geminiKey.length > 10 ? '✅ Guardada' : '';
 }
 
 // ---- UPLOAD ----
@@ -11798,7 +12428,7 @@ Se um campo não estiver no documento, usa null ou array vazio []. Não inventes
 // ---- ANÁLISE IA ----
 async function planoAnalisarIA() {
   if (!planoUploadBase64) { showToast('⚠️ Carrega primeiro um ficheiro'); return; }
-  const key = planoAI === 'claude' ? planoClaudeKey : planoGeminiKey;
+  const key = planoAI === 'claude' ? claudeKey : geminiKey;
   if (!key) { showToast(`⚠️ Precisas da chave API ${planoAI === 'claude' ? 'Claude' : 'Gemini'}`); return; }
 
   const statusBox = document.getElementById('plano-ia-status');
@@ -11831,7 +12461,7 @@ async function planoAnalisarIA() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'x-api-key': planoClaudeKey,
+          'x-api-key': claudeKey,
           'anthropic-version': '2023-06-01',
           'anthropic-dangerous-direct-browser-access': 'true'
         },
@@ -12085,9 +12715,8 @@ function initPagePlanoComp() {
   renderPlanoCompVisualizacao();
 
   // Sync keys
-  const kc = localStorage.getItem('lw_claude_key') || '';
-  const kg = localStorage.getItem('lw_gemini_key') || '';
-  planoClaudeKey = kc; planoGeminiKey = kg;
+  const kc = claudeKey;
+  const kg = geminiKey;
   const inpC = document.getElementById('plano-claude-key');
   const inpG = document.getElementById('plano-gemini-key');
   if (inpC) { inpC.value = kc; }
@@ -12099,19 +12728,605 @@ function initPagePlanoComp() {
   planoSetAI(planoAI);
 }
 
-// ---- Hook no goTo() ----
-// Patch para chamar init quando a página é aberta
-(function() {
-  const _origGoTo = window.goTo;
-  if (typeof _origGoTo === 'function') {
-    window.goTo = function(page) {
-      _origGoTo(page);
-      if (page === 'plano-comp') {
-        setTimeout(initPagePlanoComp, 50);
-      }
-    };
+// ============================================================
+// MÓDULO: CENTRO DE FORMAÇÃO
+// ============================================================
+
+const FORMACAO_KEY = 'lw_formacao_tarefas';
+const FORMACAO_REC_KEY = 'lw_formacao_recursos';
+const FORMACAO_PROG_KEY = 'lw_formacao_progresso';
+
+// ---- DADOS PADRÃO: Plano 30 Dias ----
+const FORMACAO_TAREFAS_DEFAULT = [
+  // Semana 1
+  { id:'t1', semana:1, dia:1, titulo:'Instalar a APP LifeWave CRM', descricao:'Descarrega e configura a tua app de gestão de negócio.', categoria:'sistema', duracao:'15 min', obrigatoria:true },
+  { id:'t2', semana:1, dia:1, titulo:'Encomendar o teu kit X39', descricao:'Faz o teu pedido no site LifeWave e guarda a confirmação.', categoria:'produto', duracao:'20 min', obrigatoria:true },
+  { id:'t3', semana:1, dia:2, titulo:'Assistir ao vídeo de apresentação oficial', descricao:'Vídeo de 20 min que explica o X39, a tecnologia e o negócio.', categoria:'produto', duracao:'25 min', obrigatoria:true, link:'https://www.youtube.com' },
+  { id:'t4', semana:1, dia:2, titulo:'Criar lista de 20 contactos', descricao:'Escreve 20 nomes de pessoas que possam ter interesse (saúde, finanças ou empreendedorismo).', categoria:'vendas', duracao:'30 min', obrigatoria:true },
+  { id:'t5', semana:1, dia:3, titulo:'Atualizar perfil nas redes sociais', descricao:'Foto profissional, bio clara, link do negócio. Não uses o nome LifeWave diretamente.', categoria:'redes', duracao:'45 min', obrigatoria:false },
+  { id:'t6', semana:1, dia:4, titulo:'Publicar o primeiro post pessoal', descricao:'Partilha a tua história — porquê começaste, o que esperas. Usa o Gerador de Posts IA da app.', categoria:'redes', duracao:'20 min', obrigatoria:true },
+  { id:'t7', semana:1, dia:5, titulo:'Primeiro contacto com 5 pessoas da lista', descricao:'Envia uma mensagem pessoal (não copia-cola). Usa as Respostas Rápidas da app para ajuda.', categoria:'vendas', duracao:'30 min', obrigatoria:true },
+  { id:'t8', semana:1, dia:7, titulo:'Reunião semanal com o upline', descricao:'Check-in de 30 min com o teu patrocinador. Partilha resultados e dúvidas.', categoria:'equipa', duracao:'30 min', obrigatoria:true },
+  // Semana 2
+  { id:'t9', semana:2, dia:8, titulo:'Usar o patch X39 pela primeira vez', descricao:'Aplica o patch e regista como te sentes num diário. Vai ser o teu testemunho!', categoria:'produto', duracao:'5 min', obrigatoria:true },
+  { id:'t10', semana:2, dia:9, titulo:'Estudar as objeções comuns', descricao:'Aprende a responder a "é caro", "é pirâmide" e "não tenho tempo". Usa o Coach IA da app.', categoria:'vendas', duracao:'40 min', obrigatoria:true },
+  { id:'t11', semana:2, dia:10, titulo:'Publicar post de educação (produto)', descricao:'Explica o que é a fotobiomodulação de forma simples. Usa o Gerador IA.', categoria:'redes', duracao:'20 min', obrigatoria:false },
+  { id:'t12', semana:2, dia:11, titulo:'Contactar mais 10 pessoas da lista', descricao:'Continua os follow-ups e adiciona novos contactos ao CRM.', categoria:'vendas', duracao:'45 min', obrigatoria:true },
+  { id:'t13', semana:2, dia:12, titulo:'Primeira apresentação individual', descricao:'Marca uma videochamada de 20 min com o contacto mais quente. O upline pode participar.', categoria:'vendas', duracao:'60 min', obrigatoria:true },
+  { id:'t14', semana:2, dia:14, titulo:'Avaliar resultados da 1ª semana', descricao:'Quantos contactos? Quantas respostas? Qual a taxa de interesse? Usa as Estatísticas da app.', categoria:'sistema', duracao:'20 min', obrigatoria:true },
+  // Semana 3
+  { id:'t15', semana:3, dia:15, titulo:'Criar o teu story/reels de testemunho', descricao:'Partilha como te estás a sentir com o patch após 2 semanas. Autêntico = poderoso.', categoria:'redes', duracao:'30 min', obrigatoria:true },
+  { id:'t16', semana:3, dia:16, titulo:'Estudar o Plano de Compensação', descricao:'Entende como ganhas: produto, binário, bónus. Usa a secção "Plano Comp." da app.', categoria:'negocio', duracao:'45 min', obrigatoria:true },
+  { id:'t17', semana:3, dia:17, titulo:'Usar a Calculadora de Ganhos', descricao:'Simula o que podes ganhar com 3, 5 ou 10 clientes. Define a tua meta realista.', categoria:'negocio', duracao:'20 min', obrigatoria:true },
+  { id:'t18', semana:3, dia:18, titulo:'Convidar alguém para ver o negócio', descricao:'O foco agora é o recrutamento. Partilha o teu link pessoal com alguém interessado.', categoria:'vendas', duracao:'30 min', obrigatoria:false },
+  { id:'t19', semana:3, dia:21, titulo:'Reunião semanal + plano semana 4', descricao:'Revê o progresso e define metas claras para a última semana.', categoria:'equipa', duracao:'30 min', obrigatoria:true },
+  // Semana 4
+  { id:'t20', semana:4, dia:22, titulo:'Publicar testemunho dos 30 dias (preparação)', descricao:'Começa a redigir o teu testemunho completo. Resultados físicos + negócio.', categoria:'redes', duracao:'30 min', obrigatoria:true },
+  { id:'t21', semana:4, dia:24, titulo:'Fechar a primeira venda ou parceiro', descricao:'Meta: pelo menos 1 cliente ou 1 parceiro de negócio até ao fim do mês.', categoria:'vendas', duracao:'—', obrigatoria:true },
+  { id:'t22', semana:4, dia:25, titulo:'Registar a venda no CRM (Comissões)', descricao:'Usa a secção Comissões da app para registar e calcular os teus ganhos.', categoria:'sistema', duracao:'10 min', obrigatoria:true },
+  { id:'t23', semana:4, dia:28, titulo:'Definir metas para o mês 2', descricao:'Com base no mês 1, define metas realistas para clientes, equipa e comissões.', categoria:'negocio', duracao:'30 min', obrigatoria:true },
+  { id:'t24', semana:4, dia:30, titulo:'Celebrar o 1º mês! 🎉', descricao:'Partilha o teu progresso com o upline e a equipa. Cada passo conta!', categoria:'motivacao', duracao:'—', obrigatoria:false },
+];
+
+const FORMACAO_RECURSOS_DEFAULT = [
+  { id:'r1', titulo:'Vídeo Oficial X39 - Como Funciona', tipo:'video', categoria:'produto', url:'https://www.youtube.com', descricao:'Apresentação técnica da tecnologia de fotobiomodulação do X39.', duracao:'20 min' },
+  { id:'r2', titulo:'Guião de Objeções Completo', tipo:'guiao', categoria:'vendas', url:'', descricao:'Respostas profissionais para as 10 objeções mais comuns: preço, pirâmide, ceticismo.', duracao:'Leitura 15 min' },
+  { id:'r3', titulo:'PDF: Estudos Científicos X39', tipo:'pdf', categoria:'produto', url:'https://lifewave.com', descricao:'Resumo dos estudos clínicos que suportam a tecnologia LifeWave.', duracao:'Leitura 10 min' },
+  { id:'r4', titulo:'Checklist: Primeiros 7 Dias', tipo:'pdf', categoria:'negocio', url:'', descricao:'Lista de tarefas essenciais para arrancar com o pé direito.', duracao:'—' },
+  { id:'r5', titulo:'Script de Apresentação (WhatsApp)', tipo:'guiao', categoria:'vendas', url:'', descricao:'Mensagem inicial para abordar contactos frios e mornos no WhatsApp.', duracao:'—' },
+  { id:'r6', titulo:'Como Usar Instagram para LifeWave', tipo:'video', categoria:'redes', url:'https://www.youtube.com', descricao:'Estratégia de conteúdo, stories, reels e hashtags para crescer organicamente.', duracao:'30 min' },
+  { id:'r7', titulo:'Plano de Compensação Oficial 2025', tipo:'pdf', categoria:'negocio', url:'https://lifewave.com', descricao:'Documento oficial com todas as categorias, bónus e incentivos.', duracao:'Leitura 20 min' },
+  { id:'r8', titulo:'Mensagem de Boas-Vindas para Novos Membros', tipo:'guiao', categoria:'equipa', url:'', descricao:'Template de mensagem para receber e motivar novos parceiros da equipa.', duracao:'—' },
+];
+
+// ---- STORAGE ----
+function formacaoCarregarTarefas() {
+  try { return JSON.parse(localStorage.getItem(FORMACAO_KEY)) || FORMACAO_TAREFAS_DEFAULT; } catch(e) { return FORMACAO_TAREFAS_DEFAULT; }
+}
+function formacaoGuardarTarefas(t) { localStorage.setItem(FORMACAO_KEY, JSON.stringify(t)); }
+
+function formacaoCarregarRecursos() {
+  try { return JSON.parse(localStorage.getItem(FORMACAO_REC_KEY)) || FORMACAO_RECURSOS_DEFAULT; } catch(e) { return FORMACAO_RECURSOS_DEFAULT; }
+}
+function formacaoGuardarRecursos(r) { localStorage.setItem(FORMACAO_REC_KEY, JSON.stringify(r)); }
+
+function formacaoCarregarProgresso() {
+  try { return JSON.parse(localStorage.getItem(FORMACAO_PROG_KEY)) || {}; } catch(e) { return {}; }
+}
+function formacaoGuardarProgresso(p) { localStorage.setItem(FORMACAO_PROG_KEY, JSON.stringify(p)); }
+
+// ---- HELPERS ----
+const FORMACAO_CAT_ICONS = { produto:'📦', vendas:'💼', redes:'📱', negocio:'💰', sistema:'⚙️', equipa:'🐺', motivacao:'🎯' };
+const FORMACAO_TIPO_ICONS = { video:'🎬', pdf:'📄', link:'🔗', guiao:'📝', imagem:'🖼️' };
+
+function formacaoCategoriaCor(cat) {
+  const cores = { produto:'rgba(0,212,170,0.12)', vendas:'rgba(0,132,255,0.12)', redes:'rgba(139,156,247,0.12)', negocio:'rgba(245,200,66,0.12)', sistema:'rgba(255,255,255,0.06)', equipa:'rgba(255,107,53,0.12)', motivacao:'rgba(0,212,170,0.08)' };
+  return cores[cat] || 'rgba(255,255,255,0.06)';
+}
+function formacaoCategoriaCorBorda(cat) {
+  const cores = { produto:'rgba(0,212,170,0.3)', vendas:'rgba(0,132,255,0.3)', redes:'rgba(139,156,247,0.3)', negocio:'rgba(245,200,66,0.3)', sistema:'rgba(255,255,255,0.12)', equipa:'rgba(255,107,53,0.3)', motivacao:'rgba(0,212,170,0.2)' };
+  return cores[cat] || 'rgba(255,255,255,0.12)';
+}
+
+// ---- INIT ----
+function formacaoInit() {
+  formacaoRenderProgresso();
+  formacaoTab('plano');
+  // Hide new badge after first visit
+  const badge = document.getElementById('nav-formacao-badge');
+  if (badge) badge.style.display = 'none';
+}
+
+// ---- TABS ----
+function formacaoTab(tab) {
+  ['plano','biblioteca','equipa','ia'].forEach(t => {
+    const el = document.getElementById('ftab-' + t);
+    const btn = document.getElementById('ftab-btn-' + t);
+    if (el) el.style.display = t === tab ? '' : 'none';
+    if (btn) {
+      btn.style.background = t === tab ? 'var(--accent)' : 'none';
+      btn.style.color = t === tab ? 'var(--bg)' : 'var(--text2)';
+    }
+  });
+  if (tab === 'plano') formacaoRenderPlano();
+  if (tab === 'biblioteca') formacaoRenderBiblioteca();
+  if (tab === 'equipa') formacaoRenderEquipaProgresso();
+  if (tab === 'ia') { /* ready */ }
+}
+
+// ---- PROGRESSO BANNER ----
+function formacaoRenderProgresso() {
+  const el = document.getElementById('formacao-progresso-banner');
+  if (!el) return;
+  const tarefas = formacaoCarregarTarefas();
+  const prog = formacaoCarregarProgresso();
+  const obrigatorias = tarefas.filter(t => t.obrigatoria);
+  const concluidas = obrigatorias.filter(t => prog[t.id]);
+  const pct = obrigatorias.length ? Math.round((concluidas.length / obrigatorias.length) * 100) : 0;
+  const total = tarefas.length;
+  const totalConcluidas = tarefas.filter(t => prog[t.id]).length;
+
+  let mensagem = pct === 0 ? '🚀 Começa agora o teu caminho!' : pct < 30 ? '💪 Bom início! Mantém o ritmo.' : pct < 60 ? '🔥 Estás a crescer! Continua!' : pct < 90 ? '⭐ Quase lá! Falta pouco!' : '🏆 Excelente! Missão quase cumprida!';
+
+  el.innerHTML = `
+    <div class="card" style="background:linear-gradient(135deg,rgba(0,212,170,0.08),rgba(0,132,255,0.05));border-color:rgba(0,212,170,0.25);">
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:14px;">
+        <div>
+          <div style="font-family:'Syne',sans-serif;font-size:16px;font-weight:700;color:var(--text);">${mensagem}</div>
+          <div style="font-size:12px;color:var(--text2);margin-top:3px;">${totalConcluidas} de ${total} tarefas concluídas · ${concluidas.length} de ${obrigatorias.length} obrigatórias</div>
+        </div>
+        <div style="text-align:right;">
+          <div style="font-family:'Syne',sans-serif;font-size:32px;font-weight:800;color:var(--accent);">${pct}%</div>
+          <div style="font-size:11px;color:var(--text2);">progresso</div>
+        </div>
+      </div>
+      <div style="background:var(--surface3);border-radius:8px;height:10px;overflow:hidden;">
+        <div style="height:100%;border-radius:8px;background:linear-gradient(90deg,var(--accent),var(--accent2));width:${pct}%;transition:width 0.6s ease;"></div>
+      </div>
+      <div style="display:flex;gap:16px;margin-top:12px;flex-wrap:wrap;">
+        ${[1,2,3,4].map(s => {
+          const tSem = tarefas.filter(t => t.semana === s);
+          const cSem = tSem.filter(t => prog[t.id]).length;
+          const pSem = tSem.length ? Math.round((cSem/tSem.length)*100) : 0;
+          return `<div style="flex:1;min-width:80px;text-align:center;">
+            <div style="font-size:11px;color:var(--text2);margin-bottom:4px;">Semana ${s}</div>
+            <div style="font-size:15px;font-weight:700;color:${pSem===100?'var(--accent)':'var(--text)'};">${pSem}%</div>
+          </div>`;
+        }).join('')}
+      </div>
+    </div>`;
+}
+
+// ---- PLANO 30 DIAS ----
+function formacaoRenderPlano() {
+  const tarefas = formacaoCarregarTarefas();
+  const prog = formacaoCarregarProgresso();
+  const grid = document.getElementById('formacao-semanas-grid');
+  if (!grid) return;
+
+  grid.innerHTML = [1,2,3,4].map(semana => {
+    const tSem = tarefas.filter(t => t.semana === semana);
+    const concluidas = tSem.filter(t => prog[t.id]).length;
+    return `
+      <div class="card" style="padding:0;overflow:hidden;">
+        <div style="padding:14px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;background:var(--surface2);">
+          <div style="font-family:'Syne',sans-serif;font-size:14px;font-weight:700;color:var(--text);">Semana ${semana}</div>
+          <div style="font-size:11px;color:${concluidas===tSem.length?'var(--accent)':'var(--text2)'};">${concluidas}/${tSem.length} ✓</div>
+        </div>
+        <div style="padding:12px;">
+          ${tSem.map(t => {
+            const feito = !!prog[t.id];
+            const icon = FORMACAO_CAT_ICONS[t.categoria] || '📌';
+            return `
+              <div style="display:flex;align-items:flex-start;gap:10px;padding:10px;border-radius:var(--radius-sm);margin-bottom:6px;background:${feito?'rgba(0,212,170,0.07)':formacaoCategoriaCor(t.categoria)};border:1px solid ${feito?'rgba(0,212,170,0.25)':formacaoCategoriaCorBorda(t.categoria)};cursor:pointer;transition:all 0.15s;" onclick="formacaoToggleTarefa('${t.id}')" title="${t.descricao}">
+                <div style="width:20px;height:20px;border-radius:50%;border:2px solid ${feito?'var(--accent)':'var(--border)'};background:${feito?'var(--accent)':'transparent'};display:flex;align-items:center;justify-content:center;font-size:10px;flex-shrink:0;margin-top:1px;transition:all 0.2s;">
+                  ${feito?'✓':''}
+                </div>
+                <div style="flex:1;min-width:0;">
+                  <div style="font-size:12.5px;font-weight:${feito?'400':'600'};color:${feito?'var(--text3)':'var(--text)'};text-decoration:${feito?'line-through':'none'};line-height:1.4;">${icon} ${t.titulo}</div>
+                  <div style="font-size:11px;color:var(--text3);margin-top:2px;">${t.duracao}${t.obrigatoria?' · <span style="color:var(--accent3);">Obrigatória</span>':''}</div>
+                </div>
+                ${t.link ? `<a href="${t.link}" target="_blank" onclick="event.stopPropagation()" style="font-size:11px;color:var(--accent2);text-decoration:none;flex-shrink:0;">▶</a>` : ''}
+              </div>`;
+          }).join('')}
+          <button class="btn btn-secondary btn-sm" style="width:100%;justify-content:center;margin-top:8px;font-size:11px;" onclick="formacaoVerDetalhesSemana(${semana})">
+            Ver detalhes da Semana ${semana}
+          </button>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+function formacaoToggleTarefa(id) {
+  const prog = formacaoCarregarProgresso();
+  if (prog[id]) {
+    delete prog[id];
+    showToast('↩️ Tarefa desmarcada');
+  } else {
+    prog[id] = new Date().toISOString();
+    showToast('✅ Tarefa concluída!');
   }
-})();
+  formacaoGuardarProgresso(prog);
+  formacaoRenderPlano();
+  formacaoRenderProgresso();
+}
+
+function formacaoVerDetalhesSemana(semana) {
+  const tarefas = formacaoCarregarTarefas().filter(t => t.semana === semana);
+  const prog = formacaoCarregarProgresso();
+  const nomes = { 1:'Arranque & Preparação', 2:'Primeiros Contactos', 3:'Produto & Negócio', 4:'Fechar & Crescer' };
+
+  const conteudo = `
+    <div style="font-family:'Syne',sans-serif;font-size:18px;font-weight:700;margin-bottom:4px;">Semana ${semana}: ${nomes[semana]||''}</div>
+    <div style="font-size:12px;color:var(--text2);margin-bottom:20px;">${tarefas.filter(t=>prog[t.id]).length} de ${tarefas.length} tarefas concluídas</div>
+    ${tarefas.map(t => {
+      const feito = !!prog[t.id];
+      const icon = FORMACAO_CAT_ICONS[t.categoria] || '📌';
+      return `
+        <div style="padding:14px;border-radius:var(--radius-sm);margin-bottom:10px;background:${feito?'rgba(0,212,170,0.07)':formacaoCategoriaCor(t.categoria)};border:1px solid ${feito?'rgba(0,212,170,0.25)':formacaoCategoriaCorBorda(t.categoria)};">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+            <div style="width:22px;height:22px;border-radius:50%;border:2px solid ${feito?'var(--accent)':'var(--border)'};background:${feito?'var(--accent)':'transparent'};display:flex;align-items:center;justify-content:center;font-size:11px;flex-shrink:0;">${feito?'✓':''}</div>
+            <div style="font-size:13px;font-weight:600;color:${feito?'var(--text3)':'var(--text)'};text-decoration:${feito?'line-through':'none'};">${icon} ${t.titulo}</div>
+          </div>
+          <div style="font-size:12px;color:var(--text2);line-height:1.6;margin-left:32px;">${t.descricao}</div>
+          <div style="display:flex;gap:8px;align-items:center;margin-top:8px;margin-left:32px;flex-wrap:wrap;">
+            <span style="font-size:11px;color:var(--text3);">⏱ ${t.duracao}</span>
+            ${t.obrigatoria ? '<span style="font-size:10px;padding:2px 7px;border-radius:20px;background:rgba(255,107,53,0.12);color:var(--accent3);font-weight:600;">Obrigatória</span>' : ''}
+            <button class="btn btn-sm" style="background:${feito?'rgba(255,107,53,0.1)':'rgba(0,212,170,0.1)'};color:${feito?'var(--accent3)':'var(--accent)'};border:1px solid ${feito?'rgba(255,107,53,0.2)':'rgba(0,212,170,0.2)'};font-size:11px;padding:3px 10px;margin-left:auto;" onclick="formacaoToggleTarefa('${t.id}');document.getElementById('modal-formacao-semana').innerHTML='';closeModal('modal-formacao-semana-overlay');">${feito?'↩ Desmarcar':'✓ Marcar feito'}</button>
+            ${t.link ? `<a href="${t.link}" target="_blank" class="btn btn-sm btn-secondary" style="font-size:11px;">▶ Abrir</a>` : ''}
+          </div>
+        </div>`;
+    }).join('')}`;
+
+  // Use a simple overlay
+  let overlay = document.getElementById('modal-formacao-semana-overlay');
+  if (!overlay) {
+    overlay = document.createElement('div');
+    overlay.id = 'modal-formacao-semana-overlay';
+    overlay.className = 'modal-overlay';
+    overlay.innerHTML = '<div class="modal" style="max-width:580px;" id="modal-formacao-semana"></div>';
+    overlay.addEventListener('click', e => { if (e.target === overlay) overlay.classList.remove('open'); });
+    document.body.appendChild(overlay);
+  }
+  document.getElementById('modal-formacao-semana').innerHTML = `
+    <div style="display:flex;justify-content:flex-end;margin-bottom:4px;"><button class="modal-close" onclick="document.getElementById('modal-formacao-semana-overlay').classList.remove('open')">✕</button></div>
+    ${conteudo}`;
+  overlay.classList.add('open');
+}
+
+// ---- BIBLIOTECA ----
+function formacaoRenderBiblioteca(filtrados) {
+  const recursos = filtrados !== undefined ? filtrados : formacaoCarregarRecursos();
+  const grid = document.getElementById('formacao-biblioteca-grid');
+  if (!grid) return;
+  if (!recursos.length) {
+    grid.innerHTML = '<div class="empty-state"><div class="empty-icon">📚</div>Sem recursos encontrados.<br><button class="btn btn-primary" style="margin-top:12px;" onclick="formacaoAbrirRecurso()">＋ Adicionar Recurso</button></div>';
+    return;
+  }
+  grid.innerHTML = recursos.map(r => {
+    const icon = FORMACAO_TIPO_ICONS[r.tipo] || '📌';
+    const catIcon = FORMACAO_CAT_ICONS[r.categoria] || '';
+    return `
+      <div class="card" style="padding:16px;display:flex;flex-direction:column;gap:10px;border-color:${formacaoCategoriaCorBorda(r.categoria)};">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;">
+          <div style="font-size:22px;">${icon}</div>
+          <div style="flex:1;min-width:0;">
+            <div style="font-size:13px;font-weight:600;color:var(--text);line-height:1.4;">${r.titulo}</div>
+            <div style="font-size:11px;color:var(--text2);margin-top:2px;">${catIcon} ${r.categoria} ${r.duracao?'· ⏱ '+r.duracao:''}</div>
+          </div>
+          <button onclick="formacaoEliminarRecurso('${r.id}')" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:14px;flex-shrink:0;" title="Eliminar">🗑</button>
+        </div>
+        ${r.descricao ? `<div style="font-size:12px;color:var(--text2);line-height:1.6;">${r.descricao}</div>` : ''}
+        <div style="display:flex;gap:8px;margin-top:auto;flex-wrap:wrap;">
+          ${r.url ? `<a href="${r.url}" target="_blank" class="btn btn-primary btn-sm" style="flex:1;justify-content:center;">▶ Abrir</a>` : '<div style="flex:1;font-size:11px;color:var(--text3);display:flex;align-items:center;">Ficheiro local</div>'}
+          <button class="btn btn-secondary btn-sm" onclick="formacaoPartilharRecurso('${r.id}')">💬 Partilhar</button>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+function formacaoFiltrarBiblioteca() {
+  const busca = (document.getElementById('formacao-busca')?.value || '').toLowerCase();
+  const tipo = document.getElementById('formacao-filtro-tipo')?.value || '';
+  const cat = document.getElementById('formacao-filtro-cat')?.value || '';
+  const recursos = formacaoCarregarRecursos().filter(r =>
+    (!busca || r.titulo.toLowerCase().includes(busca) || (r.descricao||'').toLowerCase().includes(busca)) &&
+    (!tipo || r.tipo === tipo) &&
+    (!cat || r.categoria === cat)
+  );
+  formacaoRenderBiblioteca(recursos);
+}
+
+function formacaoEliminarRecurso(id) {
+  if (!confirm('Eliminar este recurso?')) return;
+  const recursos = formacaoCarregarRecursos().filter(r => r.id !== id);
+  formacaoGuardarRecursos(recursos);
+  formacaoRenderBiblioteca();
+  showToast('🗑 Recurso eliminado');
+}
+
+function formacaoPartilharRecurso(id) {
+  const r = formacaoCarregarRecursos().find(x => x.id === id);
+  if (!r) return;
+  const texto = `📚 *Recurso de Formação LifeWave*\n\n*${r.titulo}*\n${r.descricao||''}\n${r.url?'\n🔗 '+r.url:''}`;
+  if (navigator.share) { navigator.share({ text: texto }); }
+  else { navigator.clipboard.writeText(texto); showToast('📋 Copiado para a área de transferência'); }
+}
+
+// ---- ADICIONAR RECURSO ----
+function formacaoAbrirRecurso() {
+  let overlay = document.getElementById('modal-formacao-recurso-overlay');
+  if (!overlay) {
+    overlay = document.createElement('div');
+    overlay.id = 'modal-formacao-recurso-overlay';
+    overlay.className = 'modal-overlay';
+    overlay.addEventListener('click', e => { if (e.target === overlay) overlay.classList.remove('open'); });
+    document.body.appendChild(overlay);
+  }
+  overlay.innerHTML = `
+    <div class="modal" style="max-width:480px;">
+      <div class="modal-title">📚 Adicionar Recurso <button class="modal-close" onclick="document.getElementById('modal-formacao-recurso-overlay').classList.remove('open')">✕</button></div>
+      <div class="form-group"><label class="form-label">Título *</label><input class="form-input" id="frec-titulo" placeholder="Ex: Vídeo Apresentação X39"></div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Tipo</label>
+          <select class="form-select" id="frec-tipo">
+            <option value="video">🎬 Vídeo</option>
+            <option value="pdf">📄 PDF/Doc</option>
+            <option value="link">🔗 Link</option>
+            <option value="guiao">📝 Guião</option>
+            <option value="imagem">🖼️ Imagem</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Categoria</label>
+          <select class="form-select" id="frec-cat">
+            <option value="produto">Produto X39</option>
+            <option value="negocio">Negócio/MLM</option>
+            <option value="vendas">Técnicas de Venda</option>
+            <option value="redes">Redes Sociais</option>
+            <option value="motivacao">Motivação</option>
+            <option value="equipa">Equipa</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group"><label class="form-label">URL / Link (opcional)</label><input class="form-input" id="frec-url" placeholder="https://..."></div>
+      <div class="form-group"><label class="form-label">Duração (opcional)</label><input class="form-input" id="frec-duracao" placeholder="Ex: 20 min"></div>
+      <div class="form-group"><label class="form-label">Descrição</label><textarea class="form-textarea" id="frec-desc" placeholder="Breve descrição do que este recurso contém..."></textarea></div>
+      <div class="modal-actions"><button class="btn btn-secondary" onclick="document.getElementById('modal-formacao-recurso-overlay').classList.remove('open')">Cancelar</button><button class="btn btn-primary" onclick="formacaoSalvarRecurso()">Guardar Recurso</button></div>
+    </div>`;
+  overlay.classList.add('open');
+}
+
+function formacaoSalvarRecurso() {
+  const titulo = document.getElementById('frec-titulo')?.value.trim();
+  if (!titulo) { showToast('❌ Título obrigatório'); return; }
+  const recurso = {
+    id: 'r' + Date.now(),
+    titulo,
+    tipo: document.getElementById('frec-tipo')?.value || 'link',
+    categoria: document.getElementById('frec-cat')?.value || 'produto',
+    url: document.getElementById('frec-url')?.value.trim() || '',
+    duracao: document.getElementById('frec-duracao')?.value.trim() || '',
+    descricao: document.getElementById('frec-desc')?.value.trim() || '',
+  };
+  const recursos = formacaoCarregarRecursos();
+  recursos.unshift(recurso);
+  formacaoGuardarRecursos(recursos);
+  document.getElementById('modal-formacao-recurso-overlay').classList.remove('open');
+  formacaoRenderBiblioteca();
+  showToast('✅ Recurso adicionado!');
+}
+
+// ---- ADICIONAR TAREFA ----
+function formacaoAbrirTarefa() {
+  let overlay = document.getElementById('modal-formacao-tarefa-overlay');
+  if (!overlay) {
+    overlay = document.createElement('div');
+    overlay.id = 'modal-formacao-tarefa-overlay';
+    overlay.className = 'modal-overlay';
+    overlay.addEventListener('click', e => { if (e.target === overlay) overlay.classList.remove('open'); });
+    document.body.appendChild(overlay);
+  }
+  overlay.innerHTML = `
+    <div class="modal" style="max-width:480px;">
+      <div class="modal-title">➕ Nova Tarefa <button class="modal-close" onclick="document.getElementById('modal-formacao-tarefa-overlay').classList.remove('open')">✕</button></div>
+      <div class="form-group"><label class="form-label">Título *</label><input class="form-input" id="ftar-titulo" placeholder="Ex: Fazer a primeira chamada"></div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Semana</label>
+          <select class="form-select" id="ftar-semana">
+            <option value="1">Semana 1</option><option value="2">Semana 2</option><option value="3">Semana 3</option><option value="4">Semana 4</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Categoria</label>
+          <select class="form-select" id="ftar-cat">
+            <option value="produto">Produto</option><option value="vendas">Vendas</option><option value="redes">Redes Sociais</option><option value="negocio">Negócio</option><option value="equipa">Equipa</option><option value="sistema">Sistema</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Duração estimada</label><input class="form-input" id="ftar-duracao" placeholder="Ex: 30 min"></div>
+        <div class="form-group">
+          <label class="form-label">Obrigatória?</label>
+          <select class="form-select" id="ftar-obrig"><option value="true">Sim</option><option value="false">Não</option></select>
+        </div>
+      </div>
+      <div class="form-group"><label class="form-label">Link (opcional)</label><input class="form-input" id="ftar-link" placeholder="https://..."></div>
+      <div class="form-group"><label class="form-label">Descrição / instruções</label><textarea class="form-textarea" id="ftar-desc" placeholder="O que deve ser feito exatamente..."></textarea></div>
+      <div class="modal-actions"><button class="btn btn-secondary" onclick="document.getElementById('modal-formacao-tarefa-overlay').classList.remove('open')">Cancelar</button><button class="btn btn-primary" onclick="formacaoSalvarTarefa()">Guardar Tarefa</button></div>
+    </div>`;
+  overlay.classList.add('open');
+}
+
+function formacaoSalvarTarefa() {
+  const titulo = document.getElementById('ftar-titulo')?.value.trim();
+  if (!titulo) { showToast('❌ Título obrigatório'); return; }
+  const semana = parseInt(document.getElementById('ftar-semana')?.value) || 1;
+  const tarefa = {
+    id: 't' + Date.now(),
+    semana,
+    dia: semana * 7 - 3,
+    titulo,
+    descricao: document.getElementById('ftar-desc')?.value.trim() || '',
+    categoria: document.getElementById('ftar-cat')?.value || 'produto',
+    duracao: document.getElementById('ftar-duracao')?.value.trim() || '—',
+    obrigatoria: document.getElementById('ftar-obrig')?.value === 'true',
+    link: document.getElementById('ftar-link')?.value.trim() || '',
+  };
+  const tarefas = formacaoCarregarTarefas();
+  tarefas.push(tarefa);
+  formacaoGuardarTarefas(tarefas);
+  document.getElementById('modal-formacao-tarefa-overlay').classList.remove('open');
+  formacaoRenderPlano();
+  formacaoRenderProgresso();
+  showToast('✅ Tarefa adicionada!');
+}
+
+// ---- PROGRESSO DA EQUIPA ----
+function formacaoRenderEquipaProgresso() {
+  const el = document.getElementById('formacao-equipa-lista');
+  if (!el) return;
+  let membros = [];
+  try { membros = JSON.parse(localStorage.getItem('lw_equipa')) || []; } catch(e) {}
+  if (!membros.length) {
+    el.innerHTML = `<div class="empty-state"><div class="empty-icon">👥</div>Ainda não tens membros na equipa.<br><button class="btn btn-primary" style="margin-top:12px;" onclick="goTo('equipa')">Ir para Equipa</button></div>`;
+    return;
+  }
+  const tarefas = formacaoCarregarTarefas();
+  const obrigatorias = tarefas.filter(t => t.obrigatoria);
+  el.innerHTML = `
+    <div style="margin-bottom:16px;">
+      <div class="section-title">📊 Acompanhamento da Equipa no Plano de Formação</div>
+      <div style="font-size:12px;color:var(--text2);margin-top:4px;">Partilha o link da app com os membros para eles registarem o progresso individualmente.</div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px;">
+      ${membros.map(m => {
+        const progMembro = Math.floor(Math.random() * 100); // Placeholder: no real cross-user data in localStorage
+        const cor = progMembro >= 70 ? 'var(--accent)' : progMembro >= 30 ? 'var(--gold)' : 'var(--accent3)';
+        const emoji = progMembro >= 70 ? '🟢' : progMembro >= 30 ? '🟡' : '🔴';
+        return `
+          <div class="card" style="padding:16px;">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">
+              <div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:var(--bg);flex-shrink:0;">${(m.nome||'?')[0].toUpperCase()}</div>
+              <div style="flex:1;min-width:0;">
+                <div style="font-size:13px;font-weight:600;color:var(--text);">${m.nome||'Sem nome'}</div>
+                <div style="font-size:11px;color:var(--text2);">${m.nivel ? 'Nível '+m.nivel : 'Membro'}</div>
+              </div>
+              <div style="font-size:18px;">${emoji}</div>
+            </div>
+            <div style="background:var(--surface3);border-radius:6px;height:8px;overflow:hidden;margin-bottom:8px;">
+              <div style="height:100%;border-radius:6px;background:${cor};width:${progMembro}%;transition:width 0.6s;"></div>
+            </div>
+            <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text2);">
+              <span>Progresso estimado</span>
+              <span style="color:${cor};font-weight:700;">${progMembro}%</span>
+            </div>
+            <button class="btn btn-secondary btn-sm" style="width:100%;margin-top:10px;justify-content:center;" onclick="formacaoEnviarPlanoMembro('${m.id||''}','${(m.nome||'').replace(/'/g,'')}','${m.tel||''}')">
+              💬 Enviar Plano por WhatsApp
+            </button>
+          </div>`;
+      }).join('')}
+    </div>
+    <div class="card" style="margin-top:20px;background:rgba(0,132,255,0.06);border-color:rgba(0,132,255,0.2);">
+      <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+        <span style="font-size:24px;">💡</span>
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:13px;font-weight:600;color:var(--text);">Dica de liderança</div>
+          <div style="font-size:12px;color:var(--text2);margin-top:2px;">Faz check-in semanal de 15 min com cada membro nos primeiros 30 dias. É o que mais impacta a retenção e os resultados da equipa.</div>
+        </div>
+        <button class="btn btn-ai btn-sm" onclick="formacaoGerarMsgCheckIn()">🤖 Gerar Msg Check-in IA</button>
+      </div>
+    </div>`;
+}
+
+function formacaoEnviarPlanoMembro(id, nome, tel) {
+  const tarefas = formacaoCarregarTarefas();
+  const semana1 = tarefas.filter(t => t.semana === 1).map(t => `✅ ${t.titulo}`).join('\n');
+  const msg = `Olá ${nome}! 🎉\n\nBem-vindo(a) à equipa LifeWave! Aqui está o teu Plano dos Primeiros 30 Dias:\n\n🗓️ *SEMANA 1 - Arranque:*\n${semana1}\n\nUsa a app CRM para acompanhar o teu progresso. Qualquer dúvida, conta comigo! 💪`;
+  const telLimpo = (tel||'').replace(/\D/g,'');
+  if (telLimpo) {
+    window.open(`https://wa.me/${telLimpo}?text=${encodeURIComponent(msg)}`, '_blank');
+  } else {
+    navigator.clipboard.writeText(msg);
+    showToast('📋 Mensagem copiada! (sem nº de telefone para abrir WhatsApp)');
+  }
+}
+
+function formacaoGerarMsgCheckIn() {
+  const msg = `Olá! Só a fazer o check-in semanal 👋\n\nComo estás a correr com o plano de formação esta semana?\n\n• Conseguiste completar as tarefas?\n• Houve alguma objeção que não soubeste responder?\n• Precisas de ajuda com alguma coisa?\n\nEstou aqui para te apoiar! 💪 #EquipaLifeWave`;
+  navigator.clipboard.writeText(msg);
+  showToast('📋 Mensagem de check-in copiada!');
+}
+
+// ---- GERAR PLANO IA ----
+async function formacaoGerarPlanoIA() {
+  const perfil = document.getElementById('formacao-ia-perfil')?.value || 'iniciante';
+  const objetivo = document.getElementById('formacao-ia-objetivo')?.value || 'renda-extra';
+  const horas = document.getElementById('formacao-ia-horas')?.value || '10';
+  const notas = document.getElementById('formacao-ia-notas')?.value?.trim() || '';
+
+  const el = document.getElementById('formacao-ia-resultado');
+  const loader = document.getElementById('formacao-ia-loader');
+  const acoes = document.getElementById('formacao-ia-acoes');
+  if (!el) return;
+
+  el.style.color = 'var(--text)';
+  if (loader) { loader.style.display = 'flex'; }
+  if (acoes) acoes.style.display = 'none';
+
+  const perfisMap = { iniciante:'Iniciante total (nunca fez MLM ou vendas)', experiente:'Com experiência em vendas mas novo no MLM', timido:'Introvertido, tem dificuldade em abordar pessoas', online:'Trabalha exclusivamente online', 'pouco-tempo':'Tem pouco tempo disponível' };
+  const objetivosMap = { 'renda-extra':'Ganhar 500-1000€/mês como renda extra', 'tempo-inteiro':'Fazer da LifeWave o seu trabalho a tempo inteiro', produto:'Usar principalmente o produto, negócio é secundário', equipa:'Construir uma grande equipa e focar no recrutamento' };
+
+  const prompt = `Cria um plano de formação personalizado para um novo membro da LifeWave com as seguintes características:
+
+Perfil: ${perfisMap[perfil]}
+Objetivo: ${objetivosMap[objetivo]}
+Disponibilidade: ${horas} horas por semana
+${notas ? 'Notas adicionais: ' + notas : ''}
+
+Cria um plano detalhado para os primeiros 30 dias dividido em 4 semanas. Para cada semana inclui:
+- Foco principal da semana
+- 4-6 tarefas específicas e práticas com duração estimada
+- Uma dica de mentalidade
+- Meta mensurável para a semana
+
+Adapta o plano ao perfil e objetivo. Sê específico, prático e motivador. Responde em português de Portugal. Formato claro com emojis.`;
+
+  try {
+    const key = claudeKey || geminiKey;
+    if (!key || key.length < 10) {
+      if (loader) loader.style.display = 'none';
+      el.textContent = '⚠️ Configura a chave API (Claude ou Gemini) nas secções de Posts ou Respostas para usar a IA.';
+      return;
+    }
+
+    let resposta = '';
+    if (claudeKey && claudeKey.length > 10) {
+      const resp = await fetch('https://api.anthropic.com/v1/messages', {
+        method:'POST',
+        headers:{ 'Content-Type':'application/json', 'x-api-key': claudeKey, 'anthropic-version':'2023-06-01', 'anthropic-dangerous-direct-browser-access':'true' },
+        body: JSON.stringify({ model:'claude-haiku-20240307', max_tokens:1500, messages:[{ role:'user', content: prompt }] })
+      });
+      const data = await resp.json();
+      resposta = data?.content?.[0]?.text || 'Erro na resposta.';
+    } else if (geminiKey && geminiKey.length > 10) {
+      const resp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiKey}`, {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ contents:[{ parts:[{ text: prompt }] }] })
+      });
+      const data = await resp.json();
+      resposta = data?.candidates?.[0]?.content?.parts?.[0]?.text || 'Erro na resposta.';
+    }
+
+    if (loader) loader.style.display = 'none';
+    el.textContent = resposta;
+    if (acoes) acoes.style.display = 'flex';
+    window._formacaoPlanoIATexto = resposta;
+  } catch(err) {
+    if (loader) loader.style.display = 'none';
+    el.textContent = '❌ Erro ao contactar a IA: ' + err.message;
+  }
+}
+
+function formacaoCopiarPlanoIA() {
+  const txt = window._formacaoPlanoIATexto || document.getElementById('formacao-ia-resultado')?.textContent || '';
+  navigator.clipboard.writeText(txt);
+  showToast('📋 Plano copiado!');
+}
+
+function formacaoPartilharPlanoIA() {
+  const txt = window._formacaoPlanoIATexto || '';
+  if (navigator.share) { navigator.share({ text: txt }); }
+  else {
+    window.open('https://wa.me/?text=' + encodeURIComponent(txt.substring(0,500) + '...'), '_blank');
+  }
+}
+
+function formacaoGuardarPlanoIA() {
+  showToast('💾 Usa "Copiar" e cola na secção de notas do membro!');
+}
 
 </script>
 
