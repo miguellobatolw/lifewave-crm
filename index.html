@@ -180,9 +180,9 @@
     margin-bottom: 28px;
   }
   .stat-card {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
+    background: var(--surface, #111827);
+    border: 1px solid var(--border, rgba(255,255,255,0.08));
+    border-radius: var(--radius, 14px);
     padding: 18px 20px;
     position: relative;
     overflow: hidden;
@@ -312,22 +312,21 @@
   .modal-overlay {
     position: fixed;
     inset: 0;
-    background: rgba(0,0,0,0.7);
+    background: rgba(0,0,0,0.75);
+    -webkit-backdrop-filter: blur(4px);
     backdrop-filter: blur(4px);
     z-index: 200;
-    display: flex;
+    display: none;
     align-items: center;
     justify-content: center;
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity 0.2s;
     padding: 12px 0;
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
   }
-  .modal-overlay.open { opacity: 1; pointer-events: all; }
+  .modal-overlay.open { display: flex; }
   .modal {
-    background: var(--surface);
+    background: #111827;
+    background: var(--surface, #111827);
     border: 1px solid var(--border);
     border-radius: 18px;
     width: 92%;
@@ -337,8 +336,8 @@
     -webkit-overflow-scrolling: touch;
     overscroll-behavior: contain;
     padding: 28px;
-    transform: translateY(20px);
-    transition: transform 0.2s;
+    
+    
     box-shadow: var(--shadow);
   }
   .modal-overlay.open .modal { transform: translateY(0); }
@@ -669,7 +668,11 @@
     .sidebar { display: none; }
 
     /* Main ocupa tudo */
-    .main { margin-left: 0; padding: 14px 12px 90px; min-height: 100dvh; background: var(--bg); }
+    .main { margin-left: 0; padding: 14px 12px 90px; min-height: 100dvh; background: var(--bg); width: 100%; max-width: 100vw; }
+    .page-header { flex-wrap: wrap; gap: 10px; margin-bottom: 16px; }
+    .page-header > div:last-child { flex-wrap: wrap; gap: 6px; }
+    .stats-grid { grid-template-columns: 1fr 1fr !important; gap: 10px; }
+    .stat-card { background: #111827 !important; border: 1px solid rgba(255,255,255,0.1) !important; min-height: 80px; }
 
     /* Navbar em baixo tipo app */
     .bottom-nav {
@@ -1785,7 +1788,7 @@
   /* Snooze button */
   /* Metas widget */
   .metas-widget {
-    background: var(--surface2);
+    background: var(--surface2, #1a2235);
     border: 1px solid rgba(99,179,237,0.25);
     border-radius: 14px;
     padding: 16px 18px;
@@ -2204,38 +2207,66 @@
     justify-content: space-between;
     padding: 12px 18px;
     cursor: pointer;
-    gap: 12px;
-    flex-wrap: wrap;
+    gap: 10px;
+    flex-wrap: nowrap;
   }
   .promo-banner-header:hover { background: rgba(255,255,255,0.02); }
   .promo-banner-left {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 10px;
     flex: 1;
     min-width: 0;
+    overflow: hidden;
   }
   .promo-banner-icon {
-    font-size: 24px;
+    font-size: 22px;
     flex-shrink: 0;
   }
   .promo-banner-title {
     font-family: 'Syne', sans-serif;
     font-weight: 700;
-    font-size: 14px;
+    font-size: 13px;
     color: var(--gold);
     line-height: 1.3;
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 5px;
   }
   .promo-banner-sub {
     font-size: 11px;
     color: var(--text2);
     margin-top: 2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
   .promo-banner-right {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 8px;
     flex-shrink: 0;
+  }
+  @media (max-width: 480px) {
+    .promo-banner-header {
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .promo-banner-left {
+      width: 100%;
+      flex: none;
+    }
+    .promo-banner-right {
+      width: 100%;
+      justify-content: space-between;
+    }
+    .promo-countdown {
+      flex: 1;
+    }
+    .promo-banner-sub {
+      white-space: normal;
+    }
   }
   .promo-countdown {
     display: flex;
@@ -2656,22 +2687,18 @@
     position: fixed;
     inset: 0;
     background: rgba(0,0,0,0.85);
+    -webkit-backdrop-filter: blur(6px);
     backdrop-filter: blur(6px);
     z-index: 99999;
-    display: flex;
+    display: none;
     align-items: center;
     justify-content: center;
     padding: 16px;
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity 0.35s ease;
   }
-  #welcome-overlay.open {
-    opacity: 1;
-    pointer-events: all;
-  }
+  #welcome-overlay.open { display: flex; }
   .welcome-box {
-    background: var(--surface);
+    background: #111827;
+    background: var(--surface, #111827);
     border: 1px solid rgba(0,212,170,0.2);
     border-radius: 20px;
     width: 100%;
@@ -2680,8 +2707,6 @@
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
     box-shadow: 0 24px 80px rgba(0,0,0,0.6), 0 0 0 1px rgba(0,212,170,0.08);
-    transform: translateY(24px) scale(0.97);
-    transition: transform 0.35s ease;
     position: relative;
   }
   #welcome-overlay.open .welcome-box {
@@ -4355,6 +4380,9 @@
       <!-- KPIs RECEITA -->
       <div class="stats-grid" id="com-kpis" style="margin-bottom:24px;"></div>
 
+      <!-- ── MÓDULO PV/BV ── -->
+      <div id="pv-rastreio-module" style="margin-bottom:22px;"></div>
+
       <!-- META MENSAL -->
       <div id="com-meta-banner" style="margin-bottom:24px;display:none;">
         <div class="card" style="background:linear-gradient(135deg,rgba(0,212,170,0.07),rgba(0,132,255,0.05));border-color:rgba(0,212,170,0.25);">
@@ -5390,6 +5418,40 @@
       </div>
     </div><!-- end page-metas -->
 
+    <!-- ============================================================ -->
+    <!-- PAGE: TUTORIAL PASSO A PASSO                                 -->
+    <!-- ============================================================ -->
+    <div id="page-tutorial" class="page">
+      <div class="page-header">
+        <div>
+          <div class="page-title">🚀 Guia Rápido de Início</div>
+          <div class="page-sub">Segue estes passos para tirar o máximo partido da app</div>
+        </div>
+        <button class="btn btn-secondary" onclick="goTo('dashboard')">✕ Saltar tutorial</button>
+      </div>
+
+      <!-- Progresso geral -->
+      <div class="card" style="margin-bottom:20px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+          <span style="font-size:13px;color:var(--text2);">Progresso</span>
+          <span id="tut-progress-label" style="font-size:13px;font-weight:700;color:var(--accent);">0 / 7 concluídos</span>
+        </div>
+        <div style="height:8px;background:var(--surface2);border-radius:4px;overflow:hidden;">
+          <div id="tut-progress-fill" style="height:100%;width:0%;background:linear-gradient(90deg,var(--accent),var(--accent2));border-radius:4px;transition:width 0.4s ease;"></div>
+        </div>
+      </div>
+
+      <!-- Lista de passos -->
+      <div style="display:flex;flex-direction:column;gap:12px;" id="tut-steps-list"></div>
+
+      <!-- Footer -->
+      <div class="card" style="margin-top:24px;text-align:center;background:linear-gradient(135deg,rgba(0,212,170,0.06),rgba(0,132,255,0.04));border-color:rgba(0,212,170,0.2);">
+        <div style="font-size:14px;font-weight:600;color:var(--text);margin-bottom:6px;">🎯 Pronto para começar?</div>
+        <div style="font-size:12px;color:var(--text2);margin-bottom:14px;">Podes voltar a este tutorial sempre que quiseres, através do botão 🗺️.</div>
+        <button class="btn btn-primary" onclick="goTo('dashboard')">Ir para o Dashboard →</button>
+      </div>
+    </div><!-- end page-tutorial -->
+
     <!-- MODAL CONFIG METAS -->
     <div class="modal-overlay" id="modal-metas-config">
       <div class="modal" style="max-width:500px;max-height:90vh;overflow-y:auto;">
@@ -5702,6 +5764,35 @@
 
 </div>
 
+<!-- MODAL: REGISTAR PV/BV -->
+<div class="modal-overlay" id="modal-pv-registar">
+  <div class="modal" style="max-width:420px;">
+    <div class="modal-title">
+      <span>📊 Atualizar PV/BV</span>
+      <button class="modal-close" onclick="closeModal('modal-pv-registar')">✕</button>
+    </div>
+    <div id="pv-modal-mes-label" style="font-size:12px;color:var(--text2);margin-bottom:16px;"></div>
+    <div class="form-group">
+      <label class="form-label">Volume Pessoal (PV) — as tuas vendas este mês</label>
+      <input class="form-input" type="number" id="pv-input-pv" placeholder="Ex: 110" min="0" step="1">
+      <div style="margin-top:8px;display:flex;flex-wrap:wrap;gap:6px;" id="pv-rank-hints"></div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">BV da equipa — volume total da tua rede este mês</label>
+      <input class="form-input" type="number" id="pv-input-bv" placeholder="Ex: 2500" min="0" step="1">
+      <div style="font-size:11px;color:var(--text3);margin-top:4px;">Soma dos BV de todos os membros da tua rede</div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Notas (opcional)</label>
+      <input class="form-input" id="pv-input-notas" placeholder="Ex: Mês forte, fiz 3 clientes novos">
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="closeModal('modal-pv-registar')">Cancelar</button>
+      <button class="btn btn-primary" onclick="pvGuardar()">💾 Guardar</button>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL: NOVO LEAD -->
 <div class="modal-overlay" id="modal-lead">
   <div class="modal">
@@ -5981,7 +6072,7 @@ function goTo(page) {
   document.querySelectorAll('.bn-item').forEach(n => n.classList.remove('active'));
   document.getElementById('page-' + page).classList.add('active');
   const items = document.querySelectorAll('.nav-item');
-  const map = { dashboard: 0, acoes: 1, funil: 2, lista: 3, posts: 4, calendario: 5, agenda: 6, respostas: 7, coach: 8, stats: 9, equipa: 10, comissoes: 11, luminate: 12, calculadora: 13, 'plano-comp': 14, formacao: 15, catalogo: 16, percurso: 17, stories: 18, objecoes: 19, metas: 20 };
+  const map = { dashboard: 0, acoes: 1, funil: 2, lista: 3, posts: 4, calendario: 5, agenda: 6, respostas: 7, coach: 8, stats: 9, equipa: 10, comissoes: 11, luminate: 12, calculadora: 13, 'plano-comp': 14, formacao: 15, catalogo: 16, percurso: 17, stories: 18, objecoes: 19, metas: 20, tutorial: 21 };
   if (map[page] !== undefined && items[map[page]]) items[map[page]].classList.add('active');
   const bnEl = document.getElementById('bn-' + page);
   if (bnEl) bnEl.classList.add('active');
@@ -6003,26 +6094,17 @@ function goTo(page) {
   if (page === 'stories') storiesInit();
   if (page === 'objecoes') objecoesInit();
   if (page === 'metas') metasInit();
+  if (page === 'tutorial') tutorialInit();
   window.scrollTo(0, 0);
-
-  // Auto-mark welcome steps when key pages are visited
-  try {
-    const pageToStep = { acoes: 'acoes', funil: 'funil', metas: 'metas', posts: 'posts', coach: 'coach', equipa: 'equipa' };
-    if (pageToStep[page] && typeof welcomeGetProgress === 'function') {
-      const done = welcomeGetProgress();
-      if (!done.includes(pageToStep[page])) {
-        done.push(pageToStep[page]);
-        welcomeSaveProgress(done);
-        if (document.getElementById('welcome-overlay')?.classList.contains('open')) {
-          welcomeUpdateUI();
-        }
-      }
-    }
-  } catch(e) {}
 }
 
 // ===== MODAL =====
-function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+function closeModal(id) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.classList.remove('open');
+  el.style.display = '';
+}
 document.querySelectorAll('.modal-overlay').forEach(m => {
   m.addEventListener('click', e => { if (e.target === m) m.classList.remove('open'); });
 });
@@ -6065,11 +6147,11 @@ function salvarLead() {
   renderLista();
   showToast(foiEdicao ? '✓ Lead atualizado' : '✓ Lead adicionado');
 
-  // Auto-mark "funil" welcome step on first lead
+  // Auto-mark "funil" tutorial step on first lead
   try {
-    if (!foiEdicao && typeof welcomeGetProgress === 'function') {
-      const done = welcomeGetProgress();
-      if (!done.includes('funil')) { done.push('funil'); welcomeSaveProgress(done); welcomeUpdateUI(); }
+    if (!foiEdicao && typeof tutGetProgress === 'function') {
+      const done = tutGetProgress();
+      if (!done.includes('funil')) { done.push('funil'); tutSaveProgress(done); }
     }
   } catch(e) {}
 }
@@ -7817,6 +7899,13 @@ function confirmarImportGoogleContacts() {
   const ignorados = selecionados.length - novos;
   showToast(`✅ ${novos} contacto(s) importado(s) do Google!${ignorados > 0 ? ` (${ignorados} duplicado(s) ignorado(s))` : ''}`);
 
+  // Auto-mark tutorial step "gcontacts"
+  if (novos > 0) {
+    const tdone = tutGetProgress();
+    if (!tdone.includes('gcontacts')) { tdone.push('gcontacts'); tutSaveProgress(tdone); }
+    if (document.getElementById('page-tutorial')?.classList.contains('active')) tutRender();
+  }
+
   const status = document.getElementById('contacts-gsync-status');
   if (status) { status.textContent = `✅ ${novos} importados`; status.className = 'gsync-status ok'; }
 }
@@ -8561,7 +8650,13 @@ function openModal(id) {
     document.getElementById('mb-estado').value = 'ativo';
     atualizarCategoriaPreview();
   }
-  document.getElementById(id).classList.add('open');
+  const _el = document.getElementById(id);
+  if (_el) {
+    _el.style.pointerEvents = 'all';
+    _el.classList.add('open');
+    _el.offsetHeight;
+    requestAnimationFrame(() => { _el.style.opacity = '1'; });
+  }
 }
 
 
@@ -8800,48 +8895,19 @@ function entrarNaApp(user) {
   setTimeout(welcomeCheckAndShow, 900);
 }
 
-// ===== WELCOME POPUP LOGIC =====
-const WELCOME_VERSION = 'v11';
-const WELCOME_STEPS_KEY = 'lw_welcome_steps_' + WELCOME_VERSION;
+// ===== WELCOME POPUP LOGIC (simplificado) =====
+const WELCOME_VERSION = 'v13';
 
-const WELCOME_STEPS_DEF = [
-  { id: 'perfil',  label: 'Configura o teu Perfil',          page: null,   action: () => { welcomeClose(false); setTimeout(() => abrirPerfilModal(false), 200); } },
-  { id: 'funil',   label: 'Adiciona o teu primeiro Lead',     page: 'funil',action: null },
-  { id: 'acoes',   label: 'Vê as tuas Ações de Hoje',         page: 'acoes',action: null },
-  { id: 'metas',   label: 'Define as tuas Metas mensais',     page: 'metas',action: null },
-  { id: 'posts',   label: 'Cria o teu primeiro Post com IA',  page: 'posts',action: null },
-  { id: 'coach',   label: 'Experimenta o Coach IA',           page: 'coach',action: null },
-  { id: 'equipa',  label: 'Regista a tua Equipa',             page: 'equipa',action: null },
-];
-
-function welcomeGetProgress() {
-  try { return JSON.parse(localStorage.getItem(WELCOME_STEPS_KEY) || '[]'); } catch(e) { return []; }
-}
-
-function welcomeSaveProgress(done) {
-  localStorage.setItem(WELCOME_STEPS_KEY, JSON.stringify(done));
-}
+// Fallback: se a sessão já estava guardada (utilizador não passou pelo entrarNaApp),
+// mostra o popup assim que o DOM carregar.
+document.addEventListener('DOMContentLoaded', () => {
+  setTimeout(() => {
+    const appVisible = document.querySelector('.app')?.style.display === 'flex';
+    if (appVisible) welcomeCheckAndShow();
+  }, 1200);
+});
 
 function welcomeUpdateUI() {
-  const done = welcomeGetProgress();
-  const total = WELCOME_STEPS_DEF.length;
-  const count = done.length;
-  const pct = Math.round((count / total) * 100);
-
-  // update progress bar
-  const fill = document.getElementById('welcome-progress-fill');
-  const label = document.getElementById('welcome-progress-label');
-  if (fill) fill.style.width = pct + '%';
-  if (label) label.textContent = count + ' / ' + total + ' concluídos';
-
-  // update steps
-  WELCOME_STEPS_DEF.forEach((s, i) => {
-    const el = document.getElementById('wstep-' + i);
-    if (!el) return;
-    if (done.includes(s.id)) el.classList.add('done');
-    else el.classList.remove('done');
-  });
-
   // personalize title
   const titleEl = document.getElementById('welcome-title');
   if (titleEl && currentUser) {
@@ -8852,12 +8918,14 @@ function welcomeUpdateUI() {
 
 function welcomeCheckAndShow() {
   const dismissed = localStorage.getItem('lw_welcome_dismissed_' + WELCOME_VERSION);
+  const btn = document.getElementById('btn-reopen-welcome');
   if (dismissed) {
-    // Already dismissed — show floating button only
-    const btn = document.getElementById('btn-reopen-welcome');
-    if (btn) btn.classList.add('visible');
+    // Utilizador já clicou "Começar Aqui" — botão não aparece
+    if (btn) btn.classList.remove('visible');
     return;
   }
+  // Primeira vez ou fechou com X — mostrar popup e esconder botão
+  if (btn) btn.classList.remove('visible');
   welcomeOpen();
 }
 
@@ -8865,6 +8933,9 @@ function welcomeOpen() {
   welcomeUpdateUI();
   const overlay = document.getElementById('welcome-overlay');
   if (overlay) {
+    overlay.style.display = 'flex';
+    overlay.style.opacity = '1';
+    overlay.style.pointerEvents = 'all';
     overlay.classList.add('open');
     const btn = document.getElementById('btn-reopen-welcome');
     if (btn) btn.classList.remove('visible');
@@ -8873,90 +8944,135 @@ function welcomeOpen() {
 
 function welcomeClose(permanent) {
   const overlay = document.getElementById('welcome-overlay');
-  if (overlay) overlay.classList.remove('open');
+  if (overlay) {
+    overlay.classList.remove('open');
+    overlay.style.display = 'none';
+    overlay.style.opacity = '';
+    overlay.style.pointerEvents = '';
+  }
+  // Botão 🗺️ só fica escondido se "começar aqui" foi clicado (permanent=true)
   const btn = document.getElementById('btn-reopen-welcome');
-  if (btn) btn.classList.add('visible');
+  if (btn) {
+    if (permanent) {
+      btn.classList.remove('visible'); // esconde após "Começar"
+    } else {
+      btn.classList.add('visible'); // X fechou — mantém botão visível
+    }
+  }
   if (permanent) {
     localStorage.setItem('lw_welcome_dismissed_' + WELCOME_VERSION, '1');
   }
 }
 
 function welcomeStart() {
-  // Navigate to the first incomplete step
-  const done = welcomeGetProgress();
-  const next = WELCOME_STEPS_DEF.find(s => !done.includes(s.id));
-  if (!next) {
-    // All done
-    welcomeClose(true);
-    showToast('🎉 Configuração completa! Estás pronto.');
-    return;
-  }
-  if (next.action) {
-    next.action();
-  } else if (next.page) {
-    welcomeClose(false);
-    setTimeout(() => goTo(next.page), 200);
-  }
+  // Esconder botão 🗺️ ao iniciar
+  const btn = document.getElementById('btn-reopen-welcome');
+  if (btn) btn.classList.remove('visible');
+  welcomeClose(true); // fecha e marca como iniciado
+  setTimeout(() => goTo('tutorial'), 200);
 }
-
-function welcomeStepClick(index, stepId) {
-  const step = WELCOME_STEPS_DEF[index];
-  if (!step) return;
-  const done = welcomeGetProgress();
-
-  // Toggle done state
-  if (done.includes(stepId)) {
-    const newDone = done.filter(d => d !== stepId);
-    welcomeSaveProgress(newDone);
-    welcomeUpdateUI();
-    return;
-  }
-
-  // Mark as done and navigate
-  if (!done.includes(stepId)) {
-    done.push(stepId);
-    welcomeSaveProgress(done);
-    welcomeUpdateUI();
-  }
-
-  // Navigate after a short delay
-  setTimeout(() => {
-    if (step.action) {
-      step.action();
-    } else if (step.page) {
-      welcomeClose(false);
-      setTimeout(() => goTo(step.page), 180);
-    }
-  }, 220);
-
-  // Check if all done
-  const updatedDone = welcomeGetProgress();
-  if (updatedDone.length === WELCOME_STEPS_DEF.length) {
-    setTimeout(() => showToast('🎉 Configuração 100% completa! Parabéns!'), 600);
-  }
-}
-
-// Auto-mark "perfil" step as done if slug is already set
-function welcomeAutoMarkPerfil() {
-  if (!currentUser) return;
-  const p = getUserPerfil();
-  if (p.slug) {
-    const done = welcomeGetProgress();
-    if (!done.includes('perfil')) {
-      done.push('perfil');
-      welcomeSaveProgress(done);
-    }
-  }
-}
-
-// Hook into salvarPerfil to auto-mark step
-const _origSalvarPerfil = typeof salvarPerfil === 'function' ? salvarPerfil : null;
-// (salvarPerfil is defined earlier in the script — we patch after page load)
-document.addEventListener('DOMContentLoaded', () => {
-  // nothing needed — welcomeAutoMarkPerfil is called on open
-});
 
 // ===== END WELCOME POPUP =====
+
+// ===== TUTORIAL PASSO A PASSO (página) =====
+const TUTORIAL_STEPS = [
+  { id:'perfil',   emoji:'⚙️', titulo:'Configura o teu Perfil',              desc:'Define o teu slug LifeWave, nome e país. Gera automaticamente os teus links de partilha.', tag:'Essencial', action:() => abrirPerfilModal(false) },
+  { id:'funil',    emoji:'👤', titulo:'Adiciona o teu primeiro Lead',         desc:'Vai ao Funil de Leads e clica em "+ Novo Lead" para começar a gerir os teus contactos.', tag:'Essencial', page:'funil' },
+  { id:'gcontacts',emoji:'🔗', titulo:'Sincroniza os teus Contactos Google',  desc:'Importa os teus contactos diretamente do Google em 1 clique. Evita duplicados e poupa tempo.', tag:'Essencial', action:() => { goTo('lista'); setTimeout(() => syncGoogleContacts(), 400); } },
+  { id:'acoes',    emoji:'🔔', titulo:'Vê as tuas Ações de Hoje',             desc:'A app analisa os teus leads e mostra quem contactar hoje — urgente, esta semana e novos.', tag:'Essencial', page:'acoes' },
+  { id:'metas',    emoji:'🎯', titulo:'Define as tuas Metas mensais',         desc:'Configura objetivos de vendas, recrutamento e rendimento. A app acompanha o progresso.', tag:'Recomendado', page:'metas' },
+  { id:'posts',    emoji:'✨', titulo:'Cria o teu primeiro Post com IA',      desc:'Escolhe plataforma, tom e tema. A IA gera posts autênticos em Português para as tuas redes.', tag:'Recomendado', page:'posts' },
+  { id:'coach',    emoji:'🤖', titulo:'Experimenta o Coach IA',               desc:'Faz perguntas sobre scripts, objeções, recrutamento. O coach conhece o teu perfil LifeWave.', tag:'Extra', page:'coach' },
+  { id:'equipa',   emoji:'👥', titulo:'Regista a tua Equipa',                 desc:'Adiciona os teus distribuidores para acompanhar atividade, ranking e vendas da equipa.', tag:'Extra', page:'equipa' },
+];
+const TUT_PROGRESS_KEY = 'lw_tutorial_steps_v2';
+
+function tutGetProgress() {
+  try {
+    // Migrar progresso da versão anterior se existir
+    const old = localStorage.getItem('lw_tutorial_steps_v1');
+    if (old && !localStorage.getItem(TUT_PROGRESS_KEY)) {
+      const migrated = JSON.parse(old || '[]');
+      localStorage.setItem(TUT_PROGRESS_KEY, JSON.stringify(migrated));
+    }
+    return JSON.parse(localStorage.getItem(TUT_PROGRESS_KEY) || '[]');
+  } catch(e) { return []; }
+}
+function tutSaveProgress(done) {
+  localStorage.setItem(TUT_PROGRESS_KEY, JSON.stringify(done));
+}
+
+function tutorialInit() {
+  // Auto-marcar "perfil" se já tiver slug configurado
+  if (currentUser) {
+    const p = getUserPerfil();
+    if (p.slug) {
+      const done = tutGetProgress();
+      if (!done.includes('perfil')) { done.push('perfil'); tutSaveProgress(done); }
+    }
+  }
+  tutRender();
+}
+
+function tutRender() {
+  const done = tutGetProgress();
+  const total = TUTORIAL_STEPS.length;
+  const count = done.filter(id => TUTORIAL_STEPS.some(s => s.id === id)).length;
+  const pct = Math.round((count / total) * 100);
+
+  const fill = document.getElementById('tut-progress-fill');
+  const label = document.getElementById('tut-progress-label');
+  if (fill) fill.style.width = pct + '%';
+  if (label) label.textContent = count + ' / ' + total + ' concluídos';
+
+  const tagCor = { 'Essencial':'#ff6b35', 'Recomendado':'#f5c842', 'Extra':'#8b9cf7' };
+  const list = document.getElementById('tut-steps-list');
+  if (!list) return;
+
+  list.innerHTML = TUTORIAL_STEPS.map((s, i) => {
+    const isDone = done.includes(s.id);
+    return `
+    <div class="card" style="display:flex;align-items:flex-start;gap:14px;cursor:pointer;border-color:${isDone?'rgba(0,212,170,0.3)':'var(--border)'};background:${isDone?'rgba(0,212,170,0.05)':'var(--surface)'};transition:all .15s;"
+      onclick="tutStepClick('${s.id}')">
+      <div style="width:34px;height:34px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:700;
+        background:${isDone?'var(--accent)':'var(--surface2)'};color:${isDone?'#0a0f1e':'var(--text2)'};border:1px solid ${isDone?'var(--accent)':'var(--border)'};">
+        ${isDone ? '✓' : (i+1)}
+      </div>
+      <div style="flex:1;min-width:0;">
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:4px;">
+          <span style="font-size:16px;">${s.emoji}</span>
+          <span style="font-size:14px;font-weight:700;color:var(--text);${isDone?'text-decoration:line-through;opacity:0.7;':''}">${s.titulo}</span>
+          <span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;background:${tagCor[s.tag]}1f;color:${tagCor[s.tag]};">${s.tag}</span>
+        </div>
+        <div style="font-size:12px;color:var(--text2);line-height:1.6;">${s.desc}</div>
+      </div>
+      <div style="font-size:18px;color:var(--text3);flex-shrink:0;">${isDone?'✅':'→'}</div>
+    </div>`;
+  }).join('');
+}
+
+function tutStepClick(stepId) {
+  const step = TUTORIAL_STEPS.find(s => s.id === stepId);
+  if (!step) return;
+  const done = tutGetProgress();
+
+  if (!done.includes(stepId)) {
+    done.push(stepId);
+    tutSaveProgress(done);
+  }
+  tutRender();
+
+  setTimeout(() => {
+    if (step.action) step.action();
+    else if (step.page) goTo(step.page);
+
+    const updated = tutGetProgress();
+    if (updated.length === TUTORIAL_STEPS.length) {
+      setTimeout(() => showToast('🎉 Tutorial 100% completo! Estás pronto.'), 400);
+    }
+  }, 180);
+}
+// ===== FIM TUTORIAL =====
 
 
 function atualizarSidebarUser(user) {
@@ -9386,17 +9502,17 @@ function salvarPerfil() {
   if (document.getElementById('page-comissoes')?.classList.contains('active')) renderComissoes();
 }
 
-// Auto-mark "perfil" welcome step when profile is saved
+// Auto-mark "perfil" tutorial step when profile is saved
 const _salvarPerfil_orig = salvarPerfil;
 salvarPerfil = function() {
   _salvarPerfil_orig.apply(this, arguments);
-  // Mark perfil step as done in welcome checklist
+  // Mark perfil step as done in tutorial checklist
   try {
-    const done = welcomeGetProgress ? welcomeGetProgress() : [];
+    const done = typeof tutGetProgress === 'function' ? tutGetProgress() : [];
     if (!done.includes('perfil')) {
       done.push('perfil');
-      welcomeSaveProgress(done);
-      welcomeUpdateUI();
+      tutSaveProgress(done);
+      if (document.getElementById('page-tutorial')?.classList.contains('active')) tutRender();
     }
   } catch(e) {}
 };
@@ -14275,9 +14391,9 @@ function renderPromoBanner() {
   const isPrincipalAtiva = ativas.length > 0;
 
   const badge = ativas.length > 0
-    ? `<span style="background:rgba(0,212,170,0.15);color:var(--accent);font-size:10px;font-weight:700;padding:3px 9px;border-radius:20px;">🟢 ${ativas.length} ATIVA${ativas.length>1?'S':''}</span>`
+    ? `<span style="background:rgba(0,212,170,0.15);color:var(--accent);font-size:10px;font-weight:700;padding:3px 9px;border-radius:20px;white-space:nowrap;flex-shrink:0;">🟢 ${ativas.length} ATIVA${ativas.length>1?'S':''}</span>`
     : proximas.length
-      ? `<span style="background:rgba(245,200,66,0.12);color:var(--gold);font-size:10px;font-weight:700;padding:3px 9px;border-radius:20px;">⏳ EM BREVE</span>`
+      ? `<span style="background:rgba(245,200,66,0.12);color:var(--gold);font-size:10px;font-weight:700;padding:3px 9px;border-radius:20px;white-space:nowrap;flex-shrink:0;">⏳ EM BREVE</span>`
       : '';
 
   const cdHtml = principal ? buildCountdownHtml(isPrincipalAtiva ? principal.fim : principal.inicio, principal.id) : '';
@@ -18062,128 +18178,258 @@ function metasReset() {
 </div>
 
 
-<!-- ===== WELCOME POPUP ===== -->
+<!-- ===== WELCOME POPUP (simplificado) ===== -->
 <div id="welcome-overlay">
-  <div class="welcome-box">
+  <div class="welcome-box" style="text-align:center;">
     <div class="welcome-top-bar"></div>
 
-    <div class="welcome-header">
-      <div class="welcome-logo-ring">⚡</div>
-      <div class="welcome-title" id="welcome-title">Bem-vindo ao LW CRM!</div>
-      <div class="welcome-subtitle">Segue estes passos por ordem de prioridade<br>para tirares o máximo partido da app.</div>
-      <div class="welcome-version" id="welcome-version-badge">🆕 v11 — Metas & Objetivos</div>
-    </div>
+    <!-- Botão X para fechar sem iniciar -->
+    <button onclick="welcomeClose(false)" aria-label="Fechar" style="position:absolute;top:14px;right:14px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:50%;width:32px;height:32px;display:flex;align-items:center;justify-content:center;font-size:16px;color:rgba(255,255,255,0.5);cursor:pointer;z-index:10;transition:all 0.15s;" onmouseover="this.style.background='rgba(255,255,255,0.12)'" onmouseout="this.style.background='rgba(255,255,255,0.06)'">✕</button>
 
-    <!-- Progress bar -->
-    <div class="welcome-progress-wrap">
-      <div class="welcome-progress-header">
-        <span>Progresso de configuração</span>
-        <span id="welcome-progress-label">0 / 7 concluídos</span>
-      </div>
-      <div class="welcome-progress-track">
-        <div class="welcome-progress-fill" id="welcome-progress-fill" style="width:0%"></div>
-      </div>
-    </div>
+    <div style="padding:48px 32px 40px;">
+      <div class="welcome-logo-ring" style="margin:0 auto 20px;">⚡</div>
+      <div class="welcome-title" id="welcome-title" style="margin-bottom:10px;">Bem-vindo ao LW CRM!</div>
+      <div class="welcome-subtitle" style="margin-bottom:32px;">Vamos mostrar-te rapidamente como tirar o<br>máximo partido da app, passo a passo.</div>
 
-    <!-- Steps -->
-    <div class="welcome-steps" id="welcome-steps-list">
-
-      <div class="welcome-step" id="wstep-0" onclick="welcomeStepClick(0,'perfil')">
-        <div class="welcome-step-emoji">⚙️</div>
-        <div class="welcome-step-content">
-          <div class="welcome-step-title">
-            <span class="welcome-step-num">1</span>
-            Configura o teu Perfil
-            <span class="step-priority sp-essential">Essencial</span>
-          </div>
-          <div class="welcome-step-desc">Define o teu slug LifeWave, nome e país. Gera automaticamente os teus links de partilha.</div>
-        </div>
-      </div>
-
-      <div class="welcome-step" id="wstep-1" onclick="welcomeStepClick(1,'funil')">
-        <div class="welcome-step-emoji">👤</div>
-        <div class="welcome-step-content">
-          <div class="welcome-step-title">
-            <span class="welcome-step-num">2</span>
-            Adiciona o teu primeiro Lead
-            <span class="step-priority sp-essential">Essencial</span>
-          </div>
-          <div class="welcome-step-desc">Vai ao Funil de Leads e clica em "+ Novo Lead" para começar a gerir os teus contactos.</div>
-        </div>
-      </div>
-
-      <div class="welcome-step" id="wstep-2" onclick="welcomeStepClick(2,'acoes')">
-        <div class="welcome-step-emoji">🔔</div>
-        <div class="welcome-step-content">
-          <div class="welcome-step-title">
-            <span class="welcome-step-num">3</span>
-            Vê as tuas Ações de Hoje
-            <span class="step-priority sp-essential">Essencial</span>
-          </div>
-          <div class="welcome-step-desc">A app analisa os teus leads e mostra quem contactar hoje — urgente, esta semana e novos.</div>
-        </div>
-      </div>
-
-      <div class="welcome-step" id="wstep-3" onclick="welcomeStepClick(3,'metas')">
-        <div class="welcome-step-emoji">🎯</div>
-        <div class="welcome-step-content">
-          <div class="welcome-step-title">
-            <span class="welcome-step-num">4</span>
-            Define as tuas Metas mensais
-            <span class="step-priority sp-recommended">Recomendado</span>
-          </div>
-          <div class="welcome-step-desc">Configura objetivos de vendas, recrutamento e rendimento. A app acompanha o progresso.</div>
-        </div>
-      </div>
-
-      <div class="welcome-step" id="wstep-4" onclick="welcomeStepClick(4,'posts')">
-        <div class="welcome-step-emoji">✨</div>
-        <div class="welcome-step-content">
-          <div class="welcome-step-title">
-            <span class="welcome-step-num">5</span>
-            Cria o teu primeiro Post com IA
-            <span class="step-priority sp-recommended">Recomendado</span>
-          </div>
-          <div class="welcome-step-desc">Escolhe plataforma, tom e tema. A IA gera posts autênticos em Português para as tuas redes.</div>
-        </div>
-      </div>
-
-      <div class="welcome-step" id="wstep-5" onclick="welcomeStepClick(5,'coach')">
-        <div class="welcome-step-emoji">🤖</div>
-        <div class="welcome-step-content">
-          <div class="welcome-step-title">
-            <span class="welcome-step-num">6</span>
-            Experimenta o Coach IA
-            <span class="step-priority sp-optional">Extra</span>
-          </div>
-          <div class="welcome-step-desc">Faz perguntas sobre scripts, objeções, recrutamento. O coach conhece o teu perfil LifeWave.</div>
-        </div>
-      </div>
-
-      <div class="welcome-step" id="wstep-6" onclick="welcomeStepClick(6,'equipa')">
-        <div class="welcome-step-emoji">👥</div>
-        <div class="welcome-step-content">
-          <div class="welcome-step-title">
-            <span class="welcome-step-num">7</span>
-            Regista a tua Equipa
-            <span class="step-priority sp-optional">Extra</span>
-          </div>
-          <div class="welcome-step-desc">Adiciona os teus distribuidores para acompanhar atividade, ranking e vendas da equipa.</div>
-        </div>
-      </div>
-
-    </div>
-
-    <div class="welcome-footer">
-      <button class="btn-welcome-start" onclick="welcomeStart()">
+      <button class="btn-welcome-start" onclick="welcomeStart()" style="width:100%;">
         🚀 Começar Aqui
-      </button>
-      <button class="btn-welcome-skip" onclick="welcomeClose(true)">
-        Já conheço a app — fechar
       </button>
     </div>
   </div>
 </div>
+
+<!-- ═══════════════════════════════════════════════════════
+     MÓDULO PV/BV — Rastreio de Rank & Alertas
+     LifeWave CRM v13 — adicionado sem alterar código existente
+════════════════════════════════════════════════════════════ -->
+<script>
+// ── Ranks LifeWave (PV pessoal mínimo por mês) ────────────
+const LW_RANKS = [
+  { id:'brand_partner',  nome:'Brand Partner',   pvMin:0,   cor:'#6b7280', icon:'🌱' },
+  { id:'active',         nome:'Active',          pvMin:55,  cor:'#38bdf8', icon:'⭐' },
+  { id:'manager',        nome:'Manager',         pvMin:110, cor:'#0ea5e9', icon:'⭐⭐' },
+  { id:'senior_manager', nome:'Senior Manager',  pvMin:200, cor:'#0284c7', icon:'⭐⭐⭐' },
+  { id:'executive',      nome:'Executive',       pvMin:300, cor:'#7c3aed', icon:'💎' },
+  { id:'senior_exec',    nome:'Senior Executive',pvMin:500, cor:'#6d28d9', icon:'💎💎' },
+  { id:'presidential',   nome:'Presidential',    pvMin:700, cor:'#f5c842', icon:'👑' },
+];
+
+// ── Storage ───────────────────────────────────────────────
+function pvStorageKey() {
+  try {
+    const u = JSON.parse(localStorage.getItem('lw_auth_user') || localStorage.getItem('lw_auth_user_local') || '{}');
+    return 'lw_pv_' + (u.email || u.uid || 'local').replace(/[^a-z0-9]/gi,'_');
+  } catch(e) { return 'lw_pv_local'; }
+}
+function pvLoad() {
+  try { return JSON.parse(localStorage.getItem(pvStorageKey()) || '[]'); } catch(e) { return []; }
+}
+function pvSave(h) {
+  try { localStorage.setItem(pvStorageKey(), JSON.stringify(h)); } catch(e) {}
+}
+
+// ── Helpers ───────────────────────────────────────────────
+function pvMesAtual() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+}
+function pvMesLabel(ym) {
+  const [y,m] = ym.split('-');
+  return ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'][+m-1] + ' ' + y;
+}
+function pvGetRank(pv) {
+  let r = LW_RANKS[0];
+  for (const lr of LW_RANKS) { if (pv >= lr.pvMin) r = lr; }
+  return r;
+}
+function pvProximoRank(pv) {
+  return LW_RANKS.find(r => pv < r.pvMin) || null;
+}
+
+// ── Render módulo ─────────────────────────────────────────
+function pvRenderModulo() {
+  const el = document.getElementById('pv-rastreio-module');
+  if (!el) return;
+
+  const hist = pvLoad();
+  const mes  = pvMesAtual();
+  const entry = hist.find(h => h.mes === mes) || { mes, pv:0, bv:0, notas:'' };
+  const pv = entry.pv || 0;
+  const bv = entry.bv || 0;
+  const rank = pvGetRank(pv);
+  const prox = pvProximoRank(pv);
+  const pct  = prox ? Math.min(100, Math.round(pv / prox.pvMin * 100)) : 100;
+  const falta = prox ? (prox.pvMin - pv) : 0;
+
+  // Alerta risco (perto do rank mas ainda não chegou)
+  const alertaHTML = (prox && falta > 0 && falta <= 25) ? `
+    <div style="background:rgba(255,165,0,0.1);border:1px solid rgba(255,165,0,0.3);border-radius:10px;padding:11px 14px;margin-bottom:14px;display:flex;align-items:center;gap:10px;">
+      <span style="font-size:20px;flex-shrink:0;">⚠️</span>
+      <div>
+        <div style="font-size:12.5px;font-weight:700;color:#ffa500;">Quase lá! Faltam ${falta} PV</div>
+        <div style="font-size:11.5px;color:var(--text2);">Regista mais vendas para atingir <strong>${prox.nome}</strong> este mês.</div>
+      </div>
+    </div>` : '';
+
+  // Progress bar
+  const progressHTML = prox ? `
+    <div style="margin-bottom:14px;">
+      <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text2);margin-bottom:5px;">
+        <span>${rank.icon} ${rank.nome} (${pv} PV)</span>
+        <span style="color:var(--accent);font-weight:700;">${pct}%</span>
+        <span>${prox.icon} ${prox.nome} (${prox.pvMin} PV)</span>
+      </div>
+      <div style="background:var(--surface3);border-radius:20px;height:8px;overflow:hidden;">
+        <div style="width:${pct}%;height:100%;background:linear-gradient(90deg,${rank.cor},${prox.cor});border-radius:20px;transition:width .5s ease;"></div>
+      </div>
+      <div style="font-size:11px;color:var(--text3);margin-top:4px;text-align:center;">
+        Faltam <strong style="color:var(--text);">${falta} PV</strong> para alcançar ${prox.nome}
+      </div>
+    </div>` : `<div style="text-align:center;padding:8px;color:var(--gold);font-weight:700;font-size:13px;margin-bottom:12px;">👑 Rank máximo atingido este mês!</div>`;
+
+  // KPIs
+  const kpisHTML = `
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px;">
+      <div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:12px;text-align:center;">
+        <div style="font-size:22px;font-weight:700;color:var(--accent);">${pv}</div>
+        <div style="font-size:10.5px;color:var(--text2);margin-top:2px;">PV pessoal</div>
+      </div>
+      <div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:12px;text-align:center;">
+        <div style="font-size:22px;font-weight:700;color:var(--accent2);">${bv}</div>
+        <div style="font-size:10.5px;color:var(--text2);margin-top:2px;">BV equipa</div>
+      </div>
+      <div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:12px;text-align:center;">
+        <div style="font-size:22px;font-weight:700;color:${prox?'var(--gold)':'var(--accent)'};">${prox ? falta : '✓'}</div>
+        <div style="font-size:10.5px;color:var(--text2);margin-top:2px;">${prox ? 'PV p/ rank' : 'Rank máx.'}</div>
+      </div>
+    </div>`;
+
+  // Histórico (últimos 6 meses)
+  const ultimos = hist.filter(h=>h.mes!==mes).slice(-5).concat([entry]).sort((a,b)=>a.mes.localeCompare(b.mes));
+  const histHTML = ultimos.length > 1 ? `
+    <div style="margin-top:14px;border-top:1px solid var(--border);padding-top:14px;">
+      <div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:9px;">📅 Histórico PV/BV</div>
+      <div style="display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;">
+        ${ultimos.map(h => {
+          const r = pvGetRank(h.pv||0);
+          const isAtual = h.mes === mes;
+          return `<div style="flex-shrink:0;background:${isAtual?'rgba(0,212,170,0.1)':'var(--surface2)'};border:1px solid ${isAtual?'rgba(0,212,170,0.3)':'var(--border)'};border-radius:10px;padding:10px 12px;text-align:center;min-width:80px;">
+            <div style="font-size:10px;color:var(--text3);margin-bottom:4px;">${pvMesLabel(h.mes)}${isAtual?' 🔴':''}</div>
+            <div style="font-size:16px;font-weight:700;color:var(--text);">${h.pv||0}</div>
+            <div style="font-size:9.5px;color:var(--text3);">PV</div>
+            <div style="font-size:10px;margin-top:3px;">${r.icon}</div>
+            <div style="font-size:9.5px;color:${r.cor};">${r.nome}</div>
+          </div>`;
+        }).join('')}
+      </div>
+    </div>` : '';
+
+  el.innerHTML = `
+    <div class="card" style="background:linear-gradient(135deg,rgba(0,212,170,0.05),rgba(0,132,255,0.03));border-color:rgba(0,212,170,0.2);">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:10px;">
+        <div>
+          <div style="font-size:14px;font-weight:700;color:var(--text);">📊 Rastreio PV/BV — ${pvMesLabel(mes)}</div>
+          <div style="font-size:11.5px;color:var(--text2);margin-top:2px;">Acompanha o teu rank e progresso mensal</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+          <div style="background:${rank.cor}22;border:1px solid ${rank.cor}66;border-radius:20px;padding:4px 12px;font-size:12px;font-weight:700;color:${rank.cor};">${rank.icon} ${rank.nome}</div>
+          <button class="btn btn-secondary btn-sm" onclick="pvAbrirModal()">✏️ Atualizar</button>
+        </div>
+      </div>
+      ${alertaHTML}
+      ${progressHTML}
+      ${kpisHTML}
+      ${histHTML}
+    </div>`;
+}
+
+// ── Abrir modal ───────────────────────────────────────────
+function pvAbrirModal() {
+  const mes   = pvMesAtual();
+  const hist  = pvLoad();
+  const entry = hist.find(h=>h.mes===mes) || { pv:0, bv:0, notas:'' };
+
+  const labelEl = document.getElementById('pv-modal-mes-label');
+  if (labelEl) labelEl.textContent = `A registar: ${pvMesLabel(mes)}`;
+
+  const pvInp = document.getElementById('pv-input-pv');
+  const bvInp = document.getElementById('pv-input-bv');
+  const notasInp = document.getElementById('pv-input-notas');
+  if (pvInp) pvInp.value = entry.pv || '';
+  if (bvInp) bvInp.value = entry.bv || '';
+  if (notasInp) notasInp.value = entry.notas || '';
+
+  // Hints de rank
+  const hints = document.getElementById('pv-rank-hints');
+  if (hints) {
+    hints.innerHTML = LW_RANKS.filter(r=>r.pvMin>0).map(r=>`
+      <span style="font-size:10.5px;background:${r.cor}18;border:1px solid ${r.cor}44;border-radius:20px;padding:3px 9px;color:${r.cor};cursor:pointer;" onclick="document.getElementById('pv-input-pv').value=${r.pvMin};" title="Preencher ${r.pvMin} PV">${r.icon} ${r.nome} = ${r.pvMin} PV</span>`).join('');
+  }
+  if (typeof openModal === 'function') openModal('modal-pv-registar');
+}
+
+function pvGuardar() {
+  const pv    = Math.max(0, parseFloat(document.getElementById('pv-input-pv')?.value)||0);
+  const bv    = Math.max(0, parseFloat(document.getElementById('pv-input-bv')?.value)||0);
+  const notas = document.getElementById('pv-input-notas')?.value || '';
+  const mes   = pvMesAtual();
+  const hist  = pvLoad();
+  const idx   = hist.findIndex(h=>h.mes===mes);
+
+  if (idx >= 0) hist[idx] = { mes, pv, bv, notas };
+  else hist.push({ mes, pv, bv, notas });
+
+  // Manter últimos 12 meses
+  hist.sort((a,b)=>a.mes.localeCompare(b.mes));
+  if (hist.length > 12) hist.splice(0, hist.length-12);
+  pvSave(hist);
+
+  if (typeof closeModal === 'function') closeModal('modal-pv-registar');
+  if (typeof showToast  === 'function') showToast('📊 PV/BV atualizado!');
+
+  pvRenderModulo();
+
+  // Alerta de rank
+  const prox = pvProximoRank(pv);
+  if (prox && (prox.pvMin - pv) <= 25 && (prox.pvMin - pv) > 0) {
+    setTimeout(() => {
+      if (typeof showToast === 'function') showToast(`⚠️ Só faltam ${prox.pvMin-pv} PV para ${prox.nome}!`);
+    }, 600);
+  }
+  if (!prox) {
+    setTimeout(() => {
+      if (typeof showToast === 'function') showToast('👑 Parabéns! Rank Presidential atingido!');
+    }, 600);
+  }
+}
+
+// ── Hook na renderComissoes existente ─────────────────────
+(function hookPV() {
+  const _orig = window.renderComissoes;
+  if (typeof _orig === 'function') {
+    window.renderComissoes = function() {
+      _orig.apply(this, arguments);
+      setTimeout(pvRenderModulo, 60);
+    };
+  }
+  // Também ao goTo direto
+  const _origGoTo = window.goTo;
+  if (typeof _origGoTo === 'function') {
+    window.goTo = function(page) {
+      _origGoTo.apply(this, arguments);
+      if (page === 'comissoes') setTimeout(pvRenderModulo, 120);
+    };
+  }
+  // Init imediato se já estiver na página
+  document.addEventListener('DOMContentLoaded', () => {
+    setTimeout(() => {
+      if (document.getElementById('page-comissoes')?.classList.contains('active')) {
+        pvRenderModulo();
+      }
+    }, 500);
+  });
+})();
+</script>
 
 <!-- Floating reopen button -->
 <button id="btn-reopen-welcome" title="Guia de início" onclick="welcomeOpen()">🗺️</button>
