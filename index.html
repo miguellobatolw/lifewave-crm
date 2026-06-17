@@ -8272,6 +8272,9 @@ function abrirMensagem(leadId, canal) {
   document.getElementById('msg-texto').value = '';
   document.getElementById('msg-char-count').textContent = '0 caracteres';
   document.getElementById('msg-ia-loader').style.display = 'none';
+  document.getElementById('msg-cat-negocio').checked = true;
+  document.getElementById('msg-cat-produto').checked = true;
+  atualizarMsgCategorias();
 
   // Fill number
   const telRaw = l.tel || '';
@@ -8323,6 +8326,16 @@ function updateMsgCount() {
   el.className = 'msg-char-count' + (msgCanal === 'sms' && len > 160 ? ' over' : '');
 }
 
+function atualizarMsgCategorias() {
+  const negocio = document.getElementById('msg-cat-negocio')?.checked;
+  const produto = document.getElementById('msg-cat-produto')?.checked;
+  document.querySelectorAll('#msg-templates-wrap [data-cat]').forEach(btn => {
+    const cat = btn.dataset.cat;
+    const visivel = (cat === 'negocio' && negocio) || (cat === 'produto' && produto);
+    btn.style.display = visivel ? '' : 'none';
+  });
+}
+
 function usarTemplate(tipo) {
   const l = leads.find(x => x.id === msgLeadId);
   const nome = l ? l.nome.split(' ')[0] : '';
@@ -8343,7 +8356,14 @@ async function gerarMsgIA() {
 
   const canal = msgCanal === 'whatsapp' ? 'WhatsApp' : 'SMS';
   const limite = msgCanal === 'sms' ? '160 caracteres' : '300 palavras';
-  const prompt = `Cria uma mensagem de ${canal} para enviar a ${l.nome} sobre o produto LifeWave X39.
+  const negocio = document.getElementById('msg-cat-negocio')?.checked;
+  const produto = document.getElementById('msg-cat-produto')?.checked;
+  let foco = 'sobre o produto LifeWave X39 e a oportunidade de negócio';
+  if (negocio && !produto) foco = 'focada em apresentar a oportunidade de negócio LifeWave (recrutamento/parceria), sem falar em detalhe do produto';
+  else if (produto && !negocio) foco = 'focada em falar do produto LifeWave X39 (benefícios, uso, resultados), sem mencionar a oportunidade de negócio';
+  else if (!negocio && !produto) foco = 'genérica e amigável, sem focar especificamente em negócio ou produto';
+
+  const prompt = `Cria uma mensagem de ${canal} para enviar a ${l.nome}, ${foco}.
 Estado atual: ${estadoLabel(l.estado)}
 Mercado: ${l.mercado}
 ${l.notas ? `Notas: ${l.notas}` : ''}
@@ -13999,8 +14019,18 @@ function fecharDetalhe(e) {
 
     <!-- Texto -->
     <div class="form-group">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
-        <label class="form-label" style="margin:0;">Mensagem</label>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;flex-wrap:wrap;gap:8px;">
+        <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+          <label class="form-label" style="margin:0;">Mensagem</label>
+          <label style="display:flex;align-items:center;gap:5px;font-size:12px;color:var(--text2);cursor:pointer;">
+            <input type="checkbox" id="msg-cat-negocio" checked onchange="atualizarMsgCategorias()" style="accent-color:var(--accent);width:14px;height:14px;cursor:pointer;">
+            🐺 Negócio
+          </label>
+          <label style="display:flex;align-items:center;gap:5px;font-size:12px;color:var(--text2);cursor:pointer;">
+            <input type="checkbox" id="msg-cat-produto" checked onchange="atualizarMsgCategorias()" style="accent-color:var(--accent);width:14px;height:14px;cursor:pointer;">
+            📦 Produto
+          </label>
+        </div>
         <button class="btn btn-secondary btn-sm" id="msg-ia-btn" onclick="gerarMsgIA()">🤖 Gerar com IA</button>
       </div>
       <textarea class="msg-textarea" id="msg-texto" placeholder="Escreve a tua mensagem aqui..." oninput="updateMsgCount()"></textarea>
@@ -14010,11 +14040,11 @@ function fecharDetalhe(e) {
     <!-- Templates rápidos -->
     <div style="margin-bottom:14px;">
       <div class="form-label" style="margin-bottom:8px;">⚡ Templates rápidos</div>
-      <div style="display:flex;gap:6px;flex-wrap:wrap;">
-        <button class="btn btn-secondary btn-sm" onclick="usarTemplate('primeiro')">👋 Primeiro contacto</button>
-        <button class="btn btn-secondary btn-sm" onclick="usarTemplate('followup')">🔄 Follow-up</button>
-        <button class="btn btn-secondary btn-sm" onclick="usarTemplate('info')">📦 Info produto</button>
-        <button class="btn btn-secondary btn-sm" onclick="usarTemplate('cliente')">🎉 Bem-vindo cliente</button>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;" id="msg-templates-wrap">
+        <button class="btn btn-secondary btn-sm" data-cat="negocio" onclick="usarTemplate('primeiro')">👋 Primeiro contacto</button>
+        <button class="btn btn-secondary btn-sm" data-cat="negocio" onclick="usarTemplate('followup')">🔄 Follow-up</button>
+        <button class="btn btn-secondary btn-sm" data-cat="produto" onclick="usarTemplate('info')">📦 Info produto</button>
+        <button class="btn btn-secondary btn-sm" data-cat="produto" onclick="usarTemplate('cliente')">🎉 Bem-vindo cliente</button>
       </div>
     </div>
 
