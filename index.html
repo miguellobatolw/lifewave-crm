@@ -8882,30 +8882,57 @@ function iniciarGoogleLoginComClientId() {
   }
   fecharConfigGoogle();
 
-  // Garante que o Google Identity Services já carregou (o script é async/defer
-  // e pode ainda não estar disponível no momento do clique, especialmente em
-  // ligações mais lentas). Tenta novamente por alguns segundos antes de desistir.
-  function tentarIniciar(tentativasRestantes) {
+  // IMPORTANTE: google.accounts.id.prompt() só abre o popup quando é chamado
+  // de forma SÍNCRONA a partir de um gesto do utilizador (o clique). Se
+  // esperarmos pelo carregamento do script via setTimeout/retry antes de
+  // chamar prompt(), a ligação ao clique perde-se e o browser bloqueia o
+  // popup silenciosamente (sem erro visível) — foi isto que partiu o login
+  // na v15.4.5. A solução é inicializar o GIS antecipadamente (ver
+  // preInicializarGoogleGIS, chamada no arranque da app) e aqui apenas
+  // chamar prompt() de imediato, ainda dentro do mesmo clique.
+  if (typeof google === 'undefined' || !google.accounts || !google.accounts.id) {
+    mostrarErroLogin('O login Google ainda está a carregar. Aguarda um instante e tenta novamente.');
+    showToast('⏳ Google Identity Services ainda não carregou. Tenta novamente em 1-2 segundos.');
+    // Tenta preparar em segundo plano para o próximo clique funcionar.
+    preInicializarGoogleGIS(clientId);
+    return;
+  }
+  google.accounts.id.initialize({
+    client_id: clientId,
+    callback: handleGoogleCredential,
+    auto_select: false,
+    cancel_on_tap_outside: true,
+  });
+  google.accounts.id.prompt();
+}
+
+// Inicializa o Google Identity Services antecipadamente (sem mostrar prompt),
+// para que o clique no botão de login só precise de chamar prompt() de forma
+// síncrona, preservando o "user gesture" exigido pelo browser.
+let _googleGISPreInicializado = false;
+function preInicializarGoogleGIS(clientIdOpcional) {
+  const clientId = clientIdOpcional || getGoogleClientId() || localStorage.getItem(GOOGLE_CLIENT_ID_KEY);
+  if (!clientId) return;
+  function tentar(tentativasRestantes) {
     if (typeof google === 'undefined' || !google.accounts || !google.accounts.id) {
-      if (tentativasRestantes <= 0) {
-        mostrarErroLogin('Não foi possível carregar o login Google. Verifica a ligação à internet e tenta novamente.');
-        showToast('❌ Google Identity Services não carregou a tempo.');
-        return;
-      }
-      setTimeout(() => tentarIniciar(tentativasRestantes - 1), 300);
+      if (tentativasRestantes <= 0) return;
+      setTimeout(() => tentar(tentativasRestantes - 1), 300);
       return;
     }
-    // Init Google Identity Services
+    if (_googleGISPreInicializado) return;
     google.accounts.id.initialize({
       client_id: clientId,
       callback: handleGoogleCredential,
       auto_select: false,
       cancel_on_tap_outside: true,
     });
-    google.accounts.id.prompt();
+    _googleGISPreInicializado = true;
   }
-  tentarIniciar(20); // até ~6 segundos de espera
+  tentar(20); // até ~6 segundos de espera
 }
+// Tenta logo no arranque da página (script do GIS é async/defer, por isso
+// pode demorar um pouco a ficar disponível — daí o retry acima).
+document.addEventListener('DOMContentLoaded', () => preInicializarGoogleGIS());
 
 function handleGoogleCredential(response) {
   try {
