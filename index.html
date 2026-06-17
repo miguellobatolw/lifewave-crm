@@ -3969,6 +3969,7 @@
             <div class="form-label">Incluir link na resposta?</div>
             <select class="form-select" id="link-select">
               <option value="nenhum">Sem link (só resposta)</option>
+              <option value="alfa-team">⭐ Convite Alfa Team</option>
               <option value="produto">🛒 Funil de Produto (X39)</option>
               <option value="negocio">🤝 Funil de Negócio</option>
               <option value="registo">📋 Link de Registo direto</option>
@@ -3979,6 +3980,10 @@
 
           <button class="btn btn-ai" style="width:100%;justify-content:center;padding:13px;" onclick="gerarResposta()" id="btn-gerar-resp">
             🤖 Gerar Resposta com IA
+          </button>
+
+          <button class="btn btn-secondary" style="width:100%;justify-content:center;margin-top:10px;" onclick="enviarBoasVindasEquipa()">
+            👋 Enviar Mensagem de Boas-Vindas à Equipa
           </button>
         </div>
 
@@ -6904,6 +6909,7 @@ function getMeuLinks() {
     nl: { lws: 'nl', lwr: 'nl' },
   };
   const lc = langMap[lang] || langMap['pt'];
+  const appUrl = (typeof window !== 'undefined' ? window.location.href : '').split('?')[0].split('#')[0];
   return {
     registo:           `https://lifewave.com/${slug}/enrollment/enrollerselection`,
     produto:           `https://lwsinfo.com/x39${lc.lws}?aff=${slug}`,
@@ -6912,6 +6918,7 @@ function getMeuLinks() {
     'negocio-obrigado':`https://lwsinfo.com/biz${lc.lws}-obrigado?aff=${slug}`,
     'produtos-direto': `https://lifewaveresults.com/?lng=${lc.lwr}`,
     'negocio-direto':  `https://lifewaveresults.com/biz?lng=${lc.lwr}`,
+    'alfa-team':       `${appUrl}?ref=MiguelLobato`,
   };
 }
 
@@ -7693,6 +7700,7 @@ ${contexto ? `- Nota adicional: ${contexto}` : ''}
 
 OS TEUS LINKS PESSOAIS:
 - Registo: ${MEU_LINKS.registo}
+- Convite Alfa Team: ${MEU_LINKS['alfa-team']}
 - Funil Produto: ${MEU_LINKS.produto}
 - Funil Negócio: ${MEU_LINKS.negocio}
 - Produtos direto: ${MEU_LINKS['produtos-direto']}
@@ -7724,6 +7732,7 @@ ${contexto ? `- Informação extra: ${contexto}` : ''}
 
 OS TEUS LINKS PESSOAIS (usa apenas se indicado):
 - Registo: ${MEU_LINKS.registo}
+- Convite Alfa Team: ${MEU_LINKS['alfa-team']}
 - Funil Produto: ${MEU_LINKS.produto}
 - Funil Negócio: ${MEU_LINKS.negocio}
 - Produtos direto: ${MEU_LINKS['produtos-direto']}
@@ -9930,21 +9939,20 @@ function renderLinksRapidos() {
   const links = getMeuLinks();
   const p = getUserPerfil();
   const slug = p.slug || '—';
-  const uplineSlug = (p.upline || localStorage.getItem('lw_upline_ref') || '').trim();
   const appUrl = window.location.href.split('?')[0].split('#')[0];
 
-  let uplineHtml = '';
-  if (uplineSlug) {
-    const uplineRefLink = appUrl + '?ref=' + encodeURIComponent(uplineSlug);
-    uplineHtml = `
-    <div class="link-item" onclick="copiarLink('${uplineRefLink}','Convite Alfa Team')" style="border-color:rgba(245,200,66,0.35);background:rgba(245,200,66,0.06);">
-      <div class="link-label">⭐ Link de Convite Alfa Team (do teu upline)</div>
-      <div class="link-url">${uplineRefLink.replace('https://','').replace('http://','')}</div>
+  // Link de convite fixo da Alfa Team (slug oficial), independente do perfil de cada membro
+  const ALFA_TEAM_SLUG = 'MiguelLobato';
+  const alfaTeamRefLink = appUrl + '?ref=' + encodeURIComponent(ALFA_TEAM_SLUG);
+
+  const alfaTeamHtml = `
+    <div class="link-item" onclick="copiarLink('${alfaTeamRefLink}','Convite Alfa Team')" style="border-color:rgba(245,200,66,0.35);background:rgba(245,200,66,0.06);">
+      <div class="link-label">⭐ Link de Convite Alfa Team</div>
+      <div class="link-url">${alfaTeamRefLink.replace('https://','').replace('http://','')}</div>
     </div>`;
-  }
 
   container.innerHTML = `
-    ${uplineHtml}
+    ${alfaTeamHtml}
     <div class="link-item" onclick="copiarLink('${links.registo}','Registo LifeWave')">
       <div class="link-label">📋 Registo LifeWave</div>
       <div class="link-url">lifewave.com/${slug}/enrollment/enrollerselection</div>
@@ -9978,13 +9986,13 @@ function renderLinksRapidos() {
 }
 
 // Gera e abre no WhatsApp uma mensagem de boas-vindas para um novo membro da equipa,
-// incluindo o link de convite de afiliado Alfa Team (app com ?ref=upline) e os links de produto/negócio.
+// incluindo o link de convite de afiliado Alfa Team (slug oficial fixo) e os links de produto/negócio.
 function enviarBoasVindasEquipa() {
-  const p = getUserPerfil();
   const links = getMeuLinks();
-  const uplineSlug = (p.upline || localStorage.getItem('lw_upline_ref') || '').trim();
+  const p = getUserPerfil();
   const appUrl = window.location.href.split('?')[0].split('#')[0];
-  const uplineRefLink = uplineSlug ? (appUrl + '?ref=' + encodeURIComponent(uplineSlug)) : appUrl;
+  const ALFA_TEAM_SLUG = 'MiguelLobato';
+  const alfaTeamRefLink = appUrl + '?ref=' + encodeURIComponent(ALFA_TEAM_SLUG);
   const meuNome = p.nomeDisplay || (currentUser && currentUser.name) || 'a equipa';
 
   const msg =
@@ -9993,7 +10001,7 @@ function enviarBoasVindasEquipa() {
 Que bom ter-te connosco! Estamos aqui para te ajudar em cada passo desta jornada com a LifeWave.
 
 🔗 Link de convite Alfa Team (app da equipa):
-${uplineRefLink}
+${alfaTeamRefLink}
 
 🛒 Conhece os produtos:
 ${links['produtos-direto']}
