@@ -7827,6 +7827,12 @@ async function executarSyncContacts() {
     status.textContent = `${googleContactsToImport.length} contactos encontrados`;
     status.className = 'gsync-status ok';
 
+    // Reset filtros de importação
+    const fInd = document.getElementById('gc-filtro-indicativo');
+    const fCom = document.getElementById('gc-filtro-com-contacto');
+    if (fInd) fInd.value = '';
+    if (fCom) fCom.checked = false;
+
     renderGContactsPreview();
     openModal('modal-google-contacts-preview');
   } catch (e) {
@@ -7841,11 +7847,46 @@ async function executarSyncContacts() {
   }
 }
 
+// Mantém referência da lista atualmente filtrada (índices relativos a googleContactsToImport)
+let gContactsFiltradosIdx = [];
+
 function renderGContactsPreview() {
   const label = document.getElementById('gcontacts-count-label');
   const preview = document.getElementById('gcontacts-preview');
-  label.textContent = `${googleContactsToImport.length} contacto(s) encontrado(s)`;
-  preview.innerHTML = googleContactsToImport.map((c, i) => `
+  const fIndicativo = document.getElementById('gc-filtro-indicativo')?.value || '';
+  const soComContacto = document.getElementById('gc-filtro-com-contacto')?.checked || false;
+
+  // Calcula os índices (na lista original) que passam os filtros
+  gContactsFiltradosIdx = googleContactsToImport
+    .map((c, i) => i)
+    .filter(i => {
+      const c = googleContactsToImport[i];
+      if (soComContacto && !c.tel && !c.email) return false;
+      if (fIndicativo) {
+        const ind = getIndicativo(c.tel);
+        if (fIndicativo === 'outro') {
+          if (ind && ind !== 'outro') return false;
+        } else if (ind !== fIndicativo) {
+          return false;
+        }
+      }
+      return true;
+    });
+
+  const total = googleContactsToImport.length;
+  const visiveis = gContactsFiltradosIdx.length;
+  label.textContent = visiveis === total
+    ? `${total} contacto(s) encontrado(s)`
+    : `${visiveis} de ${total} contacto(s) (filtrado)`;
+
+  if (!visiveis) {
+    preview.innerHTML = '<div style="text-align:center;padding:24px;color:var(--text2);font-size:12.5px;">Nenhum contacto corresponde aos filtros.</div>';
+    return;
+  }
+
+  preview.innerHTML = gContactsFiltradosIdx.map(i => {
+    const c = googleContactsToImport[i];
+    return `
     <div class="import-row">
       <input type="checkbox" id="gc-${i}" checked>
       <div style="flex:1;min-width:0;">
@@ -7853,21 +7894,21 @@ function renderGContactsPreview() {
         <div style="font-size:11px;color:var(--text2);">${[c.tel, c.email].filter(Boolean).join(' · ') || 'Sem contacto'}</div>
       </div>
     </div>
-  `).join('');
+  `;
+  }).join('');
 }
 
 function selecionarTodosGContacts(val) {
-  googleContactsToImport.forEach((_, i) => {
+  gContactsFiltradosIdx.forEach(i => {
     const cb = document.getElementById(`gc-${i}`);
     if (cb) cb.checked = val;
   });
 }
 
 function confirmarImportGoogleContacts() {
-  const selecionados = googleContactsToImport.filter((_, i) => {
-    const cb = document.getElementById(`gc-${i}`);
-    return cb && cb.checked;
-  });
+  const selecionados = gContactsFiltradosIdx
+    .filter(i => document.getElementById(`gc-${i}`)?.checked)
+    .map(i => googleContactsToImport[i]);
   if (!selecionados.length) { showToast('❌ Nenhum contacto selecionado'); return; }
 
   let novos = 0;
@@ -13820,13 +13861,37 @@ function fecharDetalhe(e) {
       <span>👥 Contactos do Google</span>
       <button class="modal-close" onclick="closeModal('modal-google-contacts-preview')">✕</button>
     </div>
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;gap:10px;flex-wrap:wrap;">
       <div class="section-title" style="margin-bottom:0;" id="gcontacts-count-label">0 contactos encontrados</div>
       <div style="display:flex;gap:8px;">
         <button class="btn btn-secondary btn-sm" onclick="selecionarTodosGContacts(true)">✓ Todos</button>
         <button class="btn btn-secondary btn-sm" onclick="selecionarTodosGContacts(false)">✗ Nenhum</button>
       </div>
     </div>
+
+    <!-- FILTROS DE IMPORTAÇÃO -->
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px 12px;">
+      <select class="form-select" id="gc-filtro-indicativo" onchange="renderGContactsPreview()" style="flex:1;min-width:160px;">
+        <option value="">🌍 Todos os países</option>
+        <option value="+351">🇵🇹 +351 Portugal</option>
+        <option value="+55">🇧🇷 +55 Brasil</option>
+        <option value="+34">🇪🇸 +34 Espanha</option>
+        <option value="+44">🇬🇧 +44 Reino Unido</option>
+        <option value="+33">🇫🇷 +33 França</option>
+        <option value="+49">🇩🇪 +49 Alemanha</option>
+        <option value="+1">🇺🇸 +1 EUA/Canadá</option>
+        <option value="+39">🇮🇹 +39 Itália</option>
+        <option value="+244">🇦🇴 +244 Angola</option>
+        <option value="+258">🇲🇿 +258 Moçambique</option>
+        <option value="+238">🇨🇻 +238 Cabo Verde</option>
+        <option value="outro">Outro / sem indicativo</option>
+      </select>
+      <label style="display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--text2);cursor:pointer;white-space:nowrap;">
+        <input type="checkbox" id="gc-filtro-com-contacto" onchange="renderGContactsPreview()" style="accent-color:var(--accent);width:15px;height:15px;cursor:pointer;">
+        📞 Só com contacto
+      </label>
+    </div>
+
     <div class="import-preview" id="gcontacts-preview" style="display:block;max-height:280px;overflow-y:auto;"></div>
     <div class="modal-actions">
       <button class="btn btn-secondary" onclick="closeModal('modal-google-contacts-preview')">Cancelar</button>
