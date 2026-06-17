@@ -3603,6 +3603,9 @@
         <button class="btn-google" id="btn-google-contacts" onclick="syncGoogleContacts()">
           <span class="g-icon">🇬</span> Importar do Google
         </button>
+        <button class="btn btn-secondary btn-sm" onclick="eliminarTodosContactos()" title="Eliminar todos os contactos da lista" style="color:var(--danger,#ef4444);">
+          🗑 Eliminar todos
+        </button>
       </div>
       <div class="card table-wrap">
         <table>
@@ -6304,6 +6307,19 @@ function eliminarLead(id) {
   showToast('🗑 Lead eliminado');
 }
 
+function eliminarTodosContactos() {
+  const total = leads.length;
+  if (!total) { showToast('A lista já está vazia.'); return; }
+  if (!confirm(`⚠️ Isto vai eliminar TODOS os ${total} contactos da tua lista (leads e clientes). Esta ação não pode ser desfeita.\n\nTens a certeza que queres continuar?`)) return;
+  if (!confirm(`Última confirmação: vais eliminar ${total} contacto(s) permanentemente. Confirmas?`)) return;
+  leads = [];
+  saveleads();
+  renderDashboard();
+  renderFunil();
+  renderLista();
+  showToast(`🗑 ${total} contacto(s) eliminado(s). Já podes importar uma nova lista do Google.`);
+}
+
 // saveleads() defined below in AUTH section (user-scoped)
 
 function estadoLabel(e) {
@@ -7146,23 +7162,50 @@ async function callClaude(prompt, imageBase64, imageMediaType) {
   } else {
     content = prompt;
   }
-  const res = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-api-key': claudeKey,
-      'anthropic-version': '2023-06-01',
-      'anthropic-dangerous-direct-browser-access': 'true'
-    },
-    body: JSON.stringify({ model: 'claude-sonnet-4-6', max_tokens: 3000, messages: [{ role: 'user', content }] })
-  });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err?.error?.message || `Erro HTTP ${res.status}`);
+
+  // A API por vezes devolve erro de sobrecarga (529 overloaded_error) em picos
+  // de tráfego — é temporário, por isso tentamos automaticamente mais algumas
+  // vezes com espera crescente antes de desistir e mostrar erro ao utilizador.
+  const MAX_TENTATIVAS = 3;
+  let ultimoErro;
+  for (let tentativa = 1; tentativa <= MAX_TENTATIVAS; tentativa++) {
+    try {
+      const res = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': claudeKey,
+          'anthropic-version': '2023-06-01',
+          'anthropic-dangerous-direct-browser-access': 'true'
+        },
+        body: JSON.stringify({ model: 'claude-sonnet-4-6', max_tokens: 3000, messages: [{ role: 'user', content }] })
+      });
+
+      const sobrecarregado = res.status === 529 || res.status === 503;
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        const msg = err?.error?.message || `Erro HTTP ${res.status}`;
+        if (sobrecarregado && tentativa < MAX_TENTATIVAS) {
+          ultimoErro = new Error(msg);
+          await new Promise(r => setTimeout(r, 1000 * tentativa)); // 1s, depois 2s
+          continue;
+        }
+        throw new Error(sobrecarregado ? 'O modelo está sobrecarregado de momento. Tenta novamente dentro de uns segundos.' : msg);
+      }
+      const data = await res.json();
+      if (data.error) throw new Error(data.error.message || 'Erro Claude');
+      return data.content?.[0]?.text || '';
+    } catch (e) {
+      // Erros de rede (sem resposta) também valem retry
+      if (tentativa < MAX_TENTATIVAS && !(e.message || '').includes('sobrecarregado')) {
+        ultimoErro = e;
+        await new Promise(r => setTimeout(r, 1000 * tentativa));
+        continue;
+      }
+      throw e;
+    }
   }
-  const data = await res.json();
-  if (data.error) throw new Error(data.error.message || 'Erro Claude');
-  return data.content?.[0]?.text || '';
+  throw ultimoErro || new Error('Erro Claude');
 }
 
 async function callAI(page, prompt, imageBase64, imageMediaType) {
@@ -8329,6 +8372,11 @@ function updateMsgCount() {
 function atualizarMsgCategorias() {
   const negocio = document.getElementById('msg-cat-negocio')?.checked;
   const produto = document.getElementById('msg-cat-produto')?.checked;
+  const aviso = document.getElementById('msg-cat-aviso');
+  const wrap = document.getElementById('msg-templates-wrap');
+  const nenhuma = !negocio && !produto;
+  if (aviso) aviso.style.display = nenhuma ? 'block' : 'none';
+  if (wrap) wrap.style.display = nenhuma ? 'none' : 'flex';
   document.querySelectorAll('#msg-templates-wrap [data-cat]').forEach(btn => {
     const cat = btn.dataset.cat;
     const visivel = (cat === 'negocio' && negocio) || (cat === 'produto' && produto);
@@ -8882,57 +8930,30 @@ function iniciarGoogleLoginComClientId() {
   }
   fecharConfigGoogle();
 
-  // IMPORTANTE: google.accounts.id.prompt() só abre o popup quando é chamado
-  // de forma SÍNCRONA a partir de um gesto do utilizador (o clique). Se
-  // esperarmos pelo carregamento do script via setTimeout/retry antes de
-  // chamar prompt(), a ligação ao clique perde-se e o browser bloqueia o
-  // popup silenciosamente (sem erro visível) — foi isto que partiu o login
-  // na v15.4.5. A solução é inicializar o GIS antecipadamente (ver
-  // preInicializarGoogleGIS, chamada no arranque da app) e aqui apenas
-  // chamar prompt() de imediato, ainda dentro do mesmo clique.
-  if (typeof google === 'undefined' || !google.accounts || !google.accounts.id) {
-    mostrarErroLogin('O login Google ainda está a carregar. Aguarda um instante e tenta novamente.');
-    showToast('⏳ Google Identity Services ainda não carregou. Tenta novamente em 1-2 segundos.');
-    // Tenta preparar em segundo plano para o próximo clique funcionar.
-    preInicializarGoogleGIS(clientId);
-    return;
-  }
-  google.accounts.id.initialize({
-    client_id: clientId,
-    callback: handleGoogleCredential,
-    auto_select: false,
-    cancel_on_tap_outside: true,
-  });
-  google.accounts.id.prompt();
-}
-
-// Inicializa o Google Identity Services antecipadamente (sem mostrar prompt),
-// para que o clique no botão de login só precise de chamar prompt() de forma
-// síncrona, preservando o "user gesture" exigido pelo browser.
-let _googleGISPreInicializado = false;
-function preInicializarGoogleGIS(clientIdOpcional) {
-  const clientId = clientIdOpcional || getGoogleClientId() || localStorage.getItem(GOOGLE_CLIENT_ID_KEY);
-  if (!clientId) return;
-  function tentar(tentativasRestantes) {
+  // Garante que o Google Identity Services já carregou (o script é async/defer
+  // e pode ainda não estar disponível no momento do clique, especialmente em
+  // ligações mais lentas). Tenta novamente por alguns segundos antes de desistir.
+  function tentarIniciar(tentativasRestantes) {
     if (typeof google === 'undefined' || !google.accounts || !google.accounts.id) {
-      if (tentativasRestantes <= 0) return;
-      setTimeout(() => tentar(tentativasRestantes - 1), 300);
+      if (tentativasRestantes <= 0) {
+        mostrarErroLogin('Não foi possível carregar o login Google. Verifica a ligação à internet e tenta novamente.');
+        showToast('❌ Google Identity Services não carregou a tempo.');
+        return;
+      }
+      setTimeout(() => tentarIniciar(tentativasRestantes - 1), 300);
       return;
     }
-    if (_googleGISPreInicializado) return;
+    // Init Google Identity Services
     google.accounts.id.initialize({
       client_id: clientId,
       callback: handleGoogleCredential,
       auto_select: false,
       cancel_on_tap_outside: true,
     });
-    _googleGISPreInicializado = true;
+    google.accounts.id.prompt();
   }
-  tentar(20); // até ~6 segundos de espera
+  tentarIniciar(20); // até ~6 segundos de espera
 }
-// Tenta logo no arranque da página (script do GIS é async/defer, por isso
-// pode demorar um pouco a ficar disponível — daí o retry acima).
-document.addEventListener('DOMContentLoaded', () => preInicializarGoogleGIS());
 
 function handleGoogleCredential(response) {
   try {
@@ -14082,6 +14103,7 @@ function fecharDetalhe(e) {
     <!-- Templates rápidos -->
     <div style="margin-bottom:14px;">
       <div class="form-label" style="margin-bottom:8px;">⚡ Templates rápidos</div>
+      <div id="msg-cat-aviso" style="display:none;font-size:12px;color:var(--warning,#f59e0b);margin-bottom:8px;">⚠️ Seleciona pelo menos uma categoria (Negócio ou Produto) para ver os templates.</div>
       <div style="display:flex;gap:6px;flex-wrap:wrap;" id="msg-templates-wrap">
         <button class="btn btn-secondary btn-sm" data-cat="negocio" onclick="usarTemplate('primeiro')">👋 Primeiro contacto</button>
         <button class="btn btn-secondary btn-sm" data-cat="negocio" onclick="usarTemplate('followup')">🔄 Follow-up</button>
