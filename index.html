@@ -3969,7 +3969,6 @@
             <div class="form-label">Incluir link na resposta?</div>
             <select class="form-select" id="link-select">
               <option value="nenhum">Sem link (só resposta)</option>
-              <option value="alfa-team">⭐ Convite Alfa Team</option>
               <option value="produto">🛒 Funil de Produto (X39)</option>
               <option value="negocio">🤝 Funil de Negócio</option>
               <option value="registo">📋 Link de Registo direto</option>
@@ -3980,10 +3979,6 @@
 
           <button class="btn btn-ai" style="width:100%;justify-content:center;padding:13px;" onclick="gerarResposta()" id="btn-gerar-resp">
             🤖 Gerar Resposta com IA
-          </button>
-
-          <button class="btn btn-secondary" style="width:100%;justify-content:center;margin-top:10px;" onclick="enviarBoasVindasEquipa()">
-            👋 Enviar Mensagem de Boas-Vindas à Equipa
           </button>
         </div>
 
@@ -3999,8 +3994,8 @@
           </div>
           <div class="copy-bar" id="resp-copy-bar" style="display:none;">
             <button class="btn btn-secondary btn-sm" onclick="copiarResposta()">📋 Copiar</button>
-            <button class="btn btn-secondary btn-sm" onclick="traduzirResposta()" id="btn-traduzir-resp" title="Traduzir para o idioma do teu sistema">🌐 Traduzir</button>
             <button class="btn btn-ai btn-sm" onclick="gerarResposta()">🔄 Gerar outra versão</button>
+            <button class="btn btn-secondary btn-sm" id="resp-traduzir-btn" onclick="traduzirResposta()" title="Traduzir para o idioma do teu dispositivo">🌐 Traduzir</button>
           </div>
 
           <!-- LINKS RÁPIDOS — renderizados dinamicamente via renderLinksRapidos() -->
@@ -4014,7 +4009,6 @@
                 ⚙️ Configura o teu perfil para ver os teus links personalizados.
               </div>
             </div>
-            <div id="links-rapidos-acoes"></div>
           </div>
         </div>
       </div>
@@ -6909,7 +6903,6 @@ function getMeuLinks() {
     nl: { lws: 'nl', lwr: 'nl' },
   };
   const lc = langMap[lang] || langMap['pt'];
-  const appUrl = (typeof window !== 'undefined' ? window.location.href : '').split('?')[0].split('#')[0];
   return {
     registo:           `https://lifewave.com/${slug}/enrollment/enrollerselection`,
     produto:           `https://lwsinfo.com/x39${lc.lws}?aff=${slug}`,
@@ -6918,7 +6911,6 @@ function getMeuLinks() {
     'negocio-obrigado':`https://lwsinfo.com/biz${lc.lws}-obrigado?aff=${slug}`,
     'produtos-direto': `https://lifewaveresults.com/?lng=${lc.lwr}`,
     'negocio-direto':  `https://lifewaveresults.com/biz?lng=${lc.lwr}`,
-    'alfa-team':       `${appUrl}?ref=MiguelLobato`,
   };
 }
 
@@ -7011,6 +7003,42 @@ function copiarResposta() {
     document.body.removeChild(ta);
     showToast('📋 Resposta copiada!');
   });
+}
+
+async function traduzirResposta() {
+  const textEl = document.getElementById('resp-text');
+  const btn = document.getElementById('resp-traduzir-btn');
+  const texto = textEl?.textContent?.trim();
+  if (!texto || texto.includes('A resposta aparecerá aqui')) {
+    showToast('❌ Gera uma resposta primeiro'); return;
+  }
+
+  const lang = navigator.language || navigator.userLanguage || 'pt-PT';
+  const langNames = {
+    'pt':'Português de Portugal','pt-PT':'Português de Portugal','pt-BR':'Português do Brasil',
+    'en':'English','en-US':'English','en-GB':'English',
+    'fr':'Français','fr-FR':'Français','es':'Español','es-ES':'Español',
+    'de':'Deutsch','it':'Italiano','nl':'Nederlands'
+  };
+  const langName = langNames[lang] || langNames[lang.split('-')[0]] || lang;
+
+  btn.disabled = true;
+  btn.textContent = '⏳...';
+
+  try {
+    const prompt = `Traduz o seguinte texto para ${langName}. Mantém o tom, emojis e formatação. Responde APENAS com o texto traduzido, sem introdução nem explicação.
+
+${texto}`;
+    const traduzido = await callAI('respostas', prompt, null, null);
+    if (!traduzido) throw new Error('Sem resposta');
+    textEl.textContent = traduzido.trim();
+    showToast(`✅ Traduzido para ${langName}`);
+  } catch(e) {
+    showToast('❌ Erro ao traduzir: ' + (e.message || 'Tenta novamente'));
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '🌐 Traduzir';
+  }
 }
 
 function copiarLink(url, nome) {
@@ -7700,7 +7728,6 @@ ${contexto ? `- Nota adicional: ${contexto}` : ''}
 
 OS TEUS LINKS PESSOAIS:
 - Registo: ${MEU_LINKS.registo}
-- Convite Alfa Team: ${MEU_LINKS['alfa-team']}
 - Funil Produto: ${MEU_LINKS.produto}
 - Funil Negócio: ${MEU_LINKS.negocio}
 - Produtos direto: ${MEU_LINKS['produtos-direto']}
@@ -7732,7 +7759,6 @@ ${contexto ? `- Informação extra: ${contexto}` : ''}
 
 OS TEUS LINKS PESSOAIS (usa apenas se indicado):
 - Registo: ${MEU_LINKS.registo}
-- Convite Alfa Team: ${MEU_LINKS['alfa-team']}
 - Funil Produto: ${MEU_LINKS.produto}
 - Funil Negócio: ${MEU_LINKS.negocio}
 - Produtos direto: ${MEU_LINKS['produtos-direto']}
@@ -7785,61 +7811,6 @@ Responde APENAS com o texto da mensagem, pronto a copiar e enviar. Sem introduç
     textEl.style.display = 'block';
   } finally {
     loader.classList.remove('show');
-  }
-}
-
-// ===== TRADUZIR RESPOSTA =====
-async function traduzirResposta() {
-  const textEl = document.getElementById('resp-text');
-  const btn = document.getElementById('btn-traduzir-resp');
-  const texto = textEl?.textContent?.trim();
-
-  if (!texto || texto.startsWith('A resposta aparecerá') || texto.startsWith('⚠️') || texto.startsWith('❌')) {
-    showToast('⚠️ Gera uma resposta primeiro');
-    return;
-  }
-
-  // Detecta idioma do sistema (ex: "pt", "fr", "en", "es", ...)
-  const langCode = (navigator.language || navigator.userLanguage || 'pt').split('-')[0];
-  const langNames = {
-    pt: 'Português de Portugal',
-    en: 'English',
-    fr: 'Français',
-    es: 'Español',
-    de: 'Deutsch',
-    it: 'Italiano',
-    nl: 'Nederlands',
-    pl: 'Polski',
-    ro: 'Română',
-    ar: 'العربية',
-    zh: 'Português de Portugal' // fallback
-  };
-  const idioma = langNames[langCode] || langCode;
-
-  const loader = document.getElementById('resp-loader');
-  const copyBar = document.getElementById('resp-copy-bar');
-
-  if (btn) btn.disabled = true;
-  loader.classList.add('show');
-  textEl.style.display = 'none';
-  copyBar.style.display = 'none';
-
-  const prompt = `Traduz o seguinte texto para ${idioma}. Mantém o mesmo tom, emojis e formatação. Responde APENAS com o texto traduzido, sem introdução nem explicação.\n\n${texto}`;
-
-  try {
-    const traduzido = await callAI('resp', prompt, null, null);
-    textEl.textContent = traduzido;
-    textEl.style.display = 'block';
-    copyBar.style.display = 'flex';
-    showToast(`🌐 Traduzido para ${idioma}`);
-  } catch(e) {
-    textEl.textContent = texto; // restaura original em caso de erro
-    textEl.style.display = 'block';
-    copyBar.style.display = 'flex';
-    showToast('❌ Erro ao traduzir: ' + (e.message || 'tenta novamente'));
-  } finally {
-    loader.classList.remove('show');
-    if (btn) btn.disabled = false;
   }
 }
 
@@ -8779,22 +8750,19 @@ Responde APENAS com o texto da mensagem, sem título nem explicação.`;
   }
 }
 
-// ===== ANTI-BAN: variações invisíveis de texto =====
+// ===== ANTI-BAN: variação de texto por reformulação leve =====
 function aplicarVariacaoTexto(texto) {
-  // Adiciona espaços de largura zero (U+200B) e variantes de unicode em posições aleatórias
-  // Torna cada mensagem ligeiramente única sem alterar o texto visível
-  const zws = '\u200B'; // zero-width space
-  const zwj = '\u200D'; // zero-width joiner
-  const chars = [zws, zwj];
-  let resultado = '';
-  for (let i = 0; i < texto.length; i++) {
-    resultado += texto[i];
-    // Inserir caractere invisível a cada ~15 chars, em posição aleatória
-    if (i > 0 && i % Math.floor(10 + Math.random() * 10) === 0) {
-      resultado += chars[Math.floor(Math.random() * chars.length)];
-    }
-  }
-  return resultado;
+  // Variação segura: adiciona um espaço extra aleatório no fim ou troca pontuação
+  // SEM caracteres invisíveis que corrompem no WhatsApp
+  const variacoes = [
+    t => t,                                          // original
+    t => t.replace(/\.\s*$/, '..'),                  // ponto → ponto duplo
+    t => t.replace(/!\s*$/, ' 🙏').replace(/🙏\s*$/, '🙏'), // ! → 🙏
+    t => t + ' ',                                    // espaço extra no fim
+    t => t.replace(/^Olá/, 'Olá,'),                  // vírgula após saudação
+  ];
+  const fn = variacoes[Math.floor(Math.random() * variacoes.length)];
+  return fn(texto);
 }
 
 async function enviarMensagemMassa() {
@@ -9939,20 +9907,7 @@ function renderLinksRapidos() {
   const links = getMeuLinks();
   const p = getUserPerfil();
   const slug = p.slug || '—';
-  const appUrl = window.location.href.split('?')[0].split('#')[0];
-
-  // Link de convite fixo da Alfa Team (slug oficial), independente do perfil de cada membro
-  const ALFA_TEAM_SLUG = 'MiguelLobato';
-  const alfaTeamRefLink = appUrl + '?ref=' + encodeURIComponent(ALFA_TEAM_SLUG);
-
-  const alfaTeamHtml = `
-    <div class="link-item" onclick="copiarLink('${alfaTeamRefLink}','Convite Alfa Team')" style="border-color:rgba(245,200,66,0.35);background:rgba(245,200,66,0.06);">
-      <div class="link-label">⭐ Link de Convite Alfa Team</div>
-      <div class="link-url">${alfaTeamRefLink.replace('https://','').replace('http://','')}</div>
-    </div>`;
-
   container.innerHTML = `
-    ${alfaTeamHtml}
     <div class="link-item" onclick="copiarLink('${links.registo}','Registo LifeWave')">
       <div class="link-label">📋 Registo LifeWave</div>
       <div class="link-url">lifewave.com/${slug}/enrollment/enrollerselection</div>
@@ -9974,58 +9929,6 @@ function renderLinksRapidos() {
       <div class="link-url">${links['negocio-direto'].replace('https://','')}</div>
     </div>
   `;
-
-  // Botão de mensagem de boas-vindas à equipa
-  const wrap = document.getElementById('links-rapidos-acoes');
-  if (wrap) {
-    wrap.innerHTML = `
-      <button class="btn btn-ai" style="width:100%;justify-content:center;margin-top:10px;" onclick="enviarBoasVindasEquipa()">
-        👋 Enviar Mensagem de Boas-Vindas à Equipa
-      </button>`;
-  }
-}
-
-// Gera e abre no WhatsApp uma mensagem de boas-vindas para um novo membro da equipa,
-// incluindo o link de convite de afiliado Alfa Team (slug oficial fixo) e os links de produto/negócio.
-function enviarBoasVindasEquipa() {
-  const links = getMeuLinks();
-  const p = getUserPerfil();
-  const appUrl = window.location.href.split('?')[0].split('#')[0];
-  const ALFA_TEAM_SLUG = 'MiguelLobato';
-  const alfaTeamRefLink = appUrl + '?ref=' + encodeURIComponent(ALFA_TEAM_SLUG);
-  const meuNome = p.nomeDisplay || (currentUser && currentUser.name) || 'a equipa';
-
-  const msg =
-`👋 Bem-vindo(a) à Alfa Team! 🚀
-
-Que bom ter-te connosco! Estamos aqui para te ajudar em cada passo desta jornada com a LifeWave.
-
-🔗 Link de convite Alfa Team (app da equipa):
-${alfaTeamRefLink}
-
-🛒 Conhece os produtos:
-${links['produtos-direto']}
-
-🤝 Conhece o negócio:
-${links['negocio-direto']}
-
-Qualquer dúvida, fala comigo diretamente — ${meuNome} 💪`;
-
-  let tel = '';
-  try {
-    const result = window.prompt('Número de WhatsApp do novo membro (com código do país, ex: 351912345678). Deixa vazio para só copiar a mensagem:', '');
-    tel = (result || '').replace(/\D/g, '');
-  } catch(e) {}
-
-  if (tel) {
-    window.open(`https://wa.me/${tel}?text=${encodeURIComponent(msg)}`, '_blank');
-  } else {
-    navigator.clipboard.writeText(msg).then(() => {
-      showToast('📋 Mensagem de boas-vindas copiada!');
-    }).catch(() => {
-      window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank');
-    });
-  }
 }
 
 // ===== END PERFIL =====
@@ -14437,7 +14340,7 @@ function fecharDetalhe(e) {
         </label>
       </div>
       <div style="font-size:11px;color:var(--text3);margin-top:8px;">
-        💡 "Variar texto" adiciona pequenas variações invisíveis à mensagem para evitar deteção de cópias idênticas.
+        💡 "Variar texto" faz pequenas variações na pontuação/emojis entre envios para evitar deteção de cópias idênticas. Sem caracteres especiais que corrompam o texto.
       </div>
     </div>
 
