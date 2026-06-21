@@ -35,6 +35,35 @@
     --radius-sm: 8px;
   }
 
+  /* ===== LIGHT MODE ===== */
+  [data-theme="light"] {
+    --bg: #f0f4f8;
+    --surface: #ffffff;
+    --surface2: #e8eef6;
+    --surface3: #dde5f0;
+    --accent: #00a882;
+    --accent2: #0065cc;
+    --accent3: #e05520;
+    --gold: #c99a00;
+    --text: #1a2235;
+    --text2: #4a5878;
+    --text3: #8a99b3;
+    --border: rgba(0,0,0,0.09);
+    --shadow: 0 8px 32px rgba(0,0,0,0.10);
+  }
+  [data-theme="light"] .sidebar { border-right: 1px solid rgba(0,0,0,0.08); }
+  [data-theme="light"] .modal { box-shadow: 0 20px 60px rgba(0,0,0,0.18); }
+  [data-theme="light"] .card { box-shadow: 0 2px 12px rgba(0,0,0,0.06); }
+  [data-theme="light"] .bottom-nav { border-top: 1px solid rgba(0,0,0,0.08); box-shadow: 0 -2px 12px rgba(0,0,0,0.06); }
+  [data-theme="light"] input, [data-theme="light"] select, [data-theme="light"] textarea {
+    background: #f8fafc; border-color: rgba(0,0,0,0.12);
+  }
+  [data-theme="light"] .nav-item.active { background: rgba(0,168,130,0.10); }
+  [data-theme="light"] .btn-secondary { background: #e8eef6; border-color: rgba(0,0,0,0.10); }
+  [data-theme="light"] .btn-secondary:hover { background: #dde5f0; }
+  [data-theme="light"] .theme-toggle-btn { background: rgba(0,0,0,0.06); }
+  [data-theme="light"] .streak-widget { background: linear-gradient(135deg,rgba(0,168,130,0.08),rgba(0,101,204,0.06)); }
+
   * { box-sizing: border-box; margin: 0; padding: 0; }
 
   body {
@@ -3244,6 +3273,39 @@
     font-family:'DM Sans',sans-serif; box-shadow:0 8px 24px rgba(0,212,170,.18);
   }
   .apr-editor-card { background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:16px 18px; margin-bottom:12px; }
+
+  /* ===== DIÁRIO DE APRENDIZAGEM DA EQUIPA ===== */
+  .diario-compor { background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:16px 18px; margin-bottom:22px; }
+  .diario-tipo-pills { display:flex; gap:7px; flex-wrap:wrap; margin-bottom:10px; }
+  .diario-textarea { width:100%; background:var(--surface2); border:1px solid var(--border); border-radius:10px; padding:12px 14px; font-size:13px; color:var(--text); font-family:'DM Sans',sans-serif; resize:vertical; min-height:80px; box-sizing:border-box; }
+  .diario-textarea:focus { outline:none; border-color:var(--accent); }
+  .diario-feed { display:flex; flex-direction:column; gap:14px; }
+  .diario-card { background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:16px 18px; transition:border-color .2s; }
+  .diario-card:hover { border-color:rgba(0,212,170,.25); }
+  .diario-card-header { display:flex; align-items:center; gap:10px; margin-bottom:10px; }
+  .diario-avatar { width:34px; height:34px; border-radius:50%; flex-shrink:0; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:700; color:#000; }
+  .diario-autor { font-size:13px; font-weight:700; color:var(--text); }
+  .diario-data { font-size:11px; color:var(--text3); }
+  .diario-tipo-badge { font-size:10px; font-weight:700; padding:3px 9px; border-radius:20px; margin-left:auto; }
+  .dtipo-objecao { background:rgba(255,107,53,.1); color:var(--accent3); border:1px solid rgba(255,107,53,.2); }
+  .dtipo-tecnica { background:rgba(0,212,170,.1); color:var(--accent); border:1px solid rgba(0,212,170,.2); }
+  .dtipo-vitoria { background:rgba(245,200,66,.12); color:var(--gold); border:1px solid rgba(245,200,66,.25); }
+  .dtipo-duvida { background:rgba(0,132,255,.1); color:var(--accent2); border:1px solid rgba(0,132,255,.2); }
+  .diario-card-texto { font-size:13.5px; color:var(--text); line-height:1.65; white-space:pre-wrap; word-break:break-word; margin-bottom:12px; }
+  .diario-card-footer { display:flex; align-items:center; gap:14px; }
+  .diario-reacoes { display:flex; gap:6px; flex-wrap:wrap; }
+  .diario-reacao-btn { background:var(--surface2); border:1px solid var(--border); border-radius:20px; padding:4px 11px; font-size:12px; cursor:pointer; transition:all .15s; font-family:'DM Sans',sans-serif; color:var(--text2); display:flex; align-items:center; gap:4px; }
+  .diario-reacao-btn:hover { border-color:var(--accent); }
+  .diario-reacao-btn.reagiu { background:rgba(0,212,170,.12); border-color:var(--accent); color:var(--accent); }
+  .diario-reacao-count { font-weight:700; }
+  .diario-del-btn { margin-left:auto; background:none; border:none; color:var(--text3); cursor:pointer; font-size:13px; padding:4px; }
+  .diario-del-btn:hover { color:#ff6b6b; }
+  .diario-empty { text-align:center; padding:50px 20px; color:var(--text2); }
+  .diario-filtros { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:18px; }
+  .diario-resumo-bar { display:flex; gap:14px; margin-bottom:20px; flex-wrap:wrap; }
+  .diario-resumo-item { flex:1; min-width:140px; background:var(--surface2); border:1px solid var(--border); border-radius:12px; padding:12px 16px; }
+  .diario-resumo-val { font-family:'Syne',sans-serif; font-size:20px; font-weight:700; }
+  .diario-resumo-lbl { font-size:11px; color:var(--text2); margin-top:2px; }
 </style>
 </head>
 <body>
@@ -3599,12 +3661,28 @@
         <span>Modo Apresentação</span>
         <span style="background:#25d366;color:#fff;font-size:9px;font-weight:700;padding:2px 6px;border-radius:20px;margin-left:auto;">Novo</span>
       </div>
+      <div class="nav-item" onclick="goTo('diario')" id="nav-diario">
+        <span class="nav-icon">📔</span>
+        <span>Diário da Equipa</span>
+        <span id="nav-diario-badge" style="display:none;background:#ff6b35;color:#fff;font-size:9px;font-weight:700;padding:2px 6px;border-radius:20px;margin-left:auto;"></span>
+      </div>
       <div class="nav-item" onclick="abrirPerfilModal(false)" id="nav-perfil" style="margin-top:8px;border-top:1px solid var(--border);padding-top:12px;">
         <span class="nav-icon">⚙️</span>
         <span>Meu Perfil & Links</span>
         <span id="nav-perfil-badge" style="display:none;background:#ff6b35;color:#fff;font-size:9px;font-weight:700;padding:2px 6px;border-radius:20px;margin-left:auto;">Novo</span>
       </div>
     </nav>
+    <!-- THEME TOGGLE -->
+    <div style="padding:6px 12px 2px 12px;">
+      <button class="theme-toggle-btn" onclick="toggleTheme()" id="theme-toggle-btn" 
+        style="width:100%;display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:10px;border:none;background:rgba(255,255,255,0.05);cursor:pointer;font-family:'DM Sans',sans-serif;font-size:12.5px;font-weight:600;color:var(--text2);transition:all .2s;">
+        <span id="theme-toggle-icon" style="font-size:15px;">☀️</span>
+        <span id="theme-toggle-label">Modo Claro</span>
+        <span id="theme-toggle-pill" style="margin-left:auto;width:36px;height:20px;border-radius:10px;background:var(--surface3);position:relative;transition:background .2s;flex-shrink:0;">
+          <span id="theme-toggle-dot" style="position:absolute;top:3px;left:3px;width:14px;height:14px;border-radius:50%;background:var(--text3);transition:all .25s;"></span>
+        </span>
+      </button>
+    </div>
     <!-- INSTALAR APP (PWA) -->
     <button id="pwa-install-btn" onclick="pwaInstalar()" style="display:none;align-items:center;gap:8px;justify-content:center;width:calc(100% - 24px);margin:0 12px 10px 12px;padding:10px;background:linear-gradient(135deg,var(--accent2),var(--accent));border:none;border-radius:10px;color:#fff;font-size:12.5px;font-weight:700;cursor:pointer;">
       📲 Instalar App
@@ -3767,6 +3845,9 @@
         </div>
         <div class="metas-grid" id="dash-metas-grid"></div>
       </div>
+
+      <!-- PRÓXIMO RANK WIDGET -->
+      <div id="dash-rank-widget" style="display:none;margin-bottom:16px;"></div>
 
       <!-- STREAK DIÁRIO -->
       <div id="streak-widget" class="streak-widget">
@@ -3966,6 +4047,13 @@
               <option value="sem_resposta">🔇 Sem resposta</option>
               <option value="quente">🔥 Quente (a avançar)</option>
               <option value="estagnado">🧊 Estagnado</option>
+            </select>
+          </div>
+
+          <div class="filtro-group">
+            <div class="filtro-label">🏷️ Tag minha</div>
+            <select class="form-select" id="f-filtro-tag" onchange="aplicarFiltros()">
+              <option value="">Todas</option>
             </select>
           </div>
 
@@ -4514,6 +4602,7 @@
           <div class="page-sub">Análise completa do desempenho do teu negócio LifeWave</div>
         </div>
         <div style="display:flex;gap:10px;align-items:center;">
+          <button class="btn btn-secondary btn-sm" onclick="exportarCSV()" title="Exportar dados para CSV" style="font-size:12px;">⬇️ Exportar CSV</button>
           <select id="stats-periodo" onchange="renderStats()" style="background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:8px 12px;font-size:13px;font-family:'DM Sans',sans-serif;cursor:pointer;">
             <option value="7">Últimos 7 dias</option>
             <option value="30" selected>Últimos 30 dias</option>
@@ -4527,6 +4616,18 @@
       <!-- KPIs PRINCIPAIS -->
       <div class="stats-grid" id="stats-kpis" style="margin-bottom:24px;">
         <!-- preenchido por JS -->
+      </div>
+
+      <!-- PIPELINE DE RECEITA -->
+      <div class="card" style="margin-bottom:20px;" id="stats-pipeline-card">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px;">
+          <div class="section-title" style="margin:0;">💰 Pipeline de Receita</div>
+          <div id="stats-pipeline-total" style="font-family:'Syne',sans-serif;font-size:18px;font-weight:700;color:var(--accent);"></div>
+        </div>
+        <div id="stats-pipeline-bars" style="display:flex;flex-direction:column;gap:10px;"></div>
+        <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border);font-size:11px;color:var(--text3);">
+          💡 Estimativa baseada no valor médio de venda registado × leads por estado. Atualiza à medida que adicionas vendas.
+        </div>
       </div>
 
       <!-- LINHA 1: Funil + Fontes -->
@@ -4627,7 +4728,7 @@
           <div class="page-title">🐺 Equipa &amp; Downline</div>
           <div class="page-sub">Gere e acompanha a tua rede LifeWave</div>
         </div>
-        <button class="btn btn-primary" onclick="openModal('modal-membro')">＋ Adicionar Membro</button>
+        <button class="btn btn-primary" onclick="abrirNovoModalMembro()">＋ Adicionar Membro</button>
       </div>
 
       <!-- TABS EQUIPA -->
@@ -4640,6 +4741,9 @@
 
       <!-- TAB: RANKING -->
       <div id="etab-ranking">
+
+      <!-- MEMBROS A PRECISAR DE APOIO AGORA (v20) -->
+      <div id="equipa-apoio-urgente"></div>
 
       <!-- KPIs DA EQUIPA -->
       <div class="stats-grid" id="equipa-kpis" style="margin-bottom:24px;"></div>
@@ -4704,7 +4808,7 @@
               <button class="btn btn-secondary btn-sm" style="justify-content:flex-start;" onclick="enviarWAGrupo()">
                 💬 Mensagem para toda a equipa
               </button>
-              <button class="btn btn-secondary btn-sm" style="justify-content:flex-start;" onclick="openModal('modal-membro')">
+              <button class="btn btn-secondary btn-sm" style="justify-content:flex-start;" onclick="abrirNovoModalMembro()">
                 ➕ Adicionar novo membro
               </button>
               <button class="btn btn-secondary btn-sm" style="justify-content:flex-start;" onclick="goTo('stats')">
@@ -4794,7 +4898,7 @@
           <div style="font-size:40px;margin-bottom:12px;">🌱</div>
           <div style="font-size:14px;font-weight:600;color:var(--text);margin-bottom:8px;">Ainda sem membros na equipa</div>
           <div style="font-size:12.5px;color:var(--text2);margin-bottom:20px;">Adiciona membros para ver a tua rede aqui.</div>
-          <button class="btn btn-primary" onclick="openModal('modal-membro')">＋ Adicionar Membro</button>
+          <button class="btn btn-primary" onclick="abrirNovoModalMembro()">＋ Adicionar Membro</button>
         </div>
       </div><!-- end etab-arvore -->
 
@@ -4829,7 +4933,7 @@
           <div style="font-size:40px;margin-bottom:12px;">🏆</div>
           <div style="font-size:14px;font-weight:600;color:var(--text);margin-bottom:8px;">Adiciona membros para ver o Leaderboard</div>
           <div style="font-size:12px;color:var(--text2);margin-bottom:20px;">O ranking é gerado automaticamente com base nos dados da tua equipa.</div>
-          <button class="btn btn-primary" onclick="openModal('modal-membro')">＋ Adicionar Membro</button>
+          <button class="btn btn-primary" onclick="abrirNovoModalMembro()">＋ Adicionar Membro</button>
         </div>
 
         <!-- Card de motivação -->
@@ -4878,6 +4982,7 @@
           <div class="page-sub">Acompanha as tuas vendas, comissões e metas mensais</div>
         </div>
         <div style="display:flex;gap:10px;flex-wrap:wrap;">
+          <button class="btn btn-secondary" onclick="exportarRelatorioComissoesPDF()">🖨️ Exportar PDF</button>
           <button class="btn btn-secondary" onclick="openModal('modal-meta-mensal')">🎯 Definir Meta</button>
           <button class="btn btn-primary" onclick="openModal('modal-nova-venda')">＋ Registar Venda</button>
         </div>
@@ -6073,17 +6178,6 @@
         <div style="font-size:40px;margin-bottom:10px;">🔍</div>
         Nenhuma objeção encontrada. Tenta outra pesquisa.
       </div>
-
-      <!-- MODAL DETALHE OBJEÇÃO -->
-      <div class="modal-overlay" id="modal-objdetalhe" style="z-index:9999;">
-        <div class="modal" style="max-width:580px;max-height:88vh;overflow-y:auto;">
-          <div class="modal-title">
-            <span id="obj-modal-titulo">Objeção</span>
-            <button class="modal-close" onclick="closeModal('modal-objdetalhe')">✕</button>
-          </div>
-          <div id="obj-modal-body" style="padding:4px 0;"></div>
-        </div>
-      </div>
     </div><!-- end page-objecoes -->
 
     <!-- ============================================================ -->
@@ -6481,7 +6575,9 @@
       </div>
       <div class="apr-editor-card">
         <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:10px;">🙋 Para quem é esta apresentação?</div>
-        <input class="form-input" id="apr-nome-lead" placeholder="Nome do lead (opcional, personaliza o slide final)">
+        <select class="form-select" id="apr-nome-lead">
+          <option value="">— Sem nome (apresentação genérica) —</option>
+        </select>
       </div>
     </div>
 
@@ -6497,6 +6593,52 @@
       </div>
       <div id="apr-slides-wrap" style="flex:1;display:flex;flex-direction:column;"></div>
     </div>
+
+
+    <!-- ==================== DIÁRIO DE APRENDIZAGEM DA EQUIPA ==================== -->
+    <div id="page-diario" class="page">
+      <div class="page-header">
+        <div>
+          <div class="page-title">📔 Diário da Equipa</div>
+          <div class="page-sub">Partilha o que aprendeste esta semana — uma objeção que superaste, uma técnica que funcionou, uma vitória</div>
+        </div>
+      </div>
+
+      <div class="diario-resumo-bar" id="diario-resumo"></div>
+
+      <!-- Compor novo registo -->
+      <div class="diario-compor">
+        <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:10px;">✍️ Novo registo</div>
+        <div class="diario-tipo-pills">
+          <button class="tone-pill active" id="dtipo-objecao" onclick="setDiarioTipo('objecao',this)">🛡️ Objeção superada</button>
+          <button class="tone-pill" id="dtipo-tecnica" onclick="setDiarioTipo('tecnica',this)">💡 Técnica que funcionou</button>
+          <button class="tone-pill" id="dtipo-vitoria" onclick="setDiarioTipo('vitoria',this)">🏆 Vitória da semana</button>
+          <button class="tone-pill" id="dtipo-duvida" onclick="setDiarioTipo('duvida',this)">❓ Dúvida para a equipa</button>
+        </div>
+        <textarea class="diario-textarea" id="diario-texto" placeholder="Conta o que aconteceu — pode ajudar alguém da equipa esta semana..."></textarea>
+        <div style="display:flex;justify-content:flex-end;margin-top:10px;">
+          <button class="btn btn-primary" onclick="publicarDiario()">📤 Publicar no Diário</button>
+        </div>
+      </div>
+
+      <!-- Filtros -->
+      <div class="diario-filtros">
+        <button class="acoes-tab active" id="dftab-todos"    onclick="setDiarioFiltro('todos',this)">Todos</button>
+        <button class="acoes-tab" id="dftab-objecao"          onclick="setDiarioFiltro('objecao',this)">🛡️ Objeções</button>
+        <button class="acoes-tab" id="dftab-tecnica"          onclick="setDiarioFiltro('tecnica',this)">💡 Técnicas</button>
+        <button class="acoes-tab" id="dftab-vitoria"          onclick="setDiarioFiltro('vitoria',this)">🏆 Vitórias</button>
+        <button class="acoes-tab" id="dftab-duvida"           onclick="setDiarioFiltro('duvida',this)">❓ Dúvidas</button>
+      </div>
+
+      <!-- Feed -->
+      <div class="diario-feed" id="diario-feed"></div>
+      <div class="diario-empty" id="diario-empty" style="display:none;">
+        <div style="font-size:48px;margin-bottom:12px;opacity:.5;">📔</div>
+        <div style="font-size:16px;font-weight:700;color:var(--text);margin-bottom:6px;">Diário vazio</div>
+        <div style="font-size:13px;">Sê o primeiro a partilhar algo que aprendeste esta semana!</div>
+      </div>
+    </div>
+    <!-- ==================== FIM DIÁRIO DA EQUIPA ==================== -->
 
     <div id="page-tutorial" class="page">
       <div class="page-header">
@@ -6951,6 +7093,10 @@
       <div class="bn-icon-wrap"><span class="bn-icon">💬</span></div>
       <span>Respostas</span>
     </div>
+    <div class="bn-item" id="bn-coach" onclick="goTo('coach')">
+      <div class="bn-icon-wrap"><span class="bn-icon">🤖</span></div>
+      <span>Coach IA</span>
+    </div>
     <div class="bn-item" id="bn-calendario" onclick="goTo('calendario')">
       <div class="bn-icon-wrap"><span class="bn-icon">📅</span></div>
       <span>Calendário</span>
@@ -7011,6 +7157,17 @@
       <div class="bn-icon-wrap"><span class="bn-icon">🎯</span></div>
       <span>Metas</span>
     </div>
+    <div class="bn-item" id="bn-templates" onclick="goTo('templates')">
+      <div class="bn-icon-wrap"><span class="bn-icon">📝</span></div>
+      <span>Templates</span>
+    </div>
+    <div class="bn-item" id="bn-promocoes" onclick="goTo('promocoes')">
+      <div class="bn-icon-wrap">
+        <span class="bn-icon">📢</span>
+        <span class="bn-badge" id="bn-badge-promocoes" style="display:none;"></span>
+      </div>
+      <span>Promoções</span>
+    </div>
     <div class="bn-item" id="bn-checklist" onclick="goTo('checklist')">
       <div class="bn-icon-wrap">
         <span class="bn-icon">✅</span>
@@ -7026,6 +7183,13 @@
       <div class="bn-icon-wrap"><span class="bn-icon">🎭</span></div>
       <span>Simulador</span>
     </div>
+    <div class="bn-item" id="bn-onboarding" onclick="goTo('onboarding')">
+      <div class="bn-icon-wrap">
+        <span class="bn-icon">🚀</span>
+        <span class="bn-badge" id="bn-badge-onboarding" style="display:none;">0</span>
+      </div>
+      <span>Onboarding</span>
+    </div>
     <div class="bn-item" id="bn-automacao" onclick="goTo('automacao')">
       <div class="bn-icon-wrap"><span class="bn-icon">⚙️</span></div>
       <span>Automação</span>
@@ -7037,6 +7201,10 @@
     <div class="bn-item" id="bn-apresentacao" onclick="goTo('apresentacao')">
       <div class="bn-icon-wrap"><span class="bn-icon">🖥️</span></div>
       <span>Apresentação</span>
+    </div>
+    <div class="bn-item" id="bn-diario" onclick="goTo('diario')">
+      <div class="bn-icon-wrap"><span class="bn-icon">📔</span></div>
+      <span>Diário</span>
     </div>
     <div class="bn-more-item" id="bn-more" onclick="abrirMenuMais()">
       <div class="bn-icon-wrap"><span class="bn-icon">☰</span></div>
@@ -7054,6 +7222,17 @@
       <button id="pwa-install-btn-mobile" onclick="pwaInstalar()" style="display:none;align-items:center;justify-content:center;gap:8px;width:100%;margin-bottom:14px;padding:11px;background:linear-gradient(135deg,var(--accent2),var(--accent));border:none;border-radius:12px;color:#fff;font-size:13px;font-weight:700;cursor:pointer;">
         📲 Instalar App no telemóvel
       </button>
+      <!-- TOGGLE TEMA -->
+      <div onclick="toggleTheme()" style="display:flex;align-items:center;gap:12px;padding:11px 14px;border-radius:12px;background:var(--surface2);border:1px solid var(--border);margin-bottom:12px;cursor:pointer;transition:background .2s;">
+        <span id="mais-theme-icon" style="font-size:18px;">☀️</span>
+        <div style="flex:1;">
+          <div style="font-size:13px;font-weight:700;color:var(--text);" id="mais-theme-label">Modo Claro</div>
+          <div style="font-size:11px;color:var(--text2);">Alternar aparência da app</div>
+        </div>
+        <span id="mais-theme-pill" style="width:38px;height:22px;border-radius:11px;background:var(--surface3);position:relative;flex-shrink:0;transition:background .25s;display:inline-block;">
+          <span id="mais-theme-dot" style="position:absolute;top:4px;left:4px;width:14px;height:14px;border-radius:50%;background:var(--text3);transition:all .25s;display:inline-block;"></span>
+        </span>
+      </div>
       <div id="menu-mais-grid" style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;max-height:65vh;overflow-y:auto;"></div>
     </div>
   </div>
@@ -7069,6 +7248,35 @@
     </div>
   </div>
 
+  <!-- MODAL DETALHE OBJEÇÃO movido para fora de .app — ver mais abaixo,
+       junto aos outros modais globais (modal-ver-lead, modal-lead, etc.)
+       para garantir que fica no mesmo stacking context e aparece por cima. -->
+
+</div>
+
+<!-- MODAL: MENSAGEM SUGERIDA AO MOVER LEAD -->
+<div class="modal-overlay" id="modal-msg-funil">
+  <div class="modal" style="max-width:440px;">
+    <div class="modal-title">
+      <span id="msg-funil-titulo">💬 Mensagem Sugerida</span>
+      <button class="modal-close" onclick="closeModal('modal-msg-funil')">✕</button>
+    </div>
+    <div style="font-size:12px;color:var(--text2);margin-bottom:14px;" id="msg-funil-subtitulo"></div>
+    <div style="position:relative;">
+      <textarea id="msg-funil-texto" rows="7" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:14px;color:var(--text);font-size:13px;font-family:'DM Sans',sans-serif;line-height:1.6;resize:vertical;"></textarea>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap;">
+      <button class="btn btn-primary" style="flex:1;" onclick="msgFunilEnviarWA()">
+        <span style="margin-right:6px;">📲</span> Abrir WhatsApp
+      </button>
+      <button class="btn btn-secondary" style="flex:1;" onclick="msgFunilCopiar()">
+        <span style="margin-right:6px;">📋</span> Copiar
+      </button>
+      <button class="btn btn-secondary" style="width:100%;margin-top:2px;font-size:12px;opacity:.7;" onclick="closeModal('modal-msg-funil')">
+        Ignorar — não preciso de mensagem
+      </button>
+    </div>
+  </div>
 </div>
 
 <!-- MODAL: REGISTAR PV/BV -->
@@ -7183,6 +7391,19 @@
       <button class="btn btn-secondary" onclick="closeModal('modal-ob-recurso')">Cancelar</button>
       <button class="btn btn-primary" onclick="obSalvarRecurso()">💾 Guardar</button>
     </div>
+  </div>
+</div>
+
+<!-- MODAL DETALHE OBJEÇÃO (v20 — fora de .app para garantir que fica acima
+     de modal-ver-lead; estavam em stacking contexts diferentes, por isso o
+     z-index:9999 não bastava enquanto este modal estava dentro de .app) -->
+<div class="modal-overlay" id="modal-objdetalhe" style="z-index:9999;">
+  <div class="modal" style="max-width:580px;max-height:88vh;overflow-y:auto;">
+    <div class="modal-title">
+      <span id="obj-modal-titulo">Objeção</span>
+      <button class="modal-close" onclick="closeModal('modal-objdetalhe')">✕</button>
+    </div>
+    <div id="obj-modal-body" style="padding:4px 0;"></div>
   </div>
 </div>
 
@@ -7651,6 +7872,7 @@ function moverLeadParaEtapa(leadId, novaEtapa) {
   if (novaEtapa === 'cliente') vibrarConfirmacao();
   showToast('✅ ' + lead.nome + ' → ' + novaEtapa);
   executarAutomacoes(lead, estadoAnterior, novaEtapa);
+  mostrarMsgFunil(lead, novaEtapa);
 }
 
 function abrirMenuMais() {
@@ -7681,7 +7903,7 @@ function goTo(page) {
   document.querySelectorAll('.bn-item, .bn-more-item').forEach(n => n.classList.remove('active'));
   document.getElementById('page-' + page).classList.add('active');
   const items = document.querySelectorAll('.nav-item');
-  const map = { dashboard: 0, acoes: 1, funil: 2, lista: 3, posts: 4, calendario: 5, agenda: 6, respostas: 7, coach: 8, stats: 9, equipa: 10, comissoes: 11, luminate: 12, calculadora: 13, 'plano-comp': 14, formacao: 15, catalogo: 16, percurso: 17, stories: 18, objecoes: 19, metas: 20, templates: 21, promocoes: 22, checklist: 23, relatorio: 24, roleplay: 25, onboarding: 27, automacao: 28, mapa: 29, apresentacao: 30, tutorial: 32 };
+  const map = { dashboard: 0, acoes: 1, funil: 2, lista: 3, posts: 4, calendario: 5, agenda: 6, respostas: 7, coach: 8, stats: 9, equipa: 10, comissoes: 11, luminate: 12, calculadora: 13, 'plano-comp': 14, formacao: 15, catalogo: 16, percurso: 17, stories: 18, objecoes: 19, metas: 20, templates: 21, promocoes: 22, checklist: 23, relatorio: 24, roleplay: 25, onboarding: 27, automacao: 28, mapa: 29, apresentacao: 30, diario: 31, tutorial: 33 };
   if (map[page] !== undefined && items[map[page]]) items[map[page]].classList.add('active');
   const bnEl = document.getElementById('bn-' + page);
   if (bnEl) {
@@ -7717,6 +7939,7 @@ function goTo(page) {
   if (page === 'automacao') renderAutomacao();
   if (page === 'mapa') renderMapaLeads();
   if (page === 'apresentacao') apresentacaoInit();
+  if (page === 'diario') renderDiario();
   if (page === 'tutorial') tutorialInit();
   window.scrollTo(0, 0);
 }
@@ -7957,6 +8180,127 @@ function adicionarNotaTimeline(leadId){
   l.ultimoContacto=new Date().toISOString();
   saveleads();showToast('✓ Interação guardada');verLead(leadId);}
 
+// ===== TAGS LIVRES (etiquetas customizadas pelo utilizador) =====
+function todasTagsLivresUsadas() {
+  const set = new Set();
+  leads.forEach(l => (l.tags || []).forEach(t => set.add(t)));
+  return Array.from(set).sort((a, b) => a.localeCompare(b, 'pt'));
+}
+
+function tagsLivresHtml(l) {
+  const tags = l.tags || [];
+  if (!tags.length) return '';
+  return tags.map(t =>
+    `<span class="lead-badge" style="background:rgba(0,132,255,0.15);color:var(--accent2);font-size:10px;padding:2px 7px;margin-right:4px;" title="Tag">🏷️ ${t}</span>`
+  ).join('');
+}
+
+function renderTagsLeadModal(leadId) {
+  const l = leads.find(x => x.id === leadId);
+  if (!l) return;
+  const wrap = document.getElementById('lead-tags-chips');
+  if (!wrap) return;
+  const tags = l.tags || [];
+  wrap.innerHTML = tags.length
+    ? tags.map(t => `
+        <span style="display:inline-flex;align-items:center;gap:5px;background:rgba(0,132,255,0.15);color:var(--accent2);font-size:12px;font-weight:600;padding:5px 8px 5px 10px;border-radius:20px;">
+          🏷️ ${t}
+          <span onclick="removerTagLead('${leadId}','${t.replace(/'/g, "\\'")}')" style="cursor:pointer;opacity:0.7;font-weight:700;">✕</span>
+        </span>`).join('')
+    : '<span style="font-size:12px;color:var(--text3);">Sem tags ainda</span>';
+}
+
+function adicionarTagLead(leadId) {
+  const input = document.getElementById('lead-tag-input');
+  if (!input) return;
+  let valor = input.value.trim();
+  if (!valor) return;
+  // Normaliza capitalização (primeira letra maiúscula) para evitar "vip" e "VIP" como tags diferentes
+  valor = valor.charAt(0).toUpperCase() + valor.slice(1);
+  const l = leads.find(x => x.id === leadId);
+  if (!l) return;
+  l.tags = l.tags || [];
+  if (l.tags.some(t => t.toLowerCase() === valor.toLowerCase())) {
+    showToast('⚠️ Essa tag já existe neste lead');
+    input.value = '';
+    return;
+  }
+  l.tags.push(valor);
+  saveleads();
+  input.value = '';
+  renderTagsLeadModal(leadId);
+  renderFunil();
+  renderLista();
+}
+
+function removerTagLead(leadId, tag) {
+  const l = leads.find(x => x.id === leadId);
+  if (!l || !l.tags) return;
+  l.tags = l.tags.filter(t => t !== tag);
+  saveleads();
+  renderTagsLeadModal(leadId);
+  renderFunil();
+  renderLista();
+}
+
+function lead_tagInputKeydown(e, leadId) {
+  if (e.key === 'Enter') { e.preventDefault(); adicionarTagLead(leadId); }
+}
+
+function autocompleteTagsLead(leadId) {
+  const input = document.getElementById('lead-tag-input');
+  const box = document.getElementById('lead-tag-suggestions');
+  if (!input || !box) return;
+  const val = input.value.trim().toLowerCase();
+  if (!val) { box.style.display = 'none'; box.innerHTML = ''; return; }
+  const l = leads.find(x => x.id === leadId);
+  const jaTem = (l && l.tags) || [];
+  const sugestoes = todasTagsLivresUsadas()
+    .filter(t => t.toLowerCase().includes(val) && !jaTem.some(jt => jt.toLowerCase() === t.toLowerCase()))
+    .slice(0, 5);
+  if (!sugestoes.length) { box.style.display = 'none'; box.innerHTML = ''; return; }
+  box.innerHTML = sugestoes.map(t =>
+    `<div onclick="document.getElementById('lead-tag-input').value='${t.replace(/'/g, "\\'")}';adicionarTagLead('${leadId}');document.getElementById('lead-tag-suggestions').style.display='none';" style="padding:7px 10px;cursor:pointer;font-size:12.5px;color:var(--text);border-radius:6px;" onmouseover="this.style.background='var(--surface3)'" onmouseout="this.style.background='transparent'">🏷️ ${t}</div>`
+  ).join('');
+  box.style.display = 'block';
+}
+
+// ===== DETEÇÃO DE OBJEÇÕES NO HISTÓRICO DO LEAD (v20) =====
+// Cruza o texto que o próprio lead respondeu (h.resposta) com as tags da
+// biblioteca de objeções já existente, sem precisar de chamar a IA externa.
+function _normalizarTexto(s) {
+  return (s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+}
+
+function renderAlertaObjecaoLead(l) {
+  const alertaEl = document.getElementById('lead-obj-alerta');
+  if (!alertaEl) return;
+  const historico = l.historico || [];
+  // Junta todo o texto que o LEAD escreveu (respostas recebidas), não o que tu escreveste
+  const textoLead = _normalizarTexto(
+    historico.map(h => h.resposta || '').filter(Boolean).join(' ')
+  );
+  if (!textoLead) { alertaEl.innerHTML = ''; return; }
+
+  let encontrada = null;
+  for (const obj of OBJECOES_DB) {
+    const match = (obj.tags || []).find(tag => textoLead.includes(_normalizarTexto(tag)));
+    if (match) { encontrada = obj; break; }
+  }
+  if (!encontrada) { alertaEl.innerHTML = ''; return; }
+
+  alertaEl.innerHTML = `
+    <div style="margin-bottom:14px;padding:12px;background:rgba(255,107,53,0.08);border:1px solid rgba(255,107,53,0.25);border-radius:10px;display:flex;align-items:flex-start;gap:10px;">
+      <span style="font-size:18px;flex-shrink:0;">🛡️</span>
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:12px;font-weight:700;color:var(--accent3);margin-bottom:3px;">Objeção detetada no histórico</div>
+        <div style="font-size:12px;color:var(--text2);margin-bottom:8px;">${encontrada.emoji} ${encontrada.titulo}</div>
+        <button class="btn btn-sm btn-ai" onclick="abrirObjDetalhe('${encontrada.id}')">Ver resposta sugerida →</button>
+      </div>
+    </div>
+  `;
+}
+
 function verLead(id) {
   const l = leads.find(x => x.id === id);
   if (!l) return;
@@ -7988,6 +8332,7 @@ function verLead(id) {
       <div class="score-bar-track"><div class="score-bar-fill" style="width:${pct}%;background:${cor}"></div></div>
       <div class="score-bar-value" style="color:${cor}">${score}/10</div>
     </div>
+    <div id="lead-obj-alerta"></div>
     <details style="margin-bottom:14px;">
       <summary style="font-size:11px;color:var(--text2);cursor:pointer;">Ver detalhes do score</summary>
       <div class="score-detail">${detalhes.map(d => `• ${d}`).join('<br>')}</div>
@@ -7999,7 +8344,23 @@ function verLead(id) {
     <div class="detail-row"><div class="detail-label">🔍 Fonte</div><div class="detail-val">${l.fonte}</div></div>
     <div class="detail-row"><div class="detail-label">📅 Adicionado</div><div class="detail-val">${l.data}</div></div>
     ${l.aniversario ? `<div class="detail-row"><div class="detail-label">🎂 Aniversário</div><div class="detail-val">${formatarAniversario(l.aniversario)}</div></div>` : ''}
-    ${l.notas ? `<div class="detail-row"><div class="detail-label">📝 Notas rápidas</div><div class="detail-val">${l.notas}</div></div>` : ''}
+
+    <div style="margin-bottom:16px;">
+      <div style="font-size:12px;color:var(--text2);font-weight:600;margin-bottom:6px;">📝 Nota Rápida</div>
+      <textarea id="nota-rapida-input" style="width:100%;background:var(--surface3);border:1px solid var(--border);border-radius:10px;color:var(--text);font-size:13px;padding:10px 12px;resize:vertical;min-height:72px;font-family:inherit;outline:none;box-sizing:border-box;" placeholder="Contexto rápido: ex. Tem dores nas costas, ficou de pensar até sexta...">${l.notas || ''}</textarea>
+      <div style="display:flex;justify-content:flex-end;margin-top:6px;">
+        <button class="btn btn-primary btn-sm" onclick="guardarNotaRapida('${id}')" style="font-size:12px;">💾 Guardar nota</button>
+      </div>
+    </div>
+
+    <div id="lead-tags-chips" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;"></div>
+    <div style="position:relative;">
+      <div style="display:flex;gap:6px;">
+        <input class="form-input" id="lead-tag-input" placeholder="Escreve uma tag e prime Enter (ex: VIP)" style="font-size:13px;" oninput="autocompleteTagsLead('${id}')" onkeydown="lead_tagInputKeydown(event,'${id}')">
+        <button class="btn btn-secondary btn-sm" onclick="adicionarTagLead('${id}')">＋</button>
+      </div>
+      <div id="lead-tag-suggestions" style="display:none;position:absolute;top:100%;left:0;right:0;margin-top:4px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:4px;z-index:20;box-shadow:var(--shadow);"></div>
+    </div>
 
     <div class="section-title" style="margin-top:20px;margin-bottom:10px;">💬 Registar Interação</div>
     <div class="tl-add-box">
@@ -8033,6 +8394,7 @@ function verLead(id) {
     </div>
   `;
   _renderConversaFiltro('todos','');
+  renderTagsLeadModal(id);
   document.getElementById('ver-lead-actions').innerHTML = `
     <button class="btn btn-ai btn-sm" onclick="abrirGuiaoIA('${id}')">🎯 Guião IA</button>
     <button class="btn btn-secondary btn-sm" onclick="avancarEstado('${id}')">⏩ Avançar Estado</button>
@@ -8043,6 +8405,7 @@ function verLead(id) {
     ${l.estado === 'cliente' ? `<button class="btn btn-sm" style="background:linear-gradient(135deg,#00d4aa,#0084ff);color:#fff;" onclick="confirmarPromoverAMembro('${id}')">🚀 Promover a Membro da Equipa</button>` : ''}
     <button class="btn btn-danger btn-sm" onclick="eliminarLead('${id}')">🗑 Eliminar</button>
   `;
+  renderAlertaObjecaoLead(l);
   openModal('modal-ver-lead');
 }
 
@@ -8434,6 +8797,121 @@ function estadoLabel(e) {
 }
 
 // ===== DASHBOARD =====
+// ─────────────────────────────────────────────────
+// 🏆 WIDGET PRÓXIMO RANK — Dashboard
+// ─────────────────────────────────────────────────
+function renderDashRankWidget() {
+  const el = document.getElementById('dash-rank-widget');
+  if (!el) return;
+
+  // Dados do perfil (protecção se ainda não carregado)
+  const p = (typeof perfil !== 'undefined' && perfil) ? perfil : {};
+  const pv    = parseFloat(p.pv)   || 0;
+  const qdv   = parseFloat(p.qdv)  || 0;
+  const secL  = parseFloat(p.secL) || 0;
+  const secR  = parseFloat(p.secR) || 0;
+  const olxl  = parseFloat(p.olxl) || 0;
+
+  // Se sem dados, esconde
+  if (pv === 0 && qdv === 0) { el.style.display = 'none'; return; }
+  el.style.display = '';
+
+  const res   = calcularCategoria({ pv, qdv, secL, secR, olxl });
+  const prox  = proximaCategoria(res.cat);
+  const catAtual = res.cat;
+
+  // Ícone por nível
+  const catIcon = {
+    'Brand Partner':'🌱','Brand Partner Ativo':'🌿',
+    '1-Star Manager':'⭐','2-Star Manager':'⭐⭐','3-Star Manager':'⭐⭐⭐',
+    '1-Star Director':'🥉','2-Star Director':'🥈','3-Star Director':'🥇',
+    '1-Star Executive':'💎','2-Star Executive':'💎💎','3-Star Executive':'💎💎💎',
+    '1-Star Presidential':'👑','2-Star Presidential':'👑👑','3-Star Presidential':'👑👑👑'
+  };
+  const icAtual = catIcon[catAtual] || '📊';
+  const icProx  = prox ? (catIcon[prox.cat] || '🎯') : '🏆';
+
+  // Cores por urgência
+  let urgencia = 'normal';
+  if (prox) {
+    const pvPct  = pv / prox.pv;
+    const qdvPct = prox.qdv > 0 ? qdv / prox.qdv : 1;
+    if (pvPct >= 0.9 && qdvPct >= 0.9) urgencia = 'quase';
+    else if (pvPct >= 0.7 || qdvPct >= 0.7) urgencia = 'perto';
+  }
+
+  const corBorda = urgencia === 'quase' ? 'rgba(0,212,170,0.5)' : urgencia === 'perto' ? 'rgba(245,200,66,0.4)' : 'rgba(0,132,255,0.25)';
+  const corFundo = urgencia === 'quase' ? 'rgba(0,212,170,0.06)' : urgencia === 'perto' ? 'rgba(245,200,66,0.04)' : 'rgba(0,132,255,0.03)';
+  const msgUrgencia = urgencia === 'quase'
+    ? `<div style="font-size:12px;font-weight:700;color:var(--accent);margin-bottom:10px;display:flex;align-items:center;gap:6px;"><span style="background:rgba(0,212,170,0.15);padding:3px 10px;border-radius:20px;border:1px solid rgba(0,212,170,0.3);">🔥 Quase lá! Estás a 90%+ do próximo rank</span></div>`
+    : urgencia === 'perto'
+    ? `<div style="font-size:12px;font-weight:700;color:var(--gold);margin-bottom:10px;display:flex;align-items:center;gap:6px;"><span style="background:rgba(245,200,66,0.1);padding:3px 10px;border-radius:20px;border:1px solid rgba(245,200,66,0.25);">📈 Bom ritmo — continua assim!</span></div>`
+    : '';
+
+  // Barras de progresso
+  const mkBarra = (label, atual, meta, cor) => {
+    if (!meta || meta === 0) return '';
+    const pct = Math.min(100, Math.round((atual / meta) * 100));
+    const falta = Math.max(0, meta - atual);
+    const corBarra = pct >= 90 ? 'var(--accent)' : pct >= 70 ? 'var(--gold)' : 'var(--accent2)';
+    return `
+      <div style="margin-bottom:10px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+          <div style="font-size:11px;color:var(--text2);font-weight:600;">${label}</div>
+          <div style="display:flex;align-items:center;gap:6px;">
+            <div style="font-size:11px;font-weight:700;color:${pct>=100?'var(--accent)':corBarra};">${atual.toLocaleString('pt-PT')} / ${meta.toLocaleString('pt-PT')}</div>
+            ${pct < 100 ? `<div style="font-size:10px;color:var(--text3);">falta ${falta.toLocaleString('pt-PT')}</div>` : `<div style="font-size:10px;color:var(--accent);">✅ OK</div>`}
+          </div>
+        </div>
+        <div style="background:var(--surface3);border-radius:20px;height:7px;overflow:hidden;">
+          <div style="height:100%;width:${pct}%;background:${pct>=100?'var(--accent)':corBarra};border-radius:20px;transition:width .6s ease;"></div>
+        </div>
+      </div>`;
+  };
+
+  // Pontos VIP Luminate para o próximo rank
+  const rankPontosVIP = {
+    '1-Star Manager':35,'2-Star Manager':55,'3-Star Manager':70,'1-Star Director':90
+  };
+  const pontosVIP = prox ? (rankPontosVIP[prox.cat] || 0) : 0;
+
+  el.innerHTML = `
+    <div style="background:${corFundo};border:1px solid ${corBorda};border-radius:14px;padding:16px 18px;cursor:pointer;" onclick="goTo('percurso')" title="Clica para ver o Percurso completo">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px;gap:12px;">
+        <div>
+          <div style="font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:0.7px;margin-bottom:4px;">🏆 Rank Atual</div>
+          <div style="font-size:18px;font-weight:800;color:var(--text);line-height:1.2;">${icAtual} ${catAtual}</div>
+        </div>
+        ${prox ? `
+        <div style="display:flex;align-items:center;gap:8px;">
+          <div style="color:var(--text3);font-size:20px;">→</div>
+          <div style="text-align:right;">
+            <div style="font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:0.7px;margin-bottom:4px;">Próximo</div>
+            <div style="font-size:16px;font-weight:800;color:${urgencia==='quase'?'var(--accent)':'var(--text2)'};">${icProx} ${prox.cat}</div>
+            ${pontosVIP > 0 ? `<div style="font-size:10px;color:var(--accent3);margin-top:2px;">✈️ +${pontosVIP} pts VIP ao subir</div>` : ''}
+          </div>
+        </div>` : `
+        <div style="text-align:right;">
+          <div style="font-size:14px;font-weight:700;color:var(--gold);">🏆 Rank máximo!</div>
+          <div style="font-size:11px;color:var(--text2);">Lendário</div>
+        </div>`}
+      </div>
+
+      ${msgUrgencia}
+
+      ${prox ? `
+        ${mkBarra('Volume Pessoal (PV)', pv, prox.pv, 'var(--accent)')}
+        ${prox.qdv > 0 ? mkBarra('Volume Qualif. Linha Desc. (QDV)', qdv, prox.qdv, 'var(--accent2)') : ''}
+        ${prox.secVal > 0 ? mkBarra('Secção mais fraca', Math.min(secL, secR), prox.secVal, 'var(--gold)') : ''}
+        ${prox.olxl > 0 ? mkBarra('Volume fora secções fortes (OLXL)', olxl, prox.olxl, 'var(--accent3)') : ''}
+        ${prox.equilibrio > 0 ? mkBarra('Equilíbrio Binário', Math.min(secL, secR), prox.equilibrio, '#8b9cf7') : ''}
+        <div style="text-align:right;margin-top:8px;">
+          <span style="font-size:11px;color:var(--text3);">Toca para ver o Percurso completo →</span>
+        </div>
+      ` : ''}
+    </div>`;
+}
+
 function renderDashboard() {
   document.getElementById('stat-total').textContent = leads.length;
   document.getElementById('stat-prog').textContent = leads.filter(l => ['contactado','interessado'].includes(l.estado)).length;
@@ -8457,6 +8935,8 @@ function renderDashboard() {
   if (typeof renderAcoes === 'function') renderAcoes();
   // Refresh widget de qualificação semanal
   if (typeof renderDashQualifWidget === 'function') renderDashQualifWidget();
+  // Refresh widget próximo rank
+  if (typeof renderDashRankWidget === 'function') renderDashRankWidget();
   const tbody = document.getElementById('tbody-recentes');
   if (!leads.length) {
     tbody.innerHTML = '<tr><td colspan="6" class="empty-state">Sem leads ainda. Adiciona o primeiro!</td></tr>';
@@ -8529,7 +9009,7 @@ function renderFunil() {
                 <div class="lead-name">${l.nome}</div>
                 ${scoreBadgeHtml(l)}
               </div>
-              ${autoTagsHtml(l) ? `<div style="margin-top:4px;">${autoTagsHtml(l)}</div>` : ''}
+              ${autoTagsHtml(l) || tagsLivresHtml(l) ? `<div style="margin-top:4px;">${autoTagsHtml(l)}${tagsLivresHtml(l)}</div>` : ''}
               <div class="lead-info">${l.tel || l.email || 'Sem contacto'}</div>
               <div style="display:flex;align-items:center;justify-content:space-between;margin-top:6px;">
                 <span class="lead-badge" style="background:rgba(255,255,255,0.06);color:var(--text2)">${l.mercado.split(' ')[0]}</span>
@@ -8583,6 +9063,7 @@ function kbDrop(e, targetCol) {
   if (targetCol === 'cliente') vibrarConfirmacao();
   showToast('✅ ' + lead.nome + ' → ' + targetCol);
   executarAutomacoes(lead, estadoAnterior, targetCol);
+  mostrarMsgFunil(lead, targetCol);
 }
 
 /* ── Touch drag ── */
@@ -8640,6 +9121,7 @@ function kbTouchEnd(e, originCol) {
       renderFunil();
       showToast('✅ ' + lead.nome + ' → ' + targetCol);
       executarAutomacoes(lead, estadoAnterior, targetCol);
+      mostrarMsgFunil(lead, targetCol);
     }
   }
   _touchOriginId = null;
@@ -8765,7 +9247,18 @@ document.addEventListener('touchstart', e => {
   }
 }, { passive: true });
 
+function popularFiltroTags() {
+  const sel = document.getElementById('f-filtro-tag');
+  if (!sel) return;
+  const atual = sel.value;
+  const tags = todasTagsLivresUsadas();
+  sel.innerHTML = '<option value="">Todas</option>' +
+    tags.map(t => `<option value="${t}">🏷️ ${t}</option>`).join('');
+  if (tags.includes(atual)) sel.value = atual;
+}
+
 function aplicarFiltros() {
+  popularFiltroTags();
   const global  = (document.getElementById('input-pesquisa')?.value || '').toLowerCase().trim();
   const fNome   = (document.getElementById('f-filtro-nome')?.value || '').toLowerCase().trim();
   const fTel    = (document.getElementById('f-filtro-tel')?.value || '').trim();
@@ -8775,6 +9268,7 @@ function aplicarFiltros() {
   const fMercado = document.getElementById('f-filtro-mercado')?.value || '';
   const fFonte  = document.getElementById('f-filtro-fonte')?.value || '';
   const fAutoTag = document.getElementById('f-filtro-autotag')?.value || '';
+  const fTag = document.getElementById('f-filtro-tag')?.value || '';
   const fOrdem  = document.getElementById('f-filtro-ordem')?.value || 'recente';
 
   let filtered = [...leads];
@@ -8810,6 +9304,8 @@ function aplicarFiltros() {
   if (fFonte) filtered = filtered.filter(l => (l.fonte||'').includes(fFonte));
   // Por tag automática
   if (fAutoTag) filtered = filtered.filter(l => calcularAutoTags(l).some(t => t.key === fAutoTag));
+  // Por tag livre (minha)
+  if (fTag) filtered = filtered.filter(l => (l.tags || []).includes(fTag));
   // Só com contacto
   if (filtroContactoAtivo) filtered = filtered.filter(temContacto);
 
@@ -8866,6 +9362,7 @@ function limparFiltro(campo) {
   if (campo === 'mercado')    document.getElementById('f-filtro-mercado').value = '';
   if (campo === 'fonte')      document.getElementById('f-filtro-fonte').value = '';
   if (campo === 'autotag')    document.getElementById('f-filtro-autotag').value = '';
+  if (campo === 'tag')        document.getElementById('f-filtro-tag').value = '';
   if (campo === 'contacto')   toggleFiltroContacto();
   aplicarFiltros();
 }
@@ -8875,7 +9372,7 @@ function limparTodosFiltros() {
     const el = document.getElementById(id);
     if (el) el.value = '';
   });
-  ['f-filtro-indicativo','f-filtro-estado','f-filtro-mercado','f-filtro-fonte','f-filtro-ordem'].forEach(id => {
+  ['f-filtro-indicativo','f-filtro-estado','f-filtro-mercado','f-filtro-fonte','f-filtro-ordem','f-filtro-autotag','f-filtro-tag'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.value = el.id === 'f-filtro-ordem' ? 'recente' : '';
   });
@@ -8891,7 +9388,7 @@ function renderListaFiltrada(filtered) {
   }
   tbody.innerHTML = filtered.map(l => `
     <tr>
-      <td><strong>${l.nome}</strong><br>${scoreBadgeHtml(l)}${autoTagsHtml(l)}</td>
+      <td><strong>${l.nome}</strong><br>${scoreBadgeHtml(l)}${autoTagsHtml(l)}${tagsLivresHtml(l)}</td>
       <td>${l.tel || '—'}</td>
       <td>${l.email || '—'}</td>
       <td>${(l.mercado||'').split(' ')[0]}</td>
@@ -9111,6 +9608,33 @@ function getMeuLinks() {
 const MEU_LINKS = new Proxy({}, { get: (_, k) => getMeuLinks()[k] });
 
 // ===== COACH SYSTEM PROMPT — dinâmico por utilizador =====
+// ===== RESUMO DOS NÚMEROS REAIS PARA O COACH IA (v20) =====
+// Dá ao Coach acesso aos dados reais do distribuidor (leads, vendas, meta),
+// em vez de conversar só com conhecimento genérico sobre LifeWave.
+function getResumoNegocioParaIA() {
+  try {
+    if (typeof loadVendas === 'function') loadVendas(); // garante vendas atualizadas mesmo sem ter visitado Comissões
+    const porEstado = { novo:0, contactado:0, interessado:0, negociacao:0, cliente:0 };
+    leads.forEach(l => { if (porEstado[l.estado] !== undefined) porEstado[l.estado]++; });
+
+    const mesAtual = new Date().toISOString().slice(0,7);
+    const vendasMes = (vendas||[]).filter(v => (v.data||'').startsWith(mesAtual) && v.estado !== 'cancelada');
+    const totalComissaoMes = vendasMes.reduce((a,v) => a + (parseFloat(v.comissao)||0), 0);
+
+    let meta = 0; try { const mObj = JSON.parse(localStorage.getItem(getUserStorageKey('lw_meta_mensal'))||'null'); meta = (mObj && parseFloat(mObj.comissao)) || 0; } catch(e) {}
+    const pctMeta = meta > 0 ? Math.round((totalComissaoMes/meta)*100) : null;
+
+    const inativos = (membros||[]).filter(m => !m.ultimaAtividade || (Date.now() - new Date(m.ultimaAtividade).getTime())/86400000 >= 14).length;
+
+    return `
+CURRENT REAL BUSINESS DATA (use this to give specific, factual answers — not generic advice):
+- Total leads: ${leads.length} (Novo: ${porEstado.novo}, Contactado: ${porEstado.contactado}, Interessado: ${porEstado.interessado}, Negociação: ${porEstado.negociacao}, Cliente: ${porEstado.cliente})
+- Commission this month: €${totalComissaoMes.toFixed(0)}${meta > 0 ? ` of €${meta.toFixed(0)} goal (${pctMeta}%)` : ' (no monthly goal set)'}
+- Team members: ${(membros||[]).length}${inativos > 0 ? ` (${inativos} possibly inactive, 14+ days without activity)` : ''}
+When the distributor asks about their progress, what to focus on, or who to contact, base your answer on these real numbers instead of generic advice.`;
+  } catch(e) { return ''; }
+}
+
 function getCoachSystem() {
   const p = getUserPerfil();
   const slug = p.slug || 'MiguelLobato';
@@ -9159,7 +9683,8 @@ HOW TO RESPOND:
 - When relevant, suggest next steps or follow-up questions
 - Never make medical claims or guaranteed income promises
 - Prefer lists and examples over long paragraphs
-- Always use ${nome}'s personal links when sharing distributor links`;
+- Always use ${nome}'s personal links when sharing distributor links
+${getResumoNegocioParaIA()}`;
 }
 
 // ===== RESPOSTAS RÁPIDAS =====
@@ -10012,7 +10537,8 @@ Responde APENAS com o texto da mensagem, pronto a copiar e enviar. Sem introduç
 const GOOGLE_SCOPES = [
   'https://www.googleapis.com/auth/contacts.readonly',
   'https://www.googleapis.com/auth/calendar.events',
-  'https://www.googleapis.com/auth/drive.appdata'
+  'https://www.googleapis.com/auth/drive.appdata',
+  'https://www.googleapis.com/auth/drive.file'
 ].join(' ');
 
 let googleAccessToken = null;
@@ -11469,6 +11995,7 @@ function entrarNaApp(user) {
   // Google Drive: mostra botão e tenta carregar dados da cloud
   updateDriveButton();
   setTimeout(driveLoadOnLogin, 1500);
+  setTimeout(() => driveLerComprasDaEquipa(true), 3500); // sync silenciosa da equipa, se a pasta estiver configurada
 
   // Show profile setup prompt if slug not configured
   const p = getUserPerfil();
@@ -11885,6 +12412,170 @@ async function driveWriteFile(token, fileId, payload) {
   return d.id || fileId;
 }
 
+// ===================================================
+// EQUIPA PARTILHADA — pasta normal do Drive (não appData)
+// Membro escreve as suas compras; líder lê os ficheiros de todos
+// os membros da pasta e atualiza o PV/histórico automaticamente.
+// Usa o scope drive.file (acesso por ficheiro, não sensível).
+// ===================================================
+
+// Escreve (cria/atualiza) o ficheiro de compras do utilizador atual na pasta partilhada.
+// Chamado pelo MEMBRO sempre que regista uma compra.
+async function driveEscreverComprasNaPastaEquipa() {
+  const token = googleAccessToken;
+  const perfil = getUserPerfil();
+  const pastaId = (perfil.pastaEquipa || '').trim();
+  if (!token || !pastaId || !currentUser?.email) return; // sem configuração, não faz nada
+
+  const nomeFicheiro = 'compras_' + currentUser.email.replace(/[^a-zA-Z0-9@._-]/g, '_') + '.json';
+  const payload = {
+    email: currentUser.email,
+    nome: perfil.nomeDisplay || currentUser.name || '',
+    compras: JSON.parse(localStorage.getItem(getUserStorageKey('lw_minhas_compras')) || '[]'),
+    atualizadoEm: new Date().toISOString(),
+  };
+
+  try {
+    const res = await fetch(
+      "https://www.googleapis.com/drive/v3/files?q=name%3D'" + encodeURIComponent(nomeFicheiro) + "'+and+'" + pastaId + "'+in+parents&fields=files(id)",
+      { headers: { Authorization: 'Bearer ' + token } }
+    );
+    const d = await res.json();
+    const existente = (d.files && d.files[0]) ? d.files[0].id : null;
+
+    const body = JSON.stringify(payload);
+    const boundary = 'lw_boundary_' + Date.now();
+    const meta = JSON.stringify({ name: nomeFicheiro, parents: existente ? undefined : [pastaId] });
+    const multipart = ['--' + boundary, 'Content-Type: application/json; charset=UTF-8', '', meta, '--' + boundary, 'Content-Type: application/json', '', body, '--' + boundary + '--'].join('\r\n');
+    const url = existente
+      ? 'https://www.googleapis.com/upload/drive/v3/files/' + existente + '?uploadType=multipart'
+      : 'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id';
+    await fetch(url, { method: existente ? 'PATCH' : 'POST', headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'multipart/related; boundary=' + boundary }, body: multipart });
+  } catch(e) {
+    console.warn('Falha ao sincronizar compras com a equipa partilhada:', e.message);
+  }
+}
+
+// Lê todos os ficheiros "compras_*.json" da pasta partilhada e atualiza
+// o PV/histórico de cada membro correspondente (por email). Chamado pelo LÍDER.
+async function driveLerComprasDaEquipa(silencioso) {
+  const token = googleAccessToken;
+  const perfil = getUserPerfil();
+  const pastaId = (perfil.pastaEquipa || '').trim();
+  if (!token || !pastaId) {
+    if (!silencioso) showToast('⚠️ Configura primeiro a pasta partilhada no Perfil');
+    return;
+  }
+
+  try {
+    const res = await fetch(
+      "https://www.googleapis.com/drive/v3/files?q=name+contains+'compras_'+and+'" + pastaId + "'+in+parents&fields=files(id,name,modifiedTime)",
+      { headers: { Authorization: 'Bearer ' + token } }
+    );
+    const d = await res.json();
+    const ficheiros = d.files || [];
+    if (!ficheiros.length) {
+      if (!silencioso) showToast('Nenhum membro da equipa enviou compras ainda.');
+      return;
+    }
+
+    let membrosAtualizados = 0;
+    for (const f of ficheiros) {
+      const contentRes = await fetch('https://www.googleapis.com/drive/v3/files/' + f.id + '?alt=media', { headers: { Authorization: 'Bearer ' + token } });
+      const dados = await contentRes.json().catch(() => null);
+      if (!dados || !dados.email) continue;
+
+      const membro = membros.find(m => (m.email || '').toLowerCase() === dados.email.toLowerCase());
+      if (!membro) continue; // membro ainda não existe na tua lista de Equipa
+
+      membro.compras = dados.compras || [];
+      membro.historico = membro.historico || [];
+      const jaTemEntrada = membro.historico.some(h => h.tipo === 'sync_equipa' && h.data === dados.atualizadoEm);
+      if (!jaTemEntrada) {
+        membro.historico.push({ tipo: 'sync_equipa', msg: '🔄 Compras sincronizadas automaticamente da equipa partilhada', data: dados.atualizadoEm });
+      }
+      membrosAtualizados++;
+    }
+
+    if (membrosAtualizados > 0) {
+      saveMembros();
+      renderEquipa();
+    }
+    if (!silencioso) showToast(`🔄 ${membrosAtualizados} membro${membrosAtualizados !== 1 ? 's' : ''} sincronizado${membrosAtualizados !== 1 ? 's' : ''} da equipa partilhada`);
+  } catch(e) {
+    if (!silencioso) showToast('❌ Erro ao sincronizar: ' + e.message);
+  }
+}
+
+// ===================================================
+// AS MINHAS COMPRAS — interface do MEMBRO na sua própria conta
+// Guardadas localmente e, se a pasta partilhada estiver configurada,
+// também enviadas automaticamente para o Drive a cada alteração.
+// ===================================================
+function popularSelectProdutosMinhasCompras() {
+  const sel = document.getElementById('mc-produto');
+  if (!sel || sel.options.length) return;
+  sel.innerHTML = CATALOGO_PRODUTOS.map(p => `<option value="${p.id}">${p.emoji} ${p.nome} (${p.qv} PV)</option>`).join('');
+}
+
+function getMinhasCompras() {
+  try { return JSON.parse(localStorage.getItem(getUserStorageKey('lw_minhas_compras')) || '[]'); }
+  catch(e) { return []; }
+}
+
+function saveMinhasCompras(compras) {
+  localStorage.setItem(getUserStorageKey('lw_minhas_compras'), JSON.stringify(compras));
+}
+
+function adicionarMinhaCompra() {
+  const produtoId = document.getElementById('mc-produto').value;
+  const qtd = parseInt(document.getElementById('mc-qtd').value) || 1;
+  const produto = CATALOGO_PRODUTOS.find(p => p.id === produtoId);
+  if (!produto) return;
+  const compras = getMinhasCompras();
+  compras.unshift({ produtoId, nome: produto.nome, emoji: produto.emoji, qtd, qv: produto.qv * qtd, data: new Date().toISOString() });
+  saveMinhasCompras(compras);
+  document.getElementById('mc-qtd').value = '1';
+  renderMinhasComprasModal();
+  driveEscreverComprasNaPastaEquipa();
+}
+
+function removerMinhaCompra(idx) {
+  const compras = getMinhasCompras();
+  compras.splice(idx, 1);
+  saveMinhasCompras(compras);
+  renderMinhasComprasModal();
+  driveEscreverComprasNaPastaEquipa();
+}
+
+function renderMinhasComprasModal() {
+  const lista = document.getElementById('mc-lista');
+  const somaEl = document.getElementById('mc-soma');
+  if (!lista || !somaEl) return;
+
+  const compras = getMinhasCompras();
+  const agora = Date.now();
+  const somaPV = compras.filter(c => (agora - new Date(c.data).getTime()) / 86400000 <= 31).reduce((s, c) => s + c.qv, 0);
+  somaEl.textContent = somaPV + ' PV';
+
+  if (!compras.length) {
+    lista.innerHTML = '<div style="font-size:11.5px;color:var(--text2);padding:6px 2px;">Ainda não registaste compras.</div>';
+    return;
+  }
+
+  lista.innerHTML = compras.map((c, i) => {
+    const dias = Math.floor((agora - new Date(c.data).getTime()) / 86400000);
+    return `
+      <div style="display:flex;align-items:center;gap:8px;padding:6px 8px;background:var(--surface3);border-radius:8px;${dias > 31 ? 'opacity:0.5;' : ''}">
+        <span style="font-size:14px;">${c.emoji || '📦'}</span>
+        <span style="font-size:12px;color:var(--text);flex:1;">${c.nome}${c.qtd > 1 ? ' ×' + c.qtd : ''}</span>
+        <span style="font-size:11px;color:var(--accent);font-weight:700;">${c.qv} PV</span>
+        <span style="font-size:10px;color:var(--text2);white-space:nowrap;">${new Date(c.data).toLocaleDateString('pt-PT')}</span>
+        <button onclick="removerMinhaCompra(${i})" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:13px;padding:0 2px;">✕</button>
+      </div>`;
+  }).join('');
+}
+
 // Função principal: manual ou auto-save
 async function driveSync(mode) {
   if (!currentUser || currentUser.method !== 'google') return;
@@ -12097,6 +12788,7 @@ function abrirPerfilModal(isPrimeiraVez) {
   // Upline: from profile, or from URL ref= captured at login
   const savedUpline = p.upline || localStorage.getItem('lw_upline_ref') || '';
   document.getElementById('perfil-upline').value = savedUpline;
+  document.getElementById('perfil-pasta-equipa').value = p.pastaEquipa || '';
   document.getElementById('perfil-idioma').value = p.idioma || 'pt';
   document.getElementById('perfil-pv').value = p.pv || '';
   document.getElementById('perfil-qdv').value = p.qdv || '';
@@ -12104,6 +12796,8 @@ function abrirPerfilModal(isPrimeiraVez) {
   document.getElementById('perfil-secr').value = p.secR || '';
   document.getElementById('perfil-olxl').value = p.olxl || '';
   document.getElementById('perfil-bv-binario').value = p.bvBinario || '';
+  popularSelectProdutosMinhasCompras();
+  renderMinhasComprasModal();
   const titulo = document.getElementById('perfil-modal-titulo');
   const aviso = document.getElementById('perfil-primeira-vez-aviso');
   if (titulo) titulo.textContent = isPrimeiraVez ? '👋 Configura o teu perfil' : '⚙️ Meu Perfil';
@@ -12147,7 +12841,8 @@ function salvarPerfil() {
   if (!slug) { showToast('❌ O slug LifeWave é obrigatório'); return; }
 
   const upline = (document.getElementById('perfil-upline')?.value || '').trim();
-  const perfil = { slug, nomeDisplay: nome, pais, idioma, pv, qdv, secL, secR, olxl, bvBinario, upline };
+  const pastaEquipa = (document.getElementById('perfil-pasta-equipa')?.value || '').trim();
+  const perfil = { slug, nomeDisplay: nome, pais, idioma, pv, qdv, secL, secR, olxl, bvBinario, upline, pastaEquipa };
   saveUserPerfil(perfil);
   // Save upline in persistent storage too
   if (upline) localStorage.setItem('lw_upline_ref', upline);
@@ -14444,8 +15139,62 @@ function renderStats() {
       <span style="font-size:13px;color:var(--text);line-height:1.6;">${ins.texto}</span>
     </div>
   `).join('');
+
+  renderPipeline(leadsNoPeriodo);
 }
-// ===================================================
+
+// ===== PIPELINE DE RECEITA =====
+function renderPipeline(leadsArr) {
+  const barsEl = document.getElementById('stats-pipeline-bars');
+  const totalEl = document.getElementById('stats-pipeline-total');
+  if (!barsEl || !totalEl) return;
+
+  // Valor médio por venda registada
+  let vendasArr = []; try { vendasArr = JSON.parse(localStorage.getItem(getUserStorageKey('lw_vendas')) || '[]'); } catch(e) {}
+  const vendasComValor = vendasArr.filter(v => parseFloat(v.valor) > 0);
+  const valorMedio = vendasComValor.length > 0
+    ? vendasComValor.reduce((s,v) => s + parseFloat(v.valor||0), 0) / vendasComValor.length
+    : 120; // fallback: valor médio estimado X39
+
+  // Probabilidade e cor por estado
+  const estadoConfig = {
+    novo:        { label: 'Novos',        prob: 0.05, cor: '#64748b' },
+    contactado:  { label: 'Contactados',  prob: 0.15, cor: '#3b82f6' },
+    interessado: { label: 'Interessados', prob: 0.35, cor: '#f59e0b' },
+    negociacao:  { label: 'Em Negociação',prob: 0.65, cor: '#f97316' },
+    cliente:     { label: 'Clientes',     prob: 1.00, cor: '#00d4aa' },
+  };
+
+  let totalPonderado = 0;
+  const linhas = Object.entries(estadoConfig).map(([estado, cfg]) => {
+    const count = leadsArr.filter(l => l.estado === estado).length;
+    const potencial = count * valorMedio * cfg.prob;
+    totalPonderado += potencial;
+    return { ...cfg, count, potencial };
+  }).filter(l => l.count > 0);
+
+  if (linhas.length === 0) {
+    barsEl.innerHTML = '<div style="color:var(--text3);font-size:13px;text-align:center;padding:16px 0;">Ainda sem leads para calcular o pipeline.</div>';
+    totalEl.textContent = '';
+    return;
+  }
+
+  const maxVal = Math.max(...linhas.map(l => l.potencial), 1);
+  barsEl.innerHTML = linhas.map(l => `
+    <div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+        <span style="font-size:12px;color:var(--text2);">${l.label} <span style="color:var(--text3);">(${l.count})</span></span>
+        <span style="font-size:12px;font-weight:600;color:var(--text);">${l.potencial > 0 ? '~€' + Math.round(l.potencial).toLocaleString('pt-PT') : '—'}</span>
+      </div>
+      <div style="height:8px;background:var(--surface3);border-radius:4px;overflow:hidden;">
+        <div style="height:100%;width:${Math.round(l.potencial/maxVal*100)}%;background:${l.cor};border-radius:4px;transition:width 0.4s;"></div>
+      </div>
+    </div>
+  `).join('');
+
+  totalEl.textContent = '~€' + Math.round(totalPonderado).toLocaleString('pt-PT') + ' potencial';
+}
+
 
 // ===================================================
 // COMPENSAÇÃO 2.0 — CALCULADORA DE CATEGORIA
@@ -14708,6 +15457,7 @@ function atualizarCategoriaPreview() {
 
 let membros = JSON.parse(localStorage.getItem(getUserStorageKey('lw_membros')) || '[]');
 let editingMembroId = null;
+let _comprasMembroAtual = [];
 
 // ===================================================
 // VIAGENS DE INCENTIVO — TRACKER GENÉRICO DE PONTOS
@@ -15548,8 +16298,51 @@ function updateBadgeEquipa() {
   if (b) b.textContent = membros.length;
 }
 
+// ===== MEMBROS A PRECISAR DE APOIO AGORA (v20) =====
+// Agrega no topo da página os membros com prioridade urgente/aviso
+// (já calculada por getPrioridadeMembro), em vez de teres de percorrer
+// a lista completa à procura dos emojis 🔴/🟡.
+function renderApoioUrgenteEquipa() {
+  const el = document.getElementById('equipa-apoio-urgente');
+  if (!el) return;
+
+  const comPrioridade = membros
+    .map(m => ({ m, prio: getPrioridadeMembro(m), dias: diasSemContactoMembro(m) }))
+    .filter(x => x.prio === 'urgente' || x.prio === 'aviso')
+    .sort((a,b) => (b.dias||0) - (a.dias||0));
+
+  if (!comPrioridade.length) { el.innerHTML = ''; return; }
+
+  const urgentes = comPrioridade.filter(x => x.prio === 'urgente').length;
+  const avisos = comPrioridade.length - urgentes;
+
+  el.innerHTML = `
+    <div style="margin-bottom:20px;padding:14px;border-radius:var(--radius-sm);background:rgba(255,107,53,0.06);border:1px solid rgba(255,107,53,0.2);">
+      <div style="font-size:13px;font-weight:700;color:var(--accent3);margin-bottom:10px;display:flex;align-items:center;gap:6px;">
+        💙 Precisam de ti agora ${urgentes ? `<span style="font-size:11px;font-weight:600;color:#ff5555;">(${urgentes} urgente${urgentes>1?'s':''})</span>` : ''}${avisos ? `<span style="font-size:11px;font-weight:600;color:var(--gold);">${urgentes?' · ':''}${avisos} a precisar de atenção</span>` : ''}
+      </div>
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        ${comPrioridade.slice(0,5).map(x => {
+          const cor = x.prio === 'urgente' ? '#ff5555' : 'var(--gold)';
+          const diasTxt = x.dias === null ? 'Sem registo de contacto' : `${x.dias} dias sem contacto`;
+          return `
+          <div style="display:flex;align-items:center;gap:10px;padding:8px 10px;background:var(--surface2);border-radius:10px;">
+            <span style="width:7px;height:7px;border-radius:50%;background:${cor};flex-shrink:0;"></span>
+            <div style="flex:1;min-width:0;cursor:pointer;" onclick="verMembro('${x.m.id}')">
+              <div style="font-size:13px;font-weight:600;color:var(--text);">${x.m.nome}</div>
+              <div style="font-size:11px;color:var(--text2);">${diasTxt}</div>
+            </div>
+            ${x.m.tel ? `<button class="btn btn-sm btn-wa" onclick="event.stopPropagation();abrirWAMembro('${x.m.id}')" title="WhatsApp">💬</button>` : ''}
+          </div>`;
+        }).join('')}
+      </div>
+    </div>
+  `;
+}
+
 function renderEquipa() {
   updateBadgeEquipa();
+  renderApoioUrgenteEquipa();
   const filtroNivel = document.getElementById('equipa-filtro-nivel')?.value || '';
   const ordem = document.getElementById('equipa-ordem')?.value || 'clientes';
 
@@ -15726,7 +16519,7 @@ function renderQuadroHonra() {
   const topRecrutados = [...membros].sort((a,b)=>(b.recrutados||0)-(a.recrutados||0))[0];
   if (topRecrutados && topRecrutados.recrutados > 0) honras.push({ emoji:'🚀', titulo:'Maior Recrutador', nome: topRecrutados.nome, detalhe:`${topRecrutados.recrutados} membros recrutados` });
   // Mais antigo
-  const comData = membros.filter(m=>m.data).sort((a,b)=>new Date(a.data)-new Date(b.data));
+  const comData = membros.filter(m=>m.data).sort((a,b)=>(parseDataPtPT(a.data)?.getTime()||0)-(parseDataPtPT(b.data)?.getTime()||0));
   if (comData.length) honras.push({ emoji:'🏛️', titulo:'Veterano da Equipa', nome: comData[0].nome, detalhe:`Membro desde ${comData[0].data}` });
   // Todos ativos
   const todosAtivos = membros.filter(m=>m.estado==='ativo');
@@ -15767,7 +16560,7 @@ function promoverLeadAMembro(leadId) {
     tel: l.tel || '',
     email: l.email || '',
     nivel: 1,
-    data: new Date().toLocaleDateString('pt-PT'),
+    data: new Date().toISOString().slice(0,10),
     estado: 'iniciante',
     clientes: 0,
     recrutados: 0,
@@ -15822,6 +16615,7 @@ function salvarMembro() {
     categoria,
     historico: membroExistente?.historico || [],
     ultimoContacto: membroExistente?.ultimoContacto || null,
+    compras: _comprasMembroAtual,
   };
   if (editingMembroId) {
     const idx = membros.findIndex(m => m.id === editingMembroId);
@@ -15832,6 +16626,7 @@ function salvarMembro() {
     showToast('✓ Membro adicionado à equipa!');
   }
   editingMembroId = null;
+  _comprasMembroAtual = [];
   saveMembros();
   closeModal('modal-membro');
   renderEquipa();
@@ -15857,9 +16652,226 @@ function editarMembro(id) {
   document.getElementById('mb-secl').value = m.secL || '';
   document.getElementById('mb-secr').value = m.secR || '';
   document.getElementById('mb-olxl').value = m.olxl || '';
+  _comprasMembroAtual = JSON.parse(JSON.stringify(m.compras || []));
+  popularSelectProdutosMembro();
+  renderComprasMembroModal();
   atualizarCategoriaPreview();
   closeModal('modal-ver-membro');
   openModal('modal-membro');
+}
+
+function abrirNovoModalMembro() {
+  editingMembroId = null;
+  _comprasMembroAtual = [];
+  document.getElementById('modal-membro-title').textContent = '👤 Adicionar Membro da Equipa';
+  ['mb-nome','mb-tel','mb-email','mb-data','mb-clientes','mb-recrutados','mb-slug','mb-notas','mb-pv','mb-qdv','mb-secl','mb-secr','mb-olxl'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+  document.getElementById('mb-nivel').value = '1';
+  document.getElementById('mb-estado').value = 'ativo';
+  popularSelectProdutosMembro();
+  renderComprasMembroModal();
+  atualizarCategoriaPreview();
+  openModal('modal-membro');
+}
+
+function popularSelectProdutosMembro() {
+  const sel = document.getElementById('mb-compra-produto');
+  if (!sel || sel.options.length) return;
+  sel.innerHTML = CATALOGO_PRODUTOS.map(p => `<option value="${p.id}">${p.emoji} ${p.nome} (${p.qv} PV)</option>`).join('');
+}
+
+function adicionarCompraMembro() {
+  const produtoId = document.getElementById('mb-compra-produto').value;
+  const qtd = parseInt(document.getElementById('mb-compra-qtd').value) || 1;
+  const produto = CATALOGO_PRODUTOS.find(p => p.id === produtoId);
+  if (!produto) return;
+  _comprasMembroAtual.unshift({
+    produtoId, nome: produto.nome, emoji: produto.emoji, qtd, qv: produto.qv * qtd,
+    data: new Date().toISOString(),
+  });
+  document.getElementById('mb-compra-qtd').value = '1';
+  renderComprasMembroModal();
+}
+
+function removerCompraMembro(idx) {
+  _comprasMembroAtual.splice(idx, 1);
+  renderComprasMembroModal();
+}
+
+function renderComprasMembroModal() {
+  const lista = document.getElementById('mb-compras-lista');
+  const somaEl = document.getElementById('mb-compras-soma');
+  if (!lista || !somaEl) return;
+
+  const agora = Date.now();
+  const comprasRecentes = _comprasMembroAtual.filter(c => (agora - new Date(c.data).getTime()) / 86400000 <= 31);
+  const somaPV = comprasRecentes.reduce((s, c) => s + c.qv, 0);
+  somaEl.textContent = somaPV + ' PV';
+
+  if (!_comprasMembroAtual.length) {
+    lista.innerHTML = '<div style="font-size:11.5px;color:var(--text2);padding:6px 2px;">Nenhuma compra registada ainda.</div>';
+    return;
+  }
+
+  lista.innerHTML = _comprasMembroAtual.map((c, i) => {
+    const dias = Math.floor((agora - new Date(c.data).getTime()) / 86400000);
+    const foraJanela = dias > 31;
+    return `
+      <div style="display:flex;align-items:center;gap:8px;padding:6px 8px;background:var(--surface3);border-radius:8px;${foraJanela ? 'opacity:0.5;' : ''}">
+        <span style="font-size:14px;">${c.emoji || '📦'}</span>
+        <span style="font-size:12px;color:var(--text);flex:1;">${c.nome}${c.qtd > 1 ? ' ×' + c.qtd : ''}</span>
+        <span style="font-size:11px;color:var(--accent);font-weight:700;">${c.qv} PV</span>
+        <span style="font-size:10px;color:var(--text2);white-space:nowrap;">${new Date(c.data).toLocaleDateString('pt-PT')}</span>
+        <button onclick="removerCompraMembro(${i})" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:13px;padding:0 2px;">✕</button>
+      </div>`;
+  }).join('');
+}
+
+// ===================================================
+// LER FATURA (PDF/IMAGEM) COM IA — extrai produtos e quantidades
+// ===================================================
+let _mbFaturaBase64 = null, _mbFaturaIsPdf = false, _mbFaturaMediaType = null;
+
+function getMbFaturaPrompt() {
+  return `És um assistente que lê faturas/recibos da LifeWave (empresa de marketing em rede de patches de saúde).
+
+Analisa este documento (fatura, recibo ou confirmação de encomenda) e identifica os produtos comprados e respetivas quantidades.
+
+Os produtos possíveis são (usa exatamente um destes nomes quando encontrares correspondência, mesmo que a fatura escreva de forma diferente):
+${CATALOGO_PRODUTOS.map(p => `- "${p.nome}"`).join('\n')}
+
+Responde APENAS em JSON válido, sem markdown, sem explicações, neste schema exato:
+{
+  "itens": [
+    {"nome": "nome exato de um dos produtos da lista acima", "quantidade": 1}
+  ]
+}
+
+Se um produto da fatura não corresponder a nenhum da lista, ignora-o (não inventes). Se não conseguires ler nada com confiança, devolve {"itens": []}.`;
+}
+
+function mbFaturaHandleFile(file) {
+  if (!file) return;
+  if (file.size > 20 * 1024 * 1024) { showToast('⚠️ Ficheiro demasiado grande (máx. 20MB)'); return; }
+  const isPdf = file.type === 'application/pdf';
+  const isImg = file.type.startsWith('image/');
+  if (!isPdf && !isImg) { showToast('⚠️ Apenas PDF, JPG, PNG ou WEBP'); return; }
+
+  _mbFaturaIsPdf = isPdf;
+  _mbFaturaMediaType = file.type;
+
+  const reader = new FileReader();
+  reader.onload = ev => {
+    _mbFaturaBase64 = ev.target.result.split(',')[1];
+    const prev = document.getElementById('mb-fatura-preview');
+    prev.style.display = 'block';
+    prev.innerHTML = `
+      <div style="display:flex;align-items:center;gap:10px;background:rgba(0,0,0,0.2);border:1px solid var(--border);border-radius:8px;padding:8px;">
+        ${isImg ? `<img src="${ev.target.result}" style="max-height:50px;max-width:70px;border-radius:6px;object-fit:contain;">` : '<span style="font-size:22px;">📄</span>'}
+        <div style="flex:1;font-size:11.5px;color:var(--text2);">${file.name}</div>
+        <button class="btn btn-primary btn-sm" onclick="mbFaturaAnalisarIA()">✦ Analisar</button>
+      </div>`;
+    document.getElementById('mb-fatura-resultado').style.display = 'none';
+  };
+  reader.readAsDataURL(file);
+}
+
+async function mbFaturaAnalisarIA() {
+  if (!_mbFaturaBase64) { showToast('⚠️ Carrega primeiro um ficheiro'); return; }
+  if (!claudeKey && !geminiKey) { showToast('⚠️ Precisas de configurar uma chave de IA no Perfil'); return; }
+
+  const statusBox = document.getElementById('mb-fatura-status');
+  const statusTxt = document.getElementById('mb-fatura-status-text');
+  const resultBox = document.getElementById('mb-fatura-resultado');
+  statusBox.style.display = 'flex';
+  resultBox.style.display = 'none';
+  statusTxt.textContent = 'A ler a fatura...';
+
+  try {
+    let rawText = '';
+    const faturaPrompt = getMbFaturaPrompt();
+    if (claudeKey && claudeKey.length > 10) {
+      const content = _mbFaturaIsPdf
+        ? [{ type:'document', source:{ type:'base64', media_type:'application/pdf', data:_mbFaturaBase64 } }, { type:'text', text: faturaPrompt }]
+        : [{ type:'image',    source:{ type:'base64', media_type:_mbFaturaMediaType, data:_mbFaturaBase64 } }, { type:'text', text: faturaPrompt }];
+      const res = await fetch('https://api.anthropic.com/v1/messages', {
+        method:'POST',
+        headers:{'Content-Type':'application/json','x-api-key':claudeKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+        body: JSON.stringify({ model:'claude-sonnet-4-6', max_tokens:1000, messages:[{ role:'user', content }] })
+      });
+      if (!res.ok) { const e = await res.json().catch(()=>({})); throw new Error(e?.error?.message || `Erro Claude (${res.status})`); }
+      const data = await res.json();
+      rawText = data.content?.[0]?.text || '';
+    } else {
+      if (typeof callGemini !== 'function') throw new Error('Função Gemini não disponível.');
+      rawText = await callGemini(faturaPrompt, _mbFaturaBase64, _mbFaturaIsPdf ? 'application/pdf' : _mbFaturaMediaType);
+    }
+
+    let dados;
+    try {
+      dados = JSON.parse(rawText.replace(/```json|```/g,'').trim());
+    } catch(e) {
+      throw new Error('A IA não devolveu uma resposta legível. Tenta com um ficheiro mais nítido.');
+    }
+
+    const itens = (dados.itens || [])
+      .map(it => {
+        const produto = CATALOGO_PRODUTOS.find(p => p.nome === it.nome);
+        if (!produto) return null;
+        const qtd = parseInt(it.quantidade) || 1;
+        return { produtoId: produto.id, nome: produto.nome, emoji: produto.emoji, qtd, qv: produto.qv * qtd };
+      })
+      .filter(Boolean);
+
+    statusBox.style.display = 'none';
+
+    if (!itens.length) {
+      resultBox.style.display = 'block';
+      resultBox.innerHTML = `<div style="font-size:12px;color:var(--gold);padding:8px 0;">⚠️ Não foi possível identificar produtos conhecidos nesta fatura. Podes adicionar manualmente acima.</div>`;
+      return;
+    }
+
+    window._mbFaturaItensDetetados = itens;
+    resultBox.style.display = 'block';
+    resultBox.innerHTML = `
+      <div style="background:rgba(0,212,170,0.08);border:1px solid rgba(0,212,170,0.25);border-radius:8px;padding:10px 12px;">
+        <div style="font-size:11.5px;font-weight:700;color:var(--accent);margin-bottom:8px;">✅ Produtos detetados — confirma antes de adicionar:</div>
+        <div style="display:flex;flex-direction:column;gap:5px;margin-bottom:10px;">
+          ${itens.map(it => `<div style="font-size:12px;color:var(--text);">${it.emoji} ${it.nome}${it.qtd > 1 ? ' ×' + it.qtd : ''} — <strong style="color:var(--accent);">${it.qv} PV</strong></div>`).join('')}
+        </div>
+        <div style="display:flex;gap:8px;">
+          <button class="btn btn-primary btn-sm" style="flex:1;" onclick="mbFaturaConfirmarItens()">✅ Adicionar à lista</button>
+          <button class="btn btn-secondary btn-sm" onclick="mbFaturaCancelar()">Descartar</button>
+        </div>
+      </div>`;
+  } catch(e) {
+    statusBox.style.display = 'none';
+    resultBox.style.display = 'block';
+    resultBox.innerHTML = `<div style="font-size:12px;color:#ff6b6b;padding:8px 0;">❌ ${e.message}</div>`;
+  }
+}
+
+function mbFaturaConfirmarItens() {
+  const itens = window._mbFaturaItensDetetados || [];
+  const agora = new Date().toISOString();
+  itens.forEach(it => {
+    _comprasMembroAtual.unshift({ produtoId: it.produtoId, nome: it.nome, emoji: it.emoji, qtd: it.qtd, qv: it.qv, data: agora });
+  });
+  renderComprasMembroModal();
+  mbFaturaCancelar();
+  showToast(`✅ ${itens.length} produto${itens.length > 1 ? 's' : ''} adicionado${itens.length > 1 ? 's' : ''} da fatura`);
+}
+
+function mbFaturaCancelar() {
+  _mbFaturaBase64 = null; _mbFaturaIsPdf = false; _mbFaturaMediaType = null;
+  window._mbFaturaItensDetetados = null;
+  ['mb-fatura-preview','mb-fatura-status','mb-fatura-resultado'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.style.display = 'none';
+  });
+  const inp = document.getElementById('mb-fatura-input');
+  if (inp) inp.value = '';
 }
 
 function eliminarMembro(id) {
@@ -15874,11 +16886,24 @@ function eliminarMembro(id) {
 // ─────────────────────────────────────────────────
 // 🩺 SAÚDE DO BP — helpers
 // ─────────────────────────────────────────────────
+// Converte uma data no formato pt-PT "dd/mm/yyyy" OU ISO "yyyy-mm-dd" para Date.
+// new Date("dd/mm/yyyy") falha silenciosamente em JS (espera mm/dd/yyyy),
+// dando Invalid Date e propagando NaN em todos os cálculos a partir daí.
+function parseDataPtPT(str) {
+  if (!str) return null;
+  const m = String(str).match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (!m) {
+    const d = new Date(str);
+    return isNaN(d.getTime()) ? null : d;
+  }
+  return new Date(+m[3], +m[2] - 1, +m[1]);
+}
+
 function calcSaudeBP(m) {
   // Semanas de arranque BLB (9 semanas desde entrada)
   let semanasDecorridas = null, semanasRestantes = null, arranqueAtivo = false;
-  if (m.data) {
-    const entrada = new Date(m.data);
+  const entrada = parseDataPtPT(m.data);
+  if (entrada) {
     const hoje = new Date();
     const dias = Math.floor((hoje - entrada) / 86400000);
     semanasDecorridas = Math.floor(dias / 7);
@@ -16519,6 +17544,112 @@ function renderComissoes() {
 
   renderSimuladorBonus();
 }
+
+// ===== EXPORTAR RELATÓRIO DE COMISSÕES EM PDF =====
+// Gera uma vista de impressão limpa e usa window.print() — no Android Chrome,
+// o diálogo de impressão tem sempre a opção "Guardar como PDF".
+function exportarRelatorioComissoesPDF() {
+  loadVendas();
+  const filtroMes = document.getElementById('com-filtro-mes')?.value || '';
+  const filtroProd = document.getElementById('com-filtro-produto')?.value || '';
+
+  const vendasFiltradas = vendas
+    .filter(v => {
+      if (filtroMes && !v.data.startsWith(filtroMes)) return false;
+      if (filtroProd && v.produto !== filtroProd) return false;
+      return true;
+    })
+    .sort((a, b) => new Date(b.data) - new Date(a.data));
+
+  if (!vendasFiltradas.length) {
+    showToast('⚠️ Sem vendas para exportar (verifica os filtros)');
+    return;
+  }
+
+  const periodoLabel = filtroMes
+    ? new Date(filtroMes + '-01').toLocaleDateString('pt-PT', { month: 'long', year: 'numeric' })
+    : 'Todo o histórico';
+
+  const totalReceita = vendasFiltradas.filter(v => v.estado !== 'cancelada').reduce((a, v) => a + v.valor, 0);
+  const totalComissao = vendasFiltradas.filter(v => v.estado !== 'cancelada').reduce((a, v) => a + v.comissao, 0);
+  const totalCanceladas = vendasFiltradas.filter(v => v.estado === 'cancelada').length;
+  const clientesUnicos = new Set(vendasFiltradas.map(v => v.cliente)).size;
+
+  const perfil = (typeof getUserPerfil === 'function') ? getUserPerfil() : {};
+  const nomeConsultor = (perfil && perfil.nome) || (document.getElementById('sidebar-user-name')?.textContent) || '';
+
+  const estadoLabelMap = { confirmada: 'Confirmada', pendente: 'Pendente', cancelada: 'Cancelada' };
+
+  const linhas = vendasFiltradas.map(v => `
+    <tr>
+      <td>${new Date(v.data).toLocaleDateString('pt-PT')}</td>
+      <td>${(v.cliente || '').replace(/</g, '&lt;')}</td>
+      <td>${(v.produto || '').replace(/</g, '&lt;')}</td>
+      <td style="text-align:right;">${v.valor.toFixed(2)}€</td>
+      <td style="text-align:right;">${v.pctComissao}%</td>
+      <td style="text-align:right;font-weight:700;">${v.comissao.toFixed(2)}€</td>
+      <td>${estadoLabelMap[v.estado] || v.estado}</td>
+    </tr>
+  `).join('');
+
+  const win = window.open('', '_blank');
+  if (!win) { showToast('⚠️ O browser bloqueou o popup. Permite popups para exportar.'); return; }
+
+  win.document.write(`
+    <!DOCTYPE html>
+    <html lang="pt">
+    <head>
+      <meta charset="UTF-8">
+      <title>Relatório de Comissões — ${periodoLabel}</title>
+      <style>
+        * { box-sizing: border-box; }
+        body { font-family: -apple-system, 'Segoe UI', Roboto, Arial, sans-serif; color: #1a1a1a; padding: 32px; max-width: 900px; margin: 0 auto; }
+        h1 { font-size: 22px; margin: 0 0 2px 0; }
+        .sub { color: #666; font-size: 13px; margin-bottom: 24px; }
+        .kpis { display: flex; gap: 12px; margin-bottom: 28px; flex-wrap: wrap; }
+        .kpi { flex: 1; min-width: 140px; border: 1px solid #ddd; border-radius: 8px; padding: 12px 14px; }
+        .kpi-label { font-size: 11px; color: #777; text-transform: uppercase; letter-spacing: 0.4px; }
+        .kpi-value { font-size: 20px; font-weight: 700; margin-top: 4px; }
+        table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+        th { text-align: left; border-bottom: 2px solid #1a1a1a; padding: 8px 6px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.3px; }
+        td { padding: 7px 6px; border-bottom: 1px solid #eee; }
+        tfoot td { font-weight: 700; border-top: 2px solid #1a1a1a; border-bottom: none; padding-top: 10px; }
+        .footer-note { margin-top: 24px; font-size: 11px; color: #999; }
+        @media print {
+          body { padding: 12px; }
+          .no-print { display: none; }
+        }
+        .print-btn { background: #0084ff; color: #fff; border: none; padding: 10px 18px; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; margin-bottom: 20px; }
+      </style>
+    </head>
+    <body>
+      <button class="print-btn no-print" onclick="window.print()">🖨️ Guardar como PDF / Imprimir</button>
+      <h1>Relatório de Comissões${nomeConsultor ? ' — ' + nomeConsultor : ''}</h1>
+      <div class="sub">${periodoLabel} · Gerado em ${new Date().toLocaleDateString('pt-PT')}</div>
+
+      <div class="kpis">
+        <div class="kpi"><div class="kpi-label">Receita total</div><div class="kpi-value">${totalReceita.toFixed(2)}€</div></div>
+        <div class="kpi"><div class="kpi-label">Comissões totais</div><div class="kpi-value">${totalComissao.toFixed(2)}€</div></div>
+        <div class="kpi"><div class="kpi-label">Vendas</div><div class="kpi-value">${vendasFiltradas.length}</div></div>
+        <div class="kpi"><div class="kpi-label">Clientes</div><div class="kpi-value">${clientesUnicos}</div></div>
+      </div>
+
+      <table>
+        <thead>
+          <tr><th>Data</th><th>Cliente</th><th>Produto</th><th style="text-align:right;">Valor</th><th style="text-align:right;">%</th><th style="text-align:right;">Comissão</th><th>Estado</th></tr>
+        </thead>
+        <tbody>${linhas}</tbody>
+        <tfoot>
+          <tr><td colspan="3">Total</td><td style="text-align:right;">${totalReceita.toFixed(2)}€</td><td></td><td style="text-align:right;">${totalComissao.toFixed(2)}€</td><td></td></tr>
+        </tfoot>
+      </table>
+      ${totalCanceladas ? `<div class="footer-note">${totalCanceladas} venda(s) cancelada(s) não entram nos totais.</div>` : ''}
+    </body>
+    </html>
+  `);
+  win.document.close();
+}
+
 // ===================================================
 // ===================================================
 function renderSimuladorBonus() {
@@ -17564,10 +18695,10 @@ async function catGerarConteudo(produtoId, tipo, forcar) {
       const d = await r.json();
       texto = (d.content && d.content[0]) ? d.content[0].text.trim() : '';
     } else {
-      const r = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=' + geminiKey, {
+      const r = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=' + geminiKey, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+        body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }], generationConfig: { maxOutputTokens: 1500, thinkingConfig: { thinkingBudget: 0 } } })
       });
       const d = await r.json();
       texto = (d.candidates && d.candidates[0]) ? d.candidates[0].content.parts[0].text.trim() : '';
@@ -17635,9 +18766,9 @@ async function catGerarKeywordsIA(produto) {
       const d = await r.json();
       texto = (d.content && d.content[0]) ? d.content[0].text.trim() : '';
     } else if (geminiKey && geminiKey.length > 10) {
-      const r = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=' + geminiKey, {
+      const r = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=' + geminiKey, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+        body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }], generationConfig: { maxOutputTokens: 200, thinkingConfig: { thinkingBudget: 0 } } })
       });
       const d = await r.json();
       texto = (d.candidates && d.candidates[0]) ? d.candidates[0].content.parts[0].text.trim() : '';
@@ -18055,6 +19186,37 @@ async function catMostrarImagens(produtoId) {
       </div>
     </div>
 
+    <div style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px;margin:14px 0;">
+      <div style="font-size:11px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:0.7px;margin-bottom:8px;">🔄 Equipa Partilhada (Google Drive)</div>
+      <div style="font-size:11.5px;color:var(--text2);line-height:1.5;margin-bottom:10px;">
+        <strong>Se és líder:</strong> cola aqui o ID de uma pasta do teu Google Drive partilhada com a equipa. As compras que cada membro registar na app dele ficam automaticamente visíveis para ti.<br>
+        <strong>Se és membro:</strong> cola o ID da pasta que o teu líder partilhou contigo — as tuas compras passam a ser enviadas para lá automaticamente.
+      </div>
+      <div class="form-group" style="margin-bottom:8px;">
+        <label class="form-label">ID da pasta partilhada</label>
+        <input class="form-input" id="perfil-pasta-equipa" placeholder="Ex: 1A2bC3dE4fG5hI6jK7lM (da URL da pasta no Drive)">
+      </div>
+      <div style="font-size:10.5px;color:var(--text3);">Encontra o ID na barra de endereço quando abres a pasta no Google Drive: drive.google.com/drive/folders/<strong>ESTE-ID</strong></div>
+      <div style="display:flex;gap:8px;margin-top:10px;">
+        <button class="btn btn-secondary btn-sm" style="flex:1;" onclick="driveLerComprasDaEquipa(false)">🔄 Sincronizar Equipa Agora</button>
+      </div>
+      <div style="font-size:10px;color:var(--text3);margin-top:4px;">Usa este botão se és líder e queres atualizar os dados dos membros sem esperar pela sincronização automática.</div>
+    </div>
+
+    <div style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px;margin:14px 0;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+        <div style="font-size:11px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:0.7px;">📦 As Minhas Compras</div>
+        <div style="font-size:11px;color:var(--text2);">Últimos 31 dias: <strong id="mc-soma" style="color:var(--accent);">0 PV</strong></div>
+      </div>
+      <div style="font-size:11px;color:var(--text2);margin-bottom:10px;">Regista aqui as tuas próprias compras LifeWave. Se configuraste a pasta partilhada acima, ficam visíveis automaticamente para o teu líder.</div>
+      <div style="display:flex;gap:8px;margin-bottom:10px;">
+        <select class="form-select" id="mc-produto" style="flex:2;"></select>
+        <input class="form-input" type="number" id="mc-qtd" value="1" min="1" style="flex:0 0 60px;" title="Quantidade">
+        <button class="btn btn-secondary btn-sm" onclick="adicionarMinhaCompra()">+ Adicionar</button>
+      </div>
+      <div id="mc-lista" style="display:flex;flex-direction:column;gap:6px;max-height:160px;overflow-y:auto;"></div>
+    </div>
+
     <div class="form-group">
       <label class="form-label">🔗 Slug LifeWave <span style="color:#ff6b6b;">*</span></label>
       <div style="display:flex;gap:8px;align-items:center;">
@@ -18235,6 +19397,33 @@ async function catMostrarImagens(produtoId) {
         <input class="form-input" type="number" id="mb-olxl" placeholder="0" min="0" oninput="atualizarCategoriaPreview()">
       </div>
       <div id="mb-categoria-preview" style="margin-top:12px;"></div>
+    </div>
+
+    <div style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px;margin:14px 0;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+        <div style="font-size:11px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:0.7px;">📦 Histórico de Compras</div>
+        <div style="font-size:11px;color:var(--text2);">Soma últimos 31 dias: <strong id="mb-compras-soma" style="color:var(--accent);">0 PV</strong></div>
+      </div>
+      <div style="display:flex;gap:8px;margin-bottom:10px;">
+        <select class="form-select" id="mb-compra-produto" style="flex:2;"></select>
+        <input class="form-input" type="number" id="mb-compra-qtd" value="1" min="1" style="flex:0 0 60px;" title="Quantidade">
+        <button class="btn btn-secondary btn-sm" onclick="adicionarCompraMembro()">+ Adicionar</button>
+      </div>
+
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
+        <div style="flex:1;height:1px;background:var(--border);"></div>
+        <span style="font-size:10px;color:var(--text2);">ou</span>
+        <div style="flex:1;height:1px;background:var(--border);"></div>
+      </div>
+      <input type="file" id="mb-fatura-input" accept=".pdf,.jpg,.jpeg,.png,.webp" style="display:none" onchange="mbFaturaHandleFile(this.files[0])">
+      <button class="btn btn-secondary btn-sm" style="width:100%;margin-bottom:8px;" onclick="document.getElementById('mb-fatura-input').click()">📷 Ler Fatura (PDF ou Foto)</button>
+      <div id="mb-fatura-preview" style="display:none;margin-bottom:8px;"></div>
+      <div id="mb-fatura-status" style="display:none;align-items:center;gap:8px;font-size:12px;color:var(--text2);padding:8px 0;">
+        <div class="spinner" style="width:16px;height:16px;border-width:2px;"></div> <span id="mb-fatura-status-text">A analisar...</span>
+      </div>
+      <div id="mb-fatura-resultado" style="display:none;margin-bottom:8px;"></div>
+
+      <div id="mb-compras-lista" style="display:flex;flex-direction:column;gap:6px;max-height:160px;overflow-y:auto;"></div>
     </div>
 
     <div class="form-group">
@@ -20007,7 +21196,7 @@ function formacaoRenderEquipaProgresso() {
   const el = document.getElementById('formacao-equipa-lista');
   if (!el) return;
   let membros = [];
-  try { membros = JSON.parse(localStorage.getItem('lw_equipa')) || []; } catch(e) {}
+  try { membros = JSON.parse(localStorage.getItem(getUserStorageKey('lw_membros'))) || []; } catch(e) {}
   if (!membros.length) {
     el.innerHTML = `<div class="empty-state"><div class="empty-icon">👥</div>Ainda não tens membros na equipa.<br><button class="btn btn-primary" style="margin-top:12px;" onclick="goTo('equipa')">Ir para Equipa</button></div>`;
     return;
@@ -20908,7 +22097,7 @@ function gerarLembretesAutomaticos() {
 
   leads.forEach(lead => {
     if (lead.estado === 'cliente' || lead.estado === 'frio' || lembreteIds.has(lead.id)) return;
-    const ultimoContacto = lead.ultimoContacto ? new Date(lead.ultimoContacto).getTime() : new Date(lead.data).getTime();
+    const ultimoContacto = lead.ultimoContacto ? new Date(lead.ultimoContacto).getTime() : (parseDataPtPT(lead.data)?.getTime() || agora);
     const diasPassados = (agora - ultimoContacto) / 86400000;
     const limiarAviso = getCadenciaLead(lead).aviso;
     if (diasPassados >= limiarAviso) {
@@ -21278,9 +22467,9 @@ async function alertasIAAnalisar() {
   if (loader) loader.style.display = 'block';
   if (lista)  lista.innerHTML = '';
 
-  let leads = []; try { leads = JSON.parse(localStorage.getItem('lw_leads'))||[]; } catch(e) {}
-  let membros = []; try { membros = JSON.parse(localStorage.getItem('lw_equipa'))||[]; } catch(e) {}
-  let comissoes = []; try { comissoes = JSON.parse(localStorage.getItem('lw_comissoes'))||[]; } catch(e) {}
+  let leads = []; try { leads = JSON.parse(localStorage.getItem(getUserStorageKey('lw_leads')))||[]; } catch(e) {}
+  let membros = []; try { membros = JSON.parse(localStorage.getItem(getUserStorageKey('lw_membros')))||[]; } catch(e) {}
+  let vendasAlerta = []; try { vendasAlerta = JSON.parse(localStorage.getItem(getUserStorageKey('lw_vendas')))||[]; } catch(e) {}
   let postsAg = []; try { postsAg = JSON.parse(localStorage.getItem('lw_posts_agendados'))||[]; } catch(e) {}
 
   const cfg = JSON.parse(localStorage.getItem(ALERTAS_CONFIG_KEY)||'{}');
@@ -21313,16 +22502,25 @@ async function alertasIAAnalisar() {
   // 2. Meta mensal
   if (cfg['cb_meta-pct'] !== false) {
     const mesAtual = hoje.toISOString().substring(0,7);
-    const totalMes = comissoes.filter(c=>(c.data||'').startsWith(mesAtual)).reduce((s,c)=>s+(parseFloat(c.valor)||0),0);
-    let meta = 0; try { meta = parseFloat(localStorage.getItem('lw_meta_mensal'))||0; } catch(e) {}
+    const totalMes = vendasAlerta.filter(v=>(v.data||'').startsWith(mesAtual) && v.estado !== 'cancelada').reduce((s,v)=>s+(parseFloat(v.comissao)||0),0);
+    let meta = 0; try { const mObj = JSON.parse(localStorage.getItem(getUserStorageKey('lw_meta_mensal'))||'null'); meta = (mObj && parseFloat(mObj.comissao)) || 0; } catch(e) {}
     if (meta > 0) {
       const pct = Math.round((totalMes/meta)*100);
-      if (pct < metaLimite && diasRestantes <= 10) alertasLocais.push({
-        icon:'🎯', cor:'rgba(245,200,66,0.1)', borda:'rgba(245,200,66,0.3)',
-        titulo:`Meta mensal a ${pct}% com apenas ${diasRestantes} dias restantes`,
-        detalhe:`${totalMes.toFixed(0)}€ de ${meta.toFixed(0)}€ — faltam ${(meta-totalMes).toFixed(0)}€`,
-        acao:'Ver Comissões', fn:"closeModal('modal-notificacoes');goTo('comissoes')"
-      });
+      if (pct < metaLimite && diasRestantes <= 10) {
+        const emNegociacao = leads
+          .filter(l => l.estado === 'negociacao')
+          .map(l => ({ l, score: calcularScore(l).score }))
+          .sort((a,b) => b.score - a.score)
+          .slice(0,3)
+          .map(x => ({ id:x.l.id, nome:x.l.nome||'Sem nome' }));
+        alertasLocais.push({
+          icon:'🎯', cor:'rgba(245,200,66,0.1)', borda:'rgba(245,200,66,0.3)',
+          titulo:`Meta mensal a ${pct}% com apenas ${diasRestantes} dias restantes`,
+          detalhe:`${totalMes.toFixed(0)}€ de ${meta.toFixed(0)}€ — faltam ${(meta-totalMes).toFixed(0)}€`+(emNegociacao.length?'. Estes leads em negociação têm mais hipótese de fechar a tempo:':''),
+          acao:'Ver Comissões', fn:"closeModal('modal-notificacoes');goTo('comissoes')",
+          leadsFollowup: emNegociacao, tipoGuiao: 'fechar-venda', iconeBotao: '🤝'
+        });
+      }
     }
   }
 
@@ -21333,7 +22531,9 @@ async function alertasIAAnalisar() {
       icon:'🐺', cor:'rgba(139,156,247,0.1)', borda:'rgba(139,156,247,0.3)',
       titulo:`${inativos.length} membro${inativos.length>1?'s':''} possivelmente inativo${inativos.length>1?'s':''}`,
       detalhe: inativos.slice(0,3).map(m=>m.nome||'Sem nome').join(', ')+(inativos.length>3?` e +${inativos.length-3}`:''),
-      acao:'Ver Equipa', fn:"closeModal('modal-notificacoes');goTo('equipa')"
+      acao:'Ver Equipa', fn:"closeModal('modal-notificacoes');goTo('equipa')",
+      leadsFollowup: inativos.slice(0,5).map(m=>({id:m.id, nome:m.nome||'Sem nome'})),
+      fnPorItem: "gerarMsgApoioMembro('__ID__')", iconeBotao: '💙'
     });
   }
 
@@ -21359,7 +22559,7 @@ async function alertasIAAnalisar() {
       icon:'📱', cor:'rgba(0,212,170,0.06)', borda:'rgba(0,212,170,0.15)',
       titulo:'Nenhum post agendado para os próximos dias',
       detalhe:'A consistência nas redes sociais é chave para atrair leads. Gera um post com a IA!',
-      acao:'Criar Post', fn:"closeModal('modal-notificacoes');goTo('posts')"
+      acao:'✨ Gerar Post Agora', fn:"closeModal('modal-notificacoes');goTo('posts');setTimeout(()=>{try{gerarPost()}catch(e){}},400)"
     });
   }
 
@@ -21416,7 +22616,11 @@ async function alertasIAAnalisar() {
       </div>
       ${(a.leadsFollowup && a.leadsFollowup.length) ? `
         <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;padding-top:10px;border-top:1px solid rgba(255,255,255,0.08);">
-          ${a.leadsFollowup.map(l=>`<button class="btn btn-sm btn-ai" style="font-size:11px;padding:5px 10px;" onclick="closeModal('modal-notificacoes');abrirGuiaoIAdiretamente('${String(l.id).replace(/'/g,"\\'")}','${a.tipoGuiao||'follow-up'}')">${a.iconeBotao||'📨'} ${(l.nome||'').replace(/</g,'&lt;')}</button>`).join('')}
+          ${a.leadsFollowup.map(l=>{
+            const idEsc = String(l.id).replace(/'/g,"\\'");
+            const chamada = a.fnPorItem ? a.fnPorItem.replace('__ID__', idEsc) : `abrirGuiaoIAdiretamente('${idEsc}','${a.tipoGuiao||'follow-up'}')`;
+            return `<button class="btn btn-sm btn-ai" style="font-size:11px;padding:5px 10px;" onclick="closeModal('modal-notificacoes');${chamada}">${a.iconeBotao||'📨'} ${(l.nome||'').replace(/</g,'&lt;')}</button>`;
+          }).join('')}
         </div>` : ''}
     </div>`).join('')+
     (iaInsight?`<div style="margin-top:14px;padding:14px;border-radius:var(--radius-sm);background:linear-gradient(135deg,rgba(0,212,170,0.08),rgba(0,132,255,0.05));border:1px solid rgba(0,212,170,0.2);">
@@ -22890,6 +24094,8 @@ function renderPromocoes() {
   const urgQtd = todas.filter(p => ['urgente','esta-semana'].includes(promoEstado(p))).length;
   const badge = document.getElementById('promo-nav-badge');
   if (badge) { badge.style.display = urgQtd > 0 ? 'inline-block' : 'none'; badge.textContent = urgQtd; }
+  const bnBadge = document.getElementById('bn-badge-promocoes');
+  if (bnBadge) { bnBadge.style.display = urgQtd > 0 ? 'inline-block' : 'none'; bnBadge.textContent = urgQtd; }
   const sel = document.getElementById('promo-ia-select');
   if (sel) {
     const ativas = todas.filter(p => promoEstado(p) !== 'encerrada');
@@ -23348,7 +24554,7 @@ function obRemoverRec(idx) {
 function obBadge() {
   obLoad();
   const ativos = _obDist.filter(d=>Math.floor((Date.now()-new Date(d.data).getTime())/864e5)<7).length;
-  ['nav-ob-badge'].forEach(id => {
+  ['nav-ob-badge', 'bn-badge-onboarding'].forEach(id => {
     const el = document.getElementById(id);
     if (el) { el.style.display = ativos?'inline':'none'; el.textContent = ativos; }
   });
@@ -24805,7 +26011,7 @@ function verificarAutomacoesPeriodicas() {
     if (r.trigger.tipo === 'sem_contacto_dias') {
       leads.forEach(lead => {
         if (lead.estado === 'cliente' || lead.estado === 'frio') return;
-        const ultimo = lead.ultimoContacto ? new Date(lead.ultimoContacto).getTime() : new Date(lead.data).getTime();
+        const ultimo = lead.ultimoContacto ? new Date(lead.ultimoContacto).getTime() : (parseDataPtPT(lead.data)?.getTime() || agora);
         const dias = (agora - ultimo) / 86400000;
         const jaExecutou = getAutoLog().some(l => l.regraId === r.id && l.texto.includes(lead.nome) && (agora - new Date(l.data.split(',')[0].split('/').reverse().join('-')).getTime()) < 86400000 * (r.trigger.dias||1));
         if (dias >= (r.trigger.dias||14) && !jaExecutou && lead.estado !== r.action.estado) executarAcaoRegra(r, lead);
@@ -24899,6 +26105,7 @@ function getAprSlides() {
 }
 
 function iniciarModoApresentacao() {
+  popularSelectLeadsApresentacao();
   _aprSlideAtual = 0;
   renderAprSlides();
   document.getElementById('apr-overlay').classList.add('ativo');
@@ -24915,7 +26122,7 @@ function renderAprSlides() {
       ${s.sub ? `<div class="apr-slide-sub">${s.sub}</div>` : ''}
       ${s.stats ? `<div class="apr-slide-stats">${s.stats.map(st => `<div class="apr-stat-box"><div class="apr-stat-num">${st.num}</div><div class="apr-stat-lbl">${st.lbl}</div></div>`).join('')}</div>` : ''}
       ${s.testimonial ? `<div class="apr-testimonial">${s.testimonial}<div class="apr-testimonial-autor">${s.autor}</div></div>` : ''}
-      ${s.cta ? `<div class="apr-cta-btns"><button class="apr-launch-btn" onclick="window.open('https://lifewave.com','_blank')">🛒 Ver Produtos</button><button class="apr-launch-btn" style="background:var(--surface2);color:var(--text);border:1px solid var(--border);" onclick="sairModoApresentacao()">✕ Terminar</button></div>` : ''}
+      ${s.cta ? `<div class="apr-cta-btns"><button class="apr-launch-btn" onclick="irParaCatalogoDaApresentacao()">🛒 Ver Produtos</button><button class="apr-launch-btn" style="background:var(--surface2);color:var(--text);border:1px solid var(--border);" onclick="sairModoApresentacao()">✕ Terminar</button></div>` : ''}
     </div>`).join('');
   const dotsEl = document.getElementById('apr-dots');
   if (dotsEl) dotsEl.innerHTML = slides.map((_, i) => `<div class="apr-mode-dot ${i === _aprSlideAtual ? 'active' : ''}"></div>`).join('');
@@ -24929,7 +26136,24 @@ function aprNav(dir) {
   _aprSlideAtual = novo;
   renderAprSlides();
 }
-function apresentacaoInit() { /* página apenas com editor; render acontece ao iniciar */ }
+function apresentacaoInit() {
+  popularSelectLeadsApresentacao();
+}
+
+function popularSelectLeadsApresentacao() {
+  const sel = document.getElementById('apr-nome-lead');
+  if (!sel || typeof leads === 'undefined') return;
+  const valorAtual = sel.value;
+  const ordenados = [...leads].sort((a, b) => (a.nome || '').localeCompare(b.nome || ''));
+  sel.innerHTML = '<option value="">— Sem nome (apresentação genérica) —</option>' +
+    ordenados.map(l => `<option value="${escHtml(l.nome)}">${escHtml(l.nome)} (${estadoLabel(l.estado)})</option>`).join('');
+  if (valorAtual && ordenados.some(l => l.nome === valorAtual)) sel.value = valorAtual;
+}
+
+function irParaCatalogoDaApresentacao() {
+  sairModoApresentacao();
+  goTo('catalogo');
+}
 
 </script>
 
@@ -25106,7 +26330,384 @@ function calcularSimuladorPIB() {
     </div>
     <div style="margin-top:10px;font-size:10.5px;color:var(--text3);text-align:center;">💡 Valores indicativos com base no Plano de Compensação 2.0. Não inclui Bónus Binário nem Mentor Matching — usa a Calculadora completa para esses.</div>
   `;
+
+  // Aviso de promoções activas relevantes — não são somadas ao cálculo
+  // (são texto livre, não valores estruturados), mas servem de lembrete
+  // para o utilizador as aplicar manualmente na conversa com o lead.
+  try {
+    if (typeof loadPromos === 'function' && typeof promoEstado === 'function') {
+      const todas = loadPromos();
+      const ativas = todas.filter(p => ['ativa','urgente','esta-semana'].includes(promoEstado(p)));
+      if (ativas.length > 0) {
+        resultEl.innerHTML += `
+          <div style="margin-top:12px;background:rgba(245,200,66,.07);border:1px solid rgba(245,200,66,.25);border-radius:var(--radius-sm);padding:12px 14px;">
+            <div style="font-size:11.5px;font-weight:700;color:var(--gold);margin-bottom:8px;">🔥 ${ativas.length} promoção${ativas.length>1?'ões':''} activa${ativas.length>1?'s':''} — não esquecer de aplicar</div>
+            <div style="display:flex;flex-direction:column;gap:6px;">
+              ${ativas.slice(0,3).map(p => `
+                <div style="font-size:11.5px;color:var(--text2);display:flex;align-items:center;gap:6px;">
+                  <span>${p.icon || '📢'}</span><span style="color:var(--text);font-weight:600;">${p.titulo}</span>
+                </div>`).join('')}
+              ${ativas.length > 3 ? `<div style="font-size:10.5px;color:var(--text3);">+ ${ativas.length - 3} outra(s)...</div>` : ''}
+            </div>
+            <div style="margin-top:8px;">
+              <button class="btn btn-secondary btn-sm" onclick="closeModal('modal-simulador-pib');goTo('promocoes');">Ver promoções →</button>
+            </div>
+          </div>`;
+      }
+    }
+  } catch(e) {}
 }
+
+
+// ===== EXPORTAR CSV =====
+function exportarCSV() {
+  const uk = typeof getUserStorageKey === 'function' ? getUserStorageKey : (k => k);
+  const limpar = s => String(s == null ? '' : s).replace(/\r?\n/g, ' ');
+
+  const toCSV = rows => rows.map(r =>
+    r.map(c => '"' + String(c == null ? '' : c).replace(/"/g, '""') + '"').join(',')
+  ).join('\n');
+
+  let leads = []; try { leads = JSON.parse(localStorage.getItem(uk('lw_leads')) || '[]'); } catch(e) {}
+  const leadsCSV = toCSV([
+    ['ID','Nome','Telefone','Email','Mercado','Estado','Fonte','Aniversario','Data Criacao','Notas'],
+    ...leads.map(l => [l.id,l.nome,l.tel,l.email,l.mercado,l.estado,l.fonte,l.aniversario,l.data,limpar(l.notas)])
+  ]);
+
+  let membros = []; try { membros = JSON.parse(localStorage.getItem(uk('lw_membros')) || '[]'); } catch(e) {}
+  const equipaCSV = toCSV([
+    ['ID','Nome','Telefone','Email','Nivel','Estado','Clientes','Recrutados','PV','QDV','Data Entrada','Notas'],
+    ...membros.map(m => [m.id,m.nome,m.tel,m.email,m.nivel,m.estado,m.clientes,m.recrutados,m.pv,m.qdv,m.data,limpar(m.notas)])
+  ]);
+
+  let vendas = []; try { vendas = JSON.parse(localStorage.getItem(uk('lw_vendas')) || '[]'); } catch(e) {}
+  const vendasCSV = toCSV([
+    ['ID','Cliente','Data','Produto','Tipo','Valor EUR','Comissao EUR','Pct Comissao','Estado','Notas'],
+    ...vendas.map(v => [v.id,v.cliente,v.data,v.produto,v.tipo,v.valor,v.comissao,v.pctComissao,v.estado,limpar(v.notas)])
+  ]);
+
+  const hoje = new Date().toISOString().slice(0,10);
+  const conteudo = 'LEADS\n' + leadsCSV + '\n\nEQUIPA\n' + equipaCSV + '\n\nVENDAS\n' + vendasCSV;
+  const blob = new Blob([conteudo], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'lifewave-crm-' + hoje + '.csv';
+  a.click(); URL.revokeObjectURL(url);
+  showToast('Exportado: ' + leads.length + ' leads, ' + membros.length + ' membros, ' + vendas.length + ' vendas');
+}
+
+// ===== NOTA RÁPIDA POR LEAD =====
+function guardarNotaRapida(id) {
+  const el = document.getElementById('nota-rapida-input');
+  if (!el) return;
+  const nota = el.value.trim();
+  const idx = leads.findIndex(l => l.id === id);
+  if (idx === -1) return;
+  leads[idx].notas = nota;
+  saveleads();
+  showToast('📝 Nota guardada');
+  el.style.borderColor = 'var(--accent)';
+  setTimeout(() => { if (el) el.style.borderColor = 'var(--border)'; }, 1200);
+}
+
+// ===================================================
+// LIGHT MODE — TOGGLE DE TEMA
+// ===================================================
+function toggleTheme() {
+  const html = document.documentElement;
+  const isLight = html.getAttribute('data-theme') === 'light';
+  const newTheme = isLight ? 'dark' : 'light';
+  html.setAttribute('data-theme', newTheme);
+  localStorage.setItem('lw_theme', newTheme);
+  updateThemeToggleUI(newTheme);
+}
+
+function updateThemeToggleUI(theme) {
+  const isLight = theme === 'light';
+  // Sidebar toggle (pode não existir se sidebar oculto)
+  const icon  = document.getElementById('theme-toggle-icon');
+  const label = document.getElementById('theme-toggle-label');
+  const pill  = document.getElementById('theme-toggle-pill');
+  const dot   = document.getElementById('theme-toggle-dot');
+  if (icon)  icon.textContent  = isLight ? '🌙' : '☀️';
+  if (label) label.textContent = isLight ? 'Modo Escuro' : 'Modo Claro';
+  if (pill)  pill.style.background = isLight ? 'var(--accent)' : 'var(--surface3)';
+  if (dot)  { dot.style.left = isLight ? '19px' : '3px'; dot.style.background = isLight ? '#fff' : 'var(--text3)'; }
+  // Modal "Mais opções" toggle
+  const mIcon  = document.getElementById('mais-theme-icon');
+  const mLabel = document.getElementById('mais-theme-label');
+  const mPill  = document.getElementById('mais-theme-pill');
+  const mDot   = document.getElementById('mais-theme-dot');
+  if (mIcon)  mIcon.textContent  = isLight ? '🌙' : '☀️';
+  if (mLabel) mLabel.textContent = isLight ? 'Modo Escuro' : 'Modo Claro';
+  if (mPill)  mPill.style.background = isLight ? 'var(--accent)' : 'var(--surface3)';
+  if (mDot)  { mDot.style.left = isLight ? '20px' : '4px'; mDot.style.background = isLight ? '#fff' : 'var(--text3)'; }
+}
+
+function initTheme() {
+  const saved = localStorage.getItem('lw_theme') || 'dark';
+  document.documentElement.setAttribute('data-theme', saved);
+  updateThemeToggleUI(saved);
+}
+initTheme();
+
+
+// ===================================================
+// MENSAGEM SUGERIDA AO MOVER LEAD NO FUNIL
+// ===================================================
+const MSG_FUNIL = {
+  contactado: {
+    titulo: '📞 Lead Contactado',
+    subtitulo: 'Primeiro contacto — apresenta-te de forma natural',
+    msg: (nome, link) => `Olá ${nome}! 👋
+
+O meu nome é [O TEU NOME] e entrei em contacto contigo porque tenho algo que pode ser muito relevante para ti.
+
+Trabalho com uma tecnologia de patches de fotobiomodulação chamada LifeWave X39 — tem ajudado muitas pessoas a recuperar energia, reduzir dores e melhorar o bem-estar geral.
+
+Posso partilhar mais detalhes contigo? Não demora nada! 🙏${link ? '\n\n🔗 Mais info: ' + link : ''}`
+  },
+  interessado: {
+    titulo: '🌤️ Lead Interessado',
+    subtitulo: 'Já mostrou interesse — aprofunda e envia informação',
+    msg: (nome, link) => `Olá ${nome}! 😊
+
+Fico contente com o teu interesse no X39!
+
+Vou partilhar contigo informação mais detalhada sobre como funciona a tecnologia e os resultados que as pessoas estão a ter.
+
+Tens alguma questão específica que gostarias de esclarecer? Estou aqui para ajudar 💪${link ? '\n\n🔗 Sabe mais aqui: ' + link : ''}`
+  },
+  negociacao: {
+    titulo: '🤝 Em Negociação',
+    subtitulo: 'Pronto para decidir — ajuda a remover as últimas dúvidas',
+    msg: (nome, link) => `Olá ${nome}!
+
+Já tivemos oportunidade de falar sobre o X39 e sei que estás a ponderar a decisão.
+
+Quero assegurar-me de que tens toda a informação necessária para decidires com confiança. Há alguma dúvida que ainda não tenha ficado totalmente esclarecida? 🙌
+
+Estou disponível para uma chamada rápida se preferires falar ao vivo!${link ? '\n\n🔗 ' + link : ''}`
+  },
+  cliente: {
+    titulo: '🏆 Novo Cliente!',
+    subtitulo: 'Parabéns! Dá as boas-vindas e orienta o próximo passo',
+    msg: (nome, link) => `${nome}, bem-vindo/a à família LifeWave! 🎉🙌
+
+Estou muito contente por teres dado este passo — vai fazer toda a diferença!
+
+Assim que receberes o teu kit, diz-me e eu oriento-te sobre como começar a usar os patches para teres os melhores resultados desde o primeiro dia.
+
+Qualquer dúvida estou aqui sempre que precisares 💚${link ? '\n\n🔗 Recursos úteis: ' + link : ''}`
+  },
+  frio: {
+    titulo: '❄️ Lead Frio',
+    subtitulo: 'Mantém a porta aberta sem pressão',
+    msg: (nome, link) => `Olá ${nome}! 👋
+
+Compreendo que o momento pode não ser o ideal agora.
+
+Fico por aqui caso mudes de ideias ou surja alguma questão. Sem qualquer compromisso! 😊
+
+Cuida-te bem e até breve.${link ? '\n\n🔗 ' + link : ''}`
+  }
+};
+
+let _msgFunilLead = null;
+
+function mostrarMsgFunil(lead, novoEstado) {
+  const cfg = MSG_FUNIL[novoEstado];
+  if (!cfg) return; // sem sugestão para este estado (ex: "novo")
+
+  _msgFunilLead = lead;
+
+  // Busca link pessoal do utilizador se existir
+  const perfil = JSON.parse(localStorage.getItem('lw_perfil') || '{}');
+  const link = perfil.linkPessoal || perfil.link || '';
+
+  const nome = lead.nome ? lead.nome.split(' ')[0] : 'amigo/a';
+  const texto = cfg.msg(nome, link);
+
+  document.getElementById('msg-funil-titulo').textContent = cfg.titulo;
+  document.getElementById('msg-funil-subtitulo').textContent = cfg.subtitulo;
+  document.getElementById('msg-funil-texto').value = texto;
+
+  // Pequeno delay para não colidir com outros modais que fecharam
+  setTimeout(() => {
+    document.getElementById('modal-msg-funil').classList.add('open');
+  }, 350);
+}
+
+function msgFunilCopiar() {
+  const txt = document.getElementById('msg-funil-texto').value;
+  if (!txt) return;
+  navigator.clipboard.writeText(txt).then(() => {
+    showToast('📋 Mensagem copiada!');
+    closeModal('modal-msg-funil');
+  }).catch(() => {
+    // fallback
+    const ta = document.getElementById('msg-funil-texto');
+    ta.select();
+    document.execCommand('copy');
+    showToast('📋 Mensagem copiada!');
+    closeModal('modal-msg-funil');
+  });
+}
+
+function msgFunilEnviarWA() {
+  const txt = document.getElementById('msg-funil-texto').value;
+  if (!txt) return;
+  // Tenta pré-preencher com o telefone do lead se existir
+  const tel = _msgFunilLead?.telefone?.replace(/\D/g,'') || '';
+  const encoded = encodeURIComponent(txt);
+  const url = tel
+    ? `https://wa.me/${tel}?text=${encoded}`
+    : `https://wa.me/?text=${encoded}`;
+  window.open(url, '_blank');
+  closeModal('modal-msg-funil');
+}
+
+
+// =====================================================
+// DIÁRIO DE APRENDIZAGEM DA EQUIPA (#11)
+// =====================================================
+let _diarioTipoAtivo = 'objecao';
+let _diarioFiltroAtivo = 'todos';
+
+const DIARIO_TIPOS = {
+  objecao: { icon:'🛡️', label:'Objeção superada', cls:'dtipo-objecao' },
+  tecnica: { icon:'💡', label:'Técnica que funcionou', cls:'dtipo-tecnica' },
+  vitoria: { icon:'🏆', label:'Vitória da semana', cls:'dtipo-vitoria' },
+  duvida:  { icon:'❓', label:'Dúvida para a equipa', cls:'dtipo-duvida' },
+};
+
+function getDiarioEntradas() {
+  try { return JSON.parse(localStorage.getItem(getUserStorageKey('lw_diario')) || '[]'); }
+  catch(e) { return []; }
+}
+function saveDiarioEntradas(lista) {
+  localStorage.setItem(getUserStorageKey('lw_diario'), JSON.stringify(lista));
+}
+function getDiarioAutorAtual() {
+  let perfil = {};
+  try { perfil = JSON.parse(localStorage.getItem(getUserStorageKey('lw_perfil')) || '{}'); } catch(e) {}
+  return perfil.nomeDisplay || (typeof currentUser !== 'undefined' && currentUser?.name) || 'Eu (Líder)';
+}
+
+function setDiarioTipo(tipo, btn) {
+  _diarioTipoAtivo = tipo;
+  document.querySelectorAll('[id^="dtipo-"]').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+}
+
+function setDiarioFiltro(filtro, btn) {
+  _diarioFiltroAtivo = filtro;
+  document.querySelectorAll('[id^="dftab-"]').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  renderDiarioFeed();
+}
+
+function publicarDiario() {
+  const texto = document.getElementById('diario-texto')?.value.trim();
+  if (!texto) { showToast('⚠️ Escreve algo antes de publicar!'); return; }
+  const entradas = getDiarioEntradas();
+  entradas.push({
+    id: 'diario_' + Date.now(),
+    autor: getDiarioAutorAtual(),
+    tipo: _diarioTipoAtivo,
+    texto,
+    data: new Date().toLocaleString('pt-PT'),
+    reacoes: {},
+  });
+  saveDiarioEntradas(entradas);
+  document.getElementById('diario-texto').value = '';
+  renderDiario();
+  showToast('✅ Publicado no Diário da Equipa!');
+}
+
+function eliminarDiarioEntrada(id) {
+  if (!confirm('Eliminar este registo do diário?')) return;
+  saveDiarioEntradas(getDiarioEntradas().filter(e => e.id !== id));
+  renderDiario();
+  showToast('🗑 Removido');
+}
+
+function reagirDiario(id, emoji) {
+  const entradas = getDiarioEntradas();
+  const e = entradas.find(x => x.id === id);
+  if (!e) return;
+  e.reacoes = e.reacoes || {};
+  const autorAtual = getDiarioAutorAtual();
+  e.reacoes[emoji] = e.reacoes[emoji] || [];
+  const idx = e.reacoes[emoji].indexOf(autorAtual);
+  if (idx >= 0) e.reacoes[emoji].splice(idx, 1);
+  else e.reacoes[emoji].push(autorAtual);
+  saveDiarioEntradas(entradas);
+  renderDiarioFeed();
+}
+
+const DIARIO_AVATAR_CORES = ['#00d4aa','#0084ff','#f5c842','#ff6b35','#8b9cf7','#25d366'];
+const DIARIO_EMOJIS_REACAO = ['👍','💪','🔥','❤️'];
+
+function renderDiario() {
+  const entradas = getDiarioEntradas();
+  const resumoEl = document.getElementById('diario-resumo');
+  if (resumoEl) {
+    const counts = { objecao:0, tecnica:0, vitoria:0, duvida:0 };
+    entradas.forEach(e => { if (counts[e.tipo] !== undefined) counts[e.tipo]++; });
+    resumoEl.innerHTML = `
+      <div class="diario-resumo-item"><div class="diario-resumo-val" style="color:var(--accent3)">${counts.objecao}</div><div class="diario-resumo-lbl">🛡️ Objeções partilhadas</div></div>
+      <div class="diario-resumo-item"><div class="diario-resumo-val" style="color:var(--accent)">${counts.tecnica}</div><div class="diario-resumo-lbl">💡 Técnicas partilhadas</div></div>
+      <div class="diario-resumo-item"><div class="diario-resumo-val" style="color:var(--gold)">${counts.vitoria}</div><div class="diario-resumo-lbl">🏆 Vitórias celebradas</div></div>
+      <div class="diario-resumo-item"><div class="diario-resumo-val" style="color:var(--accent2)">${entradas.length}</div><div class="diario-resumo-lbl">📔 Total de registos</div></div>`;
+  }
+  renderDiarioFeed();
+}
+
+function renderDiarioFeed() {
+  let entradas = [...getDiarioEntradas()].reverse();
+  if (_diarioFiltroAtivo !== 'todos') entradas = entradas.filter(e => e.tipo === _diarioFiltroAtivo);
+
+  const feedEl = document.getElementById('diario-feed');
+  const emptyEl = document.getElementById('diario-empty');
+  if (!feedEl) return;
+  if (!entradas.length) { feedEl.innerHTML = ''; if (emptyEl) emptyEl.style.display = 'block'; return; }
+  if (emptyEl) emptyEl.style.display = 'none';
+
+  const autorAtual = getDiarioAutorAtual();
+
+  feedEl.innerHTML = entradas.map(e => {
+    const tipoInfo = DIARIO_TIPOS[e.tipo] || DIARIO_TIPOS.objecao;
+    const initials = (e.autor || '?').split(' ').map(p => p[0]).slice(0, 2).join('').toUpperCase();
+    const cor = DIARIO_AVATAR_CORES[(e.autor || '').charCodeAt(0) % DIARIO_AVATAR_CORES.length];
+    const reacoes = e.reacoes || {};
+    const reacoesHtml = DIARIO_EMOJIS_REACAO.map(emoji => {
+      const lista = reacoes[emoji] || [];
+      const reagiu = lista.includes(autorAtual);
+      return `<button class="diario-reacao-btn ${reagiu ? 'reagiu' : ''}" onclick="reagirDiario('${e.id}','${emoji}')">
+        ${emoji}${lista.length > 0 ? ` <span class="diario-reacao-count">${lista.length}</span>` : ''}
+      </button>`;
+    }).join('');
+    const souAutor = e.autor === autorAtual;
+
+    return `<div class="diario-card">
+      <div class="diario-card-header">
+        <div class="diario-avatar" style="background:linear-gradient(135deg,${cor},${cor}99)">${initials}</div>
+        <div>
+          <div class="diario-autor">${escHtml(e.autor)}</div>
+          <div class="diario-data">${e.data}</div>
+        </div>
+        <span class="diario-tipo-badge ${tipoInfo.cls}">${tipoInfo.icon} ${tipoInfo.label}</span>
+      </div>
+      <div class="diario-card-texto">${escHtml(e.texto)}</div>
+      <div class="diario-card-footer">
+        <div class="diario-reacoes">${reacoesHtml}</div>
+        ${souAutor ? `<button class="diario-del-btn" onclick="eliminarDiarioEntrada('${e.id}')">🗑</button>` : ''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
 </script>
 
 </body>
