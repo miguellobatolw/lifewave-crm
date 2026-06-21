@@ -7051,6 +7051,9 @@
         <div class="modal-title" style="margin-bottom:0;">Mais opções</div>
         <button class="modal-close" onclick="closeModal('modal-menu-mais')">✕</button>
       </div>
+      <button id="pwa-install-btn-mobile" onclick="pwaInstalar()" style="display:none;align-items:center;justify-content:center;gap:8px;width:100%;margin-bottom:14px;padding:11px;background:linear-gradient(135deg,var(--accent2),var(--accent));border:none;border-radius:12px;color:#fff;font-size:13px;font-weight:700;cursor:pointer;">
+        📲 Instalar App no telemóvel
+      </button>
       <div id="menu-mais-grid" style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;max-height:65vh;overflow-y:auto;"></div>
     </div>
   </div>
@@ -11113,26 +11116,36 @@ if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.
   });
 }
 
-window.addEventListener('beforeinstallprompt', (e) => {
-  e.preventDefault();
-  pwaDeferredPrompt = e;
-  const btn = document.getElementById('pwa-install-btn');
-  if (btn) btn.style.display = 'flex';
-});
-
-function pwaInstalar() {
-  const btn = document.getElementById('pwa-install-btn');
-  if (!pwaDeferredPrompt) return;
-  pwaDeferredPrompt.prompt();
-  pwaDeferredPrompt.userChoice.then(() => {
-    pwaDeferredPrompt = null;
+function pwaMostrarBotoes() {
+  ['pwa-install-btn', 'pwa-install-btn-mobile'].forEach(id => {
+    const btn = document.getElementById(id);
+    if (btn) btn.style.display = 'flex';
+  });
+}
+function pwaEsconderBotoes() {
+  ['pwa-install-btn', 'pwa-install-btn-mobile'].forEach(id => {
+    const btn = document.getElementById(id);
     if (btn) btn.style.display = 'none';
   });
 }
 
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  pwaDeferredPrompt = e;
+  pwaMostrarBotoes();
+});
+
+function pwaInstalar() {
+  if (!pwaDeferredPrompt) return;
+  pwaDeferredPrompt.prompt();
+  pwaDeferredPrompt.userChoice.then(() => {
+    pwaDeferredPrompt = null;
+    pwaEsconderBotoes();
+  });
+}
+
 window.addEventListener('appinstalled', () => {
-  const btn = document.getElementById('pwa-install-btn');
-  if (btn) btn.style.display = 'none';
+  pwaEsconderBotoes();
   pwaDeferredPrompt = null;
 });
 
