@@ -4,6 +4,16 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, interactive-widget=resizes-content">
 <title>LifeWave CRM v16 — Gestão de Leads & Posts</title>
+
+<!-- ===== PWA: manifest, ícones e meta tags ===== -->
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0a0f1e">
+<link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Alfa Team CRM">
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <style>
@@ -3188,6 +3198,52 @@
   .mapa-resumo-val { font-family:'Syne',sans-serif; font-size:22px; font-weight:700; }
   .mapa-resumo-lbl { font-size:11px; color:var(--text2); margin-top:2px; }
   .mapa-insight-bar { background:linear-gradient(135deg,rgba(255,107,53,.07),rgba(245,200,66,.05)); border:1px solid rgba(255,107,53,.18); border-radius:12px; padding:14px 18px; margin-bottom:20px; font-size:13px; color:var(--text); line-height:1.6; }
+
+  /* ===== MODO APRESENTAÇÃO ===== */
+  .apr-mode-overlay {
+    position:fixed; inset:0; background:#06060a; z-index:9000; display:none;
+    flex-direction:column; overflow-y:auto;
+  }
+  .apr-mode-overlay.ativo { display:flex; }
+  .apr-mode-bar {
+    position:sticky; top:0; z-index:10; display:flex; align-items:center; justify-content:space-between;
+    padding:12px 18px; background:rgba(10,10,15,.92); backdrop-filter:blur(10px); border-bottom:1px solid var(--border);
+  }
+  .apr-mode-exit {
+    background:rgba(255,255,255,.06); border:1px solid var(--border); color:var(--text2);
+    font-size:13px; font-weight:600; padding:7px 16px; border-radius:8px; cursor:pointer; font-family:'DM Sans',sans-serif;
+  }
+  .apr-mode-nav { display:flex; gap:8px; align-items:center; }
+  .apr-mode-dots { display:flex; gap:5px; }
+  .apr-mode-dot { width:7px; height:7px; border-radius:50%; background:var(--border); transition:.2s; }
+  .apr-mode-dot.active { background:var(--accent); width:20px; border-radius:6px; }
+  .apr-nav-btn {
+    background:rgba(255,255,255,.06); border:1px solid var(--border); color:var(--text);
+    width:36px; height:36px; border-radius:50%; cursor:pointer; font-size:16px; display:flex; align-items:center; justify-content:center;
+  }
+  .apr-nav-btn:disabled { opacity:.3; cursor:not-allowed; }
+  .apr-slide {
+    flex:1; display:none; flex-direction:column; align-items:center; justify-content:center;
+    padding:40px 24px; text-align:center; max-width:760px; margin:0 auto; min-height:70vh;
+  }
+  .apr-slide.ativo { display:flex; animation:aprFadeIn .4s ease; }
+  @keyframes aprFadeIn { from { opacity:0; transform:translateY(12px); } to { opacity:1; transform:translateY(0); } }
+  .apr-slide-emoji { font-size:64px; margin-bottom:20px; }
+  .apr-slide-titulo { font-family:'Syne',sans-serif; font-size:clamp(24px,5vw,38px); font-weight:800; color:var(--text); margin-bottom:16px; line-height:1.2; }
+  .apr-slide-sub { font-size:clamp(14px,2.4vw,18px); color:var(--text2); line-height:1.7; max-width:560px; }
+  .apr-slide-stats { display:flex; gap:24px; margin-top:28px; flex-wrap:wrap; justify-content:center; }
+  .apr-stat-box { background:var(--surface2); border:1px solid var(--border); border-radius:14px; padding:16px 24px; min-width:120px; }
+  .apr-stat-num { font-family:'Syne',sans-serif; font-size:28px; font-weight:800; color:var(--accent); }
+  .apr-stat-lbl { font-size:11px; color:var(--text2); margin-top:4px; }
+  .apr-testimonial { background:var(--surface2); border:1px solid var(--border); border-radius:16px; padding:24px 28px; margin-top:24px; font-size:14px; color:var(--text); line-height:1.7; font-style:italic; max-width:560px; }
+  .apr-testimonial-autor { font-size:12px; color:var(--text2); margin-top:10px; font-style:normal; font-weight:700; }
+  .apr-cta-btns { display:flex; gap:12px; margin-top:30px; flex-wrap:wrap; justify-content:center; }
+  .apr-launch-btn {
+    background:linear-gradient(135deg,var(--accent),var(--accent2)); color:#000; border:none;
+    padding:14px 32px; border-radius:14px; font-size:15px; font-weight:700; cursor:pointer;
+    font-family:'DM Sans',sans-serif; box-shadow:0 8px 24px rgba(0,212,170,.18);
+  }
+  .apr-editor-card { background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:16px 18px; margin-bottom:12px; }
 </style>
 </head>
 <body>
@@ -3472,6 +3528,10 @@
         <span class="nav-icon">📦</span>
         <span>Catálogo</span>
       </div>
+      <div class="nav-item" onclick="abrirSimuladorPIB()">
+        <span class="nav-icon">🧾</span>
+        <span>Simulador PIB</span>
+      </div>
       <div class="nav-item" onclick="goTo('percurso')">
         <span class="nav-icon">🏆</span>
         <span>Percurso</span>
@@ -3534,12 +3594,21 @@
         <span>Mapa de Leads</span>
         <span style="background:var(--gold);color:#000;font-size:9px;font-weight:700;padding:2px 6px;border-radius:20px;margin-left:auto;">Novo</span>
       </div>
+      <div class="nav-item" onclick="goTo('apresentacao')" id="nav-apresentacao">
+        <span class="nav-icon">🖥️</span>
+        <span>Modo Apresentação</span>
+        <span style="background:#25d366;color:#fff;font-size:9px;font-weight:700;padding:2px 6px;border-radius:20px;margin-left:auto;">Novo</span>
+      </div>
       <div class="nav-item" onclick="abrirPerfilModal(false)" id="nav-perfil" style="margin-top:8px;border-top:1px solid var(--border);padding-top:12px;">
         <span class="nav-icon">⚙️</span>
         <span>Meu Perfil & Links</span>
         <span id="nav-perfil-badge" style="display:none;background:#ff6b35;color:#fff;font-size:9px;font-weight:700;padding:2px 6px;border-radius:20px;margin-left:auto;">Novo</span>
       </div>
     </nav>
+    <!-- INSTALAR APP (PWA) -->
+    <button id="pwa-install-btn" onclick="pwaInstalar()" style="display:none;align-items:center;gap:8px;justify-content:center;width:calc(100% - 24px);margin:0 12px 10px 12px;padding:10px;background:linear-gradient(135deg,var(--accent2),var(--accent));border:none;border-radius:10px;color:#fff;font-size:12.5px;font-weight:700;cursor:pointer;">
+      📲 Instalar App
+    </button>
     <!-- USER PROFILE IN SIDEBAR -->
     <div class="sidebar-user" onclick="mostrarPerfilUtilizador()" title="Configurar perfil e links">
       <div class="sidebar-avatar" id="sidebar-avatar-wrap">
@@ -3640,6 +3709,10 @@
           </div>
         </div>
         <div class="followup-list" id="followup-list"></div>
+      </div>
+
+      <!-- WIDGET QUALIFICAÇÃO SEMANAL -->
+      <div id="dash-qualif-widget" style="display:none;margin-bottom:16px;cursor:pointer;" onclick="goTo('checklist')">
       </div>
 
       <!-- PROMOÇÕES ATIVAS BANNER -->
@@ -3883,6 +3956,16 @@
               <option value="Quente">🔥 Quente</option>
               <option value="Morno">🌤 Morno</option>
               <option value="Frio">❄️ Frio</option>
+            </select>
+          </div>
+
+          <div class="filtro-group">
+            <div class="filtro-label">Tag automática</div>
+            <select class="form-select" id="f-filtro-autotag" onchange="aplicarFiltros()">
+              <option value="">Todas</option>
+              <option value="sem_resposta">🔇 Sem resposta</option>
+              <option value="quente">🔥 Quente (a avançar)</option>
+              <option value="estagnado">🧊 Estagnado</option>
             </select>
           </div>
 
@@ -6276,18 +6359,12 @@
         </div>
         <button class="btn btn-primary" onclick="abrirModalNovaRegra()">＋ Nova Regra</button>
       </div>
-
-      <!-- Resumo -->
       <div class="stats-grid" id="auto-kpis" style="margin-bottom:24px;"></div>
-
-      <!-- Tabs -->
       <div style="display:flex;gap:0;margin-bottom:22px;border-bottom:2px solid var(--border);">
         <button id="atab-btn-regras" onclick="autoTab('regras')" style="padding:10px 18px;border:none;background:none;color:#8b9cf7;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:700;cursor:pointer;border-bottom:2px solid #8b9cf7;margin-bottom:-2px;">⚙️ Minhas Regras</button>
         <button id="atab-btn-biblioteca" onclick="autoTab('biblioteca')" style="padding:10px 18px;border:none;background:none;color:var(--text2);font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;">📚 Biblioteca de Regras</button>
         <button id="atab-btn-log" onclick="autoTab('log')" style="padding:10px 18px;border:none;background:none;color:var(--text2);font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;">📋 Histórico de Execuções</button>
       </div>
-
-      <!-- TAB: Minhas Regras -->
       <div id="atab-regras">
         <div id="automacao-grid" style="display:flex;flex-direction:column;gap:14px;"></div>
         <div id="automacao-empty" style="display:none;text-align:center;padding:60px 20px;color:var(--text2);">
@@ -6296,14 +6373,10 @@
           <div style="font-size:13px;">Adiciona uma regra da biblioteca ou cria a tua própria</div>
         </div>
       </div>
-
-      <!-- TAB: Biblioteca -->
       <div id="atab-biblioteca" style="display:none;">
         <div style="font-size:12px;color:var(--text2);margin-bottom:16px;">Regras prontas a ativar com 1 clique — testadas e usadas por outros distribuidores</div>
         <div id="automacao-biblioteca-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:14px;"></div>
       </div>
-
-      <!-- TAB: Log -->
       <div id="atab-log" style="display:none;">
         <div class="card">
           <div class="section-title" style="margin-bottom:4px;">📋 Últimas Execuções</div>
@@ -6313,16 +6386,11 @@
         </div>
       </div>
     </div>
-    <!-- ==================== FIM MOTOR DE AUTOMAÇÃO ==================== -->
 
     <!-- Modal Nova Regra Personalizada -->
     <div class="modal-overlay" id="modal-nova-regra">
       <div class="modal" style="max-width:560px;">
-        <div class="modal-title">
-          ⚙️ Nova Regra de Automação
-          <button class="modal-close" onclick="closeModal('modal-nova-regra')">✕</button>
-        </div>
-
+        <div class="modal-title">⚙️ Nova Regra de Automação<button class="modal-close" onclick="closeModal('modal-nova-regra')">✕</button></div>
         <div class="auto-builder-step">
           <div class="auto-builder-label">1️⃣ Quando (gatilho)</div>
           <select class="form-select" id="regra-trigger" onchange="atualizarRegraBuilderUI()">
@@ -6333,7 +6401,6 @@
           </select>
           <div id="regra-trigger-extra" style="margin-top:10px;"></div>
         </div>
-
         <div class="auto-builder-step">
           <div class="auto-builder-label">2️⃣ Então (ação)</div>
           <select class="form-select" id="regra-action" onchange="atualizarRegraBuilderUI()">
@@ -6344,19 +6411,13 @@
           </select>
           <div id="regra-action-extra" style="margin-top:10px;"></div>
         </div>
-
-        <div class="form-group">
-          <div class="form-label">Nome da regra</div>
-          <input class="form-input" id="regra-nome" placeholder="Ex: Boas-vindas a novo cliente">
-        </div>
-
+        <div class="form-group"><div class="form-label">Nome da regra</div><input class="form-input" id="regra-nome" placeholder="Ex: Boas-vindas a novo cliente"></div>
         <div class="modal-actions">
           <button class="btn btn-secondary" onclick="closeModal('modal-nova-regra')">Cancelar</button>
           <button class="btn btn-primary" onclick="guardarRegraPersonalizada()">💾 Guardar Regra</button>
         </div>
       </div>
     </div>
-
 
     <!-- ==================== MAPA DE LEADS (TEMPERATURA) ==================== -->
     <div id="page-mapa" class="page">
@@ -6365,53 +6426,32 @@
           <div class="page-title">🌡️ Mapa de Leads</div>
           <div class="page-sub">Vê de imediato onde estão as tuas oportunidades — por temperatura e fase do funil</div>
         </div>
-        <div style="display:flex;gap:8px;">
-          <select class="form-select" id="mapa-filtro-estado" onchange="renderMapaLeads()" style="font-size:12px;padding:7px 12px;">
-            <option value="todos">Todos os estados</option>
-            <option value="novo">Novo</option>
-            <option value="contactado">Contactado</option>
-            <option value="interessado">Interessado</option>
-            <option value="negociacao">Negociação</option>
-            <option value="cliente">Cliente</option>
-            <option value="frio">Frio</option>
-          </select>
-        </div>
+        <select class="form-select" id="mapa-filtro-estado" onchange="renderMapaLeads()" style="font-size:12px;padding:7px 12px;">
+          <option value="todos">Todos os estados</option>
+          <option value="novo">Novo</option>
+          <option value="contactado">Contactado</option>
+          <option value="interessado">Interessado</option>
+          <option value="negociacao">Negociação</option>
+          <option value="cliente">Cliente</option>
+          <option value="frio">Frio</option>
+        </select>
       </div>
-
-      <!-- Resumo -->
       <div class="mapa-resumo-bar" id="mapa-resumo"></div>
-
-      <!-- Insight automático -->
       <div class="mapa-insight-bar" id="mapa-insight"></div>
-
-      <!-- Grid 3 colunas: Quente / Morno / Frio -->
       <div class="mapa-grid">
         <div class="mapa-temp-col">
-          <div class="mapa-temp-header quente">
-            <span class="mapa-temp-emoji">🔥</span>
-            <span class="mapa-temp-titulo">Quente</span>
-            <span class="mapa-temp-count" id="mapa-count-quente" style="color:#ff6b35;">0</span>
-          </div>
+          <div class="mapa-temp-header quente"><span class="mapa-temp-emoji">🔥</span><span class="mapa-temp-titulo">Quente</span><span class="mapa-temp-count" id="mapa-count-quente" style="color:#ff6b35;">0</span></div>
           <div class="mapa-temp-body" id="mapa-body-quente"></div>
         </div>
         <div class="mapa-temp-col">
-          <div class="mapa-temp-header morno">
-            <span class="mapa-temp-emoji">🌤️</span>
-            <span class="mapa-temp-titulo">Morno</span>
-            <span class="mapa-temp-count" id="mapa-count-morno" style="color:var(--gold);">0</span>
-          </div>
+          <div class="mapa-temp-header morno"><span class="mapa-temp-emoji">🌤️</span><span class="mapa-temp-titulo">Morno</span><span class="mapa-temp-count" id="mapa-count-morno" style="color:var(--gold);">0</span></div>
           <div class="mapa-temp-body" id="mapa-body-morno"></div>
         </div>
         <div class="mapa-temp-col">
-          <div class="mapa-temp-header frio">
-            <span class="mapa-temp-emoji">❄️</span>
-            <span class="mapa-temp-titulo">Frio</span>
-            <span class="mapa-temp-count" id="mapa-count-frio" style="color:var(--accent2);">0</span>
-          </div>
+          <div class="mapa-temp-header frio"><span class="mapa-temp-emoji">❄️</span><span class="mapa-temp-titulo">Frio</span><span class="mapa-temp-count" id="mapa-count-frio" style="color:var(--accent2);">0</span></div>
           <div class="mapa-temp-body" id="mapa-body-frio"></div>
         </div>
       </div>
-
       <div style="margin-top:18px;display:flex;gap:14px;flex-wrap:wrap;align-items:center;font-size:11px;color:var(--text2);">
         <span style="font-weight:700;">Legenda do funil:</span>
         <span><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#94a3b8;margin-right:4px;"></span>Novo</span>
@@ -6422,7 +6462,41 @@
         <span><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--text3);margin-right:4px;"></span>Frio</span>
       </div>
     </div>
-    <!-- ==================== FIM MAPA DE LEADS ==================== -->
+
+    <!-- ==================== MODO APRESENTAÇÃO ==================== -->
+    <div id="page-apresentacao" class="page">
+      <div class="page-header">
+        <div>
+          <div class="page-title">🖥️ Modo Apresentação</div>
+          <div class="page-sub">Uma vista limpa em tela cheia para mostrares a clientes, sem abrir o backoffice</div>
+        </div>
+        <button class="btn btn-primary" onclick="iniciarModoApresentacao()">▶️ Iniciar Apresentação</button>
+      </div>
+      <div class="apr-editor-card">
+        <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:10px;">📋 O que vais mostrar</div>
+        <div style="font-size:12.5px;color:var(--text2);line-height:1.7;">
+          7 slides prontos: Boas-vindas → O Problema → A Solução X39 → Como Funciona → Resultados → Testemunhos → Como Começar.<br>
+          Passa os slides com as setas, ou desliza no telemóvel. Mostra ao teu lead em pessoa ou em videochamada (partilha de ecrã).
+        </div>
+      </div>
+      <div class="apr-editor-card">
+        <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:10px;">🙋 Para quem é esta apresentação?</div>
+        <input class="form-input" id="apr-nome-lead" placeholder="Nome do lead (opcional, personaliza o slide final)">
+      </div>
+    </div>
+
+    <!-- Overlay tela cheia do Modo Apresentação -->
+    <div class="apr-mode-overlay" id="apr-overlay">
+      <div class="apr-mode-bar">
+        <button class="apr-mode-exit" onclick="sairModoApresentacao()">✕ Sair</button>
+        <div class="apr-mode-dots" id="apr-dots"></div>
+        <div class="apr-mode-nav">
+          <button class="apr-nav-btn" id="apr-btn-prev" onclick="aprNav(-1)">◀</button>
+          <button class="apr-nav-btn" id="apr-btn-next" onclick="aprNav(1)">▶</button>
+        </div>
+      </div>
+      <div id="apr-slides-wrap" style="flex:1;display:flex;flex-direction:column;"></div>
+    </div>
 
     <div id="page-tutorial" class="page">
       <div class="page-header">
@@ -6917,6 +6991,10 @@
       <div class="bn-icon-wrap"><span class="bn-icon">📦</span></div>
       <span>Catálogo</span>
     </div>
+    <div class="bn-item" id="bn-simulador-pib" onclick="abrirSimuladorPIB()">
+      <div class="bn-icon-wrap"><span class="bn-icon">🧾</span></div>
+      <span>Simulador PIB</span>
+    </div>
     <div class="bn-item" id="bn-percurso" onclick="goTo('percurso')">
       <div class="bn-icon-wrap"><span class="bn-icon">🏆</span></div>
       <span>Percurso</span>
@@ -6955,6 +7033,10 @@
     <div class="bn-item" id="bn-mapa" onclick="goTo('mapa')">
       <div class="bn-icon-wrap"><span class="bn-icon">🌡️</span></div>
       <span>Mapa Leads</span>
+    </div>
+    <div class="bn-item" id="bn-apresentacao" onclick="goTo('apresentacao')">
+      <div class="bn-icon-wrap"><span class="bn-icon">🖥️</span></div>
+      <span>Apresentação</span>
     </div>
     <div class="bn-more-item" id="bn-more" onclick="abrirMenuMais()">
       <div class="bn-icon-wrap"><span class="bn-icon">☰</span></div>
@@ -7111,12 +7193,15 @@
     <div class="form-row">
       <div class="form-group">
         <label class="form-label">Nome *</label>
-        <input class="form-input" id="f-nome" placeholder="Nome completo">
+        <input class="form-input" id="f-nome" placeholder="Nome completo" oninput="verificarLeadDuplicado()">
       </div>
       <div class="form-group">
         <label class="form-label">Telefone</label>
-        <input class="form-input" id="f-tel" placeholder="+351 9xx xxx xxx">
+        <input class="form-input" id="f-tel" placeholder="+351 9xx xxx xxx" oninput="verificarLeadDuplicado()">
       </div>
+    </div>
+    <div id="f-duplicado-aviso" style="display:none;align-items:center;gap:8px;background:rgba(255,159,10,0.12);border:1px solid rgba(255,159,10,0.4);border-radius:10px;padding:9px 12px;margin-top:-6px;margin-bottom:12px;font-size:12.5px;color:#FF9F0A;font-weight:600;">
+      ⚠️ <span id="f-duplicado-texto">Já existe um lead parecido</span>
     </div>
     <div class="form-row">
       <div class="form-group">
@@ -7295,6 +7380,32 @@
       <button class="btn btn-secondary btn-sm" onclick="copiarGuiao()">📋 Copiar guião</button>
       <button class="btn btn-ai btn-sm" onclick="gerarGuiaoIA()">🔄 Gerar nova versão</button>
       <button class="btn btn-secondary btn-sm" id="btn-guardar-guiao" onclick="guardarGuiaoNoLead()">💾 Guardar no lead</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: PRÓXIMO FOLLOW-UP (após concluir ação) -->
+<div class="modal-overlay" id="modal-proximo-followup">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">📅 Quando voltas a contactar <span id="pf-nome-lead"></span>?</div>
+      <button class="modal-close" onclick="closeModal('modal-proximo-followup')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:14px;">
+        <button class="btn btn-secondary" onclick="confirmarProximoFollowUp(1)">Amanhã</button>
+        <button class="btn btn-secondary" onclick="confirmarProximoFollowUp(3)">Em 3 dias</button>
+        <button class="btn btn-secondary" onclick="confirmarProximoFollowUp(7)">Em 1 semana</button>
+        <button class="btn btn-secondary" onclick="confirmarProximoFollowUp(14)">Em 2 semanas</button>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Ou escolhe uma data</label>
+        <input type="date" class="form-input" id="pf-data-custom">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-proximo-followup')">Sem agendar</button>
+      <button class="btn btn-primary" onclick="confirmarProximoFollowUpCustom()">📅 Agendar</button>
     </div>
   </div>
 </div>
@@ -7509,12 +7620,20 @@ function abrirMenuMoverLead(leadId, etapaAtual) {
   if (!lead) return;
   const grid = document.getElementById('menu-mover-grid');
   document.getElementById('menu-mover-titulo').textContent = 'Mover ' + (lead.nome || 'lead');
-  grid.innerHTML = FUNIL_ETAPAS.map(et => {
+  let html = FUNIL_ETAPAS.map(et => {
     const ativo = et.key === etapaAtual;
     return '<div onclick="' + (ativo ? '' : "moverLeadParaEtapa('" + leadId + "','" + et.key + "')") + '" style="display:flex;align-items:center;gap:8px;padding:12px;border-radius:10px;cursor:' + (ativo ? 'default' : 'pointer') + ';background:' + (ativo ? 'rgba(0,212,170,0.12)' : 'var(--surface2)') + ';color:' + (ativo ? 'var(--accent)' : 'var(--text)') + ';font-size:13px;font-weight:600;">' +
       '<span>' + et.label + '</span>' + (ativo ? '<span style="margin-left:auto;font-size:11px;color:var(--text2);">atual</span>' : '') +
       '</div>';
   }).join('');
+
+  if (etapaAtual === 'cliente') {
+    html += '<div onclick="closeModal(\'modal-menu-mover\');confirmarPromoverAMembro(\'' + leadId + '\')" style="display:flex;align-items:center;gap:8px;padding:12px;border-radius:10px;cursor:pointer;background:linear-gradient(135deg,rgba(0,212,170,0.18),rgba(0,132,255,0.12));color:#fff;font-size:13px;font-weight:700;margin-top:8px;border:1px solid rgba(0,212,170,0.3);">' +
+      '<span>🚀 Promover a Membro da Equipa</span>' +
+      '</div>';
+  }
+
+  grid.innerHTML = html;
   document.getElementById('modal-menu-mover').classList.add('open');
 }
 
@@ -7559,7 +7678,7 @@ function goTo(page) {
   document.querySelectorAll('.bn-item, .bn-more-item').forEach(n => n.classList.remove('active'));
   document.getElementById('page-' + page).classList.add('active');
   const items = document.querySelectorAll('.nav-item');
-  const map = { dashboard: 0, acoes: 1, funil: 2, lista: 3, posts: 4, calendario: 5, agenda: 6, respostas: 7, coach: 8, stats: 9, equipa: 10, comissoes: 11, luminate: 12, calculadora: 13, 'plano-comp': 14, formacao: 15, catalogo: 16, percurso: 17, stories: 18, objecoes: 19, metas: 20, templates: 21, promocoes: 22, checklist: 23, relatorio: 24, roleplay: 25, onboarding: 27, automacao: 28, mapa: 29, tutorial: 31 };
+  const map = { dashboard: 0, acoes: 1, funil: 2, lista: 3, posts: 4, calendario: 5, agenda: 6, respostas: 7, coach: 8, stats: 9, equipa: 10, comissoes: 11, luminate: 12, calculadora: 13, 'plano-comp': 14, formacao: 15, catalogo: 16, percurso: 17, stories: 18, objecoes: 19, metas: 20, templates: 21, promocoes: 22, checklist: 23, relatorio: 24, roleplay: 25, onboarding: 27, automacao: 28, mapa: 29, apresentacao: 30, tutorial: 32 };
   if (map[page] !== undefined && items[map[page]]) items[map[page]].classList.add('active');
   const bnEl = document.getElementById('bn-' + page);
   if (bnEl) {
@@ -7594,6 +7713,7 @@ function goTo(page) {
   if (page === 'roleplay') roleplayInit();
   if (page === 'automacao') renderAutomacao();
   if (page === 'mapa') renderMapaLeads();
+  if (page === 'apresentacao') apresentacaoInit();
   if (page === 'tutorial') tutorialInit();
   window.scrollTo(0, 0);
 }
@@ -7631,9 +7751,55 @@ function autoSaveNotasLead() {
   }, 1200);
 }
 
+// ===== DETEÇÃO DE LEAD DUPLICADO (ao criar/editar manualmente) =====
+function verificarLeadDuplicado() {
+  const avisoEl = document.getElementById('f-duplicado-aviso');
+  const textoEl = document.getElementById('f-duplicado-texto');
+  if (!avisoEl) return null;
+
+  const nome = (document.getElementById('f-nome').value || '').trim().toLowerCase();
+  const telRaw = (document.getElementById('f-tel').value || '').trim();
+  const tel = telRaw ? limparTelefone(telRaw) : '';
+
+  if (!nome && !tel) { avisoEl.style.display = 'none'; return null; }
+
+  const duplicado = leads.find(l => {
+    if (editingLeadId && l.id === editingLeadId) return false; // ignora o próprio lead em edição
+    const mesmoNome = nome && l.nome && l.nome.trim().toLowerCase() === nome;
+    const mesmoTel = tel && l.tel && limparTelefone(l.tel) === tel;
+    return mesmoNome || mesmoTel;
+  });
+
+  if (duplicado) {
+    const motivo = (duplicado.tel && tel && limparTelefone(duplicado.tel) === tel) ? 'mesmo telefone' : 'mesmo nome';
+    textoEl.textContent = `Já existe "${duplicado.nome}" (${motivo}) — estado: ${estadoLabel(duplicado.estado)}`;
+    avisoEl.style.display = 'flex';
+    return duplicado;
+  } else {
+    avisoEl.style.display = 'none';
+    return null;
+  }
+}
+
 function salvarLead() {
   const nome = document.getElementById('f-nome').value.trim();
   if (!nome) { showToast('❌ Nome é obrigatório'); return; }
+
+  // Bloqueia duplicado exato (nome + telefone iguais) só ao criar novo lead
+  if (!editingLeadId) {
+    const telRaw = document.getElementById('f-tel').value.trim();
+    const tel = telRaw ? limparTelefone(telRaw) : '';
+    const duplicadoExato = leads.find(l =>
+      l.nome && l.nome.trim().toLowerCase() === nome.toLowerCase() &&
+      tel && l.tel && limparTelefone(l.tel) === tel
+    );
+    if (duplicadoExato) {
+      if (!confirm(`Já existe um lead "${duplicadoExato.nome}" com este telefone. Queres mesmo criar outro lead igual?`)) {
+        return;
+      }
+    }
+  }
+
   const estadoAnteriorEdicao = editingLeadId ? (leads.find(l => l.id === editingLeadId)?.estado) : null;
   const lead = {
     id: editingLeadId || gerarId(),
@@ -7667,6 +7833,13 @@ function salvarLead() {
   renderLista();
   showToast(foiEdicao ? '✓ Lead atualizado' : '✓ Lead adicionado');
 
+  // Motor de Automação: lead novo OU mudança de estado
+  if (!foiEdicao) {
+    executarAutomacoes(lead, null, lead.estado, true);
+  } else if (estadoAnteriorEdicao && estadoAnteriorEdicao !== lead.estado) {
+    executarAutomacoes(lead, estadoAnteriorEdicao, lead.estado);
+  }
+
   // Auto-mark "funil" tutorial step on first lead
   try {
     if (!foiEdicao && typeof tutGetProgress === 'function') {
@@ -7674,13 +7847,6 @@ function salvarLead() {
       if (!done.includes('funil')) { done.push('funil'); tutSaveProgress(done); }
     }
   } catch(e) {}
-
-  // Motor de Automação: lead novo OU mudança de estado
-  if (!foiEdicao) {
-    executarAutomacoes(lead, null, lead.estado, true);
-  } else if (estadoAnteriorEdicao && estadoAnteriorEdicao !== lead.estado) {
-    executarAutomacoes(lead, estadoAnteriorEdicao, lead.estado);
-  }
 }
 
 function editarLead(id) {
@@ -7871,6 +8037,7 @@ function verLead(id) {
     ${l.tel ? `<button class="btn btn-sm btn-wa" onclick="abrirMensagem('${id}','whatsapp')">💬 WhatsApp</button>` : ''}
     ${l.tel ? `<button class="btn btn-sm btn-sms" onclick="abrirMensagem('${id}','sms')">📱 SMS</button>` : ''}
     ${l.tel ? `<button class="btn btn-sm btn-tel" onclick="ligar('${id}')">📞 Ligar</button>` : ''}
+    ${l.estado === 'cliente' ? `<button class="btn btn-sm" style="background:linear-gradient(135deg,#00d4aa,#0084ff);color:#fff;" onclick="confirmarPromoverAMembro('${id}')">🚀 Promover a Membro da Equipa</button>` : ''}
     <button class="btn btn-danger btn-sm" onclick="eliminarLead('${id}')">🗑 Eliminar</button>
   `;
   openModal('modal-ver-lead');
@@ -8285,6 +8452,8 @@ function renderDashboard() {
   if (typeof renderStreak === 'function') renderStreak();
   // Refresh acoes badge
   if (typeof renderAcoes === 'function') renderAcoes();
+  // Refresh widget de qualificação semanal
+  if (typeof renderDashQualifWidget === 'function') renderDashQualifWidget();
   const tbody = document.getElementById('tbody-recentes');
   if (!leads.length) {
     tbody.innerHTML = '<tr><td colspan="6" class="empty-state">Sem leads ainda. Adiciona o primeiro!</td></tr>';
@@ -8357,6 +8526,7 @@ function renderFunil() {
                 <div class="lead-name">${l.nome}</div>
                 ${scoreBadgeHtml(l)}
               </div>
+              ${autoTagsHtml(l) ? `<div style="margin-top:4px;">${autoTagsHtml(l)}</div>` : ''}
               <div class="lead-info">${l.tel || l.email || 'Sem contacto'}</div>
               <div style="display:flex;align-items:center;justify-content:space-between;margin-top:6px;">
                 <span class="lead-badge" style="background:rgba(255,255,255,0.06);color:var(--text2)">${l.mercado.split(' ')[0]}</span>
@@ -8601,6 +8771,7 @@ function aplicarFiltros() {
   const fEstado = document.getElementById('f-filtro-estado')?.value || '';
   const fMercado = document.getElementById('f-filtro-mercado')?.value || '';
   const fFonte  = document.getElementById('f-filtro-fonte')?.value || '';
+  const fAutoTag = document.getElementById('f-filtro-autotag')?.value || '';
   const fOrdem  = document.getElementById('f-filtro-ordem')?.value || 'recente';
 
   let filtered = [...leads];
@@ -8634,6 +8805,8 @@ function aplicarFiltros() {
   if (fMercado) filtered = filtered.filter(l => (l.mercado||'').includes(fMercado));
   // Por fonte
   if (fFonte) filtered = filtered.filter(l => (l.fonte||'').includes(fFonte));
+  // Por tag automática
+  if (fAutoTag) filtered = filtered.filter(l => calcularAutoTags(l).some(t => t.key === fAutoTag));
   // Só com contacto
   if (filtroContactoAtivo) filtered = filtered.filter(temContacto);
 
@@ -8651,7 +8824,7 @@ function aplicarFiltros() {
   // 'recente' = ordem natural do array (mais recente no início)
 
   renderListaFiltrada(filtered);
-  atualizarResumoFiltros({ global, fNome, fTel, fIndicativo, fEmail, fEstado, fMercado, fFonte }, filtered.length);
+  atualizarResumoFiltros({ global, fNome, fTel, fIndicativo, fEmail, fEstado, fMercado, fFonte, fAutoTag }, filtered.length);
 }
 
 function atualizarResumoFiltros(f, total) {
@@ -8665,6 +8838,7 @@ function atualizarResumoFiltros(f, total) {
   if (f.fEstado)     tags.push({ label: `Estado: ${estadoLabel(f.fEstado)}`, campo: 'estado' });
   if (f.fMercado)    tags.push({ label: `Mercado: ${f.fMercado}`, campo: 'mercado' });
   if (f.fFonte)      tags.push({ label: `Fonte: ${f.fFonte}`, campo: 'fonte' });
+  if (f.fAutoTag)    tags.push({ label: `Tag: ${({sem_resposta:'🔇 Sem resposta',quente:'🔥 Quente',estagnado:'🧊 Estagnado'})[f.fAutoTag] || f.fAutoTag}`, campo: 'autotag' });
   if (filtroContactoAtivo) tags.push({ label: 'Com contacto', campo: 'contacto' });
 
   if (!tags.length) {
@@ -8688,6 +8862,7 @@ function limparFiltro(campo) {
   if (campo === 'estado')     document.getElementById('f-filtro-estado').value = '';
   if (campo === 'mercado')    document.getElementById('f-filtro-mercado').value = '';
   if (campo === 'fonte')      document.getElementById('f-filtro-fonte').value = '';
+  if (campo === 'autotag')    document.getElementById('f-filtro-autotag').value = '';
   if (campo === 'contacto')   toggleFiltroContacto();
   aplicarFiltros();
 }
@@ -8713,7 +8888,7 @@ function renderListaFiltrada(filtered) {
   }
   tbody.innerHTML = filtered.map(l => `
     <tr>
-      <td><strong>${l.nome}</strong><br>${scoreBadgeHtml(l)}</td>
+      <td><strong>${l.nome}</strong><br>${scoreBadgeHtml(l)}${autoTagsHtml(l)}</td>
       <td>${l.tel || '—'}</td>
       <td>${l.email || '—'}</td>
       <td>${(l.mercado||'').split(' ')[0]}</td>
@@ -10927,6 +11102,40 @@ async function enviarMensagemMassa() {
   }
 }
 
+// ===== PWA: SERVICE WORKER + INSTALAÇÃO =====
+let pwaDeferredPrompt = null;
+
+if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').catch(() => {
+      // Falha silenciosa: app continua a funcionar normalmente sem offline support
+    });
+  });
+}
+
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  pwaDeferredPrompt = e;
+  const btn = document.getElementById('pwa-install-btn');
+  if (btn) btn.style.display = 'flex';
+});
+
+function pwaInstalar() {
+  const btn = document.getElementById('pwa-install-btn');
+  if (!pwaDeferredPrompt) return;
+  pwaDeferredPrompt.prompt();
+  pwaDeferredPrompt.userChoice.then(() => {
+    pwaDeferredPrompt = null;
+    if (btn) btn.style.display = 'none';
+  });
+}
+
+window.addEventListener('appinstalled', () => {
+  const btn = document.getElementById('pwa-install-btn');
+  if (btn) btn.style.display = 'none';
+  pwaDeferredPrompt = null;
+});
+
 // ===== INIT =====
 // openModal handles modal pre-filling and opening
 function openModal(id) {
@@ -10944,6 +11153,10 @@ function openModal(id) {
     document.getElementById('modal-lead-title').textContent = '➕ Novo Lead';
     ['f-nome','f-tel','f-email','f-notas','f-aniversario'].forEach(f => document.getElementById(f).value = '');
     document.getElementById('f-estado').value = 'novo';
+  }
+  if (id === 'modal-lead') {
+    const av = document.getElementById('f-duplicado-aviso');
+    if (av) av.style.display = 'none';
   }
   if (id === 'modal-nova-venda' && !editingVendaId) {
     // Reset fields inline (avoid calling abrirNovaVenda which would recurse)
@@ -12863,6 +13076,86 @@ function getCadenciaLead(l) {
   return CADENCIA_FOLLOWUP[l.estado] || CADENCIA_FOLLOWUP.contactado_frio;
 }
 
+// ===================================================
+// AUTO-TAGS — padrões detetados no histórico do lead
+// 🔇 Sem resposta: últimas 3+ entradas são todas mensagem/chamada,
+//    sem nenhuma nota ou mudança de estado a meio (proxy de "está a ignorar")
+// 🔥 Quente: avançou de etapa nos últimos 5 dias
+// 🧊 Estagnado: está na mesma etapa há 30+ dias
+// Nunca aplicadas a 'cliente' ou 'frio'.
+// ===================================================
+function calcularAutoTags(l) {
+  if (!l || l.estado === 'cliente' || l.estado === 'frio') return [];
+  const tags = [];
+  const hist = l.historico || [];
+
+  // 🔇 Sem resposta: 3+ últimas entradas tipo mensagem/chamada, sem nota/estado entre elas
+  if (hist.length >= 3) {
+    const ultimas3 = hist.slice(-3);
+    const todasContacto = ultimas3.every(h => h.tipo === 'mensagem' || h.tipo === 'chamada');
+    if (todasContacto) tags.push({ key: 'sem_resposta', label: '🔇 Sem resposta', cor: '#ff8c42' });
+  }
+
+  // 🔥 Quente: mudou de estado (tipo 'estado') nos últimos 5 dias
+  const ultimaMudancaEstado = [...hist].reverse().find(h => h.tipo === 'estado');
+  if (ultimaMudancaEstado && ultimaMudancaEstado.data) {
+    const dataM = parseDataHistorico(ultimaMudancaEstado.data);
+    if (dataM && (Date.now() - dataM) / 86400000 <= 5) {
+      tags.push({ key: 'quente', label: '🔥 Quente', cor: '#ff6b35' });
+    }
+  }
+
+  // 🧊 Estagnado: na mesma etapa há 30+ dias (desde a última mudança de estado, ou desde a criação)
+  if (!tags.some(t => t.key === 'quente')) {
+    const refData = ultimaMudancaEstado ? parseDataHistorico(ultimaMudancaEstado.data) : null;
+    const refTs = refData || new Date(l.data || l.criadoEm || Date.now()).getTime();
+    if (refTs && (Date.now() - refTs) / 86400000 >= 30) {
+      tags.push({ key: 'estagnado', label: '🧊 Estagnado', cor: '#6b7a8f' });
+    }
+  }
+
+  return tags;
+}
+
+// Converte a data guardada no histórico (formato pt-PT toLocaleString) para timestamp.
+function parseDataHistorico(str) {
+  if (!str) return null;
+  const m = str.match(/(\d{2})\/(\d{2})\/(\d{4}),?\s*(\d{2}):(\d{2})/);
+  if (!m) return null;
+  return new Date(+m[3], +m[2]-1, +m[1], +m[4], +m[5]).getTime();
+}
+
+function autoTagsHtml(l) {
+  const tags = calcularAutoTags(l);
+  if (!tags.length) return '';
+  return tags.map(t => `<span class="lead-badge" style="background:${t.cor}22;color:${t.cor};font-size:10px;padding:2px 7px;margin-right:4px;" title="Tag automática">${t.label}</span>`).join('');
+}
+
+// ===================================================
+// CADÊNCIA DE FOLLOW-UP PARA MEMBROS DA EQUIPA
+// Mais leve que a dos leads: só por estado (iniciante/ativo/inativo).
+// 'inativo' não gera alertas — já é sabido que precisa de atenção.
+// ===================================================
+const CADENCIA_EQUIPA = {
+  iniciante: { aviso: 5, urgente: 10 },
+  ativo:     { aviso: 10, urgente: 20 },
+};
+
+function diasSemContactoMembro(m) {
+  if (!m.ultimoContacto) return null;
+  return Math.floor((Date.now() - new Date(m.ultimoContacto).getTime()) / 86400000);
+}
+
+function getPrioridadeMembro(m) {
+  if (m.estado === 'inativo') return 'normal';
+  const cad = CADENCIA_EQUIPA[m.estado] || CADENCIA_EQUIPA.ativo;
+  const dias = diasSemContactoMembro(m);
+  if (dias === null) return 'novo';
+  if (dias >= cad.urgente) return 'urgente';
+  if (dias >= cad.aviso) return 'aviso';
+  return 'normal';
+}
+
 function getAcaoPrioridade(l) {
   const dias = diasSemContacto(l);
   if (dias === null) return 'novo';
@@ -13180,6 +13473,8 @@ function abrirGuiaoIAdiretamente(leadId, tipoSugerido) {
   if (btnTipo) setTimeout(() => setGuiaoTipo(btnTipo), 50);
 }
 
+let _pfLeadIdAtual = null;
+
 function marcarAcaoConcluida(leadId) {
   const key = getUserStorageKey('lw_acoes_concluidas');
   const concluidas = JSON.parse(localStorage.getItem(key) || '{}');
@@ -13202,6 +13497,70 @@ function marcarAcaoConcluida(leadId) {
   }
   vibrarConfirmacao();
   showToast('✅ Ação concluída! Lead atualizado.');
+
+  // Sugerir agendamento do próximo follow-up (exceto para clientes/frio)
+  if (l && l.estado !== 'cliente' && l.estado !== 'frio') {
+    _pfLeadIdAtual = leadId;
+    setTimeout(() => abrirModalProximoFollowUp(l), 400);
+  }
+}
+
+function abrirModalProximoFollowUp(l) {
+  document.getElementById('pf-nome-lead').textContent = l.nome;
+  const dataInput = document.getElementById('pf-data-custom');
+  if (dataInput) dataInput.value = '';
+  openModal('modal-proximo-followup');
+}
+
+function agendarProximoFollowUp(leadId, dias, dataCustom) {
+  const l = leads.find(x => x.id === leadId);
+  if (!l) return;
+
+  let dataAlvo;
+  if (dataCustom) {
+    dataAlvo = new Date(dataCustom + 'T09:00:00');
+  } else {
+    dataAlvo = new Date();
+    dataAlvo.setDate(dataAlvo.getDate() + dias);
+    dataAlvo.setHours(9, 0, 0, 0);
+  }
+
+  // Marcar snooze para não voltar a aparecer em Ações até essa data
+  const snoozeKey = getUserStorageKey('lw_acoes_snooze');
+  const snoozed = JSON.parse(localStorage.getItem(snoozeKey) || '{}');
+  snoozed[leadId] = dataAlvo.getTime();
+  localStorage.setItem(snoozeKey, JSON.stringify(snoozed));
+
+  // Criar lembrete real (com notificação) para esse dia
+  lembretes.push({
+    id: 'notif_pf_' + leadId + '_' + Date.now(),
+    tipo: 'followup',
+    mensagem: 'Follow-up com ' + l.nome + ' (' + estadoLabel(l.estado) + ')',
+    proximoDisparo: dataAlvo.toISOString(),
+    repeticao: 'uma',
+    criado: new Date().toISOString(),
+    concluido: false,
+    disparadoCount: 0,
+    _leadId: leadId
+  });
+  saveLembretes();
+
+  closeModal('modal-proximo-followup');
+  showToast('📅 Follow-up agendado para ' + dataAlvo.toLocaleDateString('pt-PT'));
+}
+
+function confirmarProximoFollowUp(dias) {
+  if (!_pfLeadIdAtual) return;
+  agendarProximoFollowUp(_pfLeadIdAtual, dias, null);
+  _pfLeadIdAtual = null;
+}
+
+function confirmarProximoFollowUpCustom() {
+  if (!_pfLeadIdAtual) return;
+  const dataCustom = document.getElementById('pf-data-custom')?.value;
+  if (!dataCustom) { showToast('⚠️ Escolhe uma data ou usa os botões rápidos'); return; }
+  agendarProximoFollowUp(_pfLeadIdAtual, null, dataCustom);
+  _pfLeadIdAtual = null;
 }
 
 function marcarTodasConcluidas() {
@@ -13564,6 +13923,16 @@ function renderDigestDiario() {
       icon: '🟡', cor: 'var(--gold)',
       texto: `${avisos.length} lead${avisos.length > 1 ? 's' : ''} em aviso — não deixes esfriar`,
       fn: "goTo('acoes')"
+    });
+  }
+
+  // 1b. Membros da equipa sem contacto há muito tempo
+  const membrosUrgentes = (typeof membros !== 'undefined' ? membros : []).filter(m => getPrioridadeMembro(m) === 'urgente');
+  if (membrosUrgentes.length > 0) {
+    itens.push({
+      icon: '👥', cor: '#ff5555',
+      texto: `${membrosUrgentes.length} membro${membrosUrgentes.length > 1 ? 's' : ''} da equipa sem contacto há muito tempo`,
+      fn: "goTo('equipa')"
     });
   }
 
@@ -15237,7 +15606,7 @@ function renderEquipa() {
           <div class="membro-rank" style="color:${rankColor}">${rankNum <= 3 ? ['🥇','🥈','🥉'][rankNum-1] : rankNum}</div>
           <div class="membro-avatar" style="background:linear-gradient(135deg,${avatarColor},${avatarColor}99)">${initials}</div>
           <div class="membro-info">
-            <div class="membro-nome">${m.nome} <span class="nivel-badge">Nív. ${m.nivel}</span></div>
+            <div class="membro-nome">${m.nome} <span class="nivel-badge">Nív. ${m.nivel}</span>${(() => { const p = getPrioridadeMembro(m); return p === 'urgente' ? ' <span style="color:#ff5555;font-size:11px;" title="Sem contacto há muito tempo">🔴</span>' : p === 'aviso' ? ' <span style="color:var(--gold);font-size:11px;" title="A precisar de contacto">🟡</span>' : ''; })()}</div>
             <div class="membro-meta">
               <span class="${estadoCls}">${estadoEmoji} ${estadoLabel}</span>
               ${m.tel ? ` · ${m.tel}` : ''}
@@ -15362,6 +15731,58 @@ function renderQuadroHonra() {
     : '<div style="color:var(--text2);font-size:13px;grid-column:1/-1;text-align:center;padding:12px 0;">O quadro de honra aparece à medida que a equipa cresce 🌱</div>';
 }
 
+// ===================================================
+// PROMOVER CLIENTE A MEMBRO DA EQUIPA
+// Converte um lead 'cliente' num membro de equipa, preservando
+// nome, contacto, notas e histórico. O lead é removido da lista
+// de leads ativos (deixa de aparecer no Funil/Contactos/Ações).
+// ===================================================
+function confirmarPromoverAMembro(leadId) {
+  const l = leads.find(x => x.id === leadId);
+  if (!l) return;
+  if (!confirm(`Promover ${l.nome} a Membro da Equipa?\n\nO registo deixará de aparecer como lead (Funil/Contactos) e passará a aparecer em Equipa, com o histórico preservado.\n\nEsta ação não pode ser desfeita automaticamente.`)) return;
+  promoverLeadAMembro(leadId);
+}
+
+function promoverLeadAMembro(leadId) {
+  const l = leads.find(x => x.id === leadId);
+  if (!l) return;
+
+  const membro = {
+    id: gerarId(),
+    nome: l.nome,
+    tel: l.tel || '',
+    email: l.email || '',
+    nivel: 1,
+    data: new Date().toLocaleDateString('pt-PT'),
+    estado: 'iniciante',
+    clientes: 0,
+    recrutados: 0,
+    slug: '',
+    notas: l.notas || '',
+    pv: 0, qdv: 0, secL: 0, secR: 0, olxl: 0,
+    categoria: null,
+    historico: [
+      ...(l.historico || []),
+      { tipo: 'sistema', msg: '🚀 Promovido de Cliente a Membro da Equipa', data: new Date().toLocaleString('pt-PT') }
+    ],
+    ultimoContacto: l.ultimoContacto || null,
+  };
+
+  membros.unshift(membro);
+  saveMembros();
+
+  // Remove o lead da lista de leads ativos
+  leads = leads.filter(x => x.id !== leadId);
+  saveleads();
+
+  closeModal('modal-ver-lead');
+  renderDashboard();
+  renderFunil();
+  renderLista();
+  showToast('🚀 ' + l.nome + ' agora é membro da equipa!');
+}
+
 function salvarMembro() {
   const nome = document.getElementById('mb-nome').value.trim();
   if (!nome) { showToast('❌ Nome é obrigatório'); return; }
@@ -15371,6 +15792,7 @@ function salvarMembro() {
   const secR = parseFloat(document.getElementById('mb-secr').value) || 0;
   const olxl = parseFloat(document.getElementById('mb-olxl').value) || 0;
   const categoria = calcularCategoria({ pv, qdv, secL, secR, olxl }).cat;
+  const membroExistente = editingMembroId ? membros.find(m => m.id === editingMembroId) : null;
   const membro = {
     id: editingMembroId || gerarId(),
     nome,
@@ -15385,6 +15807,8 @@ function salvarMembro() {
     notas: document.getElementById('mb-notas').value.trim(),
     pv, qdv, secL, secR, olxl,
     categoria,
+    historico: membroExistente?.historico || [],
+    ultimoContacto: membroExistente?.ultimoContacto || null,
   };
   if (editingMembroId) {
     const idx = membros.findIndex(m => m.id === editingMembroId);
@@ -15600,6 +16024,10 @@ function abrirWAMembro(id) {
   const m = membros.find(x => x.id === id);
   if (!m || !m.tel) return;
   window.open(`https://wa.me/${telParaWaMe(m.tel)}`, '_blank');
+  m.historico = m.historico || [];
+  m.historico.push({ tipo: 'mensagem', msg: '💬 WhatsApp aberto', data: new Date().toLocaleString('pt-PT') });
+  m.ultimoContacto = new Date().toISOString();
+  saveMembros();
 }
 
 // RECURSOS PARA PARTILHAR
@@ -17006,6 +17434,31 @@ function abrirDetalhe(id) {
       </div>
     </div>` : ''}
     <div style="font-size:11px;color:var(--text3);">QV: ${p.qv||0} · BV Direto: ${p.bv_direto||0} · BV Pref: ${p.bv_pref||0}</div>
+    <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--border);">
+      <div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:10px;">✨ Gerador de Conteúdo IA</div>
+      <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px;" id="cat-gen-tabs">
+        <button onclick="catGerarConteudo('${p.id}','instagram')" class="btn btn-secondary btn-sm" style="font-size:11px;">📸 Instagram</button>
+        <button onclick="catGerarConteudo('${p.id}','story')" class="btn btn-secondary btn-sm" style="font-size:11px;">🎬 Story</button>
+        <button onclick="catGerarConteudo('${p.id}','whatsapp')" class="btn btn-secondary btn-sm" style="font-size:11px;">💬 WhatsApp</button>
+        <button onclick="catGerarConteudo('${p.id}','email')" class="btn btn-secondary btn-sm" style="font-size:11px;">📧 Email</button>
+      </div>
+      <div id="cat-gen-loading" style="display:none;text-align:center;padding:16px;color:var(--text2);font-size:13px;">✨ A gerar com IA...</div>
+      <div id="cat-gen-resultado" style="display:none;background:rgba(0,212,170,0.06);border:1px solid rgba(0,212,170,0.2);border-radius:10px;padding:14px;">
+        <div style="font-size:11px;font-weight:700;color:var(--accent);margin-bottom:8px;" id="cat-gen-tipo-label"></div>
+        <div style="font-size:13px;color:var(--text);line-height:1.7;white-space:pre-wrap;" id="cat-gen-texto"></div>
+        <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;">
+          <button class="btn btn-secondary btn-sm" onclick="navigator.clipboard.writeText(document.getElementById('cat-gen-texto').textContent).then(()=>showToast('📋 Copiado!'))">📋 Copiar</button>
+          <button class="btn btn-wa btn-sm" onclick="window.open('https://wa.me/?text='+encodeURIComponent(document.getElementById('cat-gen-texto').textContent),'_blank')">💬 Enviar WA</button>
+          <button class="btn btn-secondary btn-sm" onclick="catGerarConteudo(catGenProdutoAtual,catGenTipoAtual,true)" style="font-size:11px;">🔄 Regenerar</button>
+        </div>
+        <!-- Sugestões de imagem -->
+        <div id="cat-gen-imagens" style="display:none;margin-top:14px;padding-top:12px;border-top:1px solid rgba(0,212,170,0.15);">
+          <div style="font-size:11px;font-weight:700;color:var(--text2);margin-bottom:8px;">🖼️ Imagens gratuitas sugeridas para este post</div>
+          <div id="cat-gen-img-chips" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;"></div>
+          <div style="font-size:10px;color:var(--text3);line-height:1.5;">Clica num tema para abrir fotos gratuitas (Pexels). Descarrega a que mais gostas e junta ao teu post.</div>
+        </div>
+      </div>
+    </div>
   `;
   const modal = document.getElementById('cat-modal-detalhe');
   if (modal) modal.style.display = 'flex';
@@ -17015,8 +17468,211 @@ function fecharDetalhe(e) {
   if (e && e.target !== document.getElementById('cat-modal-detalhe')) return;
   const modal = document.getElementById('cat-modal-detalhe');
   if (modal) modal.style.display = 'none';
+  // Reset gerador ao fechar
+  const r = document.getElementById('cat-gen-resultado');
+  const l = document.getElementById('cat-gen-loading');
+  if (r) r.style.display = 'none';
+  if (l) l.style.display = 'none';
+  catGenProdutoAtual = null; catGenTipoAtual = null;
 }
 // ===================================================
+// ============================================================
+// GERADOR DE CONTEÚDO POR PRODUTO (Catálogo)
+// ============================================================
+let catGenProdutoAtual = null;
+let catGenTipoAtual = null;
+
+const CAT_GEN_TIPOS = {
+  instagram: { label: '📸 Post Instagram', instrucao: 'Cria um post para Instagram sobre este produto LifeWave. Tom: inspirador e autêntico. Inclui emojis, uma história curta de resultado possível, os principais benefícios e um CTA. Máximo 5 frases. Termina com 5-8 hashtags relevantes em português.' },
+  story:     { label: '🎬 Script de Story', instrucao: 'Cria um script de story para Instagram/TikTok sobre este produto LifeWave. Formato: 3 slides curtos. Slide 1: gancho (pergunta ou afirmação impactante). Slide 2: o produto e benefício principal. Slide 3: CTA claro. Máximo 2 frases por slide. Tom: energético e direto.' },
+  whatsapp:  { label: '💬 Mensagem WhatsApp', instrucao: 'Cria uma mensagem de WhatsApp para partilhar este produto LifeWave com um contacto. Tom: pessoal, amigável, não agressivo. Deve parecer uma recomendação genuína de amigo. Inclui o benefício principal, um resultado possível e pergunta se quer saber mais. Máximo 4 frases.' },
+  email:     { label: '📧 Email de Apresentação', instrucao: 'Cria um email de apresentação deste produto LifeWave. Estrutura: assunto impactante, saudação, 1 frase de contexto, 3 benefícios em bullets, CTA claro. Tom: profissional mas caloroso. Português de Portugal.' }
+};
+
+async function catGerarConteudo(produtoId, tipo, forcar) {
+  catGenProdutoAtual = produtoId;
+  catGenTipoAtual = tipo;
+
+  if (!claudeKey && !geminiKey) {
+    showToast('⚙️ Configura a tua chave IA no Perfil');
+    return;
+  }
+
+  const p = CATALOGO_PRODUTOS.find(x => x.id === produtoId);
+  if (!p) return;
+
+  const tipoInfo = CAT_GEN_TIPOS[tipo];
+  const loading  = document.getElementById('cat-gen-loading');
+  const resultado = document.getElementById('cat-gen-resultado');
+  const tipoLabel = document.getElementById('cat-gen-tipo-label');
+  const textoEl   = document.getElementById('cat-gen-texto');
+
+  if (!loading || !resultado) return;
+
+  // Verificar cache (não regenerar se já existe e não é forçado)
+  const cacheKey = 'lw_cat_gen_' + produtoId + '_' + tipo;
+  if (!forcar) {
+    try {
+      const cached = localStorage.getItem(cacheKey);
+      if (cached) {
+        tipoLabel.textContent = tipoInfo.label;
+        textoEl.textContent = cached;
+        resultado.style.display = 'block';
+        loading.style.display = 'none';
+        return;
+      }
+    } catch(e) {}
+  }
+
+  loading.style.display = 'block';
+  resultado.style.display = 'none';
+
+  const beneficiosStr = (p.beneficios || []).join(', ');
+  const prompt = tipoInfo.instrucao + '\n\nPRODUTO: ' + p.nome + '\nDESCRIÇÃO: ' + p.desc + '\nBENEFÍCIOS: ' + beneficiosStr + (p.uso ? '\nCOMO USAR: ' + p.uso : '') + '\n\nResponde APENAS com o conteúdo final, sem explicações nem títulos extra.';
+
+  try {
+    let texto = '';
+
+    if (claudeKey && claudeKey.length > 10) {
+      const r = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': claudeKey,
+          'anthropic-version': '2023-06-01',
+          'anthropic-dangerous-direct-browser-access': 'true'
+        },
+        body: JSON.stringify({
+          model: 'claude-haiku-4-5-20251001',
+          max_tokens: 500,
+          messages: [{ role: 'user', content: prompt }]
+        })
+      });
+      const d = await r.json();
+      texto = (d.content && d.content[0]) ? d.content[0].text.trim() : '';
+    } else {
+      const r = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=' + geminiKey, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+      });
+      const d = await r.json();
+      texto = (d.candidates && d.candidates[0]) ? d.candidates[0].content.parts[0].text.trim() : '';
+    }
+
+    if (!texto) throw new Error('Resposta vazia');
+
+    // Guardar em cache
+    try { localStorage.setItem(cacheKey, texto); } catch(e) {}
+
+    tipoLabel.textContent = tipoInfo.label;
+    textoEl.textContent = texto;
+    resultado.style.display = 'block';
+    loading.style.display = 'none';
+    // Show image suggestions
+    catMostrarImagens(produtoId);
+
+  } catch(err) {
+    loading.style.display = 'none';
+    showToast('Erro ao gerar: ' + err.message);
+  }
+}
+
+
+
+// ============================================================
+// SUGESTÕES DE IMAGEM POR PRODUTO (Pexels - gratuitas)
+// ============================================================
+
+// Keywords base por produto - geradas pela IA ou usadas como fallback
+const CAT_IMG_KEYWORDS = {
+  // Patches
+  'x39':         ['stem cells energy', 'vitality wellness', 'active lifestyle morning', 'longevity health glow'],
+  'x49':         ['muscle recovery sport', 'athletic performance strength', 'endurance fitness training'],
+  'aeon':        ['stress relief calm', 'mental clarity meditation', 'peace mindfulness wellness'],
+  'energy':      ['energy boost morning', 'vitality active woman', 'healthy lifestyle motivation'],
+  'sp6':         ['weight loss wellness', 'healthy eating balance', 'slim fit lifestyle woman'],
+  'carnosine':   ['anti aging skin glow', 'youthful radiant skin', 'collagen beauty wellness'],
+  'glutathione': ['detox wellness health', 'clean body vitality', 'antioxidant glow skin'],
+  'silent':      ['deep sleep night', 'restful sleep bedroom', 'sleep wellness calm'],
+  'y-age':       ['wellness patch lifestyle', 'health vitality energy'],
+  // Sistemas
+  'starter':     ['wellness starter kit', 'health transformation journey', 'wellness routine morning'],
+  'premium':     ['premium wellness lifestyle', 'luxury health routine', 'complete wellness kit'],
+  'anti-aging':  ['anti aging beauty wellness', 'youthful glow skin care', 'radiant skin health'],
+  // Pele
+  'serum':       ['face serum skincare glow', 'radiant skin beauty', 'skincare routine woman'],
+  'eye':         ['eye cream skincare', 'bright eyes beauty woman', 'anti aging eye care'],
+  'body':        ['body lotion skincare', 'smooth skin wellness', 'body care routine'],
+};
+
+const CAT_IMG_GENERICO = ['wellness lifestyle health', 'vitality energy woman', 'healthy living active', 'wellbeing nature outdoors'];
+
+async function catGerarKeywordsIA(produto) {
+  const prompt = 'Para um post nas redes sociais sobre o produto "' + produto.nome + '" (' + produto.desc.substring(0, 100) + '), sugere 4 termos de pesquisa em INGLÊS para encontrar fotos gratuitas no Pexels. Os termos devem ser visuais, evocadores e adequados para redes sociais de bem-estar. Responde APENAS com os 4 termos separados por vírgula, sem mais nada.';
+  
+  try {
+    let texto = '';
+    if (claudeKey && claudeKey.length > 10) {
+      const r = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-api-key': claudeKey, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
+        body: JSON.stringify({ model: 'claude-haiku-4-5-20251001', max_tokens: 80, messages: [{ role: 'user', content: prompt }] })
+      });
+      const d = await r.json();
+      texto = (d.content && d.content[0]) ? d.content[0].text.trim() : '';
+    } else if (geminiKey && geminiKey.length > 10) {
+      const r = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=' + geminiKey, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+      });
+      const d = await r.json();
+      texto = (d.candidates && d.candidates[0]) ? d.candidates[0].content.parts[0].text.trim() : '';
+    }
+    if (texto) {
+      return texto.split(',').map(k => k.trim().replace(/^["']|["']$/g, '')).filter(k => k.length > 2).slice(0, 4);
+    }
+  } catch(e) {}
+  return null;
+}
+
+async function catMostrarImagens(produtoId) {
+  const p = CATALOGO_PRODUTOS.find(x => x.id === produtoId);
+  if (!p) return;
+
+  const imgDiv  = document.getElementById('cat-gen-imagens');
+  const chipsEl = document.getElementById('cat-gen-img-chips');
+  if (!imgDiv || !chipsEl) return;
+
+  imgDiv.style.display = 'block';
+  chipsEl.innerHTML = '<span style="font-size:11px;color:var(--text3);">A sugerir...</span>';
+
+  // Try cache first
+  const cacheKey = 'lw_cat_imgkw_' + produtoId;
+  let keywords = null;
+  try {
+    const cached = localStorage.getItem(cacheKey);
+    if (cached) keywords = JSON.parse(cached);
+  } catch(e) {}
+
+  // Use pre-defined or generate with AI
+  if (!keywords) {
+    keywords = CAT_IMG_KEYWORDS[produtoId] || null;
+  }
+  if (!keywords && (claudeKey || geminiKey)) {
+    keywords = await catGerarKeywordsIA(p);
+    if (keywords) {
+      try { localStorage.setItem(cacheKey, JSON.stringify(keywords)); } catch(e) {}
+    }
+  }
+  if (!keywords) keywords = CAT_IMG_GENERICO;
+
+  // Render chips - each opens Pexels search
+  chipsEl.innerHTML = keywords.map(kw => {
+    const url = 'https://www.pexels.com/search/' + encodeURIComponent(kw) + '/';
+    return '<a href="' + url + '" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:5px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.12);color:var(--text2);font-size:11px;padding:5px 10px;border-radius:20px;cursor:pointer;text-decoration:none;transition:all 0.15s;" onmouseover="this.style.borderColor=\'var(--accent)\';this.style.color=\'var(--accent)\';" onmouseout="this.style.borderColor=\'rgba(255,255,255,0.12)\';this.style.color=\'var(--text2)\';"><span>🔍</span>' + kw + '</a>';
+  }).join('');
+}
 
 </script>
 
@@ -23319,6 +23975,92 @@ function chkUpdateBadge(temErro) {
   if (bnBadge) bnBadge.style.display = temErro ? 'inline-block' : 'none';
 }
 
+// ===================================================
+// WIDGET DE QUALIFICAÇÃO SEMANAL — versão compacta no Dashboard
+// Reutiliza chkGetVolumes() e calcularCategoria() já existentes,
+// sem duplicar regras de negócio.
+// ===================================================
+function renderDashQualifWidget() {
+  const el = document.getElementById('dash-qualif-widget');
+  if (!el) return;
+
+  const v = chkGetVolumes();
+
+  // Sem volumes introduzidos ainda — convite discreto a configurar
+  if (!v) {
+    el.style.display = 'block';
+    el.innerHTML = `
+      <div style="background:var(--surface2);border:1px dashed var(--border);border-radius:14px;padding:14px 18px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
+        <div style="display:flex;align-items:center;gap:10px;">
+          <span style="font-size:20px;">📊</span>
+          <div>
+            <div style="font-size:13.5px;font-weight:600;color:var(--text);">Acompanha a tua qualificação semanal</div>
+            <div style="font-size:11.5px;color:var(--text2);">Introduz os teus volumes e vê se mantens a tua categoria esta semana.</div>
+          </div>
+        </div>
+        <button class="btn btn-secondary btn-sm" onclick="event.stopPropagation();abrirModalChkVolumes()">✏️ Introduzir Volumes</button>
+      </div>`;
+    return;
+  }
+
+  const { pv, qdv, secL, secR, olxl, bin, catAlvo } = v;
+  const categoriaAtual = calcularCategoria({ pv, qdv, secL, secR, olxl, equilibrio: bin });
+
+  let nivelAlvo = catAlvo
+    ? PERCURSO_SUCESSO.find(n => n.cat === catAlvo)
+    : PERCURSO_SUCESSO.slice().reverse().find((n,i,arr) => {
+        const idxAtual = arr.findIndex(x => x.cat === categoriaAtual.cat);
+        return i === idxAtual - 1;
+      });
+  if (!nivelAlvo) nivelAlvo = PERCURSO_SUCESSO.find(n => n.cat === categoriaAtual.cat) || PERCURSO_SUCESSO[PERCURSO_SUCESSO.length - 1];
+
+  const cumpre = categoriaAtual.cat === nivelAlvo.cat ||
+    PERCURSO_SUCESSO.findIndex(n => n.cat === categoriaAtual.cat) <=
+    PERCURSO_SUCESSO.findIndex(n => n.cat === nivelAlvo.cat);
+
+  // Progresso visual de PV e QDV face à meta (0-100%)
+  const pctPV  = nivelAlvo.pv  > 0 ? Math.min(100, Math.round((pv  / nivelAlvo.pv)  * 100)) : 100;
+  const pctQDV = nivelAlvo.qdv > 0 ? Math.min(100, Math.round((qdv / nivelAlvo.qdv) * 100)) : 100;
+
+  const cor = cumpre ? 'var(--accent)' : '#ff6b6b';
+  const bg  = cumpre ? 'rgba(0,212,170,.07)' : 'rgba(255,107,107,.07)';
+  const bdr = cumpre ? 'rgba(0,212,170,.3)'  : 'rgba(255,107,107,.3)';
+  const barCor = (pct) => pct >= 100 ? 'var(--accent)' : pct >= 80 ? 'var(--gold)' : '#ff6b6b';
+
+  el.style.display = 'block';
+  el.innerHTML = `
+    <div style="background:${bg};border:1px solid ${bdr};border-radius:14px;padding:14px 18px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:12px;">
+        <div style="display:flex;align-items:center;gap:10px;">
+          <span style="font-size:20px;">${cumpre ? '✅' : '⚠️'}</span>
+          <div>
+            <div style="font-size:13.5px;font-weight:700;color:var(--text);">Qualificação Semanal · <span style="color:${cor};">${categoriaAtual.cat}</span></div>
+            <div style="font-size:11.5px;color:var(--text2);">${cumpre ? `A cumprir os requisitos de ${nivelAlvo.cat}` : `Em risco para manter ${nivelAlvo.cat} — vê o que falta`}</div>
+          </div>
+        </div>
+        <span style="font-size:11px;color:var(--text2);flex-shrink:0;">Ver detalhe →</span>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+        <div>
+          <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text2);margin-bottom:4px;">
+            <span>PV</span><span>${pv.toLocaleString()} / ${nivelAlvo.pv.toLocaleString()}</span>
+          </div>
+          <div style="height:6px;background:var(--surface3,rgba(255,255,255,.06));border-radius:3px;overflow:hidden;">
+            <div style="height:100%;width:${pctPV}%;background:${barCor(pctPV)};border-radius:3px;transition:width .5s ease;"></div>
+          </div>
+        </div>
+        <div>
+          <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text2);margin-bottom:4px;">
+            <span>QDV</span><span>${qdv.toLocaleString()} / ${nivelAlvo.qdv.toLocaleString()}</span>
+          </div>
+          <div style="height:6px;background:var(--surface3,rgba(255,255,255,.06));border-radius:3px;overflow:hidden;">
+            <div style="height:100%;width:${pctQDV}%;background:${barCor(pctQDV)};border-radius:3px;transition:width .5s ease;"></div>
+          </div>
+        </div>
+      </div>
+    </div>`;
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   setTimeout(() => {
     const v = chkGetVolumes();
@@ -23849,105 +24591,29 @@ document.addEventListener('touchend', statsEvolucaoHideTooltip);
 // MOTOR DE AUTOMAÇÃO POR REGRAS
 // =====================================================
 let _autoTabAtivo = 'regras';
-let _autoLog = [];
 
-// Biblioteca de regras pré-configuradas (prontas a ativar)
 const AUTO_BIBLIOTECA = [
-  {
-    id:'lib_boasvindas_cliente', icon:'🎉',
-    titulo:'Boas-vindas a novo Cliente',
-    trigger:{ tipo:'estado_muda', de:'*', para:'cliente' },
-    action:{ tipo:'copiar_mensagem', texto:'Olá {nome}! 🎉 Bem-vindo(a) à família LifeWave!\nEstou aqui para te acompanhar nesta jornada. Qualquer dúvida sobre como usar o teu patch, fala comigo sem hesitar 😊' },
-    desc:'Quando um lead passa a Cliente, prepara automaticamente uma mensagem de boas-vindas para enviares.',
-    tag:'Vendas'
-  },
-  {
-    id:'lib_checkin_7dias', icon:'📅',
-    titulo:'Check-in 7 dias após Venda',
-    trigger:{ tipo:'estado_muda', de:'*', para:'cliente' },
-    action:{ tipo:'criar_lembrete', dias:7, mensagem:'Check-in: como está {nome} a sentir-se com o produto?' },
-    desc:'Cria automaticamente um lembrete para 7 dias depois de um lead se tornar Cliente — nunca te esqueças do follow-up pós-venda.',
-    tag:'Retenção'
-  },
-  {
-    id:'lib_lead_frio_30d', icon:'🥶',
-    titulo:'Marcar como Frio após 30 dias',
-    trigger:{ tipo:'sem_contacto_dias', dias:30 },
-    action:{ tipo:'mudar_estado', estado:'frio' },
-    desc:'Leads sem qualquer contacto há 30 dias são automaticamente marcados como "Frio" — mantém o funil limpo e focado.',
-    tag:'Organização'
-  },
-  {
-    id:'lib_followup_novo_lead', icon:'👋',
-    titulo:'Follow-up automático em Novo Lead',
-    trigger:{ tipo:'lead_criado' },
-    action:{ tipo:'criar_lembrete', dias:1, mensagem:'Fazer 1º contacto com {nome}' },
-    desc:'Sempre que adicionas um lead novo, cria automaticamente um lembrete de follow-up para o dia seguinte.',
-    tag:'Prospeção'
-  },
-  {
-    id:'lib_negociacao_lembrete', icon:'🤝',
-    titulo:'Lembrete ao entrar em Negociação',
-    trigger:{ tipo:'estado_muda', de:'*', para:'negociacao' },
-    action:{ tipo:'criar_lembrete', dias:2, mensagem:'Dar seguimento à negociação com {nome} — fechar antes que esfrie!' },
-    desc:'Quando um lead entra em Negociação, agenda um lembrete 2 dias depois para não perderes o timing do fecho.',
-    tag:'Vendas'
-  },
-  {
-    id:'lib_aniversario_msg', icon:'🎂',
-    titulo:'Mensagem de Aniversário',
-    trigger:{ tipo:'aniversario' },
-    action:{ tipo:'copiar_mensagem', texto:'Parabéns, {nome}! 🎂🎉 Espero que tenhas um dia incrível! Um abraço grande.' },
-    desc:'No dia de aniversário de um lead, prepara automaticamente uma mensagem de parabéns para enviares.',
-    tag:'Relacionamento'
-  },
-  {
-    id:'lib_interessado_apresentacao', icon:'📊',
-    titulo:'Enviar Apresentação a Interessado',
-    trigger:{ tipo:'estado_muda', de:'*', para:'interessado' },
-    action:{ tipo:'notificar', texto:'{nome} está Interessado — envia a apresentação do X39 agora enquanto o interesse está quente!' },
-    desc:'Quando um lead passa a Interessado, recebes uma notificação imediata para enviares a apresentação.',
-    tag:'Vendas'
-  },
+  { id:'lib_boasvindas_cliente', icon:'🎉', titulo:'Boas-vindas a novo Cliente', trigger:{ tipo:'estado_muda', de:'*', para:'cliente' }, action:{ tipo:'copiar_mensagem', texto:'Olá {nome}! 🎉 Bem-vindo(a) à família LifeWave!\nEstou aqui para te acompanhar nesta jornada. Qualquer dúvida sobre como usar o teu patch, fala comigo sem hesitar 😊' }, desc:'Quando um lead passa a Cliente, prepara automaticamente uma mensagem de boas-vindas para enviares.', tag:'Vendas' },
+  { id:'lib_checkin_7dias', icon:'📅', titulo:'Check-in 7 dias após Venda', trigger:{ tipo:'estado_muda', de:'*', para:'cliente' }, action:{ tipo:'criar_lembrete', dias:7, mensagem:'Check-in: como está {nome} a sentir-se com o produto?' }, desc:'Cria automaticamente um lembrete para 7 dias depois de um lead se tornar Cliente.', tag:'Retenção' },
+  { id:'lib_lead_frio_30d', icon:'🥶', titulo:'Marcar como Frio após 30 dias', trigger:{ tipo:'sem_contacto_dias', dias:30 }, action:{ tipo:'mudar_estado', estado:'frio' }, desc:'Leads sem qualquer contacto há 30 dias são automaticamente marcados como "Frio".', tag:'Organização' },
+  { id:'lib_followup_novo_lead', icon:'👋', titulo:'Follow-up automático em Novo Lead', trigger:{ tipo:'lead_criado' }, action:{ tipo:'criar_lembrete', dias:1, mensagem:'Fazer 1º contacto com {nome}' }, desc:'Sempre que adicionas um lead novo, cria automaticamente um lembrete para o dia seguinte.', tag:'Prospeção' },
+  { id:'lib_negociacao_lembrete', icon:'🤝', titulo:'Lembrete ao entrar em Negociação', trigger:{ tipo:'estado_muda', de:'*', para:'negociacao' }, action:{ tipo:'criar_lembrete', dias:2, mensagem:'Dar seguimento à negociação com {nome} — fechar antes que esfrie!' }, desc:'Agenda um lembrete 2 dias depois de entrar em Negociação.', tag:'Vendas' },
+  { id:'lib_aniversario_msg', icon:'🎂', titulo:'Mensagem de Aniversário', trigger:{ tipo:'aniversario' }, action:{ tipo:'copiar_mensagem', texto:'Parabéns, {nome}! 🎂🎉 Espero que tenhas um dia incrível! Um abraço grande.' }, desc:'No dia de aniversário de um lead, prepara mensagem de parabéns.', tag:'Relacionamento' },
+  { id:'lib_interessado_apresentacao', icon:'📊', titulo:'Enviar Apresentação a Interessado', trigger:{ tipo:'estado_muda', de:'*', para:'interessado' }, action:{ tipo:'notificar', texto:'{nome} está Interessado — envia a apresentação do X39 agora enquanto o interesse está quente!' }, desc:'Notificação imediata quando um lead passa a Interessado.', tag:'Vendas' },
 ];
 
-function getAutoRegras() {
-  try { return JSON.parse(localStorage.getItem(getUserStorageKey('lw_automacao_regras')) || '[]'); }
-  catch(e) { return []; }
-}
+function getAutoRegras() { try { return JSON.parse(localStorage.getItem(getUserStorageKey('lw_automacao_regras')) || '[]'); } catch(e) { return []; } }
 function saveAutoRegras(regras) { localStorage.setItem(getUserStorageKey('lw_automacao_regras'), JSON.stringify(regras)); }
-
-function getAutoLog() {
-  try { return JSON.parse(localStorage.getItem(getUserStorageKey('lw_automacao_log')) || '[]'); }
-  catch(e) { return []; }
-}
-function saveAutoLog(log) {
-  if (log.length > 100) log = log.slice(-100);
-  localStorage.setItem(getUserStorageKey('lw_automacao_log'), JSON.stringify(log));
-}
-function registarAutoLog(icon, texto) {
-  const log = getAutoLog();
-  log.push({ icon, texto, data: new Date().toLocaleString('pt-PT') });
-  saveAutoLog(log);
-}
+function getAutoLog() { try { return JSON.parse(localStorage.getItem(getUserStorageKey('lw_automacao_log')) || '[]'); } catch(e) { return []; } }
+function saveAutoLog(log) { if (log.length > 100) log = log.slice(-100); localStorage.setItem(getUserStorageKey('lw_automacao_log'), JSON.stringify(log)); }
 
 function autoTab(tab) {
   _autoTabAtivo = tab;
   ['regras','biblioteca','log'].forEach(t => {
-    const el = document.getElementById('atab-' + t);
-    const btn = document.getElementById('atab-btn-' + t);
+    const el = document.getElementById('atab-' + t); const btn = document.getElementById('atab-btn-' + t);
     if (!el || !btn) return;
-    if (t === tab) {
-      el.style.display = 'block';
-      btn.style.color = '#8b9cf7';
-      btn.style.borderBottom = '2px solid #8b9cf7';
-      btn.style.fontWeight = '700';
-    } else {
-      el.style.display = 'none';
-      btn.style.color = 'var(--text2)';
-      btn.style.borderBottom = '2px solid transparent';
-      btn.style.fontWeight = '600';
-    }
+    if (t === tab) { el.style.display='block'; btn.style.color='#8b9cf7'; btn.style.borderBottom='2px solid #8b9cf7'; btn.style.fontWeight='700'; }
+    else { el.style.display='none'; btn.style.color='var(--text2)'; btn.style.borderBottom='2px solid transparent'; btn.style.fontWeight='600'; }
   });
   if (tab === 'biblioteca') renderAutomacaoBiblioteca();
   if (tab === 'log') renderAutomacaoLog();
@@ -23957,257 +24623,135 @@ function renderAutomacao() {
   const regras = getAutoRegras();
   const ativas = regras.filter(r => r.ativa !== false);
   const log = getAutoLog();
-  const hoje = new Date().toDateString();
-  const execHoje = log.filter(l => new Date(l.data.split(',')[0].split('/').reverse().join('-')).toDateString && false).length;
-  const execTotal = log.length;
-
   const kpisEl = document.getElementById('auto-kpis');
-  if (kpisEl) {
-    kpisEl.innerHTML = `
-      <div class="stat-card c1"><div class="stat-label">Regras Ativas</div><div class="stat-value" style="color:#8b9cf7">${ativas.length}</div><div class="stat-trend">de ${regras.length} criadas</div></div>
-      <div class="stat-card c2"><div class="stat-label">Execuções Totais</div><div class="stat-value" style="color:var(--accent)">${execTotal}</div><div class="stat-trend">Ações automáticas feitas</div></div>
-      <div class="stat-card c3"><div class="stat-label">Disponíveis na Biblioteca</div><div class="stat-value" style="color:var(--gold)">${AUTO_BIBLIOTECA.length}</div><div class="stat-trend">Prontas a ativar</div></div>
-    `;
-  }
+  if (kpisEl) kpisEl.innerHTML = `
+    <div class="stat-card c1"><div class="stat-label">Regras Ativas</div><div class="stat-value" style="color:#8b9cf7">${ativas.length}</div><div class="stat-trend">de ${regras.length} criadas</div></div>
+    <div class="stat-card c2"><div class="stat-label">Execuções Totais</div><div class="stat-value" style="color:var(--accent)">${log.length}</div><div class="stat-trend">Ações automáticas feitas</div></div>
+    <div class="stat-card c3"><div class="stat-label">Disponíveis na Biblioteca</div><div class="stat-value" style="color:var(--gold)">${AUTO_BIBLIOTECA.length}</div><div class="stat-trend">Prontas a ativar</div></div>`;
   renderAutomacaoGrid();
 }
 
-function descreverTrigger(trigger) {
-  if (trigger.tipo === 'estado_muda') return `Lead passa a "${estadoLabel(trigger.para)}"`;
-  if (trigger.tipo === 'lead_criado') return 'Novo lead adicionado';
-  if (trigger.tipo === 'sem_contacto_dias') return `Sem contacto há ${trigger.dias} dias`;
-  if (trigger.tipo === 'aniversario') return 'Aniversário do lead';
-  return trigger.tipo;
-}
-function descreverAction(action) {
-  if (action.tipo === 'criar_lembrete') return `Cria lembrete em ${action.dias} dia(s)`;
-  if (action.tipo === 'copiar_mensagem') return 'Prepara mensagem para enviar';
-  if (action.tipo === 'mudar_estado') return `Move para "${estadoLabel(action.estado)}"`;
-  if (action.tipo === 'notificar') return 'Mostra notificação';
-  return action.tipo;
-}
+function descreverTrigger(t) { if(t.tipo==='estado_muda')return `Lead passa a "${estadoLabel(t.para)}"`; if(t.tipo==='lead_criado')return 'Novo lead adicionado'; if(t.tipo==='sem_contacto_dias')return `Sem contacto há ${t.dias} dias`; if(t.tipo==='aniversario')return 'Aniversário do lead'; return t.tipo; }
+function descreverAction(a) { if(a.tipo==='criar_lembrete')return `Cria lembrete em ${a.dias} dia(s)`; if(a.tipo==='copiar_mensagem')return 'Prepara mensagem para enviar'; if(a.tipo==='mudar_estado')return `Move para "${estadoLabel(a.estado)}"`; if(a.tipo==='notificar')return 'Mostra notificação'; return a.tipo; }
 function iconeTrigger(tipo) { return { estado_muda:'🔄', lead_criado:'👋', sem_contacto_dias:'🥶', aniversario:'🎂' }[tipo] || '⚙️'; }
 
 function renderAutomacaoGrid() {
   const regras = getAutoRegras();
-  const grid = document.getElementById('automacao-grid');
-  const empty = document.getElementById('automacao-empty');
+  const grid = document.getElementById('automacao-grid'); const empty = document.getElementById('automacao-empty');
   if (!grid) return;
-  if (!regras.length) { grid.innerHTML = ''; if (empty) empty.style.display = 'block'; return; }
+  if (!regras.length) { grid.innerHTML=''; if(empty) empty.style.display='block'; return; }
   if (empty) empty.style.display = 'none';
-
   grid.innerHTML = regras.map(r => {
     const ativa = r.ativa !== false;
     const execucoes = getAutoLog().filter(l => l.regraId === r.id).length;
-    return `<div class="auto-rule-card ${ativa ? '' : 'inativa'}">
+    return `<div class="auto-rule-card ${ativa?'':'inativa'}">
       <div class="auto-rule-header">
         <div class="auto-rule-icon">${r.icon || iconeTrigger(r.trigger.tipo)}</div>
-        <div class="auto-rule-info">
-          <div class="auto-rule-titulo">${r.titulo}</div>
-          <div class="auto-rule-flow">
-            <span>${descreverTrigger(r.trigger)}</span>
-            <span class="arrow">→</span>
-            <span>${descreverAction(r.action)}</span>
-          </div>
+        <div class="auto-rule-info"><div class="auto-rule-titulo">${r.titulo}</div>
+          <div class="auto-rule-flow"><span>${descreverTrigger(r.trigger)}</span><span class="arrow">→</span><span>${descreverAction(r.action)}</span></div>
         </div>
-        <label class="auto-toggle">
-          <input type="checkbox" ${ativa ? 'checked' : ''} onchange="toggleRegraAtiva('${r.id}')">
-          <span class="auto-toggle-track"></span>
-          <span class="auto-toggle-thumb"></span>
-        </label>
+        <label class="auto-toggle"><input type="checkbox" ${ativa?'checked':''} onchange="toggleRegraAtiva('${r.id}')"><span class="auto-toggle-track"></span><span class="auto-toggle-thumb"></span></label>
       </div>
       <div class="auto-rule-body">
-        ${r.desc ? `<div class="auto-rule-desc">${r.desc}</div>` : ''}
-        <div class="auto-rule-stats">
-          <span class="auto-rule-stat">Executada <b>${execucoes}x</b></span>
-          ${r.tag ? `<span class="auto-tag">${r.tag}</span>` : ''}
-        </div>
-        <div class="auto-rule-btns">
-          <button class="btn btn-sm btn-secondary" onclick="eliminarRegra('${r.id}')" style="color:#ff6b6b;">🗑 Eliminar</button>
-        </div>
-      </div>
-    </div>`;
+        ${r.desc?`<div class="auto-rule-desc">${r.desc}</div>`:''}
+        <div class="auto-rule-stats"><span class="auto-rule-stat">Executada <b>${execucoes}x</b></span>${r.tag?`<span class="auto-tag">${r.tag}</span>`:''}</div>
+        <div class="auto-rule-btns"><button class="btn btn-sm btn-secondary" onclick="eliminarRegra('${r.id}')" style="color:#ff6b6b;">🗑 Eliminar</button></div>
+      </div></div>`;
   }).join('');
 }
 
 function renderAutomacaoBiblioteca() {
   const ativas = new Set(getAutoRegras().map(r => r.libId).filter(Boolean));
-  const grid = document.getElementById('automacao-biblioteca-grid');
-  if (!grid) return;
+  const grid = document.getElementById('automacao-biblioteca-grid'); if (!grid) return;
   grid.innerHTML = AUTO_BIBLIOTECA.map(lib => {
     const jaAtiva = ativas.has(lib.id);
     return `<div class="auto-rule-card">
-      <div class="auto-rule-header">
-        <div class="auto-rule-icon">${lib.icon}</div>
-        <div class="auto-rule-info">
-          <div class="auto-rule-titulo">${lib.titulo}</div>
+      <div class="auto-rule-header"><div class="auto-rule-icon">${lib.icon}</div>
+        <div class="auto-rule-info"><div class="auto-rule-titulo">${lib.titulo}</div>
           <div class="auto-rule-flow"><span>${descreverTrigger(lib.trigger)}</span><span class="arrow">→</span><span>${descreverAction(lib.action)}</span></div>
-        </div>
-      </div>
-      <div class="auto-rule-body">
-        <div class="auto-rule-desc">${lib.desc}</div>
+        </div></div>
+      <div class="auto-rule-body"><div class="auto-rule-desc">${lib.desc}</div>
         <div class="auto-rule-stats"><span class="auto-tag">${lib.tag}</span></div>
-        <div class="auto-rule-btns">
-          ${jaAtiva
-            ? `<button class="btn btn-sm btn-secondary" disabled style="opacity:.6;">✅ Já ativa</button>`
-            : `<button class="btn btn-sm btn-primary" onclick="ativarRegraBiblioteca('${lib.id}')">⚡ Ativar Regra</button>`}
-        </div>
-      </div>
-    </div>`;
+        <div class="auto-rule-btns">${jaAtiva?`<button class="btn btn-sm btn-secondary" disabled style="opacity:.6;">✅ Já ativa</button>`:`<button class="btn btn-sm btn-primary" onclick="ativarRegraBiblioteca('${lib.id}')">⚡ Ativar Regra</button>`}</div>
+      </div></div>`;
   }).join('');
 }
 
 function ativarRegraBiblioteca(libId) {
-  const lib = AUTO_BIBLIOTECA.find(l => l.id === libId);
-  if (!lib) return;
+  const lib = AUTO_BIBLIOTECA.find(l => l.id === libId); if (!lib) return;
   const regras = getAutoRegras();
-  regras.push({
-    id: 'r_' + Date.now(),
-    libId: lib.id,
-    icon: lib.icon,
-    titulo: lib.titulo,
-    desc: lib.desc,
-    tag: lib.tag,
-    trigger: lib.trigger,
-    action: lib.action,
-    ativa: true,
-    criada: new Date().toISOString(),
-  });
-  saveAutoRegras(regras);
-  renderAutomacaoBiblioteca();
-  renderAutomacao();
+  regras.push({ id:'r_'+Date.now(), libId:lib.id, icon:lib.icon, titulo:lib.titulo, desc:lib.desc, tag:lib.tag, trigger:lib.trigger, action:lib.action, ativa:true, criada:new Date().toISOString() });
+  saveAutoRegras(regras); renderAutomacaoBiblioteca(); renderAutomacao();
   showToast('⚡ Regra ativada: ' + lib.titulo);
 }
-
 function toggleRegraAtiva(id) {
-  const regras = getAutoRegras();
-  const r = regras.find(x => x.id === id);
-  if (!r) return;
-  r.ativa = r.ativa === false ? true : false;
-  saveAutoRegras(regras);
-  renderAutomacaoGrid();
+  const regras = getAutoRegras(); const r = regras.find(x => x.id === id); if (!r) return;
+  r.ativa = r.ativa === false ? true : false; saveAutoRegras(regras); renderAutomacaoGrid();
   showToast(r.ativa ? '✅ Regra ativada' : '⏸️ Regra pausada');
 }
-
 function eliminarRegra(id) {
   if (!confirm('Eliminar esta regra de automação?')) return;
-  saveAutoRegras(getAutoRegras().filter(r => r.id !== id));
-  renderAutomacaoGrid();
-  renderAutomacao();
+  saveAutoRegras(getAutoRegras().filter(r => r.id !== id)); renderAutomacaoGrid(); renderAutomacao();
   showToast('🗑 Regra eliminada');
 }
-
 function renderAutomacaoLog() {
   const log = [...getAutoLog()].reverse();
-  const listEl = document.getElementById('automacao-log-list');
-  const emptyEl = document.getElementById('automacao-log-empty');
+  const listEl = document.getElementById('automacao-log-list'); const emptyEl = document.getElementById('automacao-log-empty');
   if (!listEl) return;
-  if (!log.length) { listEl.innerHTML = ''; if (emptyEl) emptyEl.style.display = 'block'; return; }
+  if (!log.length) { listEl.innerHTML=''; if(emptyEl) emptyEl.style.display='block'; return; }
   if (emptyEl) emptyEl.style.display = 'none';
-  listEl.innerHTML = log.slice(0, 50).map(l => `
-    <div class="auto-log-item">
-      <div class="auto-log-icon">${l.icon}</div>
-      <div class="auto-log-txt">${l.texto}</div>
-      <div class="auto-log-time">${l.data}</div>
-    </div>`).join('');
+  listEl.innerHTML = log.slice(0,50).map(l => `<div class="auto-log-item"><div class="auto-log-icon">${l.icon}</div><div class="auto-log-txt">${l.texto}</div><div class="auto-log-time">${l.data}</div></div>`).join('');
 }
 
-// ── Builder de regra personalizada ──────────────────────────────────────────
 function atualizarRegraBuilderUI() {
   const trigger = document.getElementById('regra-trigger')?.value;
   const action = document.getElementById('regra-action')?.value;
-  const tEl = document.getElementById('regra-trigger-extra');
-  const aEl = document.getElementById('regra-action-extra');
-
+  const tEl = document.getElementById('regra-trigger-extra'); const aEl = document.getElementById('regra-action-extra');
   if (tEl) {
-    if (trigger === 'estado_muda') {
-      tEl.innerHTML = `<div class="form-label">Para que estado?</div>
-        <select class="form-select" id="regra-trigger-estado">
-          <option value="contactado">Contactado</option>
-          <option value="interessado">Interessado</option>
-          <option value="negociacao">Negociação</option>
-          <option value="cliente">Cliente</option>
-          <option value="frio">Frio</option>
-        </select>`;
-    } else if (trigger === 'sem_contacto_dias') {
-      tEl.innerHTML = `<div class="form-label">Quantos dias sem contacto?</div><input class="form-input" type="number" id="regra-trigger-dias" value="14" min="1">`;
-    } else { tEl.innerHTML = ''; }
+    if (trigger === 'estado_muda') tEl.innerHTML = `<div class="form-label">Para que estado?</div><select class="form-select" id="regra-trigger-estado"><option value="contactado">Contactado</option><option value="interessado">Interessado</option><option value="negociacao">Negociação</option><option value="cliente">Cliente</option><option value="frio">Frio</option></select>`;
+    else if (trigger === 'sem_contacto_dias') tEl.innerHTML = `<div class="form-label">Quantos dias sem contacto?</div><input class="form-input" type="number" id="regra-trigger-dias" value="14" min="1">`;
+    else tEl.innerHTML = '';
   }
-
   if (aEl) {
-    if (action === 'criar_lembrete') {
-      aEl.innerHTML = `<div class="form-label">Em quantos dias?</div><input class="form-input" type="number" id="regra-action-dias" value="1" min="0" style="margin-bottom:8px;">
-        <div class="form-label">Mensagem do lembrete</div><input class="form-input" id="regra-action-msg" placeholder="Ex: Fazer follow-up com {nome}">`;
-    } else if (action === 'copiar_mensagem') {
-      aEl.innerHTML = `<div class="form-label">Texto da mensagem (usa {nome} para o nome do lead)</div><textarea class="form-textarea" id="regra-action-texto" placeholder="Olá {nome}!..." style="min-height:70px;"></textarea>`;
-    } else if (action === 'mudar_estado') {
-      aEl.innerHTML = `<div class="form-label">Mudar para que estado?</div>
-        <select class="form-select" id="regra-action-estado">
-          <option value="frio">Frio</option>
-          <option value="interessado">Interessado</option>
-          <option value="negociacao">Negociação</option>
-          <option value="cliente">Cliente</option>
-        </select>`;
-    } else if (action === 'notificar') {
-      aEl.innerHTML = `<div class="form-label">Texto da notificação (usa {nome})</div><input class="form-input" id="regra-action-texto-notif" placeholder="Ex: {nome} precisa de atenção!">`;
-    } else { aEl.innerHTML = ''; }
+    if (action === 'criar_lembrete') aEl.innerHTML = `<div class="form-label">Em quantos dias?</div><input class="form-input" type="number" id="regra-action-dias" value="1" min="0" style="margin-bottom:8px;"><div class="form-label">Mensagem do lembrete</div><input class="form-input" id="regra-action-msg" placeholder="Ex: Fazer follow-up com {nome}">`;
+    else if (action === 'copiar_mensagem') aEl.innerHTML = `<div class="form-label">Texto da mensagem (usa {nome})</div><textarea class="form-textarea" id="regra-action-texto" placeholder="Olá {nome}!..." style="min-height:70px;"></textarea>`;
+    else if (action === 'mudar_estado') aEl.innerHTML = `<div class="form-label">Mudar para que estado?</div><select class="form-select" id="regra-action-estado"><option value="frio">Frio</option><option value="interessado">Interessado</option><option value="negociacao">Negociação</option><option value="cliente">Cliente</option></select>`;
+    else if (action === 'notificar') aEl.innerHTML = `<div class="form-label">Texto da notificação (usa {nome})</div><input class="form-input" id="regra-action-texto-notif" placeholder="Ex: {nome} precisa de atenção!">`;
+    else aEl.innerHTML = '';
   }
 }
-
 function abrirModalNovaRegra() {
-  document.getElementById('regra-nome').value = '';
-  document.getElementById('regra-trigger').value = 'estado_muda';
-  document.getElementById('regra-action').value = 'criar_lembrete';
-  atualizarRegraBuilderUI();
-  openModal('modal-nova-regra');
+  document.getElementById('regra-nome').value = ''; document.getElementById('regra-trigger').value = 'estado_muda'; document.getElementById('regra-action').value = 'criar_lembrete';
+  atualizarRegraBuilderUI(); openModal('modal-nova-regra');
 }
-
 function guardarRegraPersonalizada() {
   const nome = document.getElementById('regra-nome').value.trim();
   if (!nome) { showToast('⚠️ Dá um nome à regra!'); return; }
-  const triggerTipo = document.getElementById('regra-trigger').value;
-  const actionTipo = document.getElementById('regra-action').value;
-
+  const triggerTipo = document.getElementById('regra-trigger').value; const actionTipo = document.getElementById('regra-action').value;
   let trigger = { tipo: triggerTipo };
   if (triggerTipo === 'estado_muda') trigger.para = document.getElementById('regra-trigger-estado')?.value || 'cliente';
   if (triggerTipo === 'sem_contacto_dias') trigger.dias = parseInt(document.getElementById('regra-trigger-dias')?.value || 14);
-
   let action = { tipo: actionTipo };
   if (actionTipo === 'criar_lembrete') { action.dias = parseInt(document.getElementById('regra-action-dias')?.value || 1); action.mensagem = document.getElementById('regra-action-msg')?.value.trim() || 'Follow-up com {nome}'; }
   if (actionTipo === 'copiar_mensagem') action.texto = document.getElementById('regra-action-texto')?.value.trim() || 'Olá {nome}!';
   if (actionTipo === 'mudar_estado') action.estado = document.getElementById('regra-action-estado')?.value || 'frio';
   if (actionTipo === 'notificar') action.texto = document.getElementById('regra-action-texto-notif')?.value.trim() || '{nome} precisa de atenção';
-
   const regras = getAutoRegras();
-  regras.push({
-    id: 'r_' + Date.now(), titulo: nome, icon: iconeTrigger(triggerTipo),
-    desc: `${descreverTrigger(trigger)} → ${descreverAction(action)}`,
-    tag: 'Personalizada', trigger, action, ativa: true, criada: new Date().toISOString(),
-  });
-  saveAutoRegras(regras);
-  closeModal('modal-nova-regra');
-  renderAutomacao();
+  regras.push({ id:'r_'+Date.now(), titulo:nome, icon:iconeTrigger(triggerTipo), desc:`${descreverTrigger(trigger)} → ${descreverAction(action)}`, tag:'Personalizada', trigger, action, ativa:true, criada:new Date().toISOString() });
+  saveAutoRegras(regras); closeModal('modal-nova-regra'); renderAutomacao();
   showToast('✅ Regra "' + nome + '" criada!');
 }
 
-// =====================================================
-// EXECUTOR — chamado em todos os pontos de mudança de estado
-// =====================================================
-function substituirVariaveis(texto, lead) {
-  return (texto || '').replace(/\{nome\}/g, lead.nome || '').replace(/\{estado\}/g, estadoLabel(lead.estado));
-}
+function substituirVariaveis(texto, lead) { return (texto||'').replace(/\{nome\}/g, lead.nome||'').replace(/\{estado\}/g, estadoLabel(lead.estado)); }
 
 function executarAutomacoes(lead, estadoAnterior, novoEstado, ehNovoLead) {
   if (!lead) return;
-  const regras = getAutoRegras().filter(r => r.ativa !== false);
-  if (!regras.length) return;
-
+  const regras = getAutoRegras().filter(r => r.ativa !== false); if (!regras.length) return;
   regras.forEach(r => {
     let dispara = false;
     if (ehNovoLead && r.trigger.tipo === 'lead_criado') dispara = true;
     else if (!ehNovoLead && r.trigger.tipo === 'estado_muda' && novoEstado === r.trigger.para && estadoAnterior !== novoEstado) dispara = true;
     if (!dispara) return;
-
     executarAcaoRegra(r, lead);
   });
 }
@@ -24215,71 +24759,43 @@ function executarAutomacoes(lead, estadoAnterior, novoEstado, ehNovoLead) {
 function executarAcaoRegra(regra, lead) {
   const a = regra.action;
   if (a.tipo === 'criar_lembrete') {
-    const dataDisparo = new Date();
-    dataDisparo.setDate(dataDisparo.getDate() + (a.dias || 1));
-    dataDisparo.setHours(9, 0, 0, 0);
+    const dataDisparo = new Date(); dataDisparo.setDate(dataDisparo.getDate() + (a.dias||1)); dataDisparo.setHours(9,0,0,0);
     if (typeof lembretes !== 'undefined') {
-      lembretes.push({
-        id: 'auto_' + regra.id + '_' + lead.id + '_' + Date.now(),
-        tipo: 'followup',
-        mensagem: substituirVariaveis(a.mensagem, lead),
-        proximoDisparo: dataDisparo.toISOString(),
-        repeticao: 'uma', criado: new Date().toISOString(), concluido: false, disparadoCount: 0,
-        _leadId: lead.id, _auto: true, _regraId: regra.id,
-      });
+      lembretes.push({ id:'auto_'+regra.id+'_'+lead.id+'_'+Date.now(), tipo:'followup', mensagem:substituirVariaveis(a.mensagem, lead), proximoDisparo:dataDisparo.toISOString(), repeticao:'uma', criado:new Date().toISOString(), concluido:false, disparadoCount:0, _leadId:lead.id, _auto:true, _regraId:regra.id });
       if (typeof saveLembretes === 'function') saveLembretes();
     }
     registarAutoLogRegra(regra, '⏰', `Criou lembrete para <b>${lead.nome}</b> em ${a.dias} dia(s)`);
     showToast('⚙️ Automação: lembrete criado para ' + lead.nome);
-  }
-  else if (a.tipo === 'copiar_mensagem') {
+  } else if (a.tipo === 'copiar_mensagem') {
     const texto = substituirVariaveis(a.texto, lead);
     try { navigator.clipboard.writeText(texto); } catch(e) {}
     registarAutoLogRegra(regra, '📋', `Preparou mensagem para <b>${lead.nome}</b>: "${texto.substring(0,50)}${texto.length>50?'…':''}"`);
     showToast('⚙️ Automação: mensagem copiada para ' + lead.nome + '!');
-  }
-  else if (a.tipo === 'mudar_estado') {
-    setTimeout(() => {
-      lead.estado = a.estado;
-      if (typeof saveleads === 'function') saveleads();
-      if (typeof renderFunil === 'function') renderFunil();
-      if (typeof renderDashboard === 'function') renderDashboard();
-    }, 300);
+  } else if (a.tipo === 'mudar_estado') {
+    setTimeout(() => { lead.estado = a.estado; if (typeof saveleads === 'function') saveleads(); if (typeof renderFunil === 'function') renderFunil(); if (typeof renderDashboard === 'function') renderDashboard(); }, 300);
     registarAutoLogRegra(regra, '🔄', `Moveu <b>${lead.nome}</b> para "${estadoLabel(a.estado)}"`);
     showToast('⚙️ Automação: ' + lead.nome + ' → ' + estadoLabel(a.estado));
-  }
-  else if (a.tipo === 'notificar') {
+  } else if (a.tipo === 'notificar') {
     const texto = substituirVariaveis(a.texto, lead);
     if (typeof dispararNotificacao === 'function') dispararNotificacao('⚙️ Automação LifeWave CRM', texto, '⚙️');
     else showToast('⚙️ ' + texto);
     registarAutoLogRegra(regra, '🔔', texto);
   }
 }
+function registarAutoLogRegra(regra, icon, texto) { const log = getAutoLog(); log.push({ icon, texto, regraId: regra.id, data: new Date().toLocaleString('pt-PT') }); saveAutoLog(log); }
 
-function registarAutoLogRegra(regra, icon, texto) {
-  const log = getAutoLog();
-  log.push({ icon, texto, regraId: regra.id, data: new Date().toLocaleString('pt-PT') });
-  saveAutoLog(log);
-}
-
-// ── Verificação periódica: triggers baseados em tempo (sem_contacto_dias, aniversario) ──
 function verificarAutomacoesPeriodicas() {
   if (typeof leads === 'undefined' || !leads.length) return;
-  const regras = getAutoRegras().filter(r => r.ativa !== false);
-  if (!regras.length) return;
-  const agora = Date.now();
-  const hojeMD = new Date();
-
+  const regras = getAutoRegras().filter(r => r.ativa !== false); if (!regras.length) return;
+  const agora = Date.now(); const hojeMD = new Date();
   regras.forEach(r => {
     if (r.trigger.tipo === 'sem_contacto_dias') {
       leads.forEach(lead => {
         if (lead.estado === 'cliente' || lead.estado === 'frio') return;
         const ultimo = lead.ultimoContacto ? new Date(lead.ultimoContacto).getTime() : new Date(lead.data).getTime();
         const dias = (agora - ultimo) / 86400000;
-        const jaExecutou = getAutoLog().some(l => l.regraId === r.id && l.texto.includes(lead.nome) && (agora - new Date(l.data.split(',')[0].split('/').reverse().join('-')).getTime()) < 86400000 * (r.trigger.dias || 1));
-        if (dias >= (r.trigger.dias || 14) && !jaExecutou && lead.estado !== r.action.estado) {
-          executarAcaoRegra(r, lead);
-        }
+        const jaExecutou = getAutoLog().some(l => l.regraId === r.id && l.texto.includes(lead.nome) && (agora - new Date(l.data.split(',')[0].split('/').reverse().join('-')).getTime()) < 86400000 * (r.trigger.dias||1));
+        if (dias >= (r.trigger.dias||14) && !jaExecutou && lead.estado !== r.action.estado) executarAcaoRegra(r, lead);
       });
     }
     if (r.trigger.tipo === 'aniversario') {
@@ -24294,98 +24810,290 @@ function verificarAutomacoesPeriodicas() {
     }
   });
 }
-
-// Verifica triggers periódicos a cada 60s e ao iniciar
 setTimeout(verificarAutomacoesPeriodicas, 4000);
 setInterval(verificarAutomacoesPeriodicas, 60000);
 
-
 // =====================================================
-// MAPA DE LEADS POR TEMPERATURA (#9)
+// MAPA DE LEADS POR TEMPERATURA
 // =====================================================
-function mercadoParaTemp(mercado) {
-  if (!mercado) return 'morno';
-  const m = mercado.toLowerCase();
-  if (m.includes('quente')) return 'quente';
-  if (m.includes('frio')) return 'frio';
-  return 'morno';
-}
-
+function mercadoParaTemp(mercado) { if(!mercado) return 'morno'; const m=mercado.toLowerCase(); if(m.includes('quente')) return 'quente'; if(m.includes('frio')) return 'frio'; return 'morno'; }
 const MAPA_ESTADO_COR = { novo:'#94a3b8', contactado:'var(--accent2)', interessado:'var(--gold)', negociacao:'#ff6b35', cliente:'var(--accent)', frio:'var(--text3)' };
 const MAPA_AVATAR_CORES = ['#00d4aa','#0084ff','#f5c842','#ff6b35','#8b9cf7','#25d366'];
 
 function renderMapaLeads() {
   if (typeof leads === 'undefined') return;
   const filtroEstado = document.getElementById('mapa-filtro-estado')?.value || 'todos';
-  let lista = [...leads];
-  if (filtroEstado !== 'todos') lista = lista.filter(l => l.estado === filtroEstado);
-
-  const grupos = { quente: [], morno: [], frio: [] };
+  let lista = [...leads]; if (filtroEstado !== 'todos') lista = lista.filter(l => l.estado === filtroEstado);
+  const grupos = { quente:[], morno:[], frio:[] };
   lista.forEach(l => { grupos[mercadoParaTemp(l.mercado)].push(l); });
 
-  // Resumo
   const resumoEl = document.getElementById('mapa-resumo');
   if (resumoEl) {
     const totalAtivos = lista.filter(l => l.estado !== 'cliente' && l.estado !== 'frio').length;
-    const quentesAtivos = grupos.quente.filter(l => l.estado !== 'cliente' && l.estado !== 'frio').length;
-    const clientesQuentes = grupos.quente.filter(l => l.estado === 'cliente').length;
     resumoEl.innerHTML = `
       <div class="mapa-resumo-item"><div class="mapa-resumo-val" style="color:#ff6b35">${grupos.quente.length}</div><div class="mapa-resumo-lbl">🔥 Leads Quentes</div></div>
       <div class="mapa-resumo-item"><div class="mapa-resumo-val" style="color:var(--gold)">${grupos.morno.length}</div><div class="mapa-resumo-lbl">🌤️ Leads Mornos</div></div>
       <div class="mapa-resumo-item"><div class="mapa-resumo-val" style="color:var(--accent2)">${grupos.frio.length}</div><div class="mapa-resumo-lbl">❄️ Leads Frios</div></div>
-      <div class="mapa-resumo-item"><div class="mapa-resumo-val" style="color:var(--accent)">${totalAtivos}</div><div class="mapa-resumo-lbl">📊 Ativos no Funil</div></div>
-    `;
+      <div class="mapa-resumo-item"><div class="mapa-resumo-val" style="color:var(--accent)">${totalAtivos}</div><div class="mapa-resumo-lbl">📊 Ativos no Funil</div></div>`;
   }
-
-  // Insight automático
   const insightEl = document.getElementById('mapa-insight');
   if (insightEl) {
     const quentesNovos = grupos.quente.filter(l => l.estado === 'novo' || l.estado === 'contactado').length;
     const frioNoFunil = grupos.frio.filter(l => l.estado !== 'frio' && l.estado !== 'cliente').length;
     let msg = '';
-    if (quentesNovos > 0) {
-      msg = `🔥 Tens <b>${quentesNovos} lead(s) quente(s)</b> ainda em fase inicial — são a tua maior prioridade de contacto agora.`;
-    } else if (frioNoFunil > 0) {
-      msg = `❄️ ${frioNoFunil} lead(s) frio(s) ainda estão ativos no funil — considera focar energia nos quentes/mornos primeiro.`;
-    } else if (grupos.quente.length === 0 && grupos.morno.length === 0) {
-      msg = `💡 Sem leads quentes ou mornos no momento — talvez seja hora de fazer mais prospeção entre amigos e conhecidos.`;
-    } else {
-      msg = `✅ Boa distribuição de temperatura na tua carteira de leads. Continua a nutrir os mornos para se tornarem quentes!`;
-    }
+    if (quentesNovos > 0) msg = `🔥 Tens <b>${quentesNovos} lead(s) quente(s)</b> ainda em fase inicial — são a tua maior prioridade de contacto agora.`;
+    else if (frioNoFunil > 0) msg = `❄️ ${frioNoFunil} lead(s) frio(s) ainda estão ativos no funil — considera focar energia nos quentes/mornos primeiro.`;
+    else if (grupos.quente.length === 0 && grupos.morno.length === 0) msg = `💡 Sem leads quentes ou mornos no momento — talvez seja hora de fazer mais prospeção entre amigos e conhecidos.`;
+    else msg = `✅ Boa distribuição de temperatura na tua carteira de leads. Continua a nutrir os mornos para se tornarem quentes!`;
     insightEl.innerHTML = msg;
   }
-
-  // Render colunas
   ['quente','morno','frio'].forEach(temp => {
-    const countEl = document.getElementById('mapa-count-' + temp);
-    const bodyEl = document.getElementById('mapa-body-' + temp);
+    const countEl = document.getElementById('mapa-count-'+temp); const bodyEl = document.getElementById('mapa-body-'+temp);
     if (countEl) countEl.textContent = grupos[temp].length;
     if (!bodyEl) return;
-    if (!grupos[temp].length) {
-      bodyEl.innerHTML = `<div class="mapa-lead-empty">Sem leads ${temp === 'quente' ? 'quentes' : temp === 'morno' ? 'mornos' : 'frios'} neste filtro</div>`;
-      return;
-    }
-    // ordenar: ativos primeiro, clientes/frios no fim
-    const ordenados = [...grupos[temp]].sort((a, b) => {
-      const prioridade = { novo:0, contactado:1, interessado:2, negociacao:3, cliente:4, frio:5 };
-      return (prioridade[a.estado] ?? 9) - (prioridade[b.estado] ?? 9);
-    });
+    if (!grupos[temp].length) { bodyEl.innerHTML = `<div class="mapa-lead-empty">Sem leads ${temp==='quente'?'quentes':temp==='morno'?'mornos':'frios'} neste filtro</div>`; return; }
+    const ordenados = [...grupos[temp]].sort((a,b) => { const p={novo:0,contactado:1,interessado:2,negociacao:3,cliente:4,frio:5}; return (p[a.estado]??9)-(p[b.estado]??9); });
     bodyEl.innerHTML = ordenados.map(l => {
-      const initials = (l.nome || '?').split(' ').map(p => p[0]).slice(0, 2).join('').toUpperCase();
-      const cor = MAPA_AVATAR_CORES[(l.nome || '').charCodeAt(0) % MAPA_AVATAR_CORES.length];
+      const initials = (l.nome||'?').split(' ').map(p=>p[0]).slice(0,2).join('').toUpperCase();
+      const cor = MAPA_AVATAR_CORES[(l.nome||'').charCodeAt(0) % MAPA_AVATAR_CORES.length];
       const estadoCor = MAPA_ESTADO_COR[l.estado] || 'var(--text3)';
       return `<div class="mapa-lead-row" onclick="verLead('${l.id}')">
         <div class="mapa-lead-avatar" style="background:linear-gradient(135deg,${cor},${cor}99)">${initials}</div>
-        <div class="mapa-lead-info">
-          <div class="mapa-lead-nome">${l.nome}</div>
-          <div class="mapa-lead-meta">${estadoLabel(l.estado)}</div>
-        </div>
+        <div class="mapa-lead-info"><div class="mapa-lead-nome">${l.nome}</div><div class="mapa-lead-meta">${estadoLabel(l.estado)}</div></div>
         <div class="mapa-funil-strip"><div class="mapa-funil-dot" style="background:${estadoCor}"></div></div>
       </div>`;
     }).join('');
   });
 }
 
+// =====================================================
+// MODO APRESENTAÇÃO (#10)
+// =====================================================
+let _aprSlideAtual = 0;
+function aprNomeLead() { return (document.getElementById('apr-nome-lead')?.value || '').trim(); }
+
+function getAprSlides() {
+  const nome = aprNomeLead();
+  return [
+    { emoji:'👋', titulo: nome ? `Olá, ${nome}!` : 'Bem-vindo(a)!', sub:'Hoje vou mostrar-te algo que tem feito uma diferença real na vida de milhares de pessoas — de forma simples, sem química, sem agulhas.' },
+    { emoji:'😣', titulo:'O Problema', sub:'Cansaço constante, dores, falta de energia, sono fraco... A vida moderna desgasta o corpo mais rápido do que ele se recupera. E a maioria das soluções só trata sintomas, não a causa.' },
+    { emoji:'⚡', titulo:'A Solução: X39', sub:'Um patch wearable, sem agulhas e sem químicos, que usa luz para comunicar com o corpo e ativar as células estaminais — o sistema de reparação natural que já tens dentro de ti.', stats:[{num:'100%',lbl:'Não invasivo'},{num:'12h',lbl:'Por aplicação'},{num:'0',lbl:'Químicos'}] },
+    { emoji:'🔬', titulo:'Como Funciona', sub:'O patch reflete frequências específicas de luz infravermelha para a pele. O corpo interpreta isso como um sinal para libertar mais células estaminais — acelerando naturalmente a recuperação e renovação celular.' },
+    { emoji:'📈', titulo:'Resultados Reportados', sub:'Pessoas que usam o X39 relatam mais energia, melhor sono, redução de dores e recuperação física mais rápida — desde os primeiros dias de uso.', stats:[{num:'24-72h',lbl:'1ºs efeitos'},{num:'30 dias',lbl:'Resultados consistentes'},{num:'+1M',lbl:'Patches vendidos/mês'}] },
+    { emoji:'💬', titulo:'O Que Dizem', sub:'', testimonial:'"Desde que comecei a usar o X39 durmo melhor e tenho muito mais energia ao longo do dia. Foi a melhor decisão que tomei para a minha saúde este ano."', autor:'— Utilizador LifeWave' },
+    { emoji:'🚀', titulo: nome ? `Vamos começar, ${nome}?` : 'Vamos Começar?', sub:'Posso ajudar-te a escolher o melhor kit para começares hoje. Sem compromisso — só temos de conversar sobre o que precisas.', cta:true },
+  ];
+}
+
+function iniciarModoApresentacao() {
+  _aprSlideAtual = 0;
+  renderAprSlides();
+  document.getElementById('apr-overlay').classList.add('ativo');
+}
+function sairModoApresentacao() { document.getElementById('apr-overlay').classList.remove('ativo'); }
+
+function renderAprSlides() {
+  const slides = getAprSlides();
+  const wrap = document.getElementById('apr-slides-wrap');
+  wrap.innerHTML = slides.map((s, i) => `
+    <div class="apr-slide ${i === _aprSlideAtual ? 'ativo' : ''}" id="apr-slide-${i}">
+      <div class="apr-slide-emoji">${s.emoji}</div>
+      <div class="apr-slide-titulo">${s.titulo}</div>
+      ${s.sub ? `<div class="apr-slide-sub">${s.sub}</div>` : ''}
+      ${s.stats ? `<div class="apr-slide-stats">${s.stats.map(st => `<div class="apr-stat-box"><div class="apr-stat-num">${st.num}</div><div class="apr-stat-lbl">${st.lbl}</div></div>`).join('')}</div>` : ''}
+      ${s.testimonial ? `<div class="apr-testimonial">${s.testimonial}<div class="apr-testimonial-autor">${s.autor}</div></div>` : ''}
+      ${s.cta ? `<div class="apr-cta-btns"><button class="apr-launch-btn" onclick="window.open('https://lifewave.com','_blank')">🛒 Ver Produtos</button><button class="apr-launch-btn" style="background:var(--surface2);color:var(--text);border:1px solid var(--border);" onclick="sairModoApresentacao()">✕ Terminar</button></div>` : ''}
+    </div>`).join('');
+  const dotsEl = document.getElementById('apr-dots');
+  if (dotsEl) dotsEl.innerHTML = slides.map((_, i) => `<div class="apr-mode-dot ${i === _aprSlideAtual ? 'active' : ''}"></div>`).join('');
+  document.getElementById('apr-btn-prev').disabled = _aprSlideAtual === 0;
+  document.getElementById('apr-btn-next').disabled = _aprSlideAtual === slides.length - 1;
+}
+function aprNav(dir) {
+  const slides = getAprSlides();
+  const novo = _aprSlideAtual + dir;
+  if (novo < 0 || novo >= slides.length) return;
+  _aprSlideAtual = novo;
+  renderAprSlides();
+}
+function apresentacaoInit() { /* página apenas com editor; render acontece ao iniciar */ }
+
+</script>
+
+<!-- ============================================================ -->
+<!-- MODAL: SIMULADOR PIB RÁPIDO                                  -->
+<!-- ============================================================ -->
+<div class="modal-overlay" id="modal-simulador-pib">
+  <div class="modal" style="max-width:520px;">
+    <div class="modal-title">
+      <span>🧾 Simulador PIB Rápido</span>
+      <button class="modal-close" onclick="closeModal('modal-simulador-pib')">✕</button>
+    </div>
+
+    <div style="font-size:12px;color:var(--text2);margin-bottom:16px;line-height:1.6;">
+      Escolhe o pacote que o novo membro vai comprar e a tua categoria actual — vês logo quanto ganhas. Ideal para teres à mão antes de uma chamada de recrutamento.
+    </div>
+
+    <!-- Pacote -->
+    <div class="form-group">
+      <label class="form-label">📦 Pacote que o novo membro vai comprar</label>
+      <div id="sim-pib-pacotes" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(95px,1fr));gap:8px;"></div>
+    </div>
+
+    <!-- Categoria do utilizador -->
+    <div class="form-group">
+      <label class="form-label">⭐ A tua categoria de pagamento actual</label>
+      <select class="form-select" id="sim-pib-categoria" onchange="calcularSimuladorPIB()">
+        <option value="bp-ativo">BP Ativo</option>
+        <option value="1sm">1★ Manager</option>
+        <option value="2sm">2★ Manager</option>
+        <option value="3sm" selected>3★ Manager</option>
+        <option value="1sd">1★ Director</option>
+        <option value="2sd">2★ Director</option>
+        <option value="3sd">3★ Director</option>
+        <option value="1se">1★ Executive</option>
+        <option value="2se">2★ Executive</option>
+        <option value="3se">3★ Executive</option>
+        <option value="1sp">1★ Presidential</option>
+        <option value="2sp">2★ Presidential</option>
+        <option value="3sp">3★ Presidential</option>
+      </select>
+      <div style="font-size:10px;color:var(--text3);margin-top:3px;">Determina a tua % de Ganhos por Nível e elegibilidade ao Bónus de Arranque (BLB).</div>
+    </div>
+
+    <!-- Moeda -->
+    <div class="form-group">
+      <label class="form-label">💱 Moeda</label>
+      <div style="display:flex;gap:8px;">
+        <button class="btn btn-secondary btn-sm" id="sim-pib-moeda-eur" onclick="trocarMoedaSimPIB('eur')" style="border-color:var(--accent);color:var(--accent);">€ EUR</button>
+        <button class="btn btn-secondary btn-sm" id="sim-pib-moeda-usd" onclick="trocarMoedaSimPIB('usd')">$ USD</button>
+      </div>
+    </div>
+
+    <!-- RESULTADO -->
+    <div id="sim-pib-resultado" style="margin-top:18px;"></div>
+
+  </div>
+</div>
+
+<script>
+// ===================================================
+// SIMULADOR PIB RÁPIDO
+// Reutiliza CATALOGO_PRODUTOS (pacotes PIB) e CALC_CATEGORIAS
+// (percentagens de Nível) já existentes — sem duplicar dados.
+// ===================================================
+let simPibPacoteAtual = 'pib-adv';
+let simPibMoedaAtual  = 'eur';
+
+function abrirSimuladorPIB() {
+  renderSimPibPacotes();
+  calcularSimuladorPIB();
+  openModal('modal-simulador-pib');
+}
+
+function renderSimPibPacotes() {
+  const cont = document.getElementById('sim-pib-pacotes');
+  if (!cont) return;
+  const pacotes = (typeof CATALOGO_PRODUTOS !== 'undefined' ? CATALOGO_PRODUTOS : []).filter(p => p.cat === 'pib');
+  cont.innerHTML = pacotes.map(p => `
+    <div onclick="selecionarPacoteSimPIB('${p.id}')" id="sim-pib-pac-${p.id}"
+      style="padding:10px 6px;border-radius:var(--radius-sm);border:2px solid ${simPibPacoteAtual===p.id?'var(--accent)':'var(--border)'};
+      background:${simPibPacoteAtual===p.id?'rgba(0,212,170,0.12)':'var(--surface2)'};
+      cursor:pointer;text-align:center;transition:all 0.15s;">
+      <div style="font-size:18px;margin-bottom:3px;">${p.emoji}</div>
+      <div style="font-size:10.5px;font-weight:${simPibPacoteAtual===p.id?'700':'500'};color:${simPibPacoteAtual===p.id?'var(--accent)':'var(--text)'};line-height:1.2;">${p.nome.replace('Pacote ','')}</div>
+    </div>
+  `).join('');
+}
+
+function selecionarPacoteSimPIB(id) {
+  simPibPacoteAtual = id;
+  renderSimPibPacotes();
+  calcularSimuladorPIB();
+}
+
+function trocarMoedaSimPIB(m) {
+  simPibMoedaAtual = m;
+  const btnEur = document.getElementById('sim-pib-moeda-eur');
+  const btnUsd = document.getElementById('sim-pib-moeda-usd');
+  if (btnEur) { btnEur.style.borderColor = m==='eur' ? 'var(--accent)' : ''; btnEur.style.color = m==='eur' ? 'var(--accent)' : ''; }
+  if (btnUsd) { btnUsd.style.borderColor = m==='usd' ? 'var(--accent)' : ''; btnUsd.style.color = m==='usd' ? 'var(--accent)' : ''; }
+  calcularSimuladorPIB();
+}
+
+function calcularSimuladorPIB() {
+  const resultEl = document.getElementById('sim-pib-resultado');
+  if (!resultEl) return;
+
+  const pacotes = (typeof CATALOGO_PRODUTOS !== 'undefined' ? CATALOGO_PRODUTOS : []).filter(p => p.cat === 'pib');
+  const pacote = pacotes.find(p => p.id === simPibPacoteAtual);
+  if (!pacote) { resultEl.innerHTML = ''; return; }
+
+  const catId = document.getElementById('sim-pib-categoria')?.value || '3sm';
+  const cat = (typeof CALC_CATEGORIAS !== 'undefined' ? CALC_CATEGORIAS : []).find(c => c.id === catId);
+  const sym = simPibMoedaAtual === 'eur' ? '€' : '$';
+
+  // PIB — Bónus por Introdução de Produtos
+  const pib = simPibMoedaAtual === 'eur' ? (pacote.pib_eur || 0) : (pacote.pib_usd || 0);
+
+  // BLB — Bónus de Arranque do Negócio (1ª semana do novo membro, baseado na tua categoria)
+  // Regra real do plano: precisas de ser pelo menos a categoria do novo BP para receber o matching
+  const elegivelBLB = cat && (catId !== 'bp-ativo'); // BP Ativo não tem categoria de Manager
+  const blbSemanal = simPibMoedaAtual === 'eur' ? 12 : 12.50; // matching 1-Star Manager
+  const blb9Semanas = elegivelBLB ? blbSemanal * 9 : 0;
+
+  // Ganhos por Nível projectados sobre o QV da primeira compra (Nível 1)
+  const qv = pacote.qv || 0;
+  const n1pct = cat ? cat.n1 : 0;
+  const ganhoNivel1 = qv > 0 ? Math.round(qv * n1pct / 100) : 0;
+
+  const totalImediato = pib + ganhoNivel1;
+  const totalComBLB   = totalImediato + blb9Semanas;
+
+  resultEl.innerHTML = `
+    <div style="background:linear-gradient(135deg,rgba(0,212,170,.08),rgba(0,132,255,.05));border:1px solid rgba(0,212,170,.25);border-radius:var(--radius);padding:16px 18px;">
+      <div style="font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.7px;margin-bottom:10px;">💰 O que ganhas com ${pacote.nome}</div>
+
+      <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:14px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:rgba(255,255,255,.03);border-radius:8px;">
+          <div>
+            <div style="font-size:12.5px;font-weight:600;color:var(--text);">📦 PIB — Introdução de Produtos</div>
+            <div style="font-size:10.5px;color:var(--text2);">Pago de imediato, na semana da inscrição</div>
+          </div>
+          <div style="font-family:'Syne',sans-serif;font-size:16px;font-weight:800;color:${pib>0?'var(--accent)':'var(--text3)'};">${pib>0?'+'+pib+sym:'—'}</div>
+        </div>
+
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:rgba(255,255,255,.03);border-radius:8px;">
+          <div>
+            <div style="font-size:12.5px;font-weight:600;color:var(--text);">📶 Ganhos por Nível 1 (1ª compra)</div>
+            <div style="font-size:10.5px;color:var(--text2);">${qv} QV × ${n1pct}% (tua categoria: ${cat?cat.label:'—'})</div>
+          </div>
+          <div style="font-family:'Syne',sans-serif;font-size:16px;font-weight:800;color:${ganhoNivel1>0?'var(--accent2)':'var(--text3)'};">${ganhoNivel1>0?'+'+ganhoNivel1+sym:'—'}</div>
+        </div>
+
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:rgba(255,255,255,.03);border-radius:8px;">
+          <div>
+            <div style="font-size:12.5px;font-weight:600;color:var(--text);">🆕 Bónus de Arranque (BLB, 9 semanas)</div>
+            <div style="font-size:10.5px;color:var(--text2);">${elegivelBLB ? 'Se o novo BP se mantiver Ativo 9 semanas' : 'Precisas de ser 1-Star Manager+ para qualificar'}</div>
+          </div>
+          <div style="font-family:'Syne',sans-serif;font-size:16px;font-weight:800;color:${blb9Semanas>0?'var(--gold)':'var(--text3)'};">${blb9Semanas>0?'+'+Math.round(blb9Semanas)+sym:'—'}</div>
+        </div>
+      </div>
+
+      <div style="border-top:2px solid rgba(0,212,170,.25);padding-top:12px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
+        <div>
+          <div style="font-size:10px;color:var(--text2);text-transform:uppercase;">Garantido já nesta semana</div>
+          <div style="font-family:'Syne',sans-serif;font-size:26px;font-weight:800;color:var(--accent);">${totalImediato.toLocaleString()}${sym}</div>
+        </div>
+        <div style="text-align:right;">
+          <div style="font-size:10px;color:var(--text2);">+ BLB nas 9 semanas seguintes</div>
+          <div style="font-family:'Syne',sans-serif;font-size:18px;font-weight:700;color:var(--gold);">até ${Math.round(totalComBLB).toLocaleString()}${sym}</div>
+        </div>
+      </div>
+    </div>
+    <div style="margin-top:10px;font-size:10.5px;color:var(--text3);text-align:center;">💡 Valores indicativos com base no Plano de Compensação 2.0. Não inclui Bónus Binário nem Mentor Matching — usa a Calculadora completa para esses.</div>
+  `;
+}
 </script>
 
 </body>
