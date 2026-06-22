@@ -3306,6 +3306,31 @@
   .diario-resumo-item { flex:1; min-width:140px; background:var(--surface2); border:1px solid var(--border); border-radius:12px; padding:12px 16px; }
   .diario-resumo-val { font-family:'Syne',sans-serif; font-size:20px; font-weight:700; }
   .diario-resumo-lbl { font-size:11px; color:var(--text2); margin-top:2px; }
+
+  /* ===== SELETOR INTELIGENTE DE WHATSAPP ===== */
+  .wai-modal-overlay {
+    position:fixed; inset:0; background:rgba(0,0,0,.6); backdrop-filter:blur(4px);
+    z-index:9500; display:none; align-items:center; justify-content:center; padding:16px;
+  }
+  .wai-modal-overlay.ativo { display:flex; }
+  .wai-modal { background:var(--surface); border:1px solid var(--border); border-radius:16px; max-width:440px; width:100%; max-height:80vh; display:flex; flex-direction:column; overflow:hidden; }
+  .wai-modal-header { padding:16px 18px; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; }
+  .wai-modal-title { font-size:14px; font-weight:700; color:var(--text); }
+  .wai-modal-close { background:none; border:none; color:var(--text2); font-size:18px; cursor:pointer; }
+  .wai-search { margin:12px 16px; }
+  .wai-search input { width:100%; background:var(--surface2); border:1px solid var(--border); border-radius:10px; padding:9px 14px; font-size:13px; color:var(--text); font-family:'DM Sans',sans-serif; box-sizing:border-box; }
+  .wai-search input:focus { outline:none; border-color:var(--accent); }
+  .wai-list { overflow-y:auto; flex:1; padding:0 10px 10px; }
+  .wai-item { display:flex; align-items:center; gap:10px; padding:10px 8px; border-radius:10px; cursor:pointer; transition:background .15s; }
+  .wai-item:hover { background:var(--surface2); }
+  .wai-avatar { width:32px; height:32px; border-radius:50%; flex-shrink:0; display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:700; color:#000; }
+  .wai-info { flex:1; min-width:0; }
+  .wai-nome { font-size:13px; font-weight:600; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .wai-meta { font-size:11px; color:var(--text3); }
+  .wai-no-tel { font-size:10px; color:#ff6b6b; }
+  .wai-empty { text-align:center; padding:30px 16px; color:var(--text3); font-size:13px; }
+  .wai-sem-lead-btn { margin:0 16px 14px; padding:10px; text-align:center; background:var(--surface2); border:1px solid var(--border); border-radius:10px; cursor:pointer; font-size:12px; color:var(--text2); transition:border-color .15s; }
+  .wai-sem-lead-btn:hover { border-color:var(--accent); }
 </style>
 </head>
 <body>
@@ -7061,6 +7086,21 @@
   </div>
   <!-- ==================== FIM MODAL LEMBRETES ==================== -->
 
+  <!-- Modal Seletor Inteligente de WhatsApp -->
+  <div class="wai-modal-overlay" id="wai-modal-overlay">
+    <div class="wai-modal">
+      <div class="wai-modal-header">
+        <div class="wai-modal-title">💬 Enviar para quem?</div>
+        <button class="wai-modal-close" onclick="fecharSeletorWA()">✕</button>
+      </div>
+      <div class="wai-search">
+        <input type="text" id="wai-search-input" placeholder="🔍 Procurar lead..." oninput="renderSeletorWALista()">
+      </div>
+      <div class="wai-list" id="wai-lista"></div>
+      <div class="wai-sem-lead-btn" onclick="enviarWAsemLead()">📤 Enviar sem escolher contacto (abrir WhatsApp e escolher manualmente)</div>
+    </div>
+  </div>
+
   <!-- BOTTOM NAV (mobile) -->
   <nav class="bottom-nav" id="bottom-nav">
     <div class="bn-item bn-pinned active" id="bn-dashboard" onclick="goTo('dashboard')">
@@ -7897,7 +7937,8 @@ function abrirMenuMais() {
   document.getElementById('modal-menu-mais').classList.add('open');
 }
 
-function goTo(page) {
+function goTo(page, opts) {
+  const fromHistory = opts && opts.fromHistory;
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
   document.querySelectorAll('.bn-item, .bn-more-item').forEach(n => n.classList.remove('active'));
@@ -7942,7 +7983,33 @@ function goTo(page) {
   if (page === 'diario') renderDiario();
   if (page === 'tutorial') tutorialInit();
   window.scrollTo(0, 0);
+
+  // Gestão do histórico do browser: permite que o botão de retroceder do
+  // Android/Chrome navegue entre páginas da app em vez de saltar para fora dela.
+  if (!fromHistory) {
+    try { history.pushState({ lwPage: page }, '', '#' + page); } catch(e) {}
+  }
 }
+
+// Botão de retroceder físico (Android) / gesto de retroceder do browser:
+// navega para a página anterior da app em vez de saltar para fora dela.
+window.addEventListener('popstate', function(ev) {
+  const page = ev.state && ev.state.lwPage;
+  if (page && document.getElementById('page-' + page)) {
+    goTo(page, { fromHistory: true });
+  } else {
+    // Sem estado da app (ex: chegámos ao fundo do histórico) — fica no Dashboard
+    // em vez de deixar o browser sair da app por completo.
+    const loginScreen = document.getElementById('login-screen');
+    const aindaDentroDaApp = loginScreen && loginScreen.classList.contains('hidden');
+    if (aindaDentroDaApp) {
+      goTo('dashboard', { fromHistory: true });
+      try { history.pushState({ lwPage: 'dashboard' }, '', '#dashboard'); } catch(e) {}
+    }
+  }
+});
+
+
 
 // ===== MODAL =====
 function closeModal(id) {
@@ -9752,7 +9819,7 @@ ${texto}`;
     textEl.textContent = traduzido.trim();
     showToast(`✅ Traduzido para ${langName}`);
   } catch(e) {
-    showToast('❌ Erro ao traduzir: ' + (e.message || 'Tenta novamente'));
+    showToast('❌ ' + mensagemErroIA(e));
   } finally {
     btn.disabled = false;
     btn.textContent = '🌐 Traduzir';
@@ -9898,6 +9965,25 @@ const GEMINI_MODELS = [
   'gemini-2.0-flash'
 ];
 
+// Traduz erros técnicos das APIs de IA em mensagens curtas e claras para o utilizador
+function mensagemErroIA(err) {
+  const msg = (err && err.message) ? err.message : String(err || '');
+  const m = msg.toLowerCase();
+  if (m.includes('quota') || m.includes('resource_exhausted') || (m.includes('limit') && m.includes('0'))) {
+    return 'Limite gratuito da IA esgotado por agora. Tenta de novo dentro de alguns minutos, ou troca para a outra IA (Claude/Gemini) nas definições.';
+  }
+  if (m.includes('429')) return 'A IA está sobrecarregada neste momento. Tenta novamente em breve.';
+  if (m.includes('401') || m.includes('403') || m.includes('api_key') || m.includes('invalid')) {
+    return 'A chave API parece inválida. Verifica a chave nas definições de IA.';
+  }
+  if (m.includes('529') || m.includes('overloaded')) return 'O serviço de IA está sobrecarregado. Tenta novamente dentro de 1 minuto.';
+  if (m === 'gemini_no_key') return 'Falta configurar a chave API Gemini.';
+  if (m === 'claude_no_key') return 'Falta configurar a chave API Claude.';
+  if (m === 'local_file') return 'Esta função de IA precisa de estar online (não funciona em ficheiro local).';
+  if (m.includes('failed to fetch') || m.includes('networkerror')) return 'Sem ligação à internet. Verifica a tua rede e tenta novamente.';
+  return 'Não foi possível gerar a resposta agora. Tenta novamente dentro de momentos.';
+}
+
 async function callGeminiModel(model, prompt, imageBase64, imageMediaType) {
   const parts = [];
   if (imageBase64) {
@@ -10012,7 +10098,21 @@ async function callAI(page, prompt, imageBase64, imageMediaType) {
     return callGemini(prompt, imageBase64, imageMediaType);
   }
 
-  if (ai === 'gemini') return callGemini(prompt, imageBase64, imageMediaType);
+  if (ai === 'gemini') {
+    try {
+      return await callGemini(prompt, imageBase64, imageMediaType);
+    } catch (geminiErr) {
+      // Fallback automático: se o Gemini falhar (quota/sobrecarga) e houver chave Claude, tenta Claude
+      const m = (geminiErr.message || '').toLowerCase();
+      const ehQuotaOuSobrecarga = m.includes('quota') || m.includes('resource_exhausted') || m.includes('limit') || m.includes('429') || m.includes('overloaded');
+      if (ehQuotaOuSobrecarga && claudeKey && !isLocal) {
+        if (loaderLabel) loaderLabel.textContent = '🧠 Gemini indisponível — a usar Claude...';
+        showToast('⚠️ Gemini indisponível — a tentar com Claude...');
+        return callClaude(prompt, imageBase64, imageMediaType);
+      }
+      throw geminiErr;
+    }
+  }
   return callClaude(prompt, imageBase64, imageMediaType);
 }
 
@@ -10604,6 +10704,32 @@ function isGoogleTokenValid() {
 // (full definition with agenda support is below, near AGENDA section)
 
 // ---- CONTACTS ----
+// Lista de termos que identificam contactos-sistema/operadora, não pessoas reais
+// (ex: "Waiting Call", "Voicemail", "Caixa de Correio", números de suporte, etc.)
+const TERMOS_CONTACTO_SISTEMA = [
+  // Português
+  'caixa de correio', 'correio de voz', 'atendimento', 'apoio ao cliente', 'reencaminhamento',
+  'chamada em espera', 'desvio de chamadas', 'serviço de', 'assistência técnica',
+  // Inglês (comum em vários países / operadoras internacionais)
+  'voicemail', 'voice mail', 'waiting call', 'call waiting', 'call forwarding', 'call divert',
+  'customer service', 'customer care', 'helpline', 'support line', 'network operator',
+  'mailbox', 'answer service', 'answering service',
+  // Espanhol
+  'buzón de voz', 'contestador', 'servicio al cliente', 'atención al cliente',
+  // Genéricos de operadoras / códigos
+  'mtn', 'vodafone care', 'vodafone apoio', 'nos apoio', 'meo apoio', 'sim toolkit',
+  'usssd', 'ussd', 'unknown', 'desconhecido', 'private number', 'número privado',
+  'no caller id', 'restricted', 'anonymous',
+];
+
+function ehContactoSistemaOperadora(nome) {
+  if (!nome) return false;
+  const n = nome.toLowerCase().trim();
+  // Nome composto só por dígitos/símbolos curtos típico de código de serviço (ex: "*123#", "1234")
+  if (/^[\d\s\*\#\+\-]+$/.test(n) && n.replace(/\D/g, '').length <= 6) return true;
+  return TERMOS_CONTACTO_SISTEMA.some(termo => n.includes(termo));
+}
+
 async function syncGoogleContacts() {
   pendingGoogleAction = 'contacts';
   const clientId = getGoogleClientId();
@@ -10650,6 +10776,7 @@ async function executarSyncContacts() {
       page++;
     } while (pageToken);
 
+    const totalBruto = allConnections.filter(p => (p.names?.[0]?.displayName || '').trim()).length;
     googleContactsToImport = allConnections.map(p => {
       const nome = p.names?.[0]?.displayName || '';
       const tel = p.phoneNumbers?.[0]?.value || '';
@@ -10657,9 +10784,12 @@ async function executarSyncContacts() {
       // Fix encoding issues with special characters
       const nomeFixed = nome.normalize('NFC');
       return { nome: nomeFixed, tel, email, notas: '' };
-    }).filter(c => c.nome);
+    }).filter(c => c.nome && !ehContactoSistemaOperadora(c.nome));
 
-    status.textContent = `${googleContactsToImport.length} contactos encontrados`;
+    const excluidos = totalBruto - googleContactsToImport.length;
+    status.textContent = excluidos > 0
+      ? `${googleContactsToImport.length} contactos encontrados (${excluidos} ignorados — operadora/sistema)`
+      : `${googleContactsToImport.length} contactos encontrados`;
     status.className = 'gsync-status ok';
 
     // Reset filtros de importação
@@ -11257,7 +11387,7 @@ Responde APENAS com o texto da mensagem, sem título nem explicação.`;
     document.getElementById('msg-texto').value = texto.trim();
     updateMsgCount();
   } catch(e) {
-    showToast('❌ Erro IA: ' + (e.message || 'Tenta novamente'));
+    showToast('❌ ' + mensagemErroIA(e));
   } finally {
     loader.style.display = 'none';
     btn.disabled = false;
@@ -11518,7 +11648,7 @@ Responde APENAS com o texto da mensagem, sem título nem explicação.`;
     document.getElementById('massa-texto').value = texto.trim();
     updateMassaCount();
   } catch(e) {
-    showToast('❌ Erro IA: ' + (e.message || 'Tenta novamente'));
+    showToast('❌ ' + mensagemErroIA(e));
   } finally {
     loader.style.display = 'none';
     btn.disabled = false;
@@ -12003,6 +12133,10 @@ function entrarNaApp(user) {
   // Hide login screen, show app
   document.getElementById('login-screen').classList.add('hidden');
   document.querySelector('.app').style.display = 'flex';
+
+  // Estabelece a entrada inicial do histórico para o botão de retroceder
+  // (Android/Chrome) navegar dentro da app em vez de saltar logo para fora.
+  try { history.replaceState({ lwPage: 'dashboard' }, '', '#dashboard'); } catch(e) {}
 
   // Render dynamic links now that user is known
   renderLinksRapidos();
@@ -13611,6 +13745,16 @@ function coachAdicionarBubble(role, html, id, isHtml = false, comCopiar = false)
       };
       div.appendChild(document.createElement('br'));
       div.appendChild(btn);
+
+      const btnWA = document.createElement('button');
+      btnWA.className = 'coach-copy-btn';
+      btnWA.style.marginLeft = '8px';
+      btnWA.style.background = 'rgba(37,211,102,.12)';
+      btnWA.style.color = '#25d366';
+      btnWA.style.borderColor = 'rgba(37,211,102,.25)';
+      btnWA.textContent = '💬 Enviar WA';
+      btnWA.onclick = () => enviarWhatsAppInteligente(html);
+      div.appendChild(btnWA);
     }
   } else {
     div.textContent = html;
@@ -15616,7 +15760,7 @@ function toggleEstrategiaViagemPage() {
   if (ch) ch.textContent = open ? '▼' : '▲';
 }
 async function viagemGerarEstrategia(viagemId) {
-  const aiAtual = promoAI;
+  const aiAtual = viagemAI;
   if (aiAtual === 'claude' && !claudeKey) { showToast('⚠️ Precisas da chave API Claude'); return; }
   if (aiAtual === 'gemini' && !geminiKey) { showToast('⚠️ Precisas da chave API Gemini'); return; }
 
@@ -15659,7 +15803,24 @@ Gera uma estratégia PRÁTICA e CONCRETA em português europeu para ajudar a ati
   try {
     let estrategia = '';
     if (aiAtual === 'gemini') {
-      estrategia = await callGemini(prompt);
+      try {
+        estrategia = await callGemini(prompt);
+      } catch(geminiErr) {
+        // Fallback automático: se o Gemini falhar (quota/sobrecarga) e houver chave Claude, tenta Claude
+        if (claudeKey) {
+          showToast('⚠️ Gemini indisponível — a tentar com Claude...');
+          const res = await fetch('https://api.anthropic.com/v1/messages', {
+            method: 'POST',
+            headers: { 'Content-Type':'application/json','x-api-key':claudeKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true' },
+            body: JSON.stringify({ model:'claude-sonnet-4-6', max_tokens:1200, messages:[{role:'user',content:prompt}] })
+          });
+          if (!res.ok) throw geminiErr;
+          const data = await res.json();
+          estrategia = data.content?.[0]?.text || '';
+        } else {
+          throw geminiErr;
+        }
+      }
     } else {
       const res = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
@@ -15691,7 +15852,7 @@ Gera uma estratégia PRÁTICA e CONCRETA em português europeu para ajudar a ati
 
     showToast('✅ Estratégia gerada!');
   } catch(err) {
-    showToast('❌ Erro: ' + err.message);
+    showToast('❌ ' + mensagemErroIA(err));
   }
 }
 function renderDashboardViagemCountdown() {
@@ -17246,7 +17407,7 @@ async function gerarMsgMotivacao() {
     document.getElementById('recurso-conteudo').textContent = texto;
     openModal('modal-recurso');
   } catch(e) {
-    showToast('❌ Erro de ligação: ' + (e.message || ''));
+    showToast('❌ ' + mensagemErroIA(e));
   }
 }
 
@@ -18605,7 +18766,7 @@ function abrirDetalhe(id) {
       <div style="font-size:12px;color:var(--text2);line-height:1.7;white-space:pre-wrap;">${p.script}</div>
       <div style="display:flex;gap:8px;margin-top:10px;">
         <button class="btn btn-secondary btn-sm" onclick="navigator.clipboard.writeText(document.querySelector('#cat-modal-content .script-txt')?.textContent||'${p.script.replace(/'/g,'').substring(0,50)}').then(()=>showToast('📋 Script copiado!'))">📋 Copiar</button>
-        <button class="btn btn-wa btn-sm" onclick="window.open('https://wa.me/?text='+encodeURIComponent('${p.script.replace(/'/g,'').substring(0,300)}'),'_blank')">💬 Enviar WA</button>
+        <button class="btn btn-wa btn-sm" onclick="enviarWhatsAppInteligente('${p.script.replace(/'/g,'').replace(/\n/g,' ').substring(0,300)}')">💬 Enviar WA</button>
       </div>
     </div>` : ''}
     <div style="font-size:11px;color:var(--text3);">QV: ${p.qv||0} · BV Direto: ${p.bv_direto||0} · BV Pref: ${p.bv_pref||0}</div>
@@ -18623,7 +18784,7 @@ function abrirDetalhe(id) {
         <div style="font-size:13px;color:var(--text);line-height:1.7;white-space:pre-wrap;" id="cat-gen-texto"></div>
         <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;">
           <button class="btn btn-secondary btn-sm" onclick="navigator.clipboard.writeText(document.getElementById('cat-gen-texto').textContent).then(()=>showToast('📋 Copiado!'))">📋 Copiar</button>
-          <button class="btn btn-wa btn-sm" onclick="window.open('https://wa.me/?text='+encodeURIComponent(document.getElementById('cat-gen-texto').textContent),'_blank')">💬 Enviar WA</button>
+          <button class="btn btn-wa btn-sm" onclick="enviarWhatsAppInteligente(document.getElementById('cat-gen-texto').textContent)">💬 Enviar WA</button>
           <button class="btn btn-secondary btn-sm" onclick="catGerarConteudo(catGenProdutoAtual,catGenTipoAtual,true)" style="font-size:11px;">🔄 Regenerar</button>
         </div>
         <!-- Sugestões de imagem -->
@@ -18749,7 +18910,7 @@ async function catGerarConteudo(produtoId, tipo, forcar) {
 
   } catch(err) {
     loading.style.display = 'none';
-    showToast('Erro ao gerar: ' + err.message);
+    showToast('❌ ' + mensagemErroIA(err));
   }
 }
 
@@ -20260,7 +20421,7 @@ Gera uma estratégia PRÁTICA e CONCRETA em português europeu:
 
     showToast('✅ Estratégia gerada!');
   } catch(err) {
-    showToast('❌ Erro: ' + err.message);
+    showToast('❌ ' + mensagemErroIA(err));
   }
 }
 
@@ -21801,7 +21962,7 @@ Responde APENAS com o texto da mensagem, em Português de Portugal.`;
       }
     }
   } catch(err) {
-    showToast('❌ Erro: ' + err.message);
+    showToast('❌ ' + mensagemErroIA(err));
   }
 }
 
@@ -24060,7 +24221,7 @@ function toggleTmplExpand(id) {
   if (fade) fade.style.display = open ? '' : 'none';
 }
 function copiarTemplate(texto) { navigator.clipboard.writeText(texto); showToast('📋 Template copiado!'); }
-function enviarTemplateWA(texto) { window.open('https://wa.me/?text=' + encodeURIComponent(texto), '_blank'); }
+function enviarTemplateWA(texto) { enviarWhatsAppInteligente(texto); }
 function eliminarTemplate(id) {
   if (!confirm('Eliminar este template?')) return;
   let custom = [];
@@ -24103,7 +24264,7 @@ Responde APENAS com o texto do template, em Português de Portugal. Sem explica�
     _tmplIATexto = resp;
     document.getElementById('tmpl-ia-texto').textContent = resp;
     document.getElementById('tmpl-ia-resultado').style.display = 'block';
-  } catch(e) { showToast('❌ Erro: ' + e.message); }
+  } catch(e) { showToast('❌ ' + mensagemErroIA(e)); }
   finally { document.getElementById('tmpl-ia-loader').style.display = 'none'; document.getElementById('tmpl-ia-btn').disabled = false; }
 }
 function copiarTmplIA() { navigator.clipboard.writeText(_tmplIATexto); showToast('📋 Copiado!'); }
@@ -24238,7 +24399,7 @@ function partilharPromoWA(id) {
   const dias = diasRestantes(p.fim);
   const urgencia = dias !== null && dias <= 3 ? `\n\n⚠️ Termina em ${dias} dia(s) — aproveita!` : '';
   const txt = `📢 *${p.titulo}*\n\n${p.descricao}${urgencia}${p.link ? '\n\n🔗 ' + p.link : ''}`;
-  window.open('https://wa.me/?text=' + encodeURIComponent(txt), '_blank');
+  enviarWhatsAppInteligente(txt);
 }
 function partilharPromocoesEquipa() {
   const ativas = loadPromos().filter(p => promoEstado(p) !== 'encerrada');
@@ -24310,11 +24471,11 @@ Em Português de Portugal. Responde APENAS com o texto da mensagem.`;
     _promoIATexto = resp;
     document.getElementById('promo-ia-texto').textContent = resp;
     document.getElementById('promo-urgencia-resultado').style.display = 'block';
-  } catch(e) { showToast('❌ Erro: ' + e.message); }
+  } catch(e) { showToast('❌ ' + mensagemErroIA(e)); }
   finally { document.getElementById('promo-ia-loader').style.display = 'none'; document.getElementById('promo-ia-btn').disabled = false; }
 }
 function copiarPromoIA() { navigator.clipboard.writeText(_promoIATexto); showToast('📋 Copiado!'); }
-function enviarPromoIAWA() { window.open('https://wa.me/?text=' + encodeURIComponent(_promoIATexto), '_blank'); }
+function enviarPromoIAWA() { enviarWhatsAppInteligente(_promoIATexto); }
 
 </script>
 
@@ -25562,7 +25723,7 @@ async function relatorioGerar() {
     relatorioRenderData(obj);
     showToast('✅ Relatório gerado!');
   } catch(e) {
-    showToast('Erro: ' + e.message);
+    showToast('❌ ' + mensagemErroIA(e));
     banner.style.display = 'none';
     document.getElementById('relatorio-empty').style.display = 'block';
   } finally {
@@ -26787,6 +26948,95 @@ function renderDiarioFeed() {
       </div>
     </div>`;
   }).join('');
+}
+
+
+// =====================================================
+// WHATSAPP DEEPLINK INTELIGENTE (#12)
+// =====================================================
+let _waiTextoPendente = '';
+const WAI_AVATAR_CORES = ['#00d4aa','#0084ff','#f5c842','#ff6b35','#8b9cf7','#25d366'];
+
+function enviarWhatsAppInteligente(texto) {
+  _waiTextoPendente = texto || '';
+  if (typeof leads === 'undefined' || !leads.length) { enviarWAsemLead(); return; }
+  abrirSeletorWA();
+}
+
+function enviarWhatsAppParaLead(leadId, texto) {
+  const l = (typeof leads !== 'undefined') ? leads.find(x => x.id === leadId) : null;
+  const textoFinal = substituirVariaveisWAI(texto, l);
+  if (l && l.tel) {
+    const telLimpo = telParaWaMe(l.tel);
+    window.open(`https://wa.me/${telLimpo}?text=${encodeURIComponent(textoFinal)}`, '_blank');
+  } else {
+    window.open(`https://wa.me/?text=${encodeURIComponent(textoFinal)}`, '_blank');
+  }
+}
+
+function substituirVariaveisWAI(texto, lead) {
+  if (!texto) return '';
+  if (!lead) return texto.replace(/\{nome\}/g, '');
+  return texto.replace(/\{nome\}/g, lead.nome || '');
+}
+
+function abrirSeletorWA() {
+  const input = document.getElementById('wai-search-input');
+  if (input) input.value = '';
+  renderSeletorWALista();
+  document.getElementById('wai-modal-overlay').classList.add('ativo');
+}
+function fecharSeletorWA() {
+  document.getElementById('wai-modal-overlay').classList.remove('ativo');
+  _waiTextoPendente = '';
+}
+
+function renderSeletorWALista() {
+  const q = (document.getElementById('wai-search-input')?.value || '').toLowerCase().trim();
+  const listaEl = document.getElementById('wai-lista');
+  if (!listaEl || typeof leads === 'undefined') return;
+
+  let lista = [...leads];
+  if (q) lista = lista.filter(l => (l.nome || '').toLowerCase().includes(q));
+  lista.sort((a, b) => {
+    const at = a.tel ? 0 : 1, bt = b.tel ? 0 : 1;
+    if (at !== bt) return at - bt;
+    return (a.nome || '').localeCompare(b.nome || '');
+  });
+
+  if (!lista.length) { listaEl.innerHTML = '<div class="wai-empty">Nenhum lead encontrado</div>'; return; }
+
+  listaEl.innerHTML = lista.map(l => {
+    const initials = (l.nome || '?').split(' ').map(p => p[0]).slice(0, 2).join('').toUpperCase();
+    const cor = WAI_AVATAR_CORES[(l.nome || '').charCodeAt(0) % WAI_AVATAR_CORES.length];
+    return `<div class="wai-item" onclick="selecionarLeadParaWA('${l.id}')">
+      <div class="wai-avatar" style="background:linear-gradient(135deg,${cor},${cor}99)">${initials}</div>
+      <div class="wai-info">
+        <div class="wai-nome">${escHtml(l.nome)}</div>
+        <div class="wai-meta">${estadoLabel(l.estado)}</div>
+      </div>
+      ${!l.tel ? '<span class="wai-no-tel">sem nº</span>' : ''}
+    </div>`;
+  }).join('');
+}
+
+function selecionarLeadParaWA(leadId) {
+  const l = leads.find(x => x.id === leadId);
+  const textoFinal = substituirVariaveisWAI(_waiTextoPendente, l);
+  fecharSeletorWA();
+  if (l && l.tel) {
+    const telLimpo = telParaWaMe(l.tel);
+    window.open(`https://wa.me/${telLimpo}?text=${encodeURIComponent(textoFinal)}`, '_blank');
+  } else {
+    window.open(`https://wa.me/?text=${encodeURIComponent(textoFinal)}`, '_blank');
+    if (l) showToast('ℹ️ ' + l.nome + ' não tem número guardado — escolhe o contacto no WhatsApp');
+  }
+}
+
+function enviarWAsemLead() {
+  const textoFinal = substituirVariaveisWAI(_waiTextoPendente, null);
+  fecharSeletorWA();
+  window.open(`https://wa.me/?text=${encodeURIComponent(textoFinal)}`, '_blank');
 }
 
 </script>
