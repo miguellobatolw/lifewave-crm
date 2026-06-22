@@ -4132,10 +4132,10 @@
 
       <div class="ai-selector-bar" id="posts-ai-selector">
         <span class="ai-selector-label">🤖 IA:</span>
-        <button class="ai-btn active-claude" id="posts-btn-claude" onclick="setAI('posts','claude')">
+        <button class="ai-btn" id="posts-btn-claude" onclick="setAI('posts','claude')">
           <span>🧠</span> Claude
         </button>
-        <button class="ai-btn" id="posts-btn-gemini" onclick="setAI('posts','gemini')">
+        <button class="ai-btn active-gemini" id="posts-btn-gemini" onclick="setAI('posts','gemini')">
           <span style="font-size:14px;">✦</span> Gemini
         </button>
       </div>
@@ -4159,7 +4159,7 @@
 
       <div class="ai-note" id="posts-ai-note">
         <span>🤖</span>
-        <span id="posts-ai-note-text">Claude gera posts em <strong>Português de Portugal</strong>, adaptados ao estilo LifeWave X39 — autêntico, empático e sem pressão de vendas.</span>
+        <span id="posts-ai-note-text">Gemini gera posts em <strong>Português de Portugal</strong>, adaptados ao estilo LifeWave X39 — autêntico, empático e sem pressão de vendas.</span>
       </div>
 
       <div class="posts-grid">
@@ -4331,10 +4331,10 @@
 
       <div class="ai-selector-bar" id="resp-ai-selector">
         <span class="ai-selector-label">🤖 IA:</span>
-        <button class="ai-btn active-claude" id="resp-btn-claude" onclick="setAI('resp','claude')">
+        <button class="ai-btn" id="resp-btn-claude" onclick="setAI('resp','claude')">
           <span>🧠</span> Claude
         </button>
-        <button class="ai-btn" id="resp-btn-gemini" onclick="setAI('resp','gemini')">
+        <button class="ai-btn active-gemini" id="resp-btn-gemini" onclick="setAI('resp','gemini')">
           <span style="font-size:14px;">✦</span> Gemini
         </button>
       </div>
@@ -5083,14 +5083,14 @@
         <!-- AI selector (reaproveita o seletor do Plano de Compensação) -->
         <div class="ai-selector-bar" style="margin-bottom:14px;">
           <span class="ai-selector-label">IA para análise:</span>
-          <button class="ai-btn active-claude" id="viagem-btn-claude" onclick="viagemSetAI('claude')">🧠 Claude</button>
-          <button class="ai-btn" id="viagem-btn-gemini" onclick="viagemSetAI('gemini')">✦ Gemini</button>
+          <button class="ai-btn" id="viagem-btn-claude" onclick="viagemSetAI('claude')">🧠 Claude</button>
+          <button class="ai-btn active-gemini" id="viagem-btn-gemini" onclick="viagemSetAI('gemini')">✦ Gemini</button>
         </div>
-        <div class="gemini-key-row" id="viagem-gemini-key-row">
+        <div class="gemini-key-row show" id="viagem-gemini-key-row">
           <input type="password" id="viagem-gemini-key" placeholder="Chave API Gemini (AIza...) — grátis em aistudio.google.com" oninput="saveViagemGeminiKey(this.value)">
           <span class="gemini-key-status" id="viagem-gemini-status"></span>
         </div>
-        <div class="gemini-key-row show" id="viagem-claude-key-row">
+        <div class="gemini-key-row" id="viagem-claude-key-row">
           <input type="password" id="viagem-claude-key" placeholder="Chave API Claude (sk-ant-...)" oninput="saveViagemClaudeKey(this.value)">
           <span class="gemini-key-status" id="viagem-claude-status"></span>
         </div>
@@ -5619,14 +5619,14 @@
         <!-- AI selector -->
         <div class="ai-selector-bar" style="margin-bottom:14px;">
           <span class="ai-selector-label">IA para análise:</span>
-          <button class="ai-btn active-claude" id="plano-btn-claude" onclick="planoSetAI('claude')">🧠 Claude</button>
-          <button class="ai-btn" id="plano-btn-gemini" onclick="planoSetAI('gemini')">✦ Gemini</button>
+          <button class="ai-btn" id="plano-btn-claude" onclick="planoSetAI('claude')">🧠 Claude</button>
+          <button class="ai-btn active-gemini" id="plano-btn-gemini" onclick="planoSetAI('gemini')">✦ Gemini</button>
         </div>
-        <div class="gemini-key-row" id="plano-gemini-key-row">
+        <div class="gemini-key-row show" id="plano-gemini-key-row">
           <input type="password" id="plano-gemini-key" placeholder="Chave API Gemini (AIza...) — grátis em aistudio.google.com" oninput="savePlanoGeminiKey(this.value)">
           <span class="gemini-key-status" id="plano-gemini-status"></span>
         </div>
-        <div class="gemini-key-row show" id="plano-claude-key-row">
+        <div class="gemini-key-row" id="plano-claude-key-row">
           <input type="password" id="plano-claude-key" placeholder="Chave API Claude (sk-ant-...)" oninput="savePlanoClaudeKey(this.value)">
           <span class="gemini-key-status" id="plano-claude-status"></span>
         </div>
@@ -5933,8 +5933,8 @@
       <!-- AI SELECTOR -->
       <div class="ai-selector-bar" id="stories-ai-selector">
         <span class="ai-selector-label">🤖 IA:</span>
-        <button class="ai-btn active-claude" id="stories-btn-claude" onclick="storiesSetAI('claude')"><span>🧠</span> Claude</button>
-        <button class="ai-btn" id="stories-btn-gemini" onclick="storiesSetAI('gemini')"><span style="font-size:14px;">✦</span> Gemini</button>
+        <button class="ai-btn" id="stories-btn-claude" onclick="storiesSetAI('claude')"><span>🧠</span> Claude</button>
+        <button class="ai-btn active-gemini" id="stories-btn-gemini" onclick="storiesSetAI('gemini')"><span style="font-size:14px;">✦</span> Gemini</button>
       </div>
       <div class="local-warning" id="stories-local-warning">
         <strong>⚠️ Ficheiro local detetado</strong> — Usa o Gemini ou abre a app num servidor.<br>
@@ -9772,8 +9772,8 @@ function copiarLink(url, nome) {
 }
 
 // ===== AI SELECTOR =====
-let postsAI = localStorage.getItem('lw_postsAI') || 'claude';
-let respAI  = localStorage.getItem('lw_respAI')  || 'claude';
+let postsAI = localStorage.getItem('lw_postsAI') || 'gemini';
+let respAI  = localStorage.getItem('lw_respAI')  || 'gemini';
 let geminiKey = localStorage.getItem('lw_geminiKey') || '';
 let claudeKey = localStorage.getItem('lw_claudeKey') || '';
 
@@ -9790,7 +9790,7 @@ if (!geminiKey) {
 function saveClaudeKey(val) {
   claudeKey = val.trim();
   localStorage.setItem('lw_claudeKey', claudeKey);
-  ['posts','resp','viagem','plano','promo'].forEach(p => {
+  ['posts','resp','viagem','plano','promo','massa','msg'].forEach(p => {
     const st = document.getElementById(p + '-claude-status');
     if (st) st.textContent = claudeKey.length > 10 ? '✅ Guardada' : '';
     const inp = document.getElementById(p + '-claude-key');
@@ -9801,7 +9801,7 @@ function saveClaudeKey(val) {
 function saveGeminiKey(val) {
   geminiKey = val.trim();
   localStorage.setItem('lw_geminiKey', geminiKey);
-  ['posts','resp','viagem','plano','promo'].forEach(p => {
+  ['posts','resp','viagem','plano','promo','massa','msg'].forEach(p => {
     const st = document.getElementById(p + '-gemini-status');
     if (st) st.textContent = geminiKey.length > 10 ? '✅ Guardada' : '';
     const inp = document.getElementById(p + '-gemini-key');
@@ -9838,7 +9838,7 @@ function setAI(page, ai) {
 }
 
 function syncGeminiKeyInputs() {
-  ['posts','resp'].forEach(p => {
+  ['posts','resp','massa','msg'].forEach(p => {
     const inp = document.getElementById(p + '-gemini-key');
     const st  = document.getElementById(p + '-gemini-status');
     if (inp) inp.value = geminiKey;
@@ -9847,12 +9847,41 @@ function syncGeminiKeyInputs() {
 }
 
 function syncClaudeKeyInputs() {
-  ['posts','resp'].forEach(p => {
+  ['posts','resp','massa','msg'].forEach(p => {
     const inp = document.getElementById(p + '-claude-key');
     const st  = document.getElementById(p + '-claude-status');
     if (inp) inp.value = claudeKey;
     if (st)  st.textContent = claudeKey.length > 10 ? '✅ Guardada' : '';
   });
+}
+
+function setMassaAI(ai) {
+  // Reuse postsAI so callAI('posts',...) picks up the change
+  postsAI = ai;
+  localStorage.setItem('lw_postsAI', ai);
+  // Sync buttons in all AI selectors (posts page + massa modal)
+  ['posts','massa','msg'].forEach(prefix => {
+    const btnC = document.getElementById(prefix + '-btn-claude');
+    const btnG = document.getElementById(prefix + '-btn-gemini');
+    if (btnC) btnC.className = 'ai-btn' + (ai === 'claude' ? ' active-claude' : '');
+    if (btnG) btnG.className = 'ai-btn' + (ai === 'gemini' ? ' active-gemini' : '');
+    const gRow = document.getElementById(prefix + '-gemini-key-row');
+    const cRow = document.getElementById(prefix + '-claude-key-row');
+    if (gRow) gRow.classList.toggle('show', ai === 'gemini');
+    if (cRow) cRow.classList.toggle('show', ai === 'claude');
+  });
+  if (ai === 'gemini') syncGeminiKeyInputs();
+  if (ai === 'claude') syncClaudeKeyInputs();
+}
+
+function setMsgAI(ai) { setMassaAI(ai); }
+
+function initMassaAISelector() {
+  setMassaAI(postsAI);
+}
+
+function initMsgAISelector() {
+  setMassaAI(postsAI);
 }
 
 function initAISelector() {
@@ -11100,6 +11129,7 @@ function abrirMensagem(leadId, canal) {
 
   setMsgCanal(msgCanal);
   openModal('modal-mensagem');
+  initMsgAISelector();
 }
 
 function setMsgCanal(canal) {
@@ -11335,6 +11365,7 @@ function abrirMensagemMassa(canal) {
   document.querySelectorAll('#massa-lead-type-pills .tone-pill').forEach((p, i) => p.classList.toggle('active', i === 0));
   massaLeadType = 'quente';
   openModal('modal-massa');
+  initMassaAISelector();
   atualizarContadorMassa();
 }
 
@@ -13015,9 +13046,9 @@ initAISelector();
     const el = document.getElementById(id);
     if (el) el.style.display = 'block';
   });
-  // Auto-switch to Gemini if no preference saved yet
-  if (!localStorage.getItem('lw_postsAI') || localStorage.getItem('lw_postsAI') === 'claude') {
-    if (geminiKey) { setAI('posts','gemini'); setAI('resp','gemini'); }
+  // Auto-switch to Gemini if no preference saved yet (Gemini is now default)
+  if (!localStorage.getItem('lw_postsAI')) {
+    setAI('posts','gemini'); setAI('resp','gemini');
   }
 })();
 
@@ -13180,7 +13211,7 @@ function abrirGuiaoIA(leadId) {
 }
 
 async function gerarGuiaoIA() {
-  const ai = postsAI || 'claude';
+  const ai = postsAI || 'gemini';
   if (ai === 'claude' && !claudeKey) { showToast('⚠️ Falta a chave API Claude'); return; }
   if (ai === 'gemini' && !geminiKey) { showToast('⚠️ Falta a chave API Gemini'); return; }
 
@@ -13446,7 +13477,7 @@ async function coachEnviar() {
   if (!texto) return;
 
   // Verificar chave
-  const ai = postsAI || 'claude';
+  const ai = postsAI || 'gemini';
   if (ai === 'claude' && !claudeKey) {
     coachAdicionarBubble('bot', '⚠️ Falta a chave API do Claude.\nVai a "Criar Posts IA" e introduz a tua chave.');
     return;
@@ -16061,7 +16092,7 @@ function renderLuminate() {
 let viagemUploadBase64 = null;
 let viagemUploadMediaType = null;
 let viagemUploadIsPdf = false;
-let viagemAI = localStorage.getItem('lw_viagemAI') || 'claude';
+let viagemAI = localStorage.getItem('lw_viagemAI') || 'gemini';
 
 function viagemSetAI(ai) {
   viagemAI = ai;
@@ -19023,6 +19054,31 @@ async function catMostrarImagens(produtoId) {
       </div>
     </div>
 
+    <!-- Mini seletor de IA para o modal-massa -->
+    <div style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px 12px;margin-bottom:12px;">
+      <div class="ai-selector-bar" style="margin-bottom:0;" id="massa-ai-selector">
+        <span class="ai-selector-label">🤖 IA:</span>
+        <button class="ai-btn" id="massa-btn-claude" onclick="setMassaAI('claude')">
+          <span>🧠</span> Claude
+        </button>
+        <button class="ai-btn active-gemini" id="massa-btn-gemini" onclick="setMassaAI('gemini')">
+          <span style="font-size:14px;">✦</span> Gemini
+        </button>
+      </div>
+      <div class="gemini-key-row" id="massa-gemini-key-row">
+        <span style="font-size:18px;">🔑</span>
+        <input type="password" id="massa-gemini-key" placeholder="Chave API Gemini (AIza...)" oninput="saveGeminiKey(this.value)">
+        <span class="gemini-key-status" id="massa-gemini-status"></span>
+        <a href="https://aistudio.google.com/app/apikey" target="_blank" style="font-size:11px;color:#4285f4;white-space:nowrap;">Obter chave →</a>
+      </div>
+      <div class="gemini-key-row" id="massa-claude-key-row">
+        <span style="font-size:18px;">🔑</span>
+        <input type="password" id="massa-claude-key" placeholder="Chave API Claude (sk-ant-...)" oninput="saveClaudeKey(this.value)">
+        <span class="gemini-key-status" id="massa-claude-status"></span>
+        <a href="https://console.anthropic.com/settings/keys" target="_blank" style="font-size:11px;color:var(--accent);white-space:nowrap;">Obter chave →</a>
+      </div>
+    </div>
+
     <!-- IA loader -->
     <div id="massa-ia-loader" style="display:none;text-align:center;padding:10px 0;font-size:13px;color:var(--text2);">
       🤖 A gerar mensagem com IA...
@@ -19141,6 +19197,31 @@ async function catMostrarImagens(produtoId) {
         <button class="btn btn-secondary btn-sm" data-cat="negocio" onclick="usarTemplate('followup');document.getElementById('msg-ia-objetivo').value='followup';toggleCampoRespostaLead()">🔄 Follow-up</button>
         <button class="btn btn-secondary btn-sm" data-cat="produto" onclick="usarTemplate('info');document.getElementById('msg-ia-objetivo').value='info';toggleCampoRespostaLead()">📦 Info produto</button>
         <button class="btn btn-secondary btn-sm" data-cat="produto" onclick="usarTemplate('cliente');document.getElementById('msg-ia-objetivo').value='cliente';toggleCampoRespostaLead()">🎉 Bem-vindo cliente</button>
+      </div>
+    </div>
+
+    <!-- Mini seletor de IA para o modal-mensagem -->
+    <div style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px 12px;margin-bottom:12px;">
+      <div class="ai-selector-bar" style="margin-bottom:0;" id="msg-ai-selector">
+        <span class="ai-selector-label">🤖 IA:</span>
+        <button class="ai-btn" id="msg-btn-claude" onclick="setMsgAI('claude')">
+          <span>🧠</span> Claude
+        </button>
+        <button class="ai-btn active-gemini" id="msg-btn-gemini" onclick="setMsgAI('gemini')">
+          <span style="font-size:14px;">✦</span> Gemini
+        </button>
+      </div>
+      <div class="gemini-key-row" id="msg-gemini-key-row">
+        <span style="font-size:18px;">🔑</span>
+        <input type="password" id="msg-gemini-key" placeholder="Chave API Gemini (AIza...)" oninput="saveGeminiKey(this.value)">
+        <span class="gemini-key-status" id="msg-gemini-status"></span>
+        <a href="https://aistudio.google.com/app/apikey" target="_blank" style="font-size:11px;color:#4285f4;white-space:nowrap;">Obter chave →</a>
+      </div>
+      <div class="gemini-key-row" id="msg-claude-key-row">
+        <span style="font-size:18px;">🔑</span>
+        <input type="password" id="msg-claude-key" placeholder="Chave API Claude (sk-ant-...)" oninput="saveClaudeKey(this.value)">
+        <span class="gemini-key-status" id="msg-claude-status"></span>
+        <a href="https://console.anthropic.com/settings/keys" target="_blank" style="font-size:11px;color:var(--accent);white-space:nowrap;">Obter chave →</a>
       </div>
     </div>
 
@@ -19617,7 +19698,7 @@ let promoExpandido = false;
 let promoUploadBase64 = null;
 let promoUploadMediaType = null;
 let promoUploadIsPdf = false;
-let promoAI = localStorage.getItem('lw_promoAI') || 'claude';
+let promoAI = localStorage.getItem('lw_promoAI') || 'gemini';
 
 function setPromoAI(ai) {
   promoAI = ai;
@@ -20311,7 +20392,7 @@ function carregarPlanoHistorico() {
 let planoUploadBase64   = null;
 let planoUploadMediaType = null;
 let planoUploadIsPdf    = false;
-let planoAI = localStorage.getItem(PLANO_AI_KEY) || 'claude';
+let planoAI = localStorage.getItem(PLANO_AI_KEY) || 'gemini';
 
 function planoSetAI(ai) {
   planoAI = ai;
@@ -22645,7 +22726,7 @@ async function alertasIAAnalisar() {
 // MÓDULO: STORIES & REELS IA
 // ============================================================
 const SR_BIBLIOTECA_KEY = 'lw_sr_biblioteca';
-let srAI = 'claude';
+let srAI = 'gemini';
 let srFormato = 'story';
 let srTipo = 'testemunho';
 let srUltimoTexto = '';
