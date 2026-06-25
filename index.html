@@ -3666,10 +3666,7 @@
         <span class="nav-icon">🗓️</span>
         <span>Agenda</span>
       </div>
-      <div class="nav-item" onclick="goTo('respostas')">
-        <span class="nav-icon">💬</span>
-        <span>Respostas Rápidas</span>
-      </div>
+      
       <div class="nav-item" onclick="goTo('coach')">
         <span class="nav-icon">🤖</span>
         <span>Coach IA</span>
@@ -4116,7 +4113,7 @@
         <div class="filtros-top">
           <div class="filtro-search-wrap">
             <span class="filtro-search-icon">🔍</span>
-            <input class="form-input" id="input-pesquisa-acoes" placeholder="Pesquisar por nome, estado, mercado..." oninput="filtrarAcoesPorTexto(this.value)">
+            <input class="form-input" id="input-pesquisa-acoes" placeholder="Pesquisar por nome, estado, mercado..." oninput="_filtrarAcoesDebounced(this.value)">
           </div>
           <button class="btn-limpar-filtros" onclick="limparPesquisaAcoes()" title="Limpar pesquisa">✕ Limpar</button>
         </div>
@@ -4160,7 +4157,7 @@
           <!-- Pesquisa global -->
           <div class="filtro-search-wrap">
             <span class="filtro-search-icon">🔍</span>
-            <input class="form-input" id="input-pesquisa" placeholder="Pesquisar por nome, telefone, email, notas..." oninput="aplicarFiltros()">
+            <input class="form-input" id="input-pesquisa" placeholder="Pesquisar por nome, telefone, email, notas..." oninput="_aplicarFiltrosDebounced()">
           </div>
           <!-- Botão filtros avançados -->
           <button class="btn-toggle-filtros" id="btn-toggle-filtros" onclick="toggleFiltrosAvancados()">
@@ -4177,12 +4174,12 @@
 
           <div class="filtro-group">
             <div class="filtro-label">Por Nome</div>
-            <input class="form-input" id="f-filtro-nome" placeholder="Nome..." oninput="aplicarFiltros()">
+            <input class="form-input" id="f-filtro-nome" placeholder="Nome..." oninput="_aplicarFiltrosDebounced()">
           </div>
 
           <div class="filtro-group">
             <div class="filtro-label">Por Telefone</div>
-            <input class="form-input" id="f-filtro-tel" placeholder="Ex: 912..." oninput="aplicarFiltros()">
+            <input class="form-input" id="f-filtro-tel" placeholder="Ex: 912..." oninput="_aplicarFiltrosDebounced()">
           </div>
 
           <div class="filtro-group">
@@ -4207,7 +4204,7 @@
 
           <div class="filtro-group">
             <div class="filtro-label">Por Email</div>
-            <input class="form-input" id="f-filtro-email" placeholder="@gmail, @hotmail..." oninput="aplicarFiltros()">
+            <input class="form-input" id="f-filtro-email" placeholder="@gmail, @hotmail..." oninput="_aplicarFiltrosDebounced()">
           </div>
 
           <div class="filtro-group">
@@ -4345,25 +4342,6 @@
         O Claude não funciona quando a app é aberta como ficheiro (bloqueio de segurança do browser).<br>
         👉 <strong>Usa o Gemini:</strong> seleciona "✦ Gemini" acima → obtém chave grátis em <strong>aistudio.google.com</strong>
       </div>
-      <div class="gemini-key-row" id="posts-gemini-key-row">
-        <span style="font-size:18px;">🔑</span>
-        <input type="password" id="posts-gemini-key" placeholder="Chave API Gemini (AIza...)" oninput="saveGeminiKey(this.value)">
-        <span class="gemini-key-status" id="posts-gemini-status"></span>
-        <a href="https://aistudio.google.com/app/apikey" target="_blank" style="font-size:11px;color:#4285f4;white-space:nowrap;">Obter chave →</a>
-      </div>
-      <div class="gemini-key-row" id="posts-claude-key-row">
-        <span style="font-size:18px;">🔑</span>
-        <input type="password" id="posts-claude-key" placeholder="Chave API Claude (sk-ant-...)" oninput="saveClaudeKey(this.value)">
-        <span class="gemini-key-status" id="posts-claude-status"></span>
-        <a href="https://console.anthropic.com/settings/keys" target="_blank" style="font-size:11px;color:var(--accent);white-space:nowrap;">Obter chave →</a>
-      </div>
-      <div class="grok-key-row" id="posts-grok-key-row">
-        <span style="font-size:18px;">🔑</span>
-        <input type="password" id="posts-grok-key" placeholder="Chave API Grok (xai-...)" oninput="saveGrokKey(this.value)">
-        <span class="gemini-key-status" id="posts-grok-status"></span>
-        <a href="https://console.x.ai/" target="_blank" style="font-size:11px;color:#e0e0e0;white-space:nowrap;">Obter chave →</a>
-      </div>
-
       <div class="ai-note" id="posts-ai-note">
         <span>🤖</span>
         <span id="posts-ai-note-text">Gemini gera posts em <strong>Português de Portugal</strong>, adaptados ao estilo LifeWave X39 — autêntico, empático e sem pressão de vendas.</span>
@@ -4530,201 +4508,6 @@
     </div>
 
     <!-- RESPOSTAS RÁPIDAS -->
-    <div id="page-respostas" class="page">
-      <div class="page-header">
-        <div>
-          <div class="page-title">💬 Respostas Rápidas com IA</div>
-          <div class="page-sub">Gera respostas personalizadas para WhatsApp, Messenger e Instagram</div>
-        </div>
-      </div>
-
-      <div class="ai-selector-bar" id="resp-ai-selector">
-        <span class="ai-selector-label">🤖 IA:</span>
-        <button class="ai-btn" id="resp-btn-claude" onclick="setAI('resp','claude')">
-          <span>🧠</span> Claude
-        </button>
-        <button class="ai-btn active-gemini" id="resp-btn-gemini" onclick="setAI('resp','gemini')">
-          <span style="font-size:14px;">✦</span> Gemini
-        </button>
-        <button class="ai-btn" id="resp-btn-grok" onclick="setAI('resp','grok')">
-          <span>⚡</span> Grok
-        </button>
-      </div>
-      <div class="local-warning" id="resp-local-warning">
-        <strong>⚠️ Ficheiro local detetado</strong>
-        O Claude não funciona quando a app é aberta como ficheiro (bloqueio de segurança do browser).<br>
-        👉 <strong>Usa o Gemini:</strong> seleciona "✦ Gemini" acima → obtém chave grátis em <strong>aistudio.google.com</strong>
-      </div>
-      <div class="gemini-key-row" id="resp-gemini-key-row">
-        <span style="font-size:18px;">🔑</span>
-        <input type="password" id="resp-gemini-key" placeholder="Chave API Gemini (AIza...)" oninput="saveGeminiKey(this.value)">
-        <span class="gemini-key-status" id="resp-gemini-status"></span>
-        <a href="https://aistudio.google.com/app/apikey" target="_blank" style="font-size:11px;color:#4285f4;white-space:nowrap;">Obter chave →</a>
-      </div>
-      <div class="gemini-key-row" id="resp-claude-key-row">
-        <span style="font-size:18px;">🔑</span>
-        <input type="password" id="resp-claude-key" placeholder="Chave API Claude (sk-ant-...)" oninput="saveClaudeKey(this.value)">
-        <span class="gemini-key-status" id="resp-claude-status"></span>
-        <a href="https://console.anthropic.com/settings/keys" target="_blank" style="font-size:11px;color:var(--accent);white-space:nowrap;">Obter chave →</a>
-      </div>
-      <div class="grok-key-row" id="resp-grok-key-row">
-        <span style="font-size:18px;">🔑</span>
-        <input type="password" id="resp-grok-key" placeholder="Chave API Grok (xai-...)" oninput="saveGrokKey(this.value)">
-        <span class="gemini-key-status" id="resp-grok-status"></span>
-        <a href="https://console.x.ai/" target="_blank" style="font-size:11px;color:#e0e0e0;white-space:nowrap;">Obter chave →</a>
-      </div>
-
-      <div class="ai-note">
-        <span>🔗</span>
-        <span>Os teus links pessoais são incluídos automaticamente nas respostas sempre que relevante.</span>
-      </div>
-
-      <div class="posts-grid">
-        <!-- ESQUERDA: configuração -->
-        <div class="post-generator">
-          <div class="section-title">⚙️ Configurar Resposta</div>
-
-          <div class="form-group">
-            <div class="form-label">Canal de Mensagem</div>
-            <div class="platform-pills" id="msg-platform-pills">
-              <div class="pill active" onclick="setMsgPlatform(this,'WhatsApp')">💬 WhatsApp</div>
-              <div class="pill" onclick="setMsgPlatform(this,'Messenger')">💙 Messenger</div>
-              <div class="pill" onclick="setMsgPlatform(this,'Instagram DM')">📸 Instagram DM</div>
-            </div>
-          </div>
-
-          <div class="form-group">
-            <div class="form-label">Tipo de Lead</div>
-            <div class="tone-pills" id="lead-type-pills">
-              <div class="tone-pill active" onclick="setLeadType(this,'quente')">🔥 Quente</div>
-              <div class="tone-pill" onclick="setLeadType(this,'morno')">🌤 Morno</div>
-              <div class="tone-pill" onclick="setLeadType(this,'frio')">❄️ Frio</div>
-            </div>
-          </div>
-
-          <div class="form-group">
-            <div class="form-label">A pessoa perguntou / disse</div>
-            <select class="form-select" id="pergunta-select" onchange="checkCustom()">
-              <optgroup label="🛒 Sobre o Produto X39">
-                <option value="o que é o x39">O que é o X39?</option>
-                <option value="como funciona o patch x39">Como funciona o patch?</option>
-                <option value="para que serve o x39">Para que serve o X39?</option>
-                <option value="quais os benefícios do x39">Quais os benefícios?</option>
-                <option value="tem estudos científicos">Tem estudos científicos?</option>
-                <option value="é seguro usar o x39">É seguro usar?</option>
-                <option value="quanto tempo para sentir resultados">Quanto tempo para sentir resultados?</option>
-                <option value="como se usa o patch x39">Como se usa?</option>
-                <option value="posso usar com medicação">Posso usar com medicação?</option>
-              </optgroup>
-              <optgroup label="💰 Sobre o Preço / Compra">
-                <option value="quanto custa o x39">Quanto custa?</option>
-                <option value="como posso comprar o x39">Como posso comprar?</option>
-                <option value="há desconto ou promoção">Há desconto ou promoção?</option>
-                <option value="qual a diferença entre cliente e distribuidor">Diferença entre cliente e distribuidor?</option>
-                <option value="posso experimentar antes de comprar">Posso experimentar antes?</option>
-              </optgroup>
-              <optgroup label="🤝 Sobre o Negócio">
-                <option value="como funciona o negócio lifewave">Como funciona o negócio?</option>
-                <option value="quanto se pode ganhar com lifewave">Quanto se pode ganhar?</option>
-                <option value="é uma pirâmide ou mlm">É uma pirâmide?</option>
-                <option value="o que tenho de fazer para começar o negócio">O que tenho de fazer para começar?</option>
-                <option value="preciso de ter muita gente para ganhar dinheiro">Preciso de muita gente para ganhar?</option>
-                <option value="já tentei mlm antes e não funcionou">Já tentei MLM e não funcionou</option>
-              </optgroup>
-              <optgroup label="😒 Objeções / Resistências">
-                <option value="não acredito nisso">Não acredito nisso</option>
-                <option value="parece uma fraude ou esquema">Parece fraude / esquema</option>
-                <option value="não tenho dinheiro para isso">Não tenho dinheiro para isso</option>
-                <option value="não tenho tempo para isso">Não tenho tempo para isso</option>
-                <option value="tenho de pensar">Tenho de pensar / deixa ver</option>
-                <option value="já ouvi falar mas não me interessa">Já ouvi falar, não me interessa</option>
-                <option value="vou falar com o meu médico">Vou falar com o meu médico</option>
-              </optgroup>
-              <optgroup label="✅ Interesse / Próximo Passo">
-                <option value="quero saber mais sobre o x39">Quero saber mais</option>
-                <option value="onde posso ver mais informação sobre lifewave">Onde ver mais informação?</option>
-                <option value="como me registro na lifewave">Como me registro / inscrevo?</option>
-                <option value="quero começar como distribuidor">Quero começar como distribuidor</option>
-              </optgroup>
-              <option value="outro">✏️ Outra pergunta (escrever)</option>
-            </select>
-          </div>
-
-          <div class="form-group" id="custom-pergunta-group" style="display:none;">
-            <div class="form-label">Escreve a pergunta / mensagem recebida</div>
-            <textarea class="form-textarea" id="custom-pergunta" placeholder="Ex: O meu marido tem dores nas costas, o X39 pode ajudar?" style="min-height:70px;"></textarea>
-          </div>
-
-          <div class="form-group">
-            <div class="form-label">📸 Print da Conversa (opcional)</div>
-            <div class="screenshot-zone" id="screenshot-zone">
-              <input type="file" accept="image/*" id="screenshot-input" onchange="handleScreenshot(this)">
-              <div class="img-upload-label">
-                <span class="upload-icon">📱</span>
-                <span>Faz upload de um print do WhatsApp / Messenger / Instagram</span>
-                <span style="font-size:10px;color:var(--text3);">A IA lê a conversa e gera a resposta automaticamente</span>
-              </div>
-              <img id="screenshot-preview" class="screenshot-preview" src="" alt="preview">
-            </div>
-            <div id="screenshot-remove-row" style="display:none;margin-top:6px;">
-              <button class="btn btn-danger btn-sm" onclick="removerScreenshot()">✕ Remover print</button>
-            </div>
-          </div>
-
-          <div class="form-group">
-            <div class="form-label">Contexto extra (opcional)</div>
-            <textarea class="form-textarea" id="resp-contexto" placeholder="Ex: A pessoa é professora, tem 45 anos, já falou comigo antes sobre energia..." style="min-height:60px;"></textarea>
-          </div>
-
-          <div class="form-group">
-            <div class="form-label">Incluir link na resposta?</div>
-            <select class="form-select" id="link-select">
-              <option value="nenhum">Sem link (só resposta)</option>
-              <option value="produto">🛒 Funil de Produto (X39)</option>
-              <option value="negocio">🤝 Funil de Negócio</option>
-              <option value="registo">📋 Link de Registo direto</option>
-              <option value="produtos-direto">🔗 Produtos (link direto)</option>
-              <option value="negocio-direto">🔗 Negócio (link direto)</option>
-            </select>
-          </div>
-
-          <button class="btn btn-ai" style="width:100%;justify-content:center;padding:13px;" onclick="gerarResposta()" id="btn-gerar-resp">
-            🤖 Gerar Resposta com IA
-          </button>
-        </div>
-
-        <!-- DIREITA: resultado -->
-        <div class="post-output">
-          <div class="section-title">📨 Resposta Gerada</div>
-          <div class="ai-result" id="resp-result">
-            <div class="ai-loader" id="resp-loader">
-              <div class="spinner"></div>
-              <div class="ai-label" id="resp-loader-label">A IA está a escrever a resposta...</div>
-            </div>
-            <span id="resp-text" style="color:var(--text2);font-style:italic;">A resposta aparecerá aqui. Seleciona a pergunta e clica em "Gerar Resposta".</span>
-          </div>
-          <div class="copy-bar" id="resp-copy-bar" style="display:none;">
-            <button class="btn btn-secondary btn-sm" onclick="copiarResposta()">📋 Copiar</button>
-            <button class="btn btn-ai btn-sm" onclick="gerarResposta()">🔄 Gerar outra versão</button>
-            <button class="btn btn-secondary btn-sm" id="resp-traduzir-btn" onclick="traduzirResposta()" title="Traduzir para o idioma do teu dispositivo">🌐 Traduzir</button>
-          </div>
-
-          <!-- LINKS RÁPIDOS — renderizados dinamicamente via renderLinksRapidos() -->
-          <div style="margin-top:20px;">
-            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
-              <div class="section-title" style="margin:0;">🔗 Os Teus Links (clica para copiar)</div>
-              <button class="btn btn-secondary btn-sm" onclick="abrirPerfilModal(false)" title="Configurar os teus links">⚙️ Editar</button>
-            </div>
-            <div style="display:flex;flex-direction:column;gap:8px;" id="links-rapidos">
-              <div style="font-size:12px;color:var(--text2);padding:12px;background:var(--surface2);border-radius:8px;">
-                ⚙️ Configura o teu perfil para ver os teus links personalizados.
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
     <!-- AGENDA -->
     <div id="page-agenda" class="page">
       <div class="page-header">
@@ -5351,15 +5134,6 @@
           <button class="ai-btn" id="viagem-btn-claude" onclick="viagemSetAI('claude')">🧠 Claude</button>
           <button class="ai-btn active-gemini" id="viagem-btn-gemini" onclick="viagemSetAI('gemini')">✦ Gemini</button>
         </div>
-        <div class="gemini-key-row show" id="viagem-gemini-key-row">
-          <input type="password" id="viagem-gemini-key" placeholder="Chave API Gemini (AIza...) — grátis em aistudio.google.com" oninput="saveViagemGeminiKey(this.value)">
-          <span class="gemini-key-status" id="viagem-gemini-status"></span>
-        </div>
-        <div class="gemini-key-row" id="viagem-claude-key-row">
-          <input type="password" id="viagem-claude-key" placeholder="Chave API Claude (sk-ant-...)" oninput="saveViagemClaudeKey(this.value)">
-          <span class="gemini-key-status" id="viagem-claude-status"></span>
-        </div>
-
         <!-- Drop zone -->
         <div id="viagem-drop-zone"
           style="border:2px dashed var(--border);border-radius:var(--radius-sm);padding:28px 20px;text-align:center;cursor:pointer;transition:all 0.2s;background:var(--surface2);position:relative;margin-bottom:12px;"
@@ -5887,15 +5661,6 @@
           <button class="ai-btn" id="plano-btn-claude" onclick="planoSetAI('claude')">🧠 Claude</button>
           <button class="ai-btn active-gemini" id="plano-btn-gemini" onclick="planoSetAI('gemini')">✦ Gemini</button>
         </div>
-        <div class="gemini-key-row show" id="plano-gemini-key-row">
-          <input type="password" id="plano-gemini-key" placeholder="Chave API Gemini (AIza...) — grátis em aistudio.google.com" oninput="savePlanoGeminiKey(this.value)">
-          <span class="gemini-key-status" id="plano-gemini-status"></span>
-        </div>
-        <div class="gemini-key-row" id="plano-claude-key-row">
-          <input type="password" id="plano-claude-key" placeholder="Chave API Claude (sk-ant-...)" oninput="savePlanoClaudeKey(this.value)">
-          <span class="gemini-key-status" id="plano-claude-status"></span>
-        </div>
-
         <!-- Drop zone -->
         <div id="plano-drop-zone"
           style="border:2px dashed var(--border);border-radius:var(--radius-sm);padding:28px 20px;text-align:center;cursor:pointer;transition:all 0.2s;background:var(--surface2);position:relative;margin-bottom:12px;"
@@ -6205,19 +5970,6 @@
         <strong>⚠️ Ficheiro local detetado</strong> — Usa o Gemini ou abre a app num servidor.<br>
         👉 Seleciona "✦ Gemini" acima → chave grátis em <strong>aistudio.google.com</strong>
       </div>
-      <div class="gemini-key-row" id="stories-claude-key-row">
-        <span style="font-size:18px;">🔑</span>
-        <input type="password" id="stories-claude-key" placeholder="Chave API Claude (sk-ant-...)" oninput="saveClaudeKey(this.value)">
-        <span class="gemini-key-status" id="stories-claude-status"></span>
-        <a href="https://console.anthropic.com/settings/keys" target="_blank" style="font-size:11px;color:var(--accent);white-space:nowrap;">Obter chave →</a>
-      </div>
-      <div class="gemini-key-row" id="stories-gemini-key-row">
-        <span style="font-size:18px;">🔑</span>
-        <input type="password" id="stories-gemini-key" placeholder="Chave API Gemini (AIza...)" oninput="saveGeminiKey(this.value)">
-        <span class="gemini-key-status" id="stories-gemini-status"></span>
-        <a href="https://aistudio.google.com/app/apikey" target="_blank" style="font-size:11px;color:#4285f4;white-space:nowrap;">Obter chave →</a>
-      </div>
-
       <!-- FORMATO TABS -->
       <div style="display:flex;gap:0;margin-bottom:24px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;flex-wrap:wrap;">
         <button id="srtab-btn-story" onclick="storiesFormatoTab('story')" style="flex:1;min-width:80px;padding:11px 8px;border:none;background:var(--accent);color:var(--bg);font-family:'DM Sans',sans-serif;font-size:12px;font-weight:600;cursor:pointer;transition:all 0.2s;">📱 Story 15s</button>
@@ -6951,7 +6703,7 @@
       <div class="page-header">
         <div>
           <div class="page-title">🔍 Análise de Conversa</div>
-          <div class="page-sub">Cola uma conversa e a IA diz-te exactamente o que fazer a seguir</div>
+          <div class="page-sub">Cola a conversa ou faz upload de screenshot — a IA analisa e diz-te exactamente o que fazer</div>
         </div>
       </div>
       <div style="display:flex;gap:0;margin-bottom:20px;border-bottom:2px solid var(--border);">
@@ -6986,51 +6738,48 @@
           <input class="form-input" id="ac-contexto-imagem" placeholder="Ex: Prospecto 45 anos, professora, hesitante no preco">
         </div>
       </div>
-      <div class="ai-selector-bar" style="margin-bottom:12px;" id="ac-ai-selector">
-        <span class="ai-selector-label">🤖 IA:</span>
-        <button class="ai-btn" id="ac-btn-claude" onclick="setAcAI('claude')">
-          <span>🧠</span> Claude
-        </button>
-        <button class="ai-btn active-gemini" id="ac-btn-gemini" onclick="setAcAI('gemini')">
-          <span style="font-size:14px;">✦</span> Gemini
-        </button>
-        <button class="ai-btn" id="ac-btn-grok" onclick="setAcAI('grok')">
-          <span>⚡</span> Grok
-        </button>
+      <!-- Plataforma -->
+      <div class="form-group" style="margin-bottom:12px;">
+        <label class="form-label">Canal da conversa</label>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;" id="ac-plat-pills">
+          <div class="pill active" onclick="acSetPlat(this,'whatsapp')">💬 WhatsApp</div>
+          <div class="pill" onclick="acSetPlat(this,'instagram')">📸 Instagram DM</div>
+          <div class="pill" onclick="acSetPlat(this,'messenger')">💙 Messenger</div>
+          <div class="pill" onclick="acSetPlat(this,'telefone')">📞 Chamada</div>
+          <div class="pill" onclick="acSetPlat(this,'email')">📧 Email</div>
+        </div>
+        <input type="hidden" id="ac-plataforma" value="whatsapp">
       </div>
-      <div class="gemini-key-row" id="ac-gemini-key-row">
-        <span style="font-size:18px;">🔑</span>
-        <input type="password" id="ac-gemini-key" placeholder="Chave API Gemini (AIza...)" oninput="saveGeminiKey(this.value)">
-        <span class="gemini-key-status" id="ac-gemini-status"></span>
-        <a href="https://aistudio.google.com/app/apikey" target="_blank" style="font-size:11px;color:#4285f4;white-space:nowrap;">Obter chave →</a>
+      <!-- Tipo de lead -->
+      <div class="form-group" style="margin-bottom:16px;">
+        <label class="form-label">Temperatura do lead</label>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;" id="ac-temp-pills">
+          <div class="tone-pill active" onclick="acSetTemp(this,'morno')">🌤 Morno</div>
+          <div class="tone-pill" onclick="acSetTemp(this,'quente')">🔥 Quente</div>
+          <div class="tone-pill" onclick="acSetTemp(this,'frio')">❄️ Frio</div>
+          <div class="tone-pill" onclick="acSetTemp(this,'desconhecido')">🤷 Não sei</div>
+        </div>
+        <input type="hidden" id="ac-temperatura" value="morno">
       </div>
-      <div class="gemini-key-row" id="ac-claude-key-row" style="display:none;">
-        <span style="font-size:18px;">🔑</span>
-        <input type="password" id="ac-claude-key" placeholder="Chave API Claude (sk-ant-...)" oninput="saveClaudeKey(this.value)">
-        <span class="gemini-key-status" id="ac-claude-status"></span>
-        <a href="https://console.anthropic.com/settings/keys" target="_blank" style="font-size:11px;color:var(--accent);white-space:nowrap;">Obter chave →</a>
-      </div>
-      <div class="grok-key-row" id="ac-grok-key-row" style="display:none;">
-        <span style="font-size:18px;">🔑</span>
-        <input type="password" id="ac-grok-key" placeholder="Chave API Grok (xai-...)" oninput="saveGrokKey(this.value)">
-        <span class="gemini-key-status" id="ac-grok-status"></span>
-        <a href="https://console.x.ai/" target="_blank" style="font-size:11px;color:#e0e0e0;white-space:nowrap;">Obter chave →</a>
-      </div>
-      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:20px;margin-top:12px;">
-        <select class="form-select" id="ac-plataforma" style="flex:1;min-width:130px;">
-          <option value="whatsapp">💬 WhatsApp</option>
-          <option value="instagram">📸 Instagram DM</option>
-          <option value="messenger">💙 Messenger</option>
-          <option value="telefone">📞 Chamada</option>
-          <option value="email">📧 Email</option>
-        </select>
-        <button class="btn btn-primary" onclick="acAnalisar()" id="ac-btn-analisar" style="flex:1;min-width:130px;justify-content:center;">🔍 Analisar</button>
+      <div style="margin-bottom:20px;margin-top:4px;">
+        <button class="btn btn-primary" onclick="acAnalisar()" id="ac-btn-analisar" style="width:100%;justify-content:center;padding:14px;font-size:15px;">🔍 Analisar Conversa com IA</button>
       </div>
       <div id="ac-loading" style="display:none;text-align:center;padding:40px;">
         <div style="font-size:32px;margin-bottom:12px;">⚙️</div>
         <div style="font-size:13px;color:var(--text2);">A IA esta a analisar...</div>
       </div>
       <div id="ac-resultado" style="display:none;"></div>
+      <!-- LINKS RÁPIDOS (do perfil) -->
+      <div id="ac-links-rapidos-wrap" style="margin-top:20px;display:none;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+          <div class="section-title" style="margin:0;">🔗 Os Teus Links (clica para copiar)</div>
+          <button class="btn btn-secondary btn-sm" onclick="abrirPerfilModal(false)" title="Configurar links">⚙️ Editar</button>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:8px;" id="ac-links-rapidos">
+          <div style="font-size:12px;color:var(--text2);padding:12px;background:var(--surface2);border-radius:8px;">⚙️ Configura o teu perfil para ver os teus links personalizados.</div>
+        </div>
+      </div>
+
       <div id="ac-empty" style="text-align:center;padding:40px 20px;">
         <div style="font-size:44px;margin-bottom:14px;">🔍</div>
         <div style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:12px;">Como funciona</div>
@@ -7465,10 +7214,6 @@
       <div class="bn-icon-wrap"><span class="bn-icon">✨</span></div>
       <span>Posts IA</span>
     </div>
-    <div class="bn-item" id="bn-respostas" onclick="goTo('respostas')">
-      <div class="bn-icon-wrap"><span class="bn-icon">💬</span></div>
-      <span>Respostas</span>
-    </div>
     <div class="bn-item" id="bn-coach" onclick="goTo('coach')">
       <div class="bn-icon-wrap"><span class="bn-icon">🤖</span></div>
       <span>Coach IA</span>
@@ -7586,6 +7331,7 @@
       <div class="bn-icon-wrap"><span class="bn-icon">📔</span></div>
       <span>Diário</span>
     </div>
+
     <div class="bn-more-item" id="bn-more" onclick="abrirMenuMais()">
       <div class="bn-icon-wrap"><span class="bn-icon">☰</span></div>
       <span>Mais</span>
@@ -8310,6 +8056,7 @@ function abrirMenuMais() {
   document.getElementById('modal-menu-mais').classList.add('open');
 }
 
+
 function goTo(page, opts) {
   const fromHistory = opts && opts.fromHistory;
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
@@ -8317,7 +8064,7 @@ function goTo(page, opts) {
   document.querySelectorAll('.bn-item, .bn-more-item').forEach(n => n.classList.remove('active'));
   document.getElementById('page-' + page).classList.add('active');
   const items = document.querySelectorAll('.nav-item');
-  const map = { dashboard: 0, acoes: 1, funil: 2, lista: 3, posts: 4, calendario: 5, agenda: 6, respostas: 7, coach: 8, stats: 9, equipa: 10, comissoes: 11, luminate: 12, calculadora: 13, 'plano-comp': 14, formacao: 15, catalogo: 16, percurso: 17, stories: 18, objecoes: 19, metas: 20, templates: 21, promocoes: 22, checklist: 23, relatorio: 24, roleplay: 25, onboarding: 27, automacao: 28, mapa: 29, apresentacao: 30, diario: 31, analise: 32, tutorial: 33 };
+  const map = { dashboard: 0, acoes: 1, funil: 2, lista: 3, posts: 4, calendario: 5, agenda: 6, coach: 8, stats: 9, equipa: 10, comissoes: 11, luminate: 12, calculadora: 13, 'plano-comp': 14, formacao: 15, catalogo: 16, percurso: 17, stories: 18, objecoes: 19, metas: 20, templates: 21, promocoes: 22, checklist: 23, relatorio: 24, roleplay: 25, onboarding: 27, automacao: 28, mapa: 29, apresentacao: 30, diario: 31, analise: 32, tutorial: 33 };
   if (map[page] !== undefined && items[map[page]]) items[map[page]].classList.add('active');
   const bnEl = document.getElementById('bn-' + page);
   if (bnEl) {
@@ -8452,6 +8199,27 @@ function salvarLead() {
   const nome = document.getElementById('f-nome').value.trim();
   if (!nome) { showToast('❌ Nome é obrigatório'); return; }
 
+  // Validação suave de telefone — só rejeita se tiver letras ou < 5 dígitos
+  const telRawVal = document.getElementById('f-tel').value.trim();
+  if (telRawVal) {
+    const digitos = telRawVal.replace(/[\s\-\+\(\)]/g, '');
+    if (/[a-zA-Z]/.test(digitos)) {
+      showToast('❌ Telefone inválido — remove as letras'); return;
+    }
+    if (digitos.length < 5) {
+      showToast('❌ Telefone demasiado curto'); return;
+    }
+  }
+
+  // Validação suave de email — só rejeita se tiver algo mas sem @ ou sem ponto depois do @
+  const emailVal = document.getElementById('f-email').value.trim();
+  if (emailVal) {
+    const atPos = emailVal.indexOf('@');
+    if (atPos < 1 || emailVal.indexOf('.', atPos) < atPos + 2) {
+      showToast('❌ Email inválido — verifica o formato'); return;
+    }
+  }
+
   // Bloqueia duplicado exato (nome + telefone iguais) só ao criar novo lead
   if (!editingLeadId) {
     const telRaw = document.getElementById('f-tel').value.trim();
@@ -8553,7 +8321,7 @@ function tlDotEmoji(tipo) {
   return map[tipo] || '•';
 }
 function escapeHtmlTL(s){return(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
-function copiarMsgHistorico(btn,txt){navigator.clipboard.writeText(txt);const o=btn.textContent;btn.textContent='✅ Copiado!';setTimeout(()=>btn.textContent=o,1500)}
+function copiarMsgHistorico(btn,txt){copiarTextoSeguro(txt,'');const o=btn.textContent;btn.textContent='✅ Copiado!';setTimeout(()=>btn.textContent=o,1500)}
 function eliminarEntradaHistorico(btn){
   if(!confirm('Eliminar esta entrada?'))return;
   const d=btn.dataset.data, m=btn.dataset.msg.replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&quot;/g,'"');
@@ -9060,7 +8828,7 @@ function exportarBackupCompleto() {
     const key = localStorage.key(i);
     if (!key || !key.startsWith(prefixo)) continue;
     // Não incluir chaves de API keys (sensíveis e específicas do dispositivo)
-    if (/claudeKey|claude_key|geminiKey|gemini_key|google_client_id/i.test(key)) continue;
+    if (/claudeKey|claude_key|geminiKey|gemini_key|google_client_id|grokKey|groqKey|mistralKey|openrouterKey/i.test(key)) continue;
     try {
       dados[key] = localStorage.getItem(key);
       totalChaves++;
@@ -9761,6 +9529,24 @@ function popularFiltroTags() {
   if (tags.includes(atual)) sel.value = atual;
 }
 
+// ── Debounce utilitário ─────────────────────────────────────────────────────
+// Cria uma versão "atrasada" de qualquer função: só executa após `ms`
+// milissegundos de inactividade. Evita re-renderizar a lista a cada keystroke.
+function _debounce(fn, ms) {
+  let timer;
+  return function(...args) {
+    clearTimeout(timer);
+    timer = setTimeout(() => fn.apply(this, args), ms);
+  };
+}
+
+// Wrappers debounced para os campos de pesquisa (250 ms).
+// As funções originais (aplicarFiltros, filtrarAcoesPorTexto) ficam intactas
+// para chamadas directas (ex: ao clicar em "Limpar filtros").
+const _aplicarFiltrosDebounced      = _debounce(() => aplicarFiltros(), 250);
+const _filtrarAcoesDebounced        = _debounce((v) => filtrarAcoesPorTexto(v), 250);
+// ─────────────────────────────────────────────────────────────────────────────
+
 function aplicarFiltros() {
   popularFiltroTags();
   const global  = (document.getElementById('input-pesquisa')?.value || '').toLowerCase().trim();
@@ -10086,6 +9872,50 @@ function showToast(msg) {
   document.getElementById('toast-msg').textContent = msg;
   t.classList.add('show');
   setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+// Copia texto para a área de transferência de forma robusta.
+// A Clipboard API moderna (navigator.clipboard) pode falhar silenciosamente em
+// contextos restritos (ex: content:// no Android, iframes, falta de foco na janela),
+// por isso há sempre um fallback via execCommand('copy') e feedback ao utilizador
+// em caso de falha total (em vez de simplesmente não fazer nada).
+function copiarTextoSeguro(texto, mensagemSucesso) {
+  mensagemSucesso = mensagemSucesso || '📋 Copiado!';
+  texto = texto || '';
+
+  function viaExecCommand() {
+    try {
+      const ta = document.createElement('textarea');
+      ta.value = texto;
+      ta.style.position = 'fixed';
+      ta.style.top = '-9999px';
+      ta.style.left = '-9999px';
+      document.body.appendChild(ta);
+      ta.focus();
+      ta.select();
+      const ok = document.execCommand('copy');
+      document.body.removeChild(ta);
+      if (ok) {
+        showToast(mensagemSucesso);
+        return true;
+      }
+    } catch (e) {}
+    return false;
+  }
+
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(texto).then(() => {
+      showToast(mensagemSucesso);
+    }).catch(() => {
+      if (!viaExecCommand()) {
+        showToast('⚠️ Não foi possível copiar automaticamente. Seleciona e copia o texto manualmente.');
+      }
+    });
+  } else {
+    if (!viaExecCommand()) {
+      showToast('⚠️ Não foi possível copiar automaticamente. Seleciona e copia o texto manualmente.');
+    }
+  }
 }
 
 // Vibração háptica curta para confirmações importantes (venda registada,
@@ -10424,7 +10254,10 @@ let postsAI = localStorage.getItem('lw_postsAI') || 'gemini';
 let respAI  = localStorage.getItem('lw_respAI')  || 'gemini';
 let geminiKey = localStorage.getItem('lw_geminiKey') || '';
 let claudeKey = localStorage.getItem('lw_claudeKey') || '';
-let grokKey   = localStorage.getItem('lw_grokKey')   || '';
+let grokKey       = localStorage.getItem('lw_grokKey')       || '';
+let groqKey       = localStorage.getItem('lw_groqKey')       || '';
+let mistralKey    = localStorage.getItem('lw_mistralKey')    || '';
+let openrouterKey = localStorage.getItem('lw_openrouterKey') || '';
 
 // Migração: versões antigas guardavam as chaves noutras localStorage keys
 if (!claudeKey) {
@@ -10439,7 +10272,7 @@ if (!geminiKey) {
 function saveClaudeKey(val) {
   claudeKey = val.trim();
   localStorage.setItem('lw_claudeKey', claudeKey);
-  ['posts','resp','viagem','plano','promo','massa','msg'].forEach(p => {
+  ['posts','viagem','plano','promo','massa','msg'].forEach(p => {
     const st = document.getElementById(p + '-claude-status');
     if (st) st.textContent = claudeKey.length > 10 ? '✅ Guardada' : '';
     const inp = document.getElementById(p + '-claude-key');
@@ -10450,7 +10283,7 @@ function saveClaudeKey(val) {
 function saveGeminiKey(val) {
   geminiKey = val.trim();
   localStorage.setItem('lw_geminiKey', geminiKey);
-  ['posts','resp','viagem','plano','promo','massa','msg'].forEach(p => {
+  ['posts','viagem','plano','promo','massa','msg'].forEach(p => {
     const st = document.getElementById(p + '-gemini-status');
     if (st) st.textContent = geminiKey.length > 10 ? '✅ Guardada' : '';
     const inp = document.getElementById(p + '-gemini-key');
@@ -10461,7 +10294,7 @@ function saveGeminiKey(val) {
 function saveGrokKey(val) {
   grokKey = val.trim();
   localStorage.setItem('lw_grokKey', grokKey);
-  ['posts','resp'].forEach(p => {
+  ['posts'].forEach(p => {
     const st  = document.getElementById(p + '-grok-status');
     const inp = document.getElementById(p + '-grok-key');
     if (st)  st.textContent = grokKey.length > 10 ? '✅ Guardada' : '';
@@ -10469,8 +10302,41 @@ function saveGrokKey(val) {
   });
 }
 
+function saveGroqKey(val) {
+  groqKey = val.trim();
+  localStorage.setItem('lw_groqKey', groqKey);
+  ['perfil'].forEach(p => {
+    const st  = document.getElementById(p + '-groq-status');
+    const inp = document.getElementById(p + '-groq-key');
+    if (st)  st.textContent  = groqKey.length > 10 ? '✅ Guardada' : '';
+    if (inp && inp !== document.activeElement) inp.value = groqKey;
+  });
+}
+
+function saveMistralKey(val) {
+  mistralKey = val.trim();
+  localStorage.setItem('lw_mistralKey', mistralKey);
+  ['perfil'].forEach(p => {
+    const st  = document.getElementById(p + '-mistral-status');
+    const inp = document.getElementById(p + '-mistral-key');
+    if (st)  st.textContent  = mistralKey.length > 10 ? '✅ Guardada' : '';
+    if (inp && inp !== document.activeElement) inp.value = mistralKey;
+  });
+}
+
+function saveOpenrouterKey(val) {
+  openrouterKey = val.trim();
+  localStorage.setItem('lw_openrouterKey', openrouterKey);
+  ['perfil'].forEach(p => {
+    const st  = document.getElementById(p + '-openrouter-status');
+    const inp = document.getElementById(p + '-openrouter-key');
+    if (st)  st.textContent  = openrouterKey.length > 10 ? '✅ Guardada' : '';
+    if (inp && inp !== document.activeElement) inp.value = openrouterKey;
+  });
+}
+
 function syncGrokKeyInputs() {
-  ['posts','resp','ac'].forEach(p => {
+  ['posts','ac','perfil'].forEach(p => {
     const inp = document.getElementById(p + '-grok-key');
     const st  = document.getElementById(p + '-grok-status');
     if (inp) inp.value = grokKey;
@@ -10484,11 +10350,6 @@ function setAI(page, ai) {
     localStorage.setItem('lw_postsAI', ai);
     document.getElementById('posts-btn-claude').className = 'ai-btn' + (ai==='claude' ? ' active-claude' : '');
     document.getElementById('posts-btn-gemini').className = 'ai-btn' + (ai==='gemini' ? ' active-gemini' : '');
-    document.getElementById('posts-gemini-key-row').classList.toggle('show', ai==='gemini');
-    const claudeRow = document.getElementById('posts-claude-key-row');
-    if (claudeRow) claudeRow.classList.toggle('show', ai==='claude');
-    const grokRow = document.getElementById('posts-grok-key-row');
-    if (grokRow) grokRow.classList.toggle('show', ai==='grok');
     document.getElementById('posts-btn-grok').className = 'ai-btn' + (ai==='grok' ? ' active-grok' : '');
     const noteText = document.getElementById('posts-ai-note-text');
     noteText.innerHTML = ai === 'gemini'
@@ -10502,14 +10363,13 @@ function setAI(page, ai) {
   } else {
     respAI = ai;
     localStorage.setItem('lw_respAI', ai);
-    document.getElementById('resp-btn-claude').className = 'ai-btn' + (ai==='claude' ? ' active-claude' : '');
-    document.getElementById('resp-btn-gemini').className = 'ai-btn' + (ai==='gemini' ? ' active-gemini' : '');
-    document.getElementById('resp-gemini-key-row').classList.toggle('show', ai==='gemini');
-    const claudeRow = document.getElementById('resp-claude-key-row');
-    if (claudeRow) claudeRow.classList.toggle('show', ai==='claude');
-    const grokRow = document.getElementById('resp-grok-key-row');
-    if (grokRow) grokRow.classList.toggle('show', ai==='grok');
-    document.getElementById('resp-btn-grok').className = 'ai-btn' + (ai==='grok' ? ' active-grok' : '');
+    // resp-btn-* elements removed (page-respostas deleted) — use null guards
+    var rbc = document.getElementById('resp-btn-claude');
+    var rbg = document.getElementById('resp-btn-gemini');
+    var rbk = document.getElementById('resp-btn-grok');
+    if (rbc) rbc.className = 'ai-btn' + (ai==='claude' ? ' active-claude' : '');
+    if (rbg) rbg.className = 'ai-btn' + (ai==='gemini' ? ' active-gemini' : '');
+    if (rbk) rbk.className = 'ai-btn' + (ai==='grok' ? ' active-grok' : '');
     if (ai === 'gemini') syncGeminiKeyInputs();
     if (ai === 'claude') syncClaudeKeyInputs();
     if (ai === 'grok')   syncGrokKeyInputs();
@@ -10517,7 +10377,7 @@ function setAI(page, ai) {
 }
 
 function syncGeminiKeyInputs() {
-  ['posts','resp','massa','msg','ac'].forEach(p => {
+  ['posts','massa','msg','ac','perfil'].forEach(p => {
     const inp = document.getElementById(p + '-gemini-key');
     const st  = document.getElementById(p + '-gemini-status');
     if (inp) inp.value = geminiKey;
@@ -10526,7 +10386,7 @@ function syncGeminiKeyInputs() {
 }
 
 function syncClaudeKeyInputs() {
-  ['posts','resp','massa','msg','ac'].forEach(p => {
+  ['posts','massa','msg','ac','perfil'].forEach(p => {
     const inp = document.getElementById(p + '-claude-key');
     const st  = document.getElementById(p + '-claude-status');
     if (inp) inp.value = claudeKey;
@@ -10546,8 +10406,6 @@ function setMassaAI(ai) {
     if (btnG) btnG.className = 'ai-btn' + (ai === 'gemini' ? ' active-gemini' : '');
     const gRow = document.getElementById(prefix + '-gemini-key-row');
     const cRow = document.getElementById(prefix + '-claude-key-row');
-    if (gRow) gRow.classList.toggle('show', ai === 'gemini');
-    if (cRow) cRow.classList.toggle('show', ai === 'claude');
   });
   if (ai === 'gemini') syncGeminiKeyInputs();
   if (ai === 'claude') syncClaudeKeyInputs();
@@ -10565,7 +10423,7 @@ function initMsgAISelector() {
 
 function initAISelector() {
   setAI('posts', postsAI);
-  setAI('resp',  respAI);
+  // setAI('resp') removed — page-respostas deleted
   syncGeminiKeyInputs();
   syncClaudeKeyInputs();
 }
@@ -10822,23 +10680,66 @@ async function callAI(page, prompt, imageBase64, imageMediaType, cacheContext) {
     return callGemini(prompt, imageBase64, imageMediaType, cacheContext);
   }
 
-  if (ai === 'gemini') {
+  // ───────────────────────────────────────────────────────────────────
+  // SISTEMA DE FALLBACK AUTOMÁTICO
+  // Ordem: IA selecionada → próximas com chave configurada → erro final
+  // ───────────────────────────────────────────────────────────────────
+  function isRecoverableError(msg) {
+    const m = (msg || '').toLowerCase();
+    return m.includes('quota') || m.includes('resource_exhausted') || m.includes('limit')
+        || m.includes('429') || m.includes('overloaded') || m.includes('high demand')
+        || m.includes('503') || m.includes('unavailable') || m.includes('try again later')
+        || m.includes('cors') || m.includes('network') || m.includes('failed to fetch')
+        || m.includes('403') || m.includes('401') || m.includes('forbidden') || m.includes('unauthorized');
+  }
+
+  // Constrói cadeia de fallback: IA escolhida primeiro, depois as restantes que têm chave
+  const ALL_AI = ['gemini', 'groq', 'mistral', 'openrouter', 'claude', 'grok'];
+  const aiOrder = [ai, ...ALL_AI.filter(a => a !== ai)].filter(a => {
+    if (a === 'gemini')     return !!geminiKey;
+    if (a === 'claude')     return !!claudeKey && !isLocal;
+    if (a === 'grok')       return !!grokKey;
+    if (a === 'groq')       return !!groqKey;
+    if (a === 'mistral')    return !!mistralKey;
+    if (a === 'openrouter') return !!openrouterKey;
+    return false;
+  });
+
+  const LABELS = {
+    gemini: '✦ Gemini está a criar...', claude: '🧠 Claude está a criar...',
+    grok: '⚡ Grok está a criar...', groq: '🚀 Groq está a criar...',
+    mistral: '🌪️ Mistral está a criar...', openrouter: '🔀 OpenRouter está a criar...'
+  };
+
+  async function tryAI(name) {
+    if (loaderLabel) loaderLabel.textContent = LABELS[name] || name + ' está a criar...';
+    if (name === 'gemini')     return await callGemini(prompt, imageBase64, imageMediaType, cacheContext);
+    if (name === 'claude')     return await callClaude(prompt, imageBase64, imageMediaType);
+    if (name === 'grok')       return await callGrok(prompt);
+    if (name === 'groq')       return await callGroq(prompt);
+    if (name === 'mistral')    return await callMistral(prompt);
+    if (name === 'openrouter') return await callOpenRouter(prompt);
+    throw new Error('IA desconhecida: ' + name);
+  }
+
+  let lastError;
+  for (let i = 0; i < aiOrder.length; i++) {
+    const name = aiOrder[i];
     try {
-      return await callGemini(prompt, imageBase64, imageMediaType, cacheContext);
-    } catch (geminiErr) {
-      // Fallback automático: se o Gemini falhar (quota/sobrecarga) e houver chave Claude, tenta Claude
-      const m = (geminiErr.message || '').toLowerCase();
-      const ehQuotaOuSobrecarga = m.includes('quota') || m.includes('resource_exhausted') || m.includes('limit') || m.includes('429') || m.includes('overloaded');
-      if (ehQuotaOuSobrecarga && claudeKey && !isLocal) {
-        if (loaderLabel) loaderLabel.textContent = '🧠 Gemini indisponível — a usar Claude...';
-        showToast('⚠️ Gemini indisponível — a tentar com Claude...');
-        return callClaude(prompt, imageBase64, imageMediaType);
+      const result = await tryAI(name);
+      if (i > 0) showToast('✅ Resposta obtida via ' + name);
+      return result;
+    } catch (err) {
+      lastError = err;
+      const isLast = i === aiOrder.length - 1;
+      if (!isLast && isRecoverableError(err.message)) {
+        showToast('⚠️ ' + name + ' indisponível — a tentar com ' + aiOrder[i + 1] + '...');
+        continue;
       }
-      throw geminiErr;
+      throw err;
     }
   }
-  if (ai === 'grok') return callGrok(prompt);
-  return callClaude(prompt, imageBase64, imageMediaType);
+  throw lastError || new Error('Nenhuma IA disponível — configura pelo menos uma chave API no Perfil.');
 }
 
 // ===== FEATURE 1: POST COM IMAGEM =====
@@ -10933,13 +10834,15 @@ IMPORTANTE: Responde APENAS com o texto do post, sem introdução, título ou ex
     if (e.message === 'GROK_NO_KEY') {
       textEl.textContent = '⚠️ Falta a chave API do Grok.\n\n👉 Introduz a tua API Key do Grok (xai-...) no campo abaixo do seletor de IA.\n\n🔑 Obter chave: console.x.ai';
     } else if (e.message === 'GROK_LOCAL_FILE' || e.message === 'GROK_CORS') {
-      textEl.textContent = '⚠️ O Grok não funciona quando a app está aberta como ficheiro local (bloqueio de segurança do browser).\n\n👉 Solução: usa o ✦ Gemini — funciona em ficheiro local com a chave gratuita de aistudio.google.com\n\nAlternativamente, serve a app via HTTPS para o Grok funcionar.';
+      textEl.textContent = '⚠️ Não foi possível ligar ao Grok agora.\n\n👉 Verifica a tua ligação à internet e a chave API (deve começar por "xai-").\n\nSe o problema persistir, experimenta o ✦ Gemini ou 🧠 Claude no seletor acima.';
     } else if (e.message === 'CLAUDE_NO_KEY') {
       textEl.textContent = '⚠️ Falta a chave API do Claude.\n\n👉 Introduz a tua API Key do Claude no campo abaixo do seletor de IA.\n\n🔑 Obter chave: console.anthropic.com';
     } else if (e.message === 'GEMINI_NO_KEY' || e.message === 'LOCAL_FILE') {
       textEl.textContent = '⚠️ A app está aberta como ficheiro local — o Claude não funciona neste modo (bloqueio CORS do browser).\n\n👉 Solução rápida: seleciona "✦ Gemini" no seletor de IA acima e introduz a tua chave API gratuita do Gemini.\n\n🔑 Obter chave grátis: aistudio.google.com/app/apikey';
     } else if (e.message && (e.message.includes('quota') || e.message.includes('Quota') || e.message.includes('RESOURCE_EXHAUSTED'))) {
       textEl.textContent = '⏳ Quota Gemini esgotada (limite do plano gratuito atingido).\n\nSoluções:\n1. Aguarda 1 minuto e tenta novamente\n2. Obtém uma nova chave API em aistudio.google.com/app/apikey\n3. Activa a faturação no Google Cloud para aumentar os limites (tem tier gratuito generoso)';
+    } else if (e.message && (e.message.includes('high demand') || e.message.includes('overloaded') || e.message.includes('503') || e.message.includes('try again later'))) {
+      textEl.textContent = '⏳ O modelo de IA está temporariamente sobrecarregado (muita procura agora).\n\n👉 Aguarda 30-60 segundos e tenta de novo — costuma resolver-se rapidamente.\nSe persistir, tenta outra IA no seletor acima.';
     } else {
       textEl.textContent = '❌ Erro: ' + (e.message || 'Verifica a tua conexão e tenta novamente.');
     }
@@ -11394,6 +11297,8 @@ Responde APENAS com o texto da mensagem, pronto a copiar e enviar. Sem introduç
       textEl.textContent = '⚠️ A app está aberta como ficheiro local — o Claude não funciona neste modo (bloqueio CORS do browser).\n\n👉 Solução rápida: seleciona "✦ Gemini" no seletor de IA acima e introduz a tua chave API gratuita do Gemini.\n\n🔑 Obter chave grátis: aistudio.google.com/app/apikey';
     } else if (e.message && (e.message.includes('quota') || e.message.includes('Quota') || e.message.includes('RESOURCE_EXHAUSTED'))) {
       textEl.textContent = '⏳ Quota Gemini esgotada (limite do plano gratuito atingido).\n\nSoluções:\n1. Aguarda 1 minuto e tenta novamente\n2. Obtém uma nova chave API em aistudio.google.com/app/apikey\n3. Activa a faturação no Google Cloud para aumentar os limites (tem tier gratuito generoso)';
+    } else if (e.message && (e.message.includes('high demand') || e.message.includes('overloaded') || e.message.includes('503') || e.message.includes('try again later'))) {
+      textEl.textContent = '⏳ O modelo de IA está temporariamente sobrecarregado (muita procura agora).\n\n👉 Aguarda 30-60 segundos e tenta de novo — costuma resolver-se rapidamente.\nSe persistir, tenta outra IA no seletor acima.';
     } else {
       textEl.textContent = '❌ Erro: ' + (e.message || 'Verifica a tua conexão e tenta novamente.');
     }
@@ -13373,7 +13278,6 @@ function tutToggleList() {
   if (!list) return;
   const isOpen = list.style.display === 'flex';
   list.style.display = isOpen ? 'none' : 'flex';
-  if (arrow) arrow.style.transform = isOpen ? 'rotate(0deg)' : 'rotate(180deg)';
   if (btn) btn.querySelector('span').textContent = isOpen ? '📋 Ver todos os passos' : '📋 Esconder lista';
 }
 
@@ -13945,6 +13849,32 @@ function abrirPerfilModal(isPrimeiraVez) {
   const aviso = document.getElementById('perfil-primeira-vez-aviso');
   if (titulo) titulo.textContent = isPrimeiraVez ? '👋 Configura o teu perfil' : '⚙️ Meu Perfil';
   if (aviso) aviso.style.display = isPrimeiraVez ? 'block' : 'none';
+  // Populate API key fields
+  const gInp = document.getElementById('perfil-gemini-key');
+  const cInp = document.getElementById('perfil-claude-key');
+  const xInp = document.getElementById('perfil-grok-key');
+  const gSt  = document.getElementById('perfil-gemini-status');
+  const cSt  = document.getElementById('perfil-claude-status');
+  const xSt  = document.getElementById('perfil-grok-status');
+  if (gInp) gInp.value = geminiKey;
+  if (cInp) cInp.value = claudeKey;
+  if (xInp) xInp.value = grokKey;
+  if (gSt) gSt.textContent = geminiKey.length > 10 ? '✅ Guardada' : '';
+  if (cSt) cSt.textContent = claudeKey.length > 10 ? '✅ Guardada' : '';
+  if (xSt) xSt.textContent = grokKey.length   > 10 ? '✅ Guardada' : '';
+  // Groq / Mistral / OpenRouter
+  const grInp = document.getElementById('perfil-groq-key');
+  const miInp = document.getElementById('perfil-mistral-key');
+  const orInp = document.getElementById('perfil-openrouter-key');
+  const grSt  = document.getElementById('perfil-groq-status');
+  const miSt  = document.getElementById('perfil-mistral-status');
+  const orSt  = document.getElementById('perfil-openrouter-status');
+  if (grInp) grInp.value = groqKey;
+  if (miInp) miInp.value = mistralKey;
+  if (orInp) orInp.value = openrouterKey;
+  if (grSt) grSt.textContent = groqKey.length       > 10 ? '✅ Guardada' : '';
+  if (miSt) miSt.textContent = mistralKey.length    > 10 ? '✅ Guardada' : '';
+  if (orSt) orSt.textContent = openrouterKey.length > 10 ? '✅ Guardada' : '';
   openModal('modal-perfil');
   setTimeout(() => { previewPerfilLinks(); atualizarPerfilCategoriaPreview(); }, 50);
 }
@@ -14154,13 +14084,13 @@ initAISelector();
 (function detectLocalFile() {
   const isLocal = location.protocol === 'file:' || location.protocol === 'content:';
   if (!isLocal) return;
-  ['posts-local-warning','resp-local-warning'].forEach(id => {
+  ['posts-local-warning'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.style.display = 'block';
   });
   // Auto-switch to Gemini if no preference saved yet (Gemini is now default)
   if (!localStorage.getItem('lw_postsAI')) {
-    setAI('posts','gemini'); setAI('resp','gemini');
+    setAI('posts','gemini');
   }
 })();
 
@@ -17242,8 +17172,6 @@ function viagemSetAI(ai) {
   localStorage.setItem('lw_viagemAI', ai);
   const bC = document.getElementById('viagem-btn-claude');
   const bG = document.getElementById('viagem-btn-gemini');
-  const rC = document.getElementById('viagem-claude-key-row');
-  const rG = document.getElementById('viagem-gemini-key-row');
   if (bC) bC.className = 'ai-btn' + (ai === 'claude' ? ' active-claude' : '');
   if (bG) bG.className = 'ai-btn' + (ai === 'gemini' ? ' active-gemini' : '');
   if (rC) rC.classList.toggle('show', ai === 'claude');
@@ -18449,7 +18377,7 @@ function partilharRecurso(tipo) {
 
 function copiarRecurso() {
   const txt = document.getElementById('recurso-conteudo').textContent;
-  navigator.clipboard.writeText(txt).then(() => showToast('📋 Copiado!'));
+  copiarTextoSeguro(txt, '📋 Copiado!');
 }
 
 function enviarRecursoWA() {
@@ -19972,7 +19900,7 @@ function abrirDetalhe(id) {
       <div style="font-size:12px;font-weight:700;color:var(--accent2);margin-bottom:8px;">💬 Script de Venda Pronto</div>
       <div style="font-size:12px;color:var(--text2);line-height:1.7;white-space:pre-wrap;">${p.script}</div>
       <div style="display:flex;gap:8px;margin-top:10px;">
-        <button class="btn btn-secondary btn-sm" onclick="navigator.clipboard.writeText(document.querySelector('#cat-modal-content .script-txt')?.textContent||'${p.script.replace(/'/g,'').substring(0,50)}').then(()=>showToast('📋 Script copiado!'))">📋 Copiar</button>
+        <button class="btn btn-secondary btn-sm" onclick="copiarTextoSeguro(document.querySelector('#cat-modal-content .script-txt')?.textContent||'${p.script.replace(/'/g,'').substring(0,50)}','📋 Script copiado!')">📋 Copiar</button>
         <button class="btn btn-wa btn-sm" onclick="enviarWhatsAppInteligente('${p.script.replace(/'/g,'').replace(/\n/g,' ').substring(0,300)}')">💬 Enviar WA</button>
       </div>
     </div>` : ''}
@@ -19990,7 +19918,7 @@ function abrirDetalhe(id) {
         <div style="font-size:11px;font-weight:700;color:var(--accent);margin-bottom:8px;" id="cat-gen-tipo-label"></div>
         <div style="font-size:13px;color:var(--text);line-height:1.7;white-space:pre-wrap;" id="cat-gen-texto"></div>
         <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;">
-          <button class="btn btn-secondary btn-sm" onclick="navigator.clipboard.writeText(document.getElementById('cat-gen-texto').textContent).then(()=>showToast('📋 Copiado!'))">📋 Copiar</button>
+          <button class="btn btn-secondary btn-sm" onclick="copiarTextoSeguro(document.getElementById('cat-gen-texto').textContent,'📋 Copiado!')">📋 Copiar</button>
           <button class="btn btn-wa btn-sm" onclick="enviarWhatsAppInteligente(document.getElementById('cat-gen-texto').textContent)">💬 Enviar WA</button>
           <button class="btn btn-secondary btn-sm" onclick="catGerarConteudo(catGenProdutoAtual,catGenTipoAtual,true)" style="font-size:11px;">🔄 Regenerar</button>
         </div>
@@ -20544,19 +20472,7 @@ function renderPrevisaoComissao() {
           <span style="font-size:14px;">✦</span> Gemini
         </button>
       </div>
-      <div class="gemini-key-row" id="massa-gemini-key-row">
-        <span style="font-size:18px;">🔑</span>
-        <input type="password" id="massa-gemini-key" placeholder="Chave API Gemini (AIza...)" oninput="saveGeminiKey(this.value)">
-        <span class="gemini-key-status" id="massa-gemini-status"></span>
-        <a href="https://aistudio.google.com/app/apikey" target="_blank" style="font-size:11px;color:#4285f4;white-space:nowrap;">Obter chave →</a>
       </div>
-      <div class="gemini-key-row" id="massa-claude-key-row">
-        <span style="font-size:18px;">🔑</span>
-        <input type="password" id="massa-claude-key" placeholder="Chave API Claude (sk-ant-...)" oninput="saveClaudeKey(this.value)">
-        <span class="gemini-key-status" id="massa-claude-status"></span>
-        <a href="https://console.anthropic.com/settings/keys" target="_blank" style="font-size:11px;color:var(--accent);white-space:nowrap;">Obter chave →</a>
-      </div>
-    </div>
 
     <!-- IA loader -->
     <div id="massa-ia-loader" style="display:none;text-align:center;padding:10px 0;font-size:13px;color:var(--text2);">
@@ -20691,19 +20607,7 @@ function renderPrevisaoComissao() {
           <span style="font-size:14px;">✦</span> Gemini
         </button>
       </div>
-      <div class="gemini-key-row" id="msg-gemini-key-row">
-        <span style="font-size:18px;">🔑</span>
-        <input type="password" id="msg-gemini-key" placeholder="Chave API Gemini (AIza...)" oninput="saveGeminiKey(this.value)">
-        <span class="gemini-key-status" id="msg-gemini-status"></span>
-        <a href="https://aistudio.google.com/app/apikey" target="_blank" style="font-size:11px;color:#4285f4;white-space:nowrap;">Obter chave →</a>
       </div>
-      <div class="gemini-key-row" id="msg-claude-key-row">
-        <span style="font-size:18px;">🔑</span>
-        <input type="password" id="msg-claude-key" placeholder="Chave API Claude (sk-ant-...)" oninput="saveClaudeKey(this.value)">
-        <span class="gemini-key-status" id="msg-claude-status"></span>
-        <a href="https://console.anthropic.com/settings/keys" target="_blank" style="font-size:11px;color:var(--accent);white-space:nowrap;">Obter chave →</a>
-      </div>
-    </div>
 
     <!-- IA loader -->
     <div id="msg-ia-loader" style="display:none;text-align:center;padding:10px 0;font-size:13px;color:var(--text2);">
@@ -20860,6 +20764,77 @@ function renderPrevisaoComissao() {
       <div id="perfil-categoria-preview" style="margin-top:10px;"></div>
     </div>
 
+
+    <div style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px;margin-bottom:14px;">
+      <div style="font-size:11px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:0.7px;margin-bottom:12px;">🔑 Chaves API de Inteligência Artificial</div>
+      <div style="font-size:11.5px;color:var(--text2);margin-bottom:12px;line-height:1.5;">Guardadas localmente no teu dispositivo. Usadas em toda a app (posts, analisador, respostas, etc).</div>
+
+      <div class="form-group" style="margin-bottom:10px;">
+        <label class="form-label" style="display:flex;align-items:center;gap:6px;">
+          <span style="font-size:15px;">✦</span> Gemini (Google) — Gratuito
+          <a href="https://aistudio.google.com/app/apikey" target="_blank" style="font-size:10px;color:#4285f4;margin-left:auto;">Obter chave →</a>
+        </label>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <input class="form-input" type="password" id="perfil-gemini-key" placeholder="AIza..." style="flex:1;" oninput="saveGeminiKey(this.value)">
+          <span id="perfil-gemini-status" style="font-size:11px;color:var(--accent);white-space:nowrap;"></span>
+        </div>
+      </div>
+
+      <div class="form-group" style="margin-bottom:10px;">
+        <label class="form-label" style="display:flex;align-items:center;gap:6px;">
+          <span style="font-size:15px;">🧠</span> Claude (Anthropic) — Pago
+          <a href="https://console.anthropic.com/settings/keys" target="_blank" style="font-size:10px;color:var(--accent);margin-left:auto;">Obter chave →</a>
+        </label>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <input class="form-input" type="password" id="perfil-claude-key" placeholder="sk-ant-..." style="flex:1;" oninput="saveClaudeKey(this.value)">
+          <span id="perfil-claude-status" style="font-size:11px;color:var(--accent);white-space:nowrap;"></span>
+        </div>
+      </div>
+
+      <div class="form-group" style="margin-bottom:10px;">
+        <label class="form-label" style="display:flex;align-items:center;gap:6px;">
+          <span style="font-size:15px;">⚡</span> Grok (xAI) — Pago
+          <a href="https://console.x.ai/" target="_blank" style="font-size:10px;color:#e0e0e0;margin-left:auto;">Obter chave →</a>
+        </label>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <input class="form-input" type="password" id="perfil-grok-key" placeholder="xai-..." style="flex:1;" oninput="saveGrokKey(this.value)">
+          <span id="perfil-grok-status" style="font-size:11px;color:var(--accent);white-space:nowrap;"></span>
+        </div>
+      </div>
+
+      <div class="form-group" style="margin-bottom:10px;">
+        <label class="form-label" style="display:flex;align-items:center;gap:6px;">
+          <span style="font-size:15px;">🚀</span> Groq — Gratuito (velocidade máxima)
+          <a href="https://console.groq.com" target="_blank" style="font-size:10px;color:#f55036;margin-left:auto;">Obter chave →</a>
+        </label>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <input class="form-input" type="password" id="perfil-groq-key" placeholder="gsk_..." style="flex:1;" oninput="saveGroqKey(this.value)">
+          <span id="perfil-groq-status" style="font-size:11px;color:var(--accent);white-space:nowrap;"></span>
+        </div>
+      </div>
+
+      <div class="form-group" style="margin-bottom:10px;">
+        <label class="form-label" style="display:flex;align-items:center;gap:6px;">
+          <span style="font-size:15px;">🌪️</span> Mistral AI — Gratuito
+          <a href="https://console.mistral.ai" target="_blank" style="font-size:10px;color:#ff7000;margin-left:auto;">Obter chave →</a>
+        </label>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <input class="form-input" type="password" id="perfil-mistral-key" placeholder="..." style="flex:1;" oninput="saveMistralKey(this.value)">
+          <span id="perfil-mistral-status" style="font-size:11px;color:var(--accent);white-space:nowrap;"></span>
+        </div>
+      </div>
+
+      <div class="form-group" style="margin-bottom:0;">
+        <label class="form-label" style="display:flex;align-items:center;gap:6px;">
+          <span style="font-size:15px;">🔀</span> OpenRouter — Gratuito (múltiplos modelos)
+          <a href="https://openrouter.ai/keys" target="_blank" style="font-size:10px;color:#9b59b6;margin-left:auto;">Obter chave →</a>
+        </label>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <input class="form-input" type="password" id="perfil-openrouter-key" placeholder="sk-or-..." style="flex:1;" oninput="saveOpenrouterKey(this.value)">
+          <span id="perfil-openrouter-status" style="font-size:11px;color:var(--accent);white-space:nowrap;"></span>
+        </div>
+      </div>
+    </div>
 
     <div class="modal-actions">
       <button class="btn btn-secondary" onclick="closeModal('modal-perfil')">Cancelar</button>
@@ -21188,12 +21163,8 @@ function setPromoAI(ai) {
   localStorage.setItem('lw_promoAI', ai);
   const btnClaude = document.getElementById('promo-btn-claude');
   const btnGemini = document.getElementById('promo-btn-gemini');
-  const rowClaude = document.getElementById('promo-claude-key-row');
-  const rowGemini = document.getElementById('promo-gemini-key-row');
   if (btnClaude) btnClaude.className = 'promo-ai-btn' + (ai === 'claude' ? ' active-claude' : '');
   if (btnGemini) btnGemini.className = 'promo-ai-btn' + (ai === 'gemini' ? ' active-gemini' : '');
-  if (rowClaude) rowClaude.classList.toggle('show', ai === 'claude');
-  if (rowGemini) rowGemini.classList.toggle('show', ai === 'gemini');
 }
 
 function syncPromoKeyInputs() {
@@ -21269,17 +21240,6 @@ function renderPromoBanner() {
             <button class="promo-ai-btn" id="promo-btn-claude" onclick="setPromoAI('claude')">🧠 Claude</button>
             <button class="promo-ai-btn" id="promo-btn-gemini" onclick="setPromoAI('gemini')">✦ Gemini</button>
           </div>
-          <div class="promo-ai-key-row" id="promo-claude-key-row">
-            <label>🔑</label>
-            <input type="password" id="promo-claude-key" placeholder="Chave API Claude (sk-ant-...)" oninput="saveClaudeKey(this.value)">
-            <span class="promo-ai-key-status" id="promo-claude-status"></span>
-          </div>
-          <div class="promo-ai-key-row" id="promo-gemini-key-row">
-            <label>🔑</label>
-            <input type="password" id="promo-gemini-key" placeholder="Chave API Gemini (AIza...) — grátis em aistudio.google.com" oninput="saveGeminiKey(this.value)">
-            <span class="promo-ai-key-status" id="promo-gemini-status"></span>
-          </div>
-
           <div class="promo-upload-drop" id="promo-drop-zone"
             onclick="document.getElementById('promo-file-input').click()"
             ondragover="event.preventDefault();this.classList.add('drag-over')"
@@ -21841,8 +21801,6 @@ function planoSetAI(ai) {
   localStorage.setItem(PLANO_AI_KEY, ai);
   const bC = document.getElementById('plano-btn-claude');
   const bG = document.getElementById('plano-btn-gemini');
-  const rC = document.getElementById('plano-claude-key-row');
-  const rG = document.getElementById('plano-gemini-key-row');
   if (bC) bC.className = 'ai-btn' + (ai === 'claude' ? ' active-claude' : '');
   if (bG) bG.className = 'ai-btn' + (ai === 'gemini' ? ' active-gemini' : '');
   if (rC) rC.classList.toggle('show', ai === 'claude');
@@ -22560,7 +22518,7 @@ function formacaoPartilharRecurso(id) {
   if (!r) return;
   const texto = `📚 *Recurso de Formação LifeWave*\n\n*${r.titulo}*\n${r.descricao||''}\n${r.url?'\n🔗 '+r.url:''}`;
   if (navigator.share) { navigator.share({ text: texto }); }
-  else { navigator.clipboard.writeText(texto); showToast('📋 Copiado para a área de transferência'); }
+  else { copiarTextoSeguro(texto, '📋 Copiado para a área de transferência'); }
 }
 
 // ---- ADICIONAR RECURSO ----
@@ -22759,14 +22717,14 @@ function formacaoEnviarPlanoMembro(id, nome, tel) {
   if (telLimpo) {
     window.open(`https://wa.me/${telLimpo}?text=${encodeURIComponent(msg)}`, '_blank');
   } else {
-    navigator.clipboard.writeText(msg);
+    copiarTextoSeguro(msg, '');
     showToast('📋 Mensagem copiada! (sem nº de telefone para abrir WhatsApp)');
   }
 }
 
 function formacaoGerarMsgCheckIn() {
   const msg = `Olá! Só a fazer o check-in semanal 👋\n\nComo estás a correr com o plano de formação esta semana?\n\n• Conseguiste completar as tarefas?\n• Houve alguma objeção que não soubeste responder?\n• Precisas de ajuda com alguma coisa?\n\nEstou aqui para te apoiar! 💪 #EquipaLifeWave`;
-  navigator.clipboard.writeText(msg);
+  copiarTextoSeguro(msg, '');
   showToast('📋 Mensagem de check-in copiada!');
 }
 
@@ -22842,7 +22800,7 @@ Adapta o plano ao perfil e objetivo. Sê específico, prático e motivador. Resp
 
 function formacaoCopiarPlanoIA() {
   const txt = window._formacaoPlanoIATexto || document.getElementById('formacao-ia-resultado')?.textContent || '';
-  navigator.clipboard.writeText(txt);
+  copiarTextoSeguro(txt, '');
   showToast('📋 Plano copiado!');
 }
 
@@ -23255,7 +23213,7 @@ Responde APENAS com o texto da mensagem, em Português de Portugal.`;
       resposta = data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
     }
     if (resposta) {
-      navigator.clipboard.writeText(resposta);
+      copiarTextoSeguro(resposta, '');
       showToast('📋 Mensagem copiada! Cola no WhatsApp do ' + m.nome);
       if (m.tel) {
         setTimeout(() => {
@@ -24224,7 +24182,7 @@ async function alertasIAAnalisar() {
     (iaInsight?`<div style="margin-top:14px;padding:14px;border-radius:var(--radius-sm);background:linear-gradient(135deg,rgba(0,212,170,0.08),rgba(0,132,255,0.05));border:1px solid rgba(0,212,170,0.2);">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;"><span style="font-size:16px;">🤖</span><div style="font-size:12px;font-weight:700;color:var(--accent);">Conselho da IA para HOJE</div></div>
       <div style="font-size:12px;color:var(--text);line-height:1.7;">${iaInsight.replace(/\n/g,'<br>')}</div>
-      <button class="btn btn-sm btn-secondary" style="margin-top:10px;font-size:11px;" onclick="navigator.clipboard.writeText(this.closest('div').querySelector('div:last-of-type').textContent);showToast('📋 Copiado!')">📋 Copiar</button>
+      <button class="btn btn-sm btn-secondary" style="margin-top:10px;font-size:11px;" onclick="copiarTextoSeguro(this.closest('div').querySelector('div:last-of-type').textContent,'📋 Copiado!')">📋 Copiar</button>
     </div>`:'');
 }
 
@@ -24290,15 +24248,11 @@ function storiesInit() {
 function storiesSetAI(ai) {
   srAI = ai;
   const isLocal = location.protocol === 'file:';
-  const claudeRow = document.getElementById('stories-claude-key-row');
-  const geminiRow = document.getElementById('stories-gemini-key-row');
   const warn = document.getElementById('stories-local-warning');
   const btnC = document.getElementById('stories-btn-claude');
   const btnG = document.getElementById('stories-btn-gemini');
   if (btnC) btnC.className = 'ai-btn' + (ai==='claude' ? ' active-claude' : '');
   if (btnG) btnG.className = 'ai-btn' + (ai==='gemini' ? ' active-gemini' : '');
-  if (claudeRow) claudeRow.style.display = ai==='claude' ? 'flex' : 'none';
-  if (geminiRow) geminiRow.style.display = ai==='gemini' ? 'flex' : 'none';
   if (warn) warn.style.display = (ai==='claude' && isLocal) ? 'block' : 'none';
 }
 
@@ -24405,7 +24359,7 @@ REGRAS OBRIGATÓRIAS:
 
 function srCopiar() {
   if (!srUltimoTexto) { showToast('⚠️ Gera um script primeiro'); return; }
-  navigator.clipboard.writeText(srUltimoTexto);
+  copiarTextoSeguro(srUltimoTexto, '');
   showToast('📋 Script copiado!');
 }
 
@@ -24422,7 +24376,7 @@ function srGuardarBiblioteca() {
 function srAgendar() {
   if (!srUltimoTexto) { showToast('⚠️ Gera um script primeiro'); return; }
   if (typeof abrirAgendarModal === 'function') { if(typeof lastGeneratedPost !== 'undefined') lastGeneratedPost = srUltimoTexto; abrirAgendarModal(); }
-  else { navigator.clipboard.writeText(srUltimoTexto); showToast('📋 Copiado! Vai ao Calendário para agendar.'); goTo('calendario'); }
+  else { copiarTextoSeguro(srUltimoTexto, ''); showToast('📋 Copiado! Vai ao Calendário para agendar.'); goTo('calendario'); }
 }
 
 function srCarregarBiblioteca() { try { return JSON.parse(localStorage.getItem(getSrBibliotecaKey()))||[]; } catch(e) { return []; } }
@@ -24472,7 +24426,7 @@ function srEliminar(id) {
 function srCopiarItem(id) {
   const item = srCarregarBiblioteca().find(i=>i.id===id);
   if (!item) return;
-  navigator.clipboard.writeText(item.texto);
+  copiarTextoSeguro(item.texto, '');
   showToast('📋 Copiado!');
 }
 
@@ -25598,7 +25552,7 @@ function toggleTmplExpand(id) {
   el.style.maxHeight = open ? '' : 'none';
   if (fade) fade.style.display = open ? '' : 'none';
 }
-function copiarTemplate(texto) { navigator.clipboard.writeText(texto); showToast('📋 Template copiado!'); }
+function copiarTemplate(texto) { copiarTextoSeguro(texto, '📋 Template copiado!'); }
 function enviarTemplateWA(texto) { enviarWhatsAppInteligente(texto); }
 function eliminarTemplate(id) {
   if (!confirm('Eliminar este template?')) return;
@@ -25652,7 +25606,7 @@ Responde APENAS com o texto do template, em Português de Portugal. Sem explica�
   } catch(e) { showToast('❌ ' + mensagemErroIA(e)); }
   finally { document.getElementById('tmpl-ia-loader').style.display = 'none'; document.getElementById('tmpl-ia-btn').disabled = false; }
 }
-function copiarTmplIA() { navigator.clipboard.writeText(_tmplIATexto); showToast('📋 Copiado!'); }
+function copiarTmplIA() { copiarTextoSeguro(_tmplIATexto, '📋 Copiado!'); }
 function guardarTmplIA() {
   if (!_tmplIATexto) return;
   let custom = [];
@@ -25777,7 +25731,7 @@ function copiarPromoTexto(id) {
   const dias = diasRestantes(p.fim);
   const urgencia = dias !== null && dias <= 3 ? `\n\n⚠️ Atenção: termina em ${dias} dia(s)!` : '';
   const txt = `📢 ${p.titulo}\n\n${p.descricao}${urgencia}${p.link ? '\n\n🔗 ' + p.link : ''}`;
-  navigator.clipboard.writeText(txt); showToast('📋 Copiado!');
+  copiarTextoSeguro(txt, '📋 Copiado!');
 }
 function partilharPromoWA(id) {
   const p = loadPromos().find(x => x.id === id); if (!p) return;
@@ -25794,7 +25748,7 @@ function partilharPromocoesEquipa() {
     const urgStr = dias !== null && dias <= 7 ? ` 🔥 (${dias}d)` : '';
     return `• *${p.titulo}*${urgStr}\n  ${p.descricao.substring(0,80)}...`;
   }).join('\n\n');
-  navigator.clipboard.writeText(txt); showToast('📋 Resumo copiado! Cola no grupo da equipa.');
+  copiarTextoSeguro(txt, '📋 Resumo copiado! Cola no grupo da equipa.');
 }
 function abrirModalNovaPromo() {
   _promoTipoAtivo = 'desconto';
@@ -25867,7 +25821,7 @@ Em Português de Portugal. Responde APENAS com o texto da mensagem.`;
   } catch(e) { showToast('❌ ' + mensagemErroIA(e)); }
   finally { document.getElementById('promo-ia-loader').style.display = 'none'; document.getElementById('promo-ia-btn').disabled = false; }
 }
-function copiarPromoIA() { navigator.clipboard.writeText(_promoIATexto); showToast('📋 Copiado!'); }
+function copiarPromoIA() { copiarTextoSeguro(_promoIATexto, '📋 Copiado!'); }
 function enviarPromoIAWA() { enviarWhatsAppInteligente(_promoIATexto); }
 
 </script>
@@ -26106,7 +26060,7 @@ function obRenderMensagens() {
     </div>`).join('');
 }
 function obCopiarMsg(i) {
-  navigator.clipboard.writeText(OB_MSGS[i].texto).then(()=>{ if(typeof showToast==='function') showToast('📋 Mensagem copiada!'); });
+  copiarTextoSeguro(OB_MSGS[i].texto, '📋 Mensagem copiada!');
 }
 
 // ── Render: Recursos ──────────────────────────────────────
@@ -26362,9 +26316,7 @@ function lbPartilhar() {
   if (navigator.share) {
     navigator.share({ text: texto }).catch(()=>{});
   } else {
-    navigator.clipboard.writeText(texto).then(()=>{
-      if (typeof showToast==='function') showToast('📋 Leaderboard copiado! Cola no WhatsApp da equipa.');
-    });
+    copiarTextoSeguro(texto, '📋 Leaderboard copiado! Cola no WhatsApp da equipa.');
   }
 }
 
@@ -27625,7 +27577,7 @@ function executarAcaoRegra(regra, lead) {
     showToast('⚙️ Automação: lembrete criado para ' + lead.nome);
   } else if (a.tipo === 'copiar_mensagem') {
     const texto = substituirVariaveis(a.texto, lead);
-    try { navigator.clipboard.writeText(texto); } catch(e) {}
+    copiarTextoSeguro(texto, '');
     registarAutoLogRegra(regra, '📋', `Preparou mensagem para <b>${lead.nome}</b>: "${texto.substring(0,50)}${texto.length>50?'…':''}"`);
     showToast('⚙️ Automação: mensagem copiada para ' + lead.nome + '!');
   } else if (a.tipo === 'mudar_estado') {
@@ -28995,9 +28947,8 @@ function partilharLeadWA(leadId) {
 // GROK (xAI) API
 // ===================================================
 async function callGrok(prompt) {
-  // Grok API (api.x.ai) is blocked by CORS when app is opened as a local file
-  const isLocal = location.protocol === 'file:' || location.protocol === 'content:';
-  if (isLocal) throw new Error('GROK_LOCAL_FILE');
+  // A API da xAI (Grok) suporta CORS de browser normalmente — não precisa de bloqueio
+  // por protocolo local/content://, ao contrário da API da Anthropic.
   if (!grokKey) throw new Error('GROK_NO_KEY');
 
   let response;
@@ -29009,26 +28960,140 @@ async function callGrok(prompt) {
         'Authorization': 'Bearer ' + grokKey
       },
       body: JSON.stringify({
-        model: 'grok-3-latest',
+        model: 'grok-4.3',
         messages: [{ role: 'user', content: prompt }],
         max_tokens: 1200,
         temperature: 0.8
       })
     });
   } catch (networkErr) {
-    // CORS or network failure
+    // Falha de rede real (sem internet) ou bloqueio efetivo de CORS neste ambiente específico
     throw new Error('GROK_CORS');
   }
   if (!response.ok) {
-    let errMsg = response.statusText;
-    try { const err = await response.json(); errMsg = err?.error?.message || errMsg; } catch(e) {}
+    let errMsg = '';
+    try { const err = await response.json(); errMsg = err?.error?.message || ''; } catch(e) {}
+    if (!errMsg) errMsg = response.statusText || ('HTTP ' + response.status);
     if (response.status === 401) throw new Error('Chave Grok inválida — verifica em console.x.ai');
     if (response.status === 429) throw new Error('Quota Grok esgotada — aguarda ou verifica o teu plano');
-    throw new Error('Grok: ' + errMsg);
+    throw new Error('Grok (' + response.status + '): ' + errMsg);
   }
   const data = await response.json();
   const text = data?.choices?.[0]?.message?.content;
   if (!text) throw new Error('Grok não devolveu resposta');
+  return text.trim();
+}
+
+// ===================================================
+// GROQ API (velocidade máxima, gratuito)
+// ===================================================
+async function callGroq(prompt) {
+  if (!groqKey) throw new Error('GROQ_NO_KEY');
+  let response;
+  try {
+    response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + groqKey
+      },
+      body: JSON.stringify({
+        model: 'llama-3.3-70b-versatile',
+        messages: [{ role: 'user', content: prompt }],
+        max_tokens: 1200,
+        temperature: 0.8
+      })
+    });
+  } catch (networkErr) {
+    throw new Error('GROQ_CORS');
+  }
+  if (!response.ok) {
+    let errMsg = '';
+    try { const err = await response.json(); errMsg = err?.error?.message || ''; } catch(e) {}
+    if (!errMsg) errMsg = response.statusText || ('HTTP ' + response.status);
+    if (response.status === 401) throw new Error('Chave Groq inválida — verifica em console.groq.com');
+    if (response.status === 429) throw new Error('Quota Groq esgotada — aguarda uns minutos');
+    throw new Error('Groq (' + response.status + '): ' + errMsg);
+  }
+  const data = await response.json();
+  const text = data?.choices?.[0]?.message?.content;
+  if (!text) throw new Error('Groq não devolveu resposta');
+  return text.trim();
+}
+
+// ===================================================
+// MISTRAL API (gratuito)
+// ===================================================
+async function callMistral(prompt) {
+  if (!mistralKey) throw new Error('MISTRAL_NO_KEY');
+  let response;
+  try {
+    response = await fetch('https://api.mistral.ai/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + mistralKey
+      },
+      body: JSON.stringify({
+        model: 'mistral-small-latest',
+        messages: [{ role: 'user', content: prompt }],
+        max_tokens: 1200,
+        temperature: 0.8
+      })
+    });
+  } catch (networkErr) {
+    throw new Error('MISTRAL_CORS');
+  }
+  if (!response.ok) {
+    let errMsg = '';
+    try { const err = await response.json(); errMsg = err?.error?.message || ''; } catch(e) {}
+    if (!errMsg) errMsg = response.statusText || ('HTTP ' + response.status);
+    if (response.status === 401) throw new Error('Chave Mistral inválida — verifica em console.mistral.ai');
+    if (response.status === 429) throw new Error('Quota Mistral esgotada — aguarda uns minutos');
+    throw new Error('Mistral (' + response.status + '): ' + errMsg);
+  }
+  const data = await response.json();
+  const text = data?.choices?.[0]?.message?.content;
+  if (!text) throw new Error('Mistral não devolveu resposta');
+  return text.trim();
+}
+
+// ===================================================
+// OPENROUTER API (múltiplos modelos, gratuito)
+// ===================================================
+async function callOpenRouter(prompt) {
+  if (!openrouterKey) throw new Error('OPENROUTER_NO_KEY');
+  let response;
+  try {
+    response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + openrouterKey,
+        'HTTP-Referer': location.href,
+        'X-Title': 'Alfa Team CRM'
+      },
+      body: JSON.stringify({
+        model: 'meta-llama/llama-3.3-70b-instruct:free',
+        messages: [{ role: 'user', content: prompt }],
+        max_tokens: 1200,
+        temperature: 0.8
+      })
+    });
+  } catch (networkErr) {
+    throw new Error('OPENROUTER_CORS');
+  }
+  if (!response.ok) {
+    let errMsg = '';
+    try { const err = await response.json(); errMsg = err?.error?.message || ''; } catch(e) {}
+    if (!errMsg) errMsg = response.statusText || ('HTTP ' + response.status);
+    if (response.status === 401) throw new Error('Chave OpenRouter inválida — verifica em openrouter.ai/keys');
+    if (response.status === 429) throw new Error('Quota OpenRouter esgotada — aguarda uns minutos');
+    throw new Error('OpenRouter (' + response.status + '): ' + errMsg);
+  }
+  const data = await response.json();
+  const text = data?.choices?.[0]?.message?.content;
+  if (!text) throw new Error('OpenRouter não devolveu resposta');
   return text.trim();
 }
 
@@ -29116,155 +29181,180 @@ function acRemoverImagem() {
   if (inp) inp.value = '';
 }
 
-var _acAI = localStorage.getItem('lw_acAI') || 'gemini';
-
-function setAcAI(ai) {
-  _acAI = ai;
-  localStorage.setItem('lw_acAI', ai);
-  document.getElementById('ac-btn-claude').className = 'ai-btn' + (ai==='claude' ? ' active-claude' : '');
-  document.getElementById('ac-btn-gemini').className = 'ai-btn' + (ai==='gemini' ? ' active-gemini' : '');
-  document.getElementById('ac-btn-grok').className   = 'ai-btn' + (ai==='grok'   ? ' active-grok'   : '');
-  var gRow = document.getElementById('ac-gemini-key-row');
-  var cRow = document.getElementById('ac-claude-key-row');
-  var xRow = document.getElementById('ac-grok-key-row');
-  if (gRow) gRow.classList.toggle('show', ai==='gemini');
-  if (cRow) cRow.classList.toggle('show', ai==='claude');
-  if (xRow) xRow.classList.toggle('show', ai==='grok');
-  if (ai==='gemini') syncGeminiKeyInputs();
-  if (ai==='claude') syncClaudeKeyInputs();
-  if (ai==='grok')   syncGrokKeyInputs();
-}
-
-function _acInitAI() {
-  var ai = _acAI;
-  document.getElementById('ac-btn-claude').className = 'ai-btn' + (ai==='claude' ? ' active-claude' : '');
-  document.getElementById('ac-btn-gemini').className = 'ai-btn' + (ai==='gemini' ? ' active-gemini' : '');
-  document.getElementById('ac-btn-grok').className   = 'ai-btn' + (ai==='grok'   ? ' active-grok'   : '');
-  var gRow = document.getElementById('ac-gemini-key-row');
-  var cRow = document.getElementById('ac-claude-key-row');
-  var xRow = document.getElementById('ac-grok-key-row');
-  if (gRow) gRow.classList.toggle('show', ai==='gemini');
-  if (cRow) cRow.classList.toggle('show', ai==='claude');
-  if (xRow) xRow.classList.toggle('show', ai==='grok');
-  // sync key inputs
-  var gInp = document.getElementById('ac-gemini-key'); var gSt = document.getElementById('ac-gemini-status');
-  var cInp = document.getElementById('ac-claude-key'); var cSt = document.getElementById('ac-claude-status');
-  var xInp = document.getElementById('ac-grok-key');   var xSt = document.getElementById('ac-grok-status');
-  if (gInp) gInp.value = geminiKey; if (gSt) gSt.textContent = geminiKey.length > 10 ? '✅ Guardada' : '';
-  if (cInp) cInp.value = claudeKey; if (cSt) cSt.textContent = claudeKey.length > 10 ? '✅ Guardada' : '';
-  if (xInp) xInp.value = grokKey;   if (xSt) xSt.textContent = grokKey.length   > 10 ? '✅ Guardada' : '';
-}
-
-// Also extend syncGeminiKeyInputs / syncClaudeKeyInputs / syncGrokKeyInputs to include 'ac'
-(function() {
-  var _origSyncG = typeof syncGeminiKeyInputs === 'function' ? syncGeminiKeyInputs : null;
-  var _origSyncC = typeof syncClaudeKeyInputs === 'function' ? syncClaudeKeyInputs : null;
-  var _origSyncX = typeof syncGrokKeyInputs   === 'function' ? syncGrokKeyInputs   : null;
-  window._acSyncKeys = function() {
-    var gInp = document.getElementById('ac-gemini-key'); var gSt = document.getElementById('ac-gemini-status');
-    var cInp = document.getElementById('ac-claude-key'); var cSt = document.getElementById('ac-claude-status');
-    var xInp = document.getElementById('ac-grok-key');   var xSt = document.getElementById('ac-grok-status');
-    if (gInp && gInp !== document.activeElement) gInp.value = geminiKey;
-    if (gSt) gSt.textContent = geminiKey.length > 10 ? '✅ Guardada' : '';
-    if (cInp && cInp !== document.activeElement) cInp.value = claudeKey;
-    if (cSt) cSt.textContent = claudeKey.length > 10 ? '✅ Guardada' : '';
-    if (xInp && xInp !== document.activeElement) xInp.value = grokKey;
-    if (xSt) xSt.textContent = grokKey.length > 10 ? '✅ Guardada' : '';
-  };
-})();
+// AC usa o sistema central de fallback automático — sem seleção manual de IA
 
 async function acAnalisar() {
-  var isImg = _acInputTab === 'imagem';
-  var texto = (document.getElementById('ac-texto') || {}).value || '';
-  texto = texto.trim();
-  var ctx = (document.getElementById(isImg ? 'ac-contexto-imagem' : 'ac-contexto-texto') || {}).value || '';
-  var plat = (document.getElementById('ac-plataforma') || {}).value || 'whatsapp';
-
-  if (!isImg && !texto) { if(typeof showToast==='function') showToast('Cola o texto da conversa primeiro.'); return; }
-  if (isImg && !_acImagemB64) { if(typeof showToast==='function') showToast('Faz upload de um screenshot primeiro.'); return; }
-
-  // Validate API key for selected AI
-  if (_acAI === 'claude' && !claudeKey) { if(typeof showToast==='function') showToast('⚠️ Falta a chave API Claude'); return; }
-  if (_acAI === 'gemini' && !geminiKey) { if(typeof showToast==='function') showToast('⚠️ Falta a chave API Gemini'); return; }
-  if (_acAI === 'grok'   && !grokKey)   { if(typeof showToast==='function') showToast('⚠️ Falta a chave API Grok'); return; }
-
-  var perfNome = '';
-  try { var pf = JSON.parse(localStorage.getItem(getUserStorageKey('lw_perfil'))||'{}'); if(pf.nomeDisplay) perfNome = pf.nomeDisplay; } catch(e){}
-
-  document.getElementById('ac-empty').style.display = 'none';
-  document.getElementById('ac-resultado').style.display = 'none';
-  document.getElementById('ac-loading').style.display = 'block';
-  document.getElementById('ac-btn-analisar').disabled = true;
-
-  var platLabel = {whatsapp:'WhatsApp',instagram:'Instagram DM',messenger:'Messenger',telefone:'chamada',email:'email'}[plat] || plat;
-  var sys = 'Es um coach especialista em vendas LifeWave.' + (perfNome ? ' O distribuidor chama-se ' + perfNome + '.' : '') + ' Analisa conversas em Portugues de Portugal.\n\n' + (typeof LW_COMPLIANCE_MSG !== 'undefined' ? LW_COMPLIANCE_MSG : '') + '\n\nResponde APENAS em JSON: {"sentimento":"positivo|neutro|negativo|muito_negativo","fase":"descoberta|interesse|consideracao|objecao|pronto_para_comprar|perdido","resumo":"texto","objecoes":["..."],"pontos_positivos":["..."],"erros_cometidos":["..."],"proxima_mensagem":"texto","proximo_passo":"texto","probabilidade_conversao":50,"dica_extra":"texto"}';
-
-  var promptText = 'Analisa esta conversa de ' + platLabel + (isImg ? '.' : ':\n\n' + texto) + (ctx ? '\n\nContexto adicional: ' + ctx : '') + '\n\nResponde APENAS com o JSON.';
+  function acReset(showEmpty) {
+    try { document.getElementById('ac-loading').style.display = 'none'; } catch(x){}
+    try { document.getElementById('ac-btn-analisar').disabled = false; } catch(x){}
+    if (showEmpty) { try { document.getElementById('ac-empty').style.display = 'block'; } catch(x){} }
+  }
+  function acErr(msg) {
+    acReset(true);
+    if (typeof showToast === 'function') showToast('❌ ' + msg);
+  }
 
   try {
-    var raw = '';
+    // Relê as chaves sempre frescos do localStorage (evita globals desatualizados)
+    var uk = typeof getUserStorageKey === 'function' ? getUserStorageKey : function(k){return k;};
+    var geminiKey = localStorage.getItem(uk('lw_geminiKey')) || localStorage.getItem('lw_geminiKey') || '';
+    var claudeKey = localStorage.getItem(uk('lw_claudeKey')) || localStorage.getItem('lw_claudeKey') || '';
 
-    if (_acAI === 'claude') {
-      var userContent;
-      if (isImg) {
-        userContent = [
-          { type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: _acImagemB64 } },
-          { type: 'text', text: promptText }
-        ];
-      } else {
-        userContent = promptText;
-      }
-      var resp = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': claudeKey,
-          'anthropic-version': '2023-06-01',
-          'anthropic-dangerous-direct-browser-access': 'true'
-        },
-        body: JSON.stringify({ model: 'claude-haiku-4-5-20251001', max_tokens: 1500, system: sys, messages: [{ role: 'user', content: userContent }] })
-      });
-      var data = await resp.json();
-      if (data.error) throw new Error(data.error.message || 'Erro Claude');
-      raw = (data.content || []).map(function(b){ return b.text||''; }).join('');
+    var isImg = (!!_acImagemB64);
+    var texto = '';
+    try { texto = (document.getElementById('ac-texto').value || '').trim(); } catch(x){}
+    var ctx = '';
+    try { ctx = (document.getElementById(isImg ? 'ac-contexto-imagem' : 'ac-contexto-texto').value || '').trim(); } catch(x){}
+    var plat = 'whatsapp';
+    try { plat = document.getElementById('ac-plataforma').value || 'whatsapp'; } catch(x){}
 
-    } else if (_acAI === 'gemini') {
-      if (isImg) {
-        var gemParts = [
-          { inlineData: { mimeType: 'image/jpeg', data: _acImagemB64 } },
-          { text: promptText }
-        ];
-        var gemBody = { contents: [{ parts: gemParts }], systemInstruction: { parts: [{ text: sys }] }, generationConfig: { maxOutputTokens: 1500, thinkingConfig: { thinkingBudget: 0 } } };
-        var gModel = 'gemini-2.5-flash';
-        var gResp = await fetch('https://generativelanguage.googleapis.com/v1beta/models/' + gModel + ':generateContent?key=' + geminiKey, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(gemBody) });
-        var gData = await gResp.json();
-        raw = ((((gData.candidates||[])[0]||{}).content||{}).parts||[]).map(function(p){ return p.text||''; }).join('');
-      } else {
-        var gemBody2 = { contents: [{ parts: [{ text: sys + '\n\n' + promptText }] }], generationConfig: { maxOutputTokens: 1500, thinkingConfig: { thinkingBudget: 0 } } };
-        var gResp2 = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=' + geminiKey, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(gemBody2) });
-        var gData2 = await gResp2.json();
-        raw = ((((gData2.candidates||[])[0]||{}).content||{}).parts||[]).map(function(p){ return p.text||''; }).join('');
-      }
+    if (!isImg && !texto) { acErr('Cola o texto ou faz upload de screenshot.'); return; }
 
-    } else if (_acAI === 'grok') {
-      var grokBody = { model: 'grok-3-mini', max_tokens: 1500, messages: [{ role: 'system', content: sys }, { role: 'user', content: promptText }] };
-      var xResp = await fetch('https://api.x.ai/v1/chat/completions', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + grokKey }
-        , body: JSON.stringify(grokBody)
-      });
-      var xData = await xResp.json();
-      raw = ((xData.choices||[])[0]||{}).message ? xData.choices[0].message.content : '';
+    var temChave = !!(geminiKey || claudeKey || grokKey || groqKey || mistralKey || openrouterKey);
+    if (!temChave) { acMostrarErroChave('qualquer'); return; }
+
+    var perfNome = '';
+    try { var pp = JSON.parse(localStorage.getItem(getUserStorageKey('lw_perfil'))||'{}'); perfNome = pp.nomeDisplay||''; } catch(x){}
+
+    document.getElementById('ac-empty').style.display = 'none';
+    document.getElementById('ac-resultado').style.display = 'none';
+    document.getElementById('ac-loading').style.display = 'block';
+    document.getElementById('ac-btn-analisar').disabled = true;
+
+    var platLabel = ({whatsapp:'WhatsApp',instagram:'Instagram DM',messenger:'Messenger',telefone:'chamada',email:'Email'})[plat] || plat;
+    var _acLinks = (typeof getMeuLinks === 'function') ? getMeuLinks() : {};
+    var _acLinksStr = '';
+    if (_acLinks.registo) {
+      _acLinksStr = '\n\nLINKS PESSOAIS DO DISTRIBUIDOR (inclui na proxima_mensagem quando relevante):'
+        + '\n• Registo: ' + _acLinks.registo
+        + '\n• Produto (funil): ' + (_acLinks.produto || '')
+        + '\n• Negócio (funil): ' + (_acLinks.negocio || '')
+        + '\n\nSe a fase for "pronto_para_comprar" ou "interesse", inclui o link de produto na proxima_mensagem.'
+        + '\nSe a fase for "descoberta" ou "consideracao", não incluas links ainda — mantém a conversa.';
     }
 
-    var r = JSON.parse(raw.replace(/```json|```/g,'').trim());
-    acMostrarResultado(r);
-  } catch(e) {
-    document.getElementById('ac-loading').style.display = 'none';
-    document.getElementById('ac-btn-analisar').disabled = false;
-    document.getElementById('ac-empty').style.display = 'block';
-    if(typeof showToast==='function') showToast('Erro na analise. Tenta novamente.');
-    console.error('acAnalisar error:', e);
+    var acTemp = 'morno'; try { acTemp = document.getElementById('ac-temperatura').value || 'morno'; } catch(x){}
+    var sys = 'Es um coach especialista em vendas LifeWave.' + (perfNome ? ' Distribuidor: ' + perfNome + '.' : '') + ' Analisa conversas em Portugues de Portugal.' + _acLinksStr + ' Responde APENAS em JSON com esta estrutura exacta: {"sentimento":"positivo","fase":"interesse","resumo":"texto","objecoes":["obj1"],"pontos_positivos":["p1"],"erros_cometidos":["e1"],"proxima_mensagem":"msg exacta","proximo_passo":"accao","probabilidade_conversao":60,"dica_extra":"dica"}';
+    var promptText = sys + '\n\nTemperatura do lead: ' + acTemp + '. Analisa esta conversa de ' + platLabel + (isImg ? '. Vê a imagem.' : ':\n\n' + texto) + (ctx ? '\n\nContexto: ' + ctx : '') + '\n\nResponde APENAS com JSON valido.';
+
+    var raw = '';
+
+    if (isImg) {
+      // Imagem: tenta Gemini primeiro, depois Claude (ambos suportam imagens)
+      var imgDone = false;
+      if (geminiKey && !imgDone) {
+        try {
+          var gParts = [{inlineData:{mimeType:'image/jpeg',data:_acImagemB64}},{text:promptText}];
+          var gBody = {contents:[{parts:gParts}],generationConfig:{maxOutputTokens:1500}};
+          var rG = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key='+geminiKey,
+            {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(gBody)});
+          var dG = await rG.json();
+          if (!rG.ok) throw new Error(dG.error ? dG.error.message : 'HTTP '+rG.status);
+          raw = (((dG.candidates||[])[0]||{}).content||{}).parts ? dG.candidates[0].content.parts.map(function(p){return p.text||'';}).join('') : '';
+          imgDone = true;
+        } catch(e) {
+          if (typeof showToast==='function') showToast('⚠️ Gemini indisponível — a tentar Claude...');
+        }
+      }
+      if (claudeKey && !imgDone) {
+        try {
+          var uc = [{ type:'image', source:{type:'base64',media_type:'image/jpeg',data:_acImagemB64}}, {type:'text',text:promptText}];
+          var r1 = await fetch('https://api.anthropic.com/v1/messages', {
+            method:'POST',
+            headers:{'Content-Type':'application/json','x-api-key':claudeKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+            body:JSON.stringify({model:'claude-haiku-4-5-20251001',max_tokens:1500,messages:[{role:'user',content:uc}]})
+          });
+          var d1 = await r1.json();
+          if (!r1.ok) throw new Error(d1.error ? d1.error.message : 'HTTP '+r1.status);
+          raw = (d1.content||[]).map(function(b){return b.text||'';}).join('');
+          imgDone = true;
+        } catch(e2) {
+          if (typeof showToast==='function') showToast('⚠️ Claude também falhou: ' + e2.message);
+        }
+      }
+      if (!imgDone) {
+        var semChaveImg = !geminiKey && !claudeKey;
+        throw new Error(semChaveImg
+          ? 'Configura Gemini ou Claude no Perfil para analisar imagens.'
+          : 'Ambas as IAs falharam ao processar a imagem. Verifica a chave API ou tenta com texto.');
+      }
+    } else {
+      // Texto: sistema central de fallback automático (todas as IAs configuradas)
+      raw = await callAI('posts', promptText, null, null, null);
+    }
+
+    if (!raw || !raw.trim()) throw new Error('Resposta vazia da IA');
+
+    var parsed;
+    try {
+      // 1. Remove markdown fences e prefixo 'json' sem backticks (ex: resposta Gemini)
+      var cleanRaw = raw
+        .replace(/```json\s*/gi, '')
+        .replace(/```\s*/g, '')
+        .replace(/^json\s*/i, '')
+        .trim();
+      // 2. Tenta parse direto
+      try { parsed = JSON.parse(cleanRaw); }
+      catch(e1) {
+        // 3. Extrai o bloco JSON mais interno (do primeiro { ao último })
+        var jsonStart = cleanRaw.indexOf('{');
+        var jsonEnd = cleanRaw.lastIndexOf('}');
+        if (jsonStart !== -1 && jsonEnd > jsonStart) {
+          try { parsed = JSON.parse(cleanRaw.slice(jsonStart, jsonEnd + 1)); }
+          catch(e2) {
+            // 4. Tenta reparar: remove vírgulas a mais antes de } ou ]
+            var repaired = cleanRaw.slice(jsonStart, jsonEnd + 1)
+              .replace(/,\s*([}\]])/g, '$1')
+              .replace(/([{,]\s*)(\w+)\s*:/g, '$1"$2":');
+            parsed = JSON.parse(repaired);
+          }
+        } else {
+          throw new Error('no_json');
+        }
+      }
+    } catch(pe) {
+      // 5. Último recurso: constrói objeto mínimo a partir do texto
+      var fallbackMsg = raw.replace(/```[\s\S]*?```/g,'').replace(/[#*`]/g,'').trim().slice(0,500);
+      parsed = {
+        sentimento: 'neutro',
+        fase: 'descoberta',
+        resumo: 'A IA respondeu mas não em formato estruturado.',
+        objecoes: [],
+        pontos_positivos: [],
+        erros_cometidos: [],
+        proxima_mensagem: fallbackMsg || 'Não foi possível extrair a mensagem.',
+        proximo_passo: 'Tenta novamente ou usa texto em vez de imagem.',
+        probabilidade_conversao: 30,
+        dica_extra: 'Dica: certifica-te de que a chave API está corretamente configurada.'
+      };
+    }
+
+    acReset(false);
+    acMostrarResultado(parsed);
+
+  } catch(err) {
+    var errMsg = err ? (err.message || String(err)) : 'Erro desconhecido';
+    if (errMsg.includes('fetch') || errMsg.includes('network') || errMsg.includes('Failed')) errMsg = 'Sem ligacao a internet.';
+    acErr(errMsg);
+  }
+}
+
+
+function acMostrarErroChave(ai) {
+  document.getElementById('ac-loading').style.display = 'none';
+  document.getElementById('ac-btn-analisar').disabled = false;
+  document.getElementById('ac-empty').style.display = 'block';
+  var nomes = {claude:'Claude', gemini:'Gemini', grok:'Grok'};
+  var el = document.getElementById('ac-resultado');
+  if (el) {
+    el.style.display = 'block';
+    el.innerHTML = '<div style="background:rgba(249,115,22,0.1);border:1px solid rgba(249,115,22,0.3);border-radius:var(--radius);padding:20px;text-align:center;">'
+      + '<div style="font-size:28px;margin-bottom:10px;">🔑</div>'
+      + '<div style="font-size:14px;font-weight:700;color:#f97316;margin-bottom:8px;">Chave API ' + (nomes[ai]||ai) + ' nao configurada</div>'
+      + '<div style="font-size:12.5px;color:var(--text2);margin-bottom:16px;line-height:1.6;">Para usar a Analise de Conversa precisas de uma chave API.<br>Vai a <strong>Posts IA</strong> ou <strong>Respostas IA</strong> para configurar a chave ' + (nomes[ai]||ai) + '.</div>'
+      + '<button class="btn btn-primary btn-sm" onclick="goTo(\'posts\')">Ir configurar chave →</button>'
+      + '</div>';
+    document.getElementById('ac-empty').style.display = 'none';
   }
 }
 
@@ -29306,11 +29396,25 @@ function acMostrarResultado(r) {
 
   var el = document.getElementById('ac-resultado');
   if (el) { el.innerHTML = html; el.style.display = 'block'; }
+  // Show links
+  var lw = document.getElementById('ac-links-rapidos-wrap');
+  var lr = document.getElementById('ac-links-rapidos');
+  if (lw && lr) {
+    lw.style.display = 'block';
+    if (typeof renderLinksRapidos === 'function') renderLinksRapidos('ac-links-rapidos');
+    else if (typeof getMeuLinks === 'function') {
+      var lnks = getMeuLinks();
+      var lhtml = [];
+      if (lnks.produto) lhtml.push('<button onclick="copiarTextoSeguro(\''+lnks.produto+'\',\'Link copiado!\'" style="background:var(--surface2);border:1px solid var(--border);color:var(--text);font-size:12px;padding:8px 12px;border-radius:8px;cursor:pointer;text-align:left;width:100%;">🛒 ' + lnks.produto + '</button>');
+      if (lnks.negocio) lhtml.push('<button onclick="copiarTextoSeguro(\''+lnks.negocio+'\',\'Link copiado!\'" style="background:var(--surface2);border:1px solid var(--border);color:var(--text);font-size:12px;padding:8px 12px;border-radius:8px;cursor:pointer;text-align:left;width:100%;">🤝 ' + lnks.negocio + '</button>');
+      if (lhtml.length) lr.innerHTML = lhtml.join('');
+    }
+  }
 }
 
 function acCopiarMsg() {
   var txt = (document.getElementById('ac-msg-copy') || {}).textContent || '';
-  navigator.clipboard.writeText(txt).then(function(){ if(typeof showToast==='function') showToast('Mensagem copiada!'); });
+  copiarTextoSeguro(txt, 'Mensagem copiada!');
 }
 
 function acNovaAnalise() {
@@ -29322,6 +29426,21 @@ function acNovaAnalise() {
   acRemoverImagem();
   acInputTab('texto');
 }
+
+// ── Análise de Conversa — helpers de pills ──────────────────
+function acSetPlat(el, val) {
+  document.querySelectorAll('#ac-plat-pills .pill').forEach(function(p){ p.classList.remove('active'); });
+  el.classList.add('active');
+  var inp = document.getElementById('ac-plataforma');
+  if (inp) inp.value = val;
+}
+function acSetTemp(el, val) {
+  document.querySelectorAll('#ac-temp-pills .tone-pill').forEach(function(p){ p.classList.remove('active'); });
+  el.classList.add('active');
+  var inp = document.getElementById('ac-temperatura');
+  if (inp) inp.value = val;
+}
+
 </script>
 
 </body>
