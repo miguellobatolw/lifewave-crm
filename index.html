@@ -9954,6 +9954,14 @@ function getDefaultPerfil() {
     pais: '',           // e.g. "Portugal", "Brazil", "Spain"
     nomeDisplay: '',    // Display name used in AI prompts
     pv: 0, qdv: 0, secL: 0, secR: 0, olxl: 0, bvBinario: 0, // Compensação 2.0 volumes
+    // Links pessoais do utilizador
+    linkInstagram: '',  // ex: https://instagram.com/miguellow
+    linkFacebook: '',   // ex: https://facebook.com/miguellow
+    linkWhatsapp: '',   // ex: https://wa.me/351912345678
+    linkYoutube: '',    // ex: https://youtube.com/@miguellow
+    linkTiktok: '',     // ex: https://tiktok.com/@miguellow
+    linkWebsite: '',    // ex: https://miguellow.com
+    linksExtra: [],     // links personalizados extra: [{ nome: 'Funil ES', url: 'https://...' }, ...]
   };
 }
 
@@ -10118,6 +10126,24 @@ function getCoachSystem() {
   const pais = p.pais || 'Portugal';
   const links = getMeuLinks();
 
+  // Personal social links (only include if configured)
+  const socialLinks = [
+    p.linkInstagram && `  • Instagram: ${p.linkInstagram}`,
+    p.linkFacebook  && `  • Facebook: ${p.linkFacebook}`,
+    p.linkWhatsapp  && `  • WhatsApp: ${p.linkWhatsapp}`,
+    p.linkYoutube   && `  • YouTube: ${p.linkYoutube}`,
+    p.linkTiktok    && `  • TikTok: ${p.linkTiktok}`,
+    p.linkWebsite   && `  • Website: ${p.linkWebsite}`,
+  ].filter(Boolean).join('\n');
+
+  const socialSection = socialLinks ? `- Personal/social links:\n${socialLinks}` : '';
+
+  // Extra/custom links (por mercado, idioma, evento, etc.)
+  const linksExtraArr = Array.isArray(p.linksExtra) ? p.linksExtra.filter(l => l && l.nome && l.url) : [];
+  const linksExtraSection = linksExtraArr.length
+    ? `- Extra/custom links:\n${linksExtraArr.map(l => `  • ${l.nome}: ${l.url}`).join('\n')}`
+    : '';
+
   const langInstructions = {
     pt: `Responde SEMPRE em Português de Portugal (nunca Brasil). Tom de coach: direto, prático, encorajador.`,
     en: `Always reply in English. Use a coaching tone: direct, practical, encouraging.`,
@@ -10147,8 +10173,8 @@ DISTRIBUTOR CONTEXT:
   • Business funnel: ${links.negocio}
   • Direct products: ${links['produtos-direto']}
   • Direct business: ${links['negocio-direto']}
-
-LANGUAGE INSTRUCTION:
+${socialSection}
+${linksExtraSection}
 ${langInstruction}
 
 HOW TO RESPOND:
@@ -10575,19 +10601,37 @@ async function chamarIADocumento({ ai, prompt, base64, isPdf, mediaType, maxToke
     return await callGemini(prompt, base64, isPdf ? 'application/pdf' : mediaType);
   }
 
+  function _docFallbackLabel(err) {
+    const m = (err.message || '').toLowerCase();
+    if (m.includes('401') || m.includes('invalid') || m.includes('api key') || m.includes('unauthorized') || m.includes('authentication')) return '🔑 Chave inválida';
+    if (m.includes('quota') || m.includes('429') || m.includes('resource_exhausted')) return '⛔ Quota esgotada';
+    if (m.includes('503') || m.includes('overloaded') || m.includes('unavailable')) return '💤 Serviço sobrecarregado';
+    return '⚠️ Serviço indisponível';
+  }
+
   if (ai === 'gemini') {
     try {
       return await chamarGemini();
     } catch (geminiErr) {
-      // Fallback automático: se pedido e houver chave Claude, tenta Claude antes de desistir
       if (fallback && claudeKey) {
-        if (typeof showToast === 'function') showToast('⚠️ Gemini indisponível — a tentar com Claude...');
+        const label = _docFallbackLabel(geminiErr);
+        if (typeof showToast === 'function') showToast(label + ' (Gemini) — a tentar com Claude...');
         try { return await chamarClaude(); } catch(e) { throw geminiErr; }
       }
       throw geminiErr;
     }
   }
-  return await chamarClaude();
+  // ai === 'claude'
+  try {
+    return await chamarClaude();
+  } catch (claudeErr) {
+    if (fallback && geminiKey) {
+      const label = _docFallbackLabel(claudeErr);
+      if (typeof showToast === 'function') showToast(label + ' (Claude) — a tentar com Gemini...');
+      try { return await chamarGemini(); } catch(e) { throw claudeErr; }
+    }
+    throw claudeErr;
+  }
 }
 
 // Verifica se a chave necessária para a IA escolhida está configurada,
@@ -10686,16 +10730,40 @@ async function callAI(page, prompt, imageBase64, imageMediaType, cacheContext) {
   // ───────────────────────────────────────────────────────────────────
   function isRecoverableError(msg) {
     const m = (msg || '').toLowerCase();
-    return m.includes('quota') || m.includes('resource_exhausted') || m.includes('limit')
+    // Erros de limite/quota/disponibilidade
+    if (m.includes('quota') || m.includes('resource_exhausted') || m.includes('limit')
         || m.includes('429') || m.includes('overloaded') || m.includes('high demand')
         || m.includes('503') || m.includes('unavailable') || m.includes('try again later')
-        || m.includes('cors') || m.includes('network') || m.includes('failed to fetch')
-        || m.includes('403') || m.includes('401') || m.includes('forbidden') || m.includes('unauthorized');
+        || m.includes('cors') || m.includes('network') || m.includes('failed to fetch')) return true;
+    // Erros de autenticação/chave inválida — tenta a próxima IA
+    if (m.includes('401') || m.includes('403') || m.includes('invalid') || m.includes('api key')
+        || m.includes('api_key') || m.includes('unauthorized') || m.includes('forbidden')
+        || m.includes('authentication') || m.includes('permission')) return true;
+    // Erros genéricos de servidor
+    if (m.includes('500') || m.includes('502') || m.includes('504') || m.includes('internal')) return true;
+    return false;
+  }
+
+  function fallbackErrorLabel(name, err) {
+    const m = (err.message || '').toLowerCase();
+    if (m.includes('401') || m.includes('unauthorized') || m.includes('invalid') || m.includes('api key') || m.includes('api_key') || m.includes('authentication'))
+      return `🔑 Chave ${name} inválida`;
+    if (m.includes('403') || m.includes('forbidden') || m.includes('permission'))
+      return `🚫 ${name} sem permissão`;
+    if (m.includes('quota') || m.includes('resource_exhausted') || m.includes('429'))
+      return `⛔ ${name} sem quota`;
+    if (m.includes('503') || m.includes('unavailable') || m.includes('overloaded'))
+      return `💤 ${name} sobrecarregado`;
+    if (m.includes('network') || m.includes('failed to fetch') || m.includes('cors'))
+      return `📡 ${name} sem rede`;
+    return `⚠️ ${name} falhou`;
   }
 
   // Constrói cadeia de fallback: IA escolhida primeiro, depois as restantes que têm chave
-  const ALL_AI = ['gemini', 'groq', 'mistral', 'openrouter', 'claude', 'grok'];
+  // Quando há imagem, Groq fica fora da cadeia: os seus modelos padrão não têm visão.
+  const ALL_AI = imageBase64 ? ['gemini', 'mistral', 'openrouter', 'claude', 'grok'] : ['gemini', 'groq', 'mistral', 'openrouter', 'claude', 'grok'];
   const aiOrder = [ai, ...ALL_AI.filter(a => a !== ai)].filter(a => {
+    if (imageBase64 && a === 'groq') return false;
     if (a === 'gemini')     return !!geminiKey;
     if (a === 'claude')     return !!claudeKey && !isLocal;
     if (a === 'grok')       return !!grokKey;
@@ -10715,10 +10783,10 @@ async function callAI(page, prompt, imageBase64, imageMediaType, cacheContext) {
     if (loaderLabel) loaderLabel.textContent = LABELS[name] || name + ' está a criar...';
     if (name === 'gemini')     return await callGemini(prompt, imageBase64, imageMediaType, cacheContext);
     if (name === 'claude')     return await callClaude(prompt, imageBase64, imageMediaType);
-    if (name === 'grok')       return await callGrok(prompt);
+    if (name === 'grok')       return await callGrok(prompt, imageBase64, imageMediaType);
     if (name === 'groq')       return await callGroq(prompt);
-    if (name === 'mistral')    return await callMistral(prompt);
-    if (name === 'openrouter') return await callOpenRouter(prompt);
+    if (name === 'mistral')    return await callMistral(prompt, imageBase64, imageMediaType);
+    if (name === 'openrouter') return await callOpenRouter(prompt, imageBase64, imageMediaType);
     throw new Error('IA desconhecida: ' + name);
   }
 
@@ -10733,7 +10801,8 @@ async function callAI(page, prompt, imageBase64, imageMediaType, cacheContext) {
       lastError = err;
       const isLast = i === aiOrder.length - 1;
       if (!isLast && isRecoverableError(err.message)) {
-        showToast('⚠️ ' + name + ' indisponível — a tentar com ' + aiOrder[i + 1] + '...');
+        const label = fallbackErrorLabel(name, err);
+        showToast(label + ' — a tentar com ' + aiOrder[i + 1] + '...');
         continue;
       }
       throw err;
@@ -13843,6 +13912,17 @@ function abrirPerfilModal(isPrimeiraVez) {
   document.getElementById('perfil-secr').value = p.secR || '';
   document.getElementById('perfil-olxl').value = p.olxl || '';
   document.getElementById('perfil-bv-binario').value = p.bvBinario || '';
+  // Links pessoais
+  const setLink = (id, val) => { const el = document.getElementById(id); if (el) el.value = val || ''; };
+  setLink('perfil-link-instagram', p.linkInstagram);
+  setLink('perfil-link-facebook',  p.linkFacebook);
+  setLink('perfil-link-whatsapp',  p.linkWhatsapp);
+  setLink('perfil-link-youtube',   p.linkYoutube);
+  setLink('perfil-link-tiktok',    p.linkTiktok);
+  setLink('perfil-link-website',   p.linkWebsite);
+  // Links extra personalizados
+  _linksExtraPerfilState = Array.isArray(p.linksExtra) ? p.linksExtra.map(l => ({ nome: l.nome || '', url: l.url || '' })) : [];
+  renderLinksExtraPerfilModal();
   popularSelectProdutosMinhasCompras();
   renderMinhasComprasModal();
   const titulo = document.getElementById('perfil-modal-titulo');
@@ -13915,7 +13995,19 @@ function salvarPerfil() {
 
   const upline = (document.getElementById('perfil-upline')?.value || '').trim();
   const pastaEquipa = (document.getElementById('perfil-pasta-equipa')?.value || '').trim();
-  const perfil = { slug, nomeDisplay: nome, pais, idioma, pv, qdv, secL, secR, olxl, bvBinario, upline, pastaEquipa };
+  // Links pessoais
+  const linkInstagram = (document.getElementById('perfil-link-instagram')?.value || '').trim();
+  const linkFacebook  = (document.getElementById('perfil-link-facebook')?.value  || '').trim();
+  const linkWhatsapp  = (document.getElementById('perfil-link-whatsapp')?.value  || '').trim();
+  const linkYoutube   = (document.getElementById('perfil-link-youtube')?.value   || '').trim();
+  const linkTiktok    = (document.getElementById('perfil-link-tiktok')?.value    || '').trim();
+  const linkWebsite   = (document.getElementById('perfil-link-website')?.value   || '').trim();
+  // Links extra personalizados: só guarda os que têm nome E url preenchidos
+  const linksExtra = _linksExtraPerfilState
+    .map(l => ({ nome: (l.nome || '').trim(), url: (l.url || '').trim() }))
+    .filter(l => l.nome && l.url);
+  const perfil = { slug, nomeDisplay: nome, pais, idioma, pv, qdv, secL, secR, olxl, bvBinario, upline, pastaEquipa,
+    linkInstagram, linkFacebook, linkWhatsapp, linkYoutube, linkTiktok, linkWebsite, linksExtra };
   saveUserPerfil(perfil);
   // Save upline in persistent storage too
   if (upline) localStorage.setItem('lw_upline_ref', upline);
@@ -13947,6 +14039,45 @@ salvarPerfil = function() {
     }
   } catch(e) {}
 };
+
+// ===== LINKS EXTRA PERSONALIZADOS (perfil) =====
+// Estado em memória dos links extra enquanto o modal de perfil está aberto
+let _linksExtraPerfilState = [];
+
+function renderLinksExtraPerfilModal() {
+  const list = document.getElementById('perfil-links-extra-list');
+  if (!list) return;
+  if (!_linksExtraPerfilState.length) {
+    list.innerHTML = `<div style="font-size:11.5px;color:var(--text3);padding:4px 0 8px;">Ainda não tens links extra. Usa o botão abaixo para adicionar (ex: "Funil Espanha", "Loja Brasil").</div>`;
+    return;
+  }
+  list.innerHTML = _linksExtraPerfilState.map((item, idx) => `
+    <div style="display:flex;gap:6px;align-items:flex-start;margin-bottom:8px;">
+      <div style="flex:1;display:flex;flex-direction:column;gap:4px;">
+        <input class="form-input" placeholder="Nome (ex: Funil Espanha)" value="${(item.nome || '').replace(/"/g,'&quot;')}"
+          oninput="atualizarLinkExtraPerfil(${idx}, 'nome', this.value)">
+        <input class="form-input" placeholder="https://..." type="url" value="${(item.url || '').replace(/"/g,'&quot;')}"
+          oninput="atualizarLinkExtraPerfil(${idx}, 'url', this.value)">
+      </div>
+      <button type="button" class="btn btn-secondary btn-sm" onclick="removerLinkExtraPerfil(${idx})" title="Remover" style="flex-shrink:0;margin-top:2px;">🗑️</button>
+    </div>
+  `).join('');
+}
+
+function adicionarLinkExtraPerfil() {
+  _linksExtraPerfilState.push({ nome: '', url: '' });
+  renderLinksExtraPerfilModal();
+}
+
+function removerLinkExtraPerfil(idx) {
+  _linksExtraPerfilState.splice(idx, 1);
+  renderLinksExtraPerfilModal();
+}
+
+function atualizarLinkExtraPerfil(idx, campo, valor) {
+  if (!_linksExtraPerfilState[idx]) return;
+  _linksExtraPerfilState[idx][campo] = valor;
+}
 
 function previewPerfilLinks() {
   const slug = (document.getElementById('perfil-slug')?.value || '').trim() || '…';
@@ -13994,13 +14125,15 @@ function copiarRefLink() {
   });
 }
 
-function renderLinksRapidos() {
-  const container = document.getElementById('links-rapidos');
-  if (!container) return;
+function renderLinksRapidos(containerId) {
+  // Support both the main "links-rapidos" panel and the AC panel
+  const ids = containerId ? [containerId] : ['links-rapidos', 'ac-links-rapidos'];
   const links = getMeuLinks();
   const p = getUserPerfil();
   const slug = p.slug || '—';
-  container.innerHTML = `
+
+  // Build LifeWave auto-links
+  const lwLinksHtml = slug === '—' ? '' : `
     <div class="link-item" onclick="copiarLink('${links.registo}','Registo LifeWave')">
       <div class="link-label">📋 Registo LifeWave</div>
       <div class="link-url">lifewave.com/${slug}/enrollment/enrollerselection</div>
@@ -14020,8 +14153,56 @@ function renderLinksRapidos() {
     <div class="link-item" onclick="copiarLink('${links['negocio-direto']}','Negócio Direto')">
       <div class="link-label">🔗 Negócio (link direto)</div>
       <div class="link-url">${links['negocio-direto'].replace('https://','')}</div>
-    </div>
-  `;
+    </div>`;
+
+  // Build personal social links
+  const socialDefs = [
+    { key: 'linkInstagram', emoji: '📸', label: 'Instagram' },
+    { key: 'linkFacebook',  emoji: '📘', label: 'Facebook'  },
+    { key: 'linkWhatsapp',  emoji: '💬', label: 'WhatsApp'  },
+    { key: 'linkYoutube',   emoji: '▶️',  label: 'YouTube'   },
+    { key: 'linkTiktok',    emoji: '🎵', label: 'TikTok'    },
+    { key: 'linkWebsite',   emoji: '🌐', label: 'Website'   },
+  ];
+  const socialHtml = socialDefs
+    .filter(d => p[d.key])
+    .map(d => {
+      const url = p[d.key];
+      const display = url.replace(/^https?:\/\//,'');
+      return `<div class="link-item" onclick="copiarLink('${url.replace(/'/g,"\\'")}','${d.label}')">
+        <div class="link-label">${d.emoji} ${d.label}</div>
+        <div class="link-url">${display}</div>
+      </div>`;
+    }).join('');
+
+  const hasSocial = socialHtml.length > 0;
+  const hasLw     = lwLinksHtml.length > 0;
+
+  // Build extra/custom links (por mercado, idioma, etc.)
+  const linksExtra = Array.isArray(p.linksExtra) ? p.linksExtra : [];
+  const extraHtml = linksExtra
+    .filter(l => l && l.nome && l.url)
+    .map(l => `<div class="link-item" onclick="copiarLink('${l.url.replace(/'/g,"\\'")}','${l.nome.replace(/'/g,"\\'")}')">
+        <div class="link-label">➕ ${l.nome}</div>
+        <div class="link-url">${l.url.replace(/^https?:\/\//,'')}</div>
+      </div>`).join('');
+  const hasExtra = extraHtml.length > 0;
+
+  const empty = `<div style="font-size:12px;color:var(--text2);padding:12px;background:var(--surface2);border-radius:8px;">⚙️ Configura o teu perfil para ver os teus links personalizados.</div>`;
+
+  const html = hasLw || hasSocial || hasExtra ? `
+    ${hasLw ? `<div style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.6px;margin-bottom:6px;">🔗 Links LifeWave</div>${lwLinksHtml}` : ''}
+    ${hasExtra ? `<div style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.6px;margin:${hasLw?'12px':0} 0 6px;">➕ Links Extra</div>${extraHtml}` : ''}
+    ${hasSocial ? `<div style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.6px;margin:${hasLw||hasExtra?'12px':0} 0 6px;">📱 Os Teus Links Pessoais</div>${socialHtml}` : ''}
+  ` : empty;
+
+  ids.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.innerHTML = html;
+    // Show/hide wrapper if exists
+    const wrap = document.getElementById(id + '-wrap');
+    if (wrap) wrap.style.display = (hasLw || hasSocial || hasExtra) ? 'block' : 'none';
+  });
 }
 
 // ===== END PERFIL =====
@@ -20834,6 +21015,46 @@ function renderPrevisaoComissao() {
           <span id="perfil-openrouter-status" style="font-size:11px;color:var(--accent);white-space:nowrap;"></span>
         </div>
       </div>
+    </div>
+
+    <!-- Links pessoais / redes sociais -->
+    <div style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px;margin-bottom:14px;">
+      <div style="font-size:11px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:0.7px;margin-bottom:4px;">📱 Os Teus Links Pessoais</div>
+      <div style="font-size:11.5px;color:var(--text2);margin-bottom:12px;line-height:1.5;">Guardados no teu perfil e disponíveis em toda a app (Analisador, Coach IA, Quick Replies, etc).</div>
+
+      <div class="form-group" style="margin-bottom:10px;">
+        <label class="form-label" style="display:flex;align-items:center;gap:6px;">📸 Instagram</label>
+        <input class="form-input" id="perfil-link-instagram" placeholder="https://instagram.com/o_teu_username" type="url">
+      </div>
+      <div class="form-group" style="margin-bottom:10px;">
+        <label class="form-label" style="display:flex;align-items:center;gap:6px;">📘 Facebook</label>
+        <input class="form-input" id="perfil-link-facebook" placeholder="https://facebook.com/o_teu_perfil" type="url">
+      </div>
+      <div class="form-group" style="margin-bottom:10px;">
+        <label class="form-label" style="display:flex;align-items:center;gap:6px;">💬 WhatsApp (link direto)</label>
+        <input class="form-input" id="perfil-link-whatsapp" placeholder="https://wa.me/351912345678" type="url">
+        <div style="font-size:10.5px;color:var(--text3);margin-top:3px;">Formato: wa.me/[código país][número] — ex: wa.me/351912345678</div>
+      </div>
+      <div class="form-group" style="margin-bottom:10px;">
+        <label class="form-label" style="display:flex;align-items:center;gap:6px;">▶️ YouTube</label>
+        <input class="form-input" id="perfil-link-youtube" placeholder="https://youtube.com/@o_teu_canal" type="url">
+      </div>
+      <div class="form-group" style="margin-bottom:10px;">
+        <label class="form-label" style="display:flex;align-items:center;gap:6px;">🎵 TikTok</label>
+        <input class="form-input" id="perfil-link-tiktok" placeholder="https://tiktok.com/@o_teu_username" type="url">
+      </div>
+      <div class="form-group" style="margin-bottom:0;">
+        <label class="form-label" style="display:flex;align-items:center;gap:6px;">🌐 Website / Linktree</label>
+        <input class="form-input" id="perfil-link-website" placeholder="https://o-teu-website.com" type="url">
+      </div>
+    </div>
+
+    <!-- Links extra personalizados (mercados / idiomas adicionais, etc.) -->
+    <div style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px;margin-bottom:14px;">
+      <div style="font-size:11px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:0.7px;margin-bottom:4px;">➕ Links Extra Personalizados</div>
+      <div style="font-size:11.5px;color:var(--text2);margin-bottom:12px;line-height:1.5;">Adiciona links extra com nome próprio — por exemplo, funis para outros mercados ou idiomas, páginas de eventos, etc. Aparecem na pré-visualização e na partilha rápida.</div>
+      <div id="perfil-links-extra-list"></div>
+      <button type="button" class="btn btn-secondary btn-sm" onclick="adicionarLinkExtraPerfil()" style="margin-top:6px;">➕ Adicionar Link</button>
     </div>
 
     <div class="modal-actions">
@@ -28946,10 +29167,17 @@ function partilharLeadWA(leadId) {
 // ===================================================
 // GROK (xAI) API
 // ===================================================
-async function callGrok(prompt) {
+async function callGrok(prompt, imageBase64, imageMediaType) {
   // A API da xAI (Grok) suporta CORS de browser normalmente — não precisa de bloqueio
   // por protocolo local/content://, ao contrário da API da Anthropic.
   if (!grokKey) throw new Error('GROK_NO_KEY');
+
+  const content = imageBase64
+    ? [
+        { type: 'text', text: prompt },
+        { type: 'image_url', image_url: { url: 'data:' + (imageMediaType || 'image/jpeg') + ';base64,' + imageBase64 } }
+      ]
+    : prompt;
 
   let response;
   try {
@@ -28961,7 +29189,7 @@ async function callGrok(prompt) {
       },
       body: JSON.stringify({
         model: 'grok-4.3',
-        messages: [{ role: 'user', content: prompt }],
+        messages: [{ role: 'user', content: content }],
         max_tokens: 1200,
         temperature: 0.8
       })
@@ -29024,8 +29252,18 @@ async function callGroq(prompt) {
 // ===================================================
 // MISTRAL API (gratuito)
 // ===================================================
-async function callMistral(prompt) {
+async function callMistral(prompt, imageBase64, imageMediaType) {
   if (!mistralKey) throw new Error('MISTRAL_NO_KEY');
+
+  const content = imageBase64
+    ? [
+        { type: 'text', text: prompt },
+        { type: 'image_url', image_url: { url: 'data:' + (imageMediaType || 'image/jpeg') + ';base64,' + imageBase64 } }
+      ]
+    : prompt;
+  // Pixtral é o modelo com visão da Mistral; o modelo de texto normal não aceita imagens.
+  const modelo = imageBase64 ? 'pixtral-12b-2409' : 'mistral-small-latest';
+
   let response;
   try {
     response = await fetch('https://api.mistral.ai/v1/chat/completions', {
@@ -29035,8 +29273,8 @@ async function callMistral(prompt) {
         'Authorization': 'Bearer ' + mistralKey
       },
       body: JSON.stringify({
-        model: 'mistral-small-latest',
-        messages: [{ role: 'user', content: prompt }],
+        model: modelo,
+        messages: [{ role: 'user', content: content }],
         max_tokens: 1200,
         temperature: 0.8
       })
@@ -29061,8 +29299,18 @@ async function callMistral(prompt) {
 // ===================================================
 // OPENROUTER API (múltiplos modelos, gratuito)
 // ===================================================
-async function callOpenRouter(prompt) {
+async function callOpenRouter(prompt, imageBase64, imageMediaType) {
   if (!openrouterKey) throw new Error('OPENROUTER_NO_KEY');
+
+  const content = imageBase64
+    ? [
+        { type: 'text', text: prompt },
+        { type: 'image_url', image_url: { url: 'data:' + (imageMediaType || 'image/jpeg') + ';base64,' + imageBase64 } }
+      ]
+    : prompt;
+  // llama-4-maverick:free tem visão; o modelo de texto normal não aceita imagens.
+  const modelo = imageBase64 ? 'meta-llama/llama-4-maverick:free' : 'meta-llama/llama-3.3-70b-instruct:free';
+
   let response;
   try {
     response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
@@ -29074,8 +29322,8 @@ async function callOpenRouter(prompt) {
         'X-Title': 'Alfa Team CRM'
       },
       body: JSON.stringify({
-        model: 'meta-llama/llama-3.3-70b-instruct:free',
-        messages: [{ role: 'user', content: prompt }],
+        model: modelo,
+        messages: [{ role: 'user', content: content }],
         max_tokens: 1200,
         temperature: 0.8
       })
@@ -29210,7 +29458,9 @@ async function acAnalisar() {
 
     if (!isImg && !texto) { acErr('Cola o texto ou faz upload de screenshot.'); return; }
 
-    var temChave = !!(geminiKey || claudeKey || grokKey || groqKey || mistralKey || openrouterKey);
+    var temChave = isImg
+      ? !!(geminiKey || claudeKey || grokKey || mistralKey || openrouterKey)
+      : !!(geminiKey || claudeKey || grokKey || groqKey || mistralKey || openrouterKey);
     if (!temChave) { acMostrarErroChave('qualquer'); return; }
 
     var perfNome = '';
@@ -29234,76 +29484,39 @@ async function acAnalisar() {
     }
 
     var acTemp = 'morno'; try { acTemp = document.getElementById('ac-temperatura').value || 'morno'; } catch(x){}
-    var sys = 'Es um coach especialista em vendas LifeWave.' + (perfNome ? ' Distribuidor: ' + perfNome + '.' : '') + ' Analisa conversas em Portugues de Portugal.' + _acLinksStr + ' Responde APENAS em JSON com esta estrutura exacta: {"sentimento":"positivo","fase":"interesse","resumo":"texto","objecoes":["obj1"],"pontos_positivos":["p1"],"erros_cometidos":["e1"],"proxima_mensagem":"msg exacta","proximo_passo":"accao","probabilidade_conversao":60,"dica_extra":"dica"}';
+    var uiLang = (navigator.language || navigator.userLanguage || 'pt-PT');
+    var _uiLangMap = {'pt':'Português de Portugal','pt-PT':'Português de Portugal','pt-BR':'Português do Brasil','en':'English','en-US':'English','en-GB':'English','fr':'Français','fr-FR':'Français','fr-BE':'Français','es':'Español','de':'Deutsch','it':'Italiano','nl':'Nederlands','pl':'Polski','ro':'Română','hu':'Magyar','cs':'Čeština','sk':'Slovenčina','hr':'Hrvatski','sl':'Slovenščina','da':'Dansk','fi':'Suomi','sv':'Svenska','no':'Norsk','tr':'Türkçe','ru':'Русский','uk':'Українська'};
+    var uiLangCode = uiLang.split('-')[0].toLowerCase();
+    var uiLangName = _uiLangMap[uiLang] || _uiLangMap[uiLangCode] || uiLang;
+    var sys = 'You are a LifeWave sales coach.' + (perfNome ? ' Distributor: ' + perfNome + '.' : '') + _acLinksStr
+      + ' LANGUAGE RULES (mandatory):'
+      + ' 1) Detect the language the PROSPECT is writing in.'
+      + ' 2) Write the field "proxima_mensagem" EXCLUSIVELY in that detected language — never translate it to another language.'
+      + ' 3) Write ALL other JSON fields (resumo, objecoes, pontos_positivos, erros_cometidos, proximo_passo, dica_extra) in ' + uiLangName + '.'
+      + ' Respond ONLY in valid JSON with this exact structure: {"sentimento":"positivo","fase":"interesse","resumo":"texto","objecoes":["obj1"],"pontos_positivos":["p1"],"erros_cometidos":["e1"],"proxima_mensagem":"msg exacta no idioma do prospecto","proximo_passo":"accao","probabilidade_conversao":60,"dica_extra":"dica","idioma_prospecto":"fr"}';
     var promptText = sys + '\n\nTemperatura do lead: ' + acTemp + '. Analisa esta conversa de ' + platLabel + (isImg ? '. Vê a imagem.' : ':\n\n' + texto) + (ctx ? '\n\nContexto: ' + ctx : '') + '\n\nResponde APENAS com JSON valido.';
 
-    var raw = '';
-
-    if (isImg) {
-      // Imagem: tenta Gemini primeiro, depois Claude (ambos suportam imagens)
-      var imgDone = false;
-      if (geminiKey && !imgDone) {
-        try {
-          var gParts = [{inlineData:{mimeType:'image/jpeg',data:_acImagemB64}},{text:promptText}];
-          var gBody = {contents:[{parts:gParts}],generationConfig:{maxOutputTokens:1500}};
-          var rG = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key='+geminiKey,
-            {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(gBody)});
-          var dG = await rG.json();
-          if (!rG.ok) throw new Error(dG.error ? dG.error.message : 'HTTP '+rG.status);
-          raw = (((dG.candidates||[])[0]||{}).content||{}).parts ? dG.candidates[0].content.parts.map(function(p){return p.text||'';}).join('') : '';
-          imgDone = true;
-        } catch(e) {
-          if (typeof showToast==='function') showToast('⚠️ Gemini indisponível — a tentar Claude...');
-        }
-      }
-      if (claudeKey && !imgDone) {
-        try {
-          var uc = [{ type:'image', source:{type:'base64',media_type:'image/jpeg',data:_acImagemB64}}, {type:'text',text:promptText}];
-          var r1 = await fetch('https://api.anthropic.com/v1/messages', {
-            method:'POST',
-            headers:{'Content-Type':'application/json','x-api-key':claudeKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
-            body:JSON.stringify({model:'claude-haiku-4-5-20251001',max_tokens:1500,messages:[{role:'user',content:uc}]})
-          });
-          var d1 = await r1.json();
-          if (!r1.ok) throw new Error(d1.error ? d1.error.message : 'HTTP '+r1.status);
-          raw = (d1.content||[]).map(function(b){return b.text||'';}).join('');
-          imgDone = true;
-        } catch(e2) {
-          if (typeof showToast==='function') showToast('⚠️ Claude também falhou: ' + e2.message);
-        }
-      }
-      if (!imgDone) {
-        var semChaveImg = !geminiKey && !claudeKey;
-        throw new Error(semChaveImg
-          ? 'Configura Gemini ou Claude no Perfil para analisar imagens.'
-          : 'Ambas as IAs falharam ao processar a imagem. Verifica a chave API ou tenta com texto.');
-      }
-    } else {
-      // Texto: sistema central de fallback automático (todas as IAs configuradas)
-      raw = await callAI('posts', promptText, null, null, null);
-    }
+    // Sistema central de fallback automático — cobre texto e imagem,
+    // tentando Gemini → Claude → Grok → Mistral → OpenRouter (conforme chaves configuradas).
+    var raw = await callAI('posts', promptText, isImg ? _acImagemB64 : null, isImg ? 'image/jpeg' : null, isImg ? null : 'analise_conversa');
 
     if (!raw || !raw.trim()) throw new Error('Resposta vazia da IA');
 
     var parsed;
     try {
-      // 1. Remove markdown fences e prefixo 'json' sem backticks (ex: resposta Gemini)
-      var cleanRaw = raw
-        .replace(/```json\s*/gi, '')
-        .replace(/```\s*/g, '')
-        .replace(/^json\s*/i, '')
-        .trim();
+      // 1. Remove markdown fences
+      var cleanRaw = raw.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim();
       // 2. Tenta parse direto
       try { parsed = JSON.parse(cleanRaw); }
       catch(e1) {
         // 3. Extrai o bloco JSON mais interno (do primeiro { ao último })
-        var jsonStart = cleanRaw.indexOf('{');
-        var jsonEnd = cleanRaw.lastIndexOf('}');
-        if (jsonStart !== -1 && jsonEnd > jsonStart) {
-          try { parsed = JSON.parse(cleanRaw.slice(jsonStart, jsonEnd + 1)); }
+        var s = cleanRaw.indexOf('{');
+        var e = cleanRaw.lastIndexOf('}');
+        if (s !== -1 && e > s) {
+          try { parsed = JSON.parse(cleanRaw.slice(s, e + 1)); }
           catch(e2) {
             // 4. Tenta reparar: remove vírgulas a mais antes de } ou ]
-            var repaired = cleanRaw.slice(jsonStart, jsonEnd + 1)
+            var repaired = cleanRaw.slice(s, e + 1)
               .replace(/,\s*([}\]])/g, '$1')
               .replace(/([{,]\s*)(\w+)\s*:/g, '$1"$2":');
             parsed = JSON.parse(repaired);
@@ -29313,8 +29526,24 @@ async function acAnalisar() {
         }
       }
     } catch(pe) {
-      // 5. Último recurso: constrói objeto mínimo a partir do texto
-      var fallbackMsg = raw.replace(/```[\s\S]*?```/g,'').replace(/[#*`]/g,'').trim().slice(0,500);
+      // 5. Último recurso: o JSON global não é parseável (ex: aspas internas mal escapadas
+      // num campo de texto longo). Em vez de mostrar o JSON cru, tenta extrair só o valor
+      // do campo "proxima_mensagem" por regex — é o que o utilizador precisa de copiar.
+      var rawSemCercas = raw.replace(/```json/gi, '').replace(/```/g, '').trim();
+      var mensagemExtraida = '';
+      var mMatch = rawSemCercas.match(/"proxima_mensagem"\s*:\s*"([\s\S]*?)"\s*,\s*"proximo_passo"/);
+      if (!mMatch) mMatch = rawSemCercas.match(/"proxima_mensagem"\s*:\s*"([\s\S]*?)"\s*[,}]/);
+      if (mMatch) {
+        mensagemExtraida = mMatch[1]
+          .replace(/\\n/g, '\n')
+          .replace(/\\"/g, '"')
+          .replace(/\\\\/g, '\\')
+          .trim();
+      }
+      // Se mesmo assim não conseguiu extrair, mostra texto legível em vez do JSON em bruto
+      // (nunca mostra chaves { }, aspas de campo, ou a palavra "json" do bloco de código).
+      var pareceJson = /^[\{\[]/.test(rawSemCercas) || /"sentimento"\s*:/.test(rawSemCercas);
+      var textoLegivel = pareceJson ? '' : rawSemCercas.replace(/[#*`]/g,'').trim().slice(0,500);
       parsed = {
         sentimento: 'neutro',
         fase: 'descoberta',
@@ -29322,7 +29551,7 @@ async function acAnalisar() {
         objecoes: [],
         pontos_positivos: [],
         erros_cometidos: [],
-        proxima_mensagem: fallbackMsg || 'Não foi possível extrair a mensagem.',
+        proxima_mensagem: mensagemExtraida || textoLegivel || 'Não foi possível extrair a mensagem. Tenta novamente.',
         proximo_passo: 'Tenta novamente ou usa texto em vez de imagem.',
         probabilidade_conversao: 30,
         dica_extra: 'Dica: certifica-te de que a chave API está corretamente configurada.'
@@ -29376,7 +29605,8 @@ function acMostrarResultado(r) {
   }
   var pontosHtml = (r.pontos_positivos && r.pontos_positivos.length) ? '<div style="background:rgba(0,212,170,0.07);border:1px solid rgba(0,212,170,0.2);border-radius:var(--radius);padding:12px;"><div style="font-size:12px;font-weight:700;color:var(--accent);margin-bottom:8px;">Pontos positivos</div>' + r.pontos_positivos.map(function(p){ return '<div style="font-size:11.5px;color:var(--text2);margin-bottom:5px;">• ' + p + '</div>'; }).join('') + '</div>' : '<div></div>';
   var errosHtml = (r.erros_cometidos && r.erros_cometidos.length) ? '<div style="background:rgba(239,68,68,0.07);border:1px solid rgba(239,68,68,0.2);border-radius:var(--radius);padding:12px;"><div style="font-size:12px;font-weight:700;color:var(--danger);margin-bottom:8px;">A melhorar</div>' + r.erros_cometidos.map(function(e){ return '<div style="font-size:11.5px;color:var(--text2);margin-bottom:5px;">• ' + e + '</div>'; }).join('') + '</div>' : '<div></div>';
-  var msgHtml = r.proxima_mensagem ? '<div style="background:linear-gradient(135deg,rgba(0,212,170,0.1),rgba(0,132,255,0.07));border:1px solid rgba(0,212,170,0.3);border-radius:var(--radius);padding:16px;"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:8px;"><div style="font-size:13px;font-weight:700;color:var(--accent);">Mensagem a enviar agora</div><button class="btn btn-secondary btn-sm" onclick="acCopiarMsg()">Copiar</button></div><pre id="ac-msg-copy" style="font-size:12.5px;color:var(--text);white-space:pre-wrap;line-height:1.65;font-family:DM Sans,sans-serif;margin:0;">' + r.proxima_mensagem + '</pre></div>' : '';
+  var _acMsgOriginal = r.proxima_mensagem || '';
+  var msgHtml = _acMsgOriginal ? '<div style="background:linear-gradient(135deg,rgba(0,212,170,0.1),rgba(0,132,255,0.07));border:1px solid rgba(0,212,170,0.3);border-radius:var(--radius);padding:16px;"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:8px;"><div style="font-size:13px;font-weight:700;color:var(--accent);">Mensagem a enviar agora</div><div style="display:flex;gap:6px;flex-wrap:wrap;"><button id="ac-traduzir-btn" class="btn btn-secondary btn-sm" onclick="acTraduzirMsg()">🌐 Traduzir</button><button class="btn btn-secondary btn-sm" onclick="acCopiarMsg()">Copiar</button></div></div><pre id="ac-msg-copy" style="font-size:12.5px;color:var(--text);white-space:pre-wrap;line-height:1.65;font-family:DM Sans,sans-serif;margin:0;">' + _acMsgOriginal + '</pre><div id="ac-traducao-wrap" style="display:none;margin-top:12px;border-top:1px solid rgba(0,212,170,0.2);padding-top:12px;"><div id="ac-traducao-label" style="font-size:11px;font-weight:700;color:var(--text2);margin-bottom:6px;">🌐 Tradução</div><pre id="ac-traducao-text" style="font-size:12.5px;color:var(--text);white-space:pre-wrap;line-height:1.65;font-family:DM Sans,sans-serif;margin:0;"></pre><button class="btn btn-secondary btn-sm" style="margin-top:8px;" onclick="acCopiarTraducao()">Copiar tradução</button></div></div>' : '';
   var passoHtml = r.proximo_passo ? '<div style="background:rgba(245,200,66,0.08);border:1px solid rgba(245,200,66,0.25);border-radius:var(--radius);padding:14px;display:flex;align-items:flex-start;gap:12px;"><span style="font-size:22px;flex-shrink:0;">🎯</span><div><div style="font-size:12px;font-weight:700;color:var(--gold);margin-bottom:4px;">Proximo passo</div><div style="font-size:13px;color:var(--text);line-height:1.5;">' + r.proximo_passo + '</div></div></div>' : '';
   var dicaHtml = r.dica_extra ? '<div style="background:rgba(180,122,255,0.07);border:1px solid rgba(180,122,255,0.2);border-radius:var(--radius);padding:14px;display:flex;align-items:flex-start;gap:12px;"><span style="font-size:22px;flex-shrink:0;">💡</span><div><div style="font-size:12px;font-weight:700;color:#b47aff;margin-bottom:4px;">Dica estrategica</div><div style="font-size:12.5px;color:var(--text2);line-height:1.6;">' + r.dica_extra + '</div></div></div>' : '';
 
@@ -29415,6 +29645,53 @@ function acMostrarResultado(r) {
 function acCopiarMsg() {
   var txt = (document.getElementById('ac-msg-copy') || {}).textContent || '';
   copiarTextoSeguro(txt, 'Mensagem copiada!');
+}
+
+function acCopiarTraducao() {
+  var txt = (document.getElementById('ac-traducao-text') || {}).textContent || '';
+  copiarTextoSeguro(txt, 'Tradução copiada!');
+}
+
+async function acTraduzirMsg() {
+  var btn = document.getElementById('ac-traduzir-btn');
+  var wrap = document.getElementById('ac-traducao-wrap');
+  var outEl = document.getElementById('ac-traducao-text');
+  var labelEl = document.getElementById('ac-traducao-label');
+  var msgEl = document.getElementById('ac-msg-copy');
+  if (!btn || !wrap || !outEl || !msgEl) return;
+
+  var msgOriginal = msgEl.textContent.trim();
+  if (!msgOriginal) return;
+
+  // Toggle: se já está visível, esconde
+  if (wrap.style.display !== 'none') {
+    wrap.style.display = 'none';
+    btn.textContent = '🌐 Traduzir';
+    return;
+  }
+
+  // Detect user's system language
+  var uiLang = navigator.language || navigator.userLanguage || 'pt-PT';
+  var _uiLangMap = {'pt':'Português de Portugal','pt-PT':'Português de Portugal','pt-BR':'Português do Brasil','en':'English','en-US':'English','en-GB':'English','fr':'Français','fr-FR':'Français','fr-BE':'Français','es':'Español','de':'Deutsch','it':'Italiano','nl':'Nederlands','pl':'Polski','ro':'Română','hu':'Magyar','cs':'Čeština','sk':'Slovenčina','hr':'Hrvatski','sl':'Slovenščina','da':'Dansk','fi':'Suomi','sv':'Svenska','no':'Norsk','tr':'Türkçe','ru':'Русский','uk':'Українська'};
+  var uiLangCode = uiLang.split('-')[0].toLowerCase();
+  var uiLangName = _uiLangMap[uiLang] || _uiLangMap[uiLangCode] || uiLang;
+
+  btn.disabled = true;
+  btn.textContent = '⏳ A traduzir...';
+
+  try {
+    var prompt = 'Translate the following message to ' + uiLangName + ', keeping the tone, formatting, emojis and style of the original. Return ONLY the translation, no explanations or notes:\n\n' + msgOriginal;
+    var traducao = await callAI('posts', prompt, null, null, 'traducao_msg');
+    outEl.textContent = traducao.trim();
+    if (labelEl) labelEl.textContent = '🌐 ' + uiLangName;
+    wrap.style.display = 'block';
+    btn.textContent = '🌐 Ocultar';
+  } catch(err) {
+    showToast('⚠️ Erro ao traduzir: ' + (err.message || 'tenta novamente'));
+    btn.textContent = '🌐 Traduzir';
+  } finally {
+    btn.disabled = false;
+  }
 }
 
 function acNovaAnalise() {
