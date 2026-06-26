@@ -9687,12 +9687,12 @@ function renderTbodyLista() {
   const visiveis = filtered.slice(0, _listaPaginaAtual);
   tbody.innerHTML = visiveis.map(l => `
     <tr>
-      <td><strong>${l.nome}</strong><br>${scoreBadgeHtml(l)}${autoTagsHtml(l)}${tagsLivresHtml(l)}</td>
-      <td>${l.tel || '—'}</td>
-      <td>${l.email || '—'}</td>
-      <td>${(l.mercado||'').split(' ')[0]}</td>
+      <td><strong>${escapeHtml(l.nome)}</strong><br>${scoreBadgeHtml(l)}${autoTagsHtml(l)}${tagsLivresHtml(l)}</td>
+      <td>${l.tel ? escapeHtml(l.tel) : '—'}</td>
+      <td>${l.email ? escapeHtml(l.email) : '—'}</td>
+      <td>${escapeHtml((l.mercado||'').split(' ')[0])}</td>
       <td><span class="lead-badge b-${l.estado}">${estadoLabel(l.estado)}</span>${(() => { const d = diasSemContacto(l); if (d === null || l.estado === 'cliente' || l.estado === 'perdido') return ''; const cor = d >= 14 ? '#ff5555' : d >= 7 ? '#f59e0b' : 'var(--text3)'; return `<br><span style="font-size:10px;color:${cor};font-weight:600;">${d}d sem contacto</span>`; })()}</td>
-      <td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${l.notas || '—'}</td>
+      <td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${l.notas ? escapeHtml(l.notas) : '—'}</td>
       <td style="display:flex;gap:6px;flex-wrap:wrap;">
         <button class="btn btn-secondary btn-sm" onclick="verLead('${l.id}')">Ver</button>
         <button class="btn btn-secondary btn-sm" onclick="editarLead('${l.id}')">✏️</button>
@@ -14933,9 +14933,10 @@ function calcularScore(l) {
   // 6. Histórico de interações (max 15 pts)
   const hist = l.historico || [];
   const interacoes = hist.filter(h =>
-    h.msg && (h.msg.includes('WhatsApp') || h.msg.includes('SMS') ||
+    h.tipo === 'analise_ia' ||
+    (h.msg && (h.msg.includes('WhatsApp') || h.msg.includes('SMS') ||
               h.msg.includes('Chamada') || h.msg.includes('Avançou') ||
-              h.msg.includes('Estado alterado'))
+              h.msg.includes('Estado alterado')))
   ).length;
   const histPts = Math.min(interacoes * 3, 15);
   if (histPts > 0) { pts += histPts; detalhes.push(`${interacoes} interação(ões): +${histPts}`); }
@@ -14986,30 +14987,43 @@ function scoreBadgeHtml(l) {
 
 // ===== FOLLOW-UP ALERTS =====
 
+// Faz parse de datas guardadas no histórico/leads, que tanto podem estar em
+// formato ISO (novos registos via toISOString) como em pt-PT "dd/mm/yyyy" ou
+// "dd/mm/yyyy, hh:mm:ss" (toLocaleString('pt-PT')) — o `new Date()` nativo do
+// browser NÃO interpreta este último formato e devolve "Invalid Date" em
+// silêncio, o que fazia diasSemContacto() falhar sempre que o evento mais
+// recente do histórico fosse um destes registos.
+// (Distinta de parseDataHistorico() mais abaixo, que devolve timestamp em vez
+// de Date e é usada só por calcularAutoTags — mantida para não alterar esse comportamento.)
+function parseDataContactoLead(str) {
+  if (!str) return null;
+  if (typeof str !== 'string') return new Date(str);
+  const m = str.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})(?:,\s*(\d{1,2}):(\d{2})(?::(\d{2}))?)?/);
+  if (m) {
+    return new Date(+m[3], +m[2] - 1, +m[1], +(m[4]||0), +(m[5]||0), +(m[6]||0));
+  }
+  return new Date(str); // ISO ou outro formato que o Date nativo já entenda
+}
+
 function getLastContactDate(l) {
   // Check lead's history for last message/contact event
   const hist = l.historico || [];
   // Look for messaging events or state changes (most recent first)
   for (let i = hist.length - 1; i >= 0; i--) {
     const h = hist[i];
-    if (h.msg && (
+    if (h.tipo === 'analise_ia' || (h.msg && (
       h.msg.includes('WhatsApp') ||
       h.msg.includes('SMS') ||
       h.msg.includes('Chamada') ||
       h.msg.includes('Avançou') ||
       h.msg.includes('Estado alterado') ||
       h.msg.includes('contactado')
-    )) {
-      return new Date(h.data);
+    ))) {
+      return parseDataContactoLead(h.data);
     }
   }
   // Fall back to lead creation date
-  if (l.data) {
-    // parse PT date format dd/mm/yyyy or ISO
-    const parts = l.data.includes('/') ? l.data.split('/') : null;
-    if (parts && parts.length === 3) return new Date(+parts[2], +parts[1]-1, +parts[0]);
-    return new Date(l.data);
-  }
+  if (l.data) return parseDataContactoLead(l.data);
   return null;
 }
 
@@ -29622,6 +29636,35 @@ function acMostrarResultado(r) {
   var dicaHtml = r.dica_extra ? '<div style="background:rgba(180,122,255,0.07);border:1px solid rgba(180,122,255,0.2);border-radius:var(--radius);padding:14px;display:flex;align-items:flex-start;gap:12px;"><span style="font-size:22px;flex-shrink:0;">💡</span><div><div style="font-size:12px;font-weight:700;color:#b47aff;margin-bottom:4px;">Dica estrategica</div><div style="font-size:12.5px;color:var(--text2);line-height:1.6;">' + r.dica_extra + '</div></div></div>' : '';
 
   var nomeDetectado = (r.nome_detectado || '').trim();
+
+  // Mapeia a "fase" detetada pela IA para um estado do funil. A IA nunca passa
+  // o lead a "cliente" sozinha (só uma venda confirmada deve fazer isso).
+  var FASE_PARA_ESTADO = {
+    descoberta: 'contactado',
+    interesse: 'interessado',
+    consideracao: 'interessado',
+    objecao: 'negociacao',
+    pronto_para_comprar: 'negociacao',
+    perdido: 'frio'
+  };
+  var estadoSugerido = FASE_PARA_ESTADO[r.fase] || '';
+
+  // Tenta saber o estado atual do lead pré-selecionado (se a IA/match já apontou um existente)
+  var leadPreSelecionado = null;
+  if (nomeDetectado && typeof leads !== 'undefined') {
+    var nomeNormPre = nomeDetectado.trim().toLowerCase();
+    leadPreSelecionado = leads.find(function(l) { return l.nome && l.nome.trim().toLowerCase() === nomeNormPre; }) || null;
+  }
+  var estadoAtualPre = leadPreSelecionado ? leadPreSelecionado.estado : 'novo'; // lead novo nasce em "novo"
+  var sugerirMudancaEstado = estadoSugerido && estadoSugerido !== estadoAtualPre;
+
+  var estadoSugestaoHtml = '<div id="ac-estado-sugestao-wrap">' + (sugerirMudancaEstado
+    ? '<label style="display:flex;align-items:flex-start;gap:8px;font-size:12px;color:var(--text2);margin-bottom:10px;background:rgba(0,212,170,0.06);border:1px solid rgba(0,212,170,0.2);border-radius:8px;padding:10px;cursor:pointer;">'
+      + '<input type="checkbox" id="ac-lead-mudar-estado" checked style="margin-top:2px;flex-shrink:0;">'
+      + '<span>Atualizar estado do lead para <strong style="color:var(--text);">' + estadoLabel(estadoSugerido) + '</strong> (sugestão da IA com base na fase detetada)</span>'
+      + '</label>'
+    : '') + '</div>';
+
   var leadAssocHtml = '<div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px;">'
     + '<div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:10px;">👤 Associar a um Lead</div>'
     + (nomeDetectado
@@ -29631,6 +29674,8 @@ function acMostrarResultado(r) {
     + '<select class="form-select" id="ac-lead-existente" style="margin-bottom:10px;" onchange="acOnLeadExistenteChange()">'
     + '<option value="">+ Criar novo lead com este nome</option>'
     + '</select>'
+    + '<input type="hidden" id="ac-estado-sugerido" value="' + estadoSugerido + '">'
+    + estadoSugestaoHtml
     + '<button class="btn btn-primary btn-sm" style="width:100%;justify-content:center;" onclick="acGuardarNoLead()" id="ac-btn-guardar-lead">💾 Guardar análise no Lead</button>'
     + '</div>';
 
@@ -29694,9 +29739,27 @@ function acOnLeadExistenteChange() {
   var sel = document.getElementById('ac-lead-existente');
   var nomeInput = document.getElementById('ac-lead-nome');
   if (!sel || !nomeInput || typeof leads === 'undefined') return;
-  if (!sel.value) return; // "Criar novo" — mantém o nome editável tal como está
-  var l = leads.find(function(x) { return x.id === sel.value; });
-  if (l) nomeInput.value = l.nome;
+  var lAtual = null;
+  if (sel.value) {
+    lAtual = leads.find(function(x) { return x.id === sel.value; });
+    if (lAtual) nomeInput.value = lAtual.nome;
+  }
+  // "Criar novo" — mantém o nome editável tal como está
+
+  // Recalcula a sugestão de mudança de estado para o lead agora selecionado
+  // (ou para um lead "novo" hipotético, se for criar de novo).
+  var wrap = document.getElementById('ac-estado-sugestao-wrap');
+  var estadoInput = document.getElementById('ac-estado-sugerido');
+  if (!wrap || !estadoInput || !_acUltimaAnalise) return;
+  var estadoSugerido = estadoInput.value || '';
+  var estadoAtual = lAtual ? lAtual.estado : 'novo';
+  var sugerir = estadoSugerido && estadoSugerido !== estadoAtual;
+  wrap.innerHTML = sugerir
+    ? '<label style="display:flex;align-items:flex-start;gap:8px;font-size:12px;color:var(--text2);margin-bottom:10px;background:rgba(0,212,170,0.06);border:1px solid rgba(0,212,170,0.2);border-radius:8px;padding:10px;cursor:pointer;">'
+      + '<input type="checkbox" id="ac-lead-mudar-estado" checked style="margin-top:2px;flex-shrink:0;">'
+      + '<span>Atualizar estado do lead para <strong style="color:var(--text);">' + estadoLabel(estadoSugerido) + '</strong> (sugestão da IA com base na fase detetada)</span>'
+      + '</label>'
+    : '';
 }
 
 function acGuardarNoLead() {
@@ -29753,6 +29816,21 @@ function acGuardarNoLead() {
   lead.historico = lead.historico || [];
   lead.historico.unshift(entrada);
   lead.ultimoContacto = new Date().toISOString();
+
+  // Aplica a mudança de estado sugerida pela IA, se o utilizador a confirmou na checkbox.
+  var checkboxEstado = document.getElementById('ac-lead-mudar-estado');
+  var estadoInputEl = document.getElementById('ac-estado-sugerido');
+  if (checkboxEstado && checkboxEstado.checked && estadoInputEl && estadoInputEl.value && estadoInputEl.value !== lead.estado) {
+    var estadoAnterior = lead.estado;
+    var novoEstado = estadoInputEl.value;
+    lead.estado = novoEstado;
+    lead.historico.unshift({
+      tipo: 'estado',
+      msg: '🤖 Estado alterado de "' + estadoLabel(estadoAnterior) + '" para "' + estadoLabel(novoEstado) + '" (sugestão da Análise de Conversa IA)',
+      data: new Date().toLocaleString('pt-PT')
+    });
+  }
+
   saveleads();
 
   if (typeof renderDashboard === 'function') renderDashboard();
