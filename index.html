@@ -3784,7 +3784,7 @@
         <span id="nav-diario-badge" style="display:none;background:#ff6b35;color:#fff;font-size:9px;font-weight:700;padding:2px 6px;border-radius:20px;margin-left:auto;"></span>
       </div>
       <div class="nav-item" onclick="goTo('analise')" id="nav-analise">
-        <span class="nav-icon">🔍</span>
+        <span class="nav-icon">💬</span>
         <span>Análise Conversa</span>
       </div>
       <div class="nav-item" onclick="abrirPerfilModal(false)" id="nav-perfil" style="margin-top:8px;border-top:1px solid var(--border);padding-top:12px;">
@@ -6702,7 +6702,7 @@
     <div id="page-analise" class="page">
       <div class="page-header">
         <div>
-          <div class="page-title">🔍 Análise de Conversa</div>
+          <div class="page-title">💬 Análise de Conversa</div>
           <div class="page-sub">Cola a conversa ou faz upload de screenshot — a IA analisa e diz-te exactamente o que fazer</div>
         </div>
       </div>
@@ -6762,7 +6762,7 @@
         <input type="hidden" id="ac-temperatura" value="morno">
       </div>
       <div style="margin-bottom:20px;margin-top:4px;">
-        <button class="btn btn-primary" onclick="acAnalisar()" id="ac-btn-analisar" style="width:100%;justify-content:center;padding:14px;font-size:15px;">🔍 Analisar Conversa com IA</button>
+        <button class="btn btn-primary" onclick="acAnalisar()" id="ac-btn-analisar" style="width:100%;justify-content:center;padding:14px;font-size:15px;">💬 Analisar Conversa com IA</button>
       </div>
       <div id="ac-loading" style="display:none;text-align:center;padding:40px;">
         <div style="font-size:32px;margin-bottom:12px;">⚙️</div>
@@ -6781,7 +6781,7 @@
       </div>
 
       <div id="ac-empty" style="text-align:center;padding:40px 20px;">
-        <div style="font-size:44px;margin-bottom:14px;">🔍</div>
+        <div style="font-size:44px;margin-bottom:14px;">💬</div>
         <div style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:12px;">Como funciona</div>
         <div style="display:flex;flex-direction:column;gap:10px;max-width:300px;margin:0 auto;text-align:left;">
           <div style="display:flex;align-items:flex-start;gap:10px;font-size:13px;color:var(--text2);"><span style="width:22px;height:22px;border-radius:50%;background:var(--accent);color:#000;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;">1</span>Cola o texto da conversa ou faz upload de um screenshot</div>
@@ -7305,7 +7305,7 @@
       <span>Simulador</span>
     </div>
     <div class="bn-item" id="bn-analise" onclick="goTo('analise')">
-      <div class="bn-icon-wrap"><span class="bn-icon">🔍</span></div>
+      <div class="bn-icon-wrap"><span class="bn-icon">💬</span></div>
       <span>Análise</span>
     </div>
     <div class="bn-item" id="bn-onboarding" onclick="goTo('onboarding')">
@@ -10840,7 +10840,14 @@ function removerImagemPost() {
   showToast('🗑 Imagem removida');
 }
 
+let _postGenAttempt = 0;
 async function gerarPost() {
+  // Cada chamada (incl. "Gerar outra versão") usa um contexto de cache único,
+  // para que o pedido idêntico não devolva sempre a mesma resposta em cache
+  // (o que fazia o botão "Gerar outra versão" parecer "morto").
+  _postGenAttempt++;
+  const cacheContext = 'postgen-' + _postGenAttempt;
+
   const tema = document.getElementById('tema-select').value;
   const contexto = document.getElementById('contexto-input').value.trim();
   const emojis = document.getElementById('emoji-select').value;
@@ -10891,7 +10898,7 @@ IMPORTANTE: Responde APENAS com o texto do post, sem introdução, título ou ex
 
 
   try {
-    const texto = await callAI('posts', textoPrompt, postImageBase64 || null, postImageBase64 ? postImageMediaType : null);
+    const texto = await callAI('posts', textoPrompt, postImageBase64 || null, postImageBase64 ? postImageMediaType : null, cacheContext);
     lastGeneratedPost = texto;
     textEl.textContent = texto;
     textEl.style.display = 'block';
@@ -29431,6 +29438,7 @@ function acRemoverImagem() {
 
 // AC usa o sistema central de fallback automático — sem seleção manual de IA
 
+var _acUltimaAnalise = null; // { resultado, plataforma, platLabel } — usado para associar a um lead
 async function acAnalisar() {
   function acReset(showEmpty) {
     try { document.getElementById('ac-loading').style.display = 'none'; } catch(x){}
@@ -29493,7 +29501,8 @@ async function acAnalisar() {
       + ' 1) Detect the language the PROSPECT is writing in.'
       + ' 2) Write the field "proxima_mensagem" EXCLUSIVELY in that detected language — never translate it to another language.'
       + ' 3) Write ALL other JSON fields (resumo, objecoes, pontos_positivos, erros_cometidos, proximo_passo, dica_extra) in ' + uiLangName + '.'
-      + ' Respond ONLY in valid JSON with this exact structure: {"sentimento":"positivo","fase":"interesse","resumo":"texto","objecoes":["obj1"],"pontos_positivos":["p1"],"erros_cometidos":["e1"],"proxima_mensagem":"msg exacta no idioma do prospecto","proximo_passo":"accao","probabilidade_conversao":60,"dica_extra":"dica","idioma_prospecto":"fr"}';
+      + ' 4) Also extract the contact/prospect name if visible (e.g. chat header name in a screenshot, or a name mentioned in the pasted text). If no name is identifiable, return an empty string.'
+      + ' Respond ONLY in valid JSON with this exact structure: {"nome_detectado":"Maria Silva","sentimento":"positivo","fase":"interesse","resumo":"texto","objecoes":["obj1"],"pontos_positivos":["p1"],"erros_cometidos":["e1"],"proxima_mensagem":"msg exacta no idioma do prospecto","proximo_passo":"accao","probabilidade_conversao":60,"dica_extra":"dica","idioma_prospecto":"fr"}';
     var promptText = sys + '\n\nTemperatura do lead: ' + acTemp + '. Analisa esta conversa de ' + platLabel + (isImg ? '. Vê a imagem.' : ':\n\n' + texto) + (ctx ? '\n\nContexto: ' + ctx : '') + '\n\nResponde APENAS com JSON valido.';
 
     // Sistema central de fallback automático — cobre texto e imagem,
@@ -29545,6 +29554,7 @@ async function acAnalisar() {
       var pareceJson = /^[\{\[]/.test(rawSemCercas) || /"sentimento"\s*:/.test(rawSemCercas);
       var textoLegivel = pareceJson ? '' : rawSemCercas.replace(/[#*`]/g,'').trim().slice(0,500);
       parsed = {
+        nome_detectado: '',
         sentimento: 'neutro',
         fase: 'descoberta',
         resumo: 'A IA respondeu mas não em formato estruturado.',
@@ -29559,6 +29569,7 @@ async function acAnalisar() {
     }
 
     acReset(false);
+    _acUltimaAnalise = { resultado: parsed, plataforma: plat, platLabel: platLabel };
     acMostrarResultado(parsed);
 
   } catch(err) {
@@ -29610,6 +29621,19 @@ function acMostrarResultado(r) {
   var passoHtml = r.proximo_passo ? '<div style="background:rgba(245,200,66,0.08);border:1px solid rgba(245,200,66,0.25);border-radius:var(--radius);padding:14px;display:flex;align-items:flex-start;gap:12px;"><span style="font-size:22px;flex-shrink:0;">🎯</span><div><div style="font-size:12px;font-weight:700;color:var(--gold);margin-bottom:4px;">Proximo passo</div><div style="font-size:13px;color:var(--text);line-height:1.5;">' + r.proximo_passo + '</div></div></div>' : '';
   var dicaHtml = r.dica_extra ? '<div style="background:rgba(180,122,255,0.07);border:1px solid rgba(180,122,255,0.2);border-radius:var(--radius);padding:14px;display:flex;align-items:flex-start;gap:12px;"><span style="font-size:22px;flex-shrink:0;">💡</span><div><div style="font-size:12px;font-weight:700;color:#b47aff;margin-bottom:4px;">Dica estrategica</div><div style="font-size:12.5px;color:var(--text2);line-height:1.6;">' + r.dica_extra + '</div></div></div>' : '';
 
+  var nomeDetectado = (r.nome_detectado || '').trim();
+  var leadAssocHtml = '<div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px;">'
+    + '<div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:10px;">👤 Associar a um Lead</div>'
+    + (nomeDetectado
+        ? '<div style="font-size:12px;color:var(--text2);margin-bottom:10px;">Nome detetado na conversa: <strong style="color:var(--text);">' + nomeDetectado + '</strong></div>'
+        : '<div style="font-size:12px;color:var(--text2);margin-bottom:10px;">Não foi possível detetar um nome automaticamente — escolhe ou cria o lead manualmente.</div>')
+    + '<input class="form-input" id="ac-lead-nome" placeholder="Nome do lead" value="' + nomeDetectado.replace(/"/g,'&quot;') + '" style="margin-bottom:8px;">'
+    + '<select class="form-select" id="ac-lead-existente" style="margin-bottom:10px;" onchange="acOnLeadExistenteChange()">'
+    + '<option value="">+ Criar novo lead com este nome</option>'
+    + '</select>'
+    + '<button class="btn btn-primary btn-sm" style="width:100%;justify-content:center;" onclick="acGuardarNoLead()" id="ac-btn-guardar-lead">💾 Guardar análise no Lead</button>'
+    + '</div>';
+
   var html = '<div style="display:flex;flex-direction:column;gap:14px;">'
     + '<div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px;">'
     + '<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:12px;">'
@@ -29618,6 +29642,7 @@ function acMostrarResultado(r) {
     + '<div style="font-size:12.5px;color:var(--text2);line-height:1.6;margin-bottom:12px;">' + (r.resumo||'') + '</div>'
     + '<div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text2);margin-bottom:5px;"><span>Probabilidade de conversao</span><span style="font-weight:700;color:' + probCor + ';">' + prob + '%</span></div>'
     + '<div style="background:var(--surface3);border-radius:20px;height:7px;overflow:hidden;"><div style="width:' + prob + '%;height:100%;background:' + probCor + ';border-radius:20px;transition:width .5s;"></div></div></div>'
+    + leadAssocHtml
     + objecoesHtml
     + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">' + pontosHtml + errosHtml + '</div>'
     + msgHtml + passoHtml + dicaHtml
@@ -29639,6 +29664,114 @@ function acMostrarResultado(r) {
       if (lnks.negocio) lhtml.push('<button onclick="copiarTextoSeguro(\''+lnks.negocio+'\',\'Link copiado!\'" style="background:var(--surface2);border:1px solid var(--border);color:var(--text);font-size:12px;padding:8px 12px;border-radius:8px;cursor:pointer;text-align:left;width:100%;">🤝 ' + lnks.negocio + '</button>');
       if (lhtml.length) lr.innerHTML = lhtml.join('');
     }
+  }
+
+  // Popula o select de leads existentes (mais recentes primeiro) e tenta
+  // pré-selecionar um match pelo nome detetado pela IA.
+  var selEl = document.getElementById('ac-lead-existente');
+  if (selEl && typeof leads !== 'undefined') {
+    var opts = ['<option value="">+ Criar novo lead com este nome</option>'];
+    leads.forEach(function(l) {
+      var label = l.nome + (l.tel ? ' · ' + l.tel : '');
+      opts.push('<option value="' + l.id + '">' + label.replace(/</g,'&lt;') + '</option>');
+    });
+    selEl.innerHTML = opts.join('');
+
+    if (nomeDetectado) {
+      var nomeNorm = nomeDetectado.trim().toLowerCase();
+      var match = leads.find(function(l) { return l.nome && l.nome.trim().toLowerCase() === nomeNorm; });
+      if (!match) {
+        match = leads.find(function(l) {
+          return l.nome && (l.nome.toLowerCase().indexOf(nomeNorm) !== -1 || nomeNorm.indexOf(l.nome.toLowerCase()) !== -1);
+        });
+      }
+      if (match) selEl.value = match.id;
+    }
+  }
+}
+
+function acOnLeadExistenteChange() {
+  var sel = document.getElementById('ac-lead-existente');
+  var nomeInput = document.getElementById('ac-lead-nome');
+  if (!sel || !nomeInput || typeof leads === 'undefined') return;
+  if (!sel.value) return; // "Criar novo" — mantém o nome editável tal como está
+  var l = leads.find(function(x) { return x.id === sel.value; });
+  if (l) nomeInput.value = l.nome;
+}
+
+function acGuardarNoLead() {
+  if (typeof leads === 'undefined' || !_acUltimaAnalise) { showToast('❌ Sem análise para guardar.'); return; }
+  var sel = document.getElementById('ac-lead-existente');
+  var nomeInput = document.getElementById('ac-lead-nome');
+  var nome = (nomeInput ? nomeInput.value : '').trim();
+  var leadIdEscolhido = sel ? sel.value : '';
+
+  if (!leadIdEscolhido && !nome) { showToast('❌ Indica um nome para criar o lead.'); return; }
+
+  var r = _acUltimaAnalise.resultado || {};
+  var platLabel = _acUltimaAnalise.platLabel || 'conversa';
+  var sentLbl = { positivo:'😊 Positivo', neutro:'😐 Neutro', negativo:'😟 Negativo', muito_negativo:'😞 Muito negativo' }[r.sentimento] || r.sentimento || '';
+  var faseLbl = { descoberta:'Descoberta', interesse:'Interesse', consideracao:'Consideração', objecao:'Objeção', pronto_para_comprar:'Pronto para comprar', perdido:'Perdido' }[r.fase] || r.fase || '';
+
+  var resumoMsg = '💬 Análise de conversa (' + platLabel + ') — Sentimento: ' + sentLbl + ' · Fase: ' + faseLbl
+    + (r.resumo ? '\n' + r.resumo : '')
+    + (r.proxima_mensagem ? '\n➡️ Sugestão enviada/preparada: "' + r.proxima_mensagem.slice(0,200) + (r.proxima_mensagem.length > 200 ? '…' : '') + '"' : '');
+
+  var entrada = { tipo: 'analise_ia', msg: resumoMsg, data: new Date().toLocaleString('pt-PT') };
+
+  var lead;
+  if (leadIdEscolhido) {
+    lead = leads.find(function(x) { return x.id === leadIdEscolhido; });
+    if (!lead) { showToast('❌ Lead não encontrado.'); return; }
+    if (nome && nome !== lead.nome) lead.nome = nome; // permite corrigir o nome ao associar
+  } else {
+    // Bloqueia duplicado exato por nome, tal como ao criar manualmente
+    var duplicado = leads.find(function(l) { return l.nome && l.nome.trim().toLowerCase() === nome.toLowerCase(); });
+    if (duplicado) {
+      if (!confirm('Já existe um lead "' + duplicado.nome + '". Queres associar a análise a esse lead em vez de criar um novo?')) {
+        return;
+      }
+      lead = duplicado;
+    } else {
+      lead = {
+        id: gerarId(),
+        nome: nome,
+        tel: '',
+        email: '',
+        mercado: '',
+        estado: 'novo',
+        fonte: 'Análise de Conversa IA',
+        notas: '',
+        aniversario: '',
+        data: new Date().toLocaleDateString('pt-PT'),
+        historico: [{ tipo: 'sistema', msg: 'Lead criado a partir da Análise de Conversa IA', data: new Date().toLocaleString('pt-PT') }]
+      };
+      leads.unshift(lead);
+    }
+  }
+
+  lead.historico = lead.historico || [];
+  lead.historico.unshift(entrada);
+  lead.ultimoContacto = new Date().toISOString();
+  saveleads();
+
+  if (typeof renderDashboard === 'function') renderDashboard();
+  if (typeof renderFunil === 'function') renderFunil();
+  if (typeof renderLista === 'function') renderLista();
+
+  showToast('✓ Análise guardada no lead "' + lead.nome + '"');
+
+  // Reflete a escolha no select, para o caso de o utilizador guardar outra vez
+  var selAfter = document.getElementById('ac-lead-existente');
+  if (selAfter) {
+    var jaTemOpcao = Array.from(selAfter.options).some(function(o){ return o.value === lead.id; });
+    if (!jaTemOpcao) {
+      var opt = document.createElement('option');
+      opt.value = lead.id;
+      opt.textContent = lead.nome + (lead.tel ? ' · ' + lead.tel : '');
+      selAfter.appendChild(opt);
+    }
+    selAfter.value = lead.id;
   }
 }
 
