@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, interactive-widget=resizes-content">
-<title>LifeWave CRM v30 — Gestão de Leads & Posts</title>
+<title>LifeWave CRM v40 — Gestão de Leads & Posts</title>
 
 <!-- ===== PWA: manifest, ícones e meta tags ===== -->
 <link rel="manifest" href="manifest.json">
@@ -116,7 +116,7 @@
   }
 
   /* LAYOUT */
-  .app { display: none; min-height: 100vh; position: relative; z-index: 1; }
+  .app { display: none; flex-direction: row; min-height: 100vh; position: relative; z-index: 1; }
 
   /* SIDEBAR */
   .sidebar {
@@ -637,8 +637,8 @@
   .toast.show { transform: translateY(0); opacity: 1; }
 
   /* PAGES */
-  .page { display: none; }
-  .page.active { display: block; }
+  .page { display: none !important; }
+  .page.active { display: block !important; }
 
   /* TAGS */
   .tag {
@@ -737,7 +737,7 @@
     .sidebar { display: none; }
 
     /* Main ocupa tudo */
-    .main { margin-left: 0; padding: 14px 12px 90px; min-height: 100dvh; background: var(--bg); width: 100%; max-width: 100vw; } max-width:100vw; box-sizing:border-box; }
+    .main { margin-left: 0; padding: 14px 12px 90px; min-height: 100dvh; background: var(--bg); width: 100%; max-width: 100vw; box-sizing: border-box; overflow-x: hidden; }
     .page-header { flex-wrap: wrap; gap: 10px; margin-bottom: 16px; }
     .page-header > div:last-child { flex-wrap: wrap; gap: 6px; }
     .stats-grid { grid-template-columns: 1fr 1fr !important; gap: 10px; }
@@ -1401,7 +1401,7 @@
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
   }
-  #login-screen.hidden { display: none; }
+  #login-screen.hidden { display: none !important; visibility: hidden; pointer-events: none; }
 
   .login-bg {
     position: absolute;
@@ -3684,6 +3684,11 @@
         <span class="nav-icon">💰</span>
         <span>Comissões</span>
       </div>
+      <div class="nav-item" onclick="goTo('retencao')" id="nav-retencao">
+        <span class="nav-icon">🔄</span>
+        <span>Retenção PC</span>
+        <span id="badge-retencao" style="display:none;background:#ff6b35;color:#fff;font-size:9px;font-weight:700;padding:2px 6px;border-radius:20px;margin-left:auto;"></span>
+      </div>
       <div class="nav-item" onclick="goTo('luminate')">
         <span class="nav-icon">✈️</span>
         <span>Luminate 2026</span>
@@ -3787,6 +3792,11 @@
         <span class="nav-icon">💬</span>
         <span>Análise Conversa</span>
       </div>
+      <div class="nav-item" onclick="goTo('recrutamento')" id="nav-recrutamento">
+        <span class="nav-icon">🧲</span>
+        <span>Funil Recrutamento</span>
+        <span style="background:#9b59b6;color:#fff;font-size:9px;font-weight:700;padding:2px 6px;border-radius:20px;margin-left:auto;">Novo</span>
+      </div>
       <div class="nav-item" onclick="abrirPerfilModal(false)" id="nav-perfil" style="margin-top:8px;border-top:1px solid var(--border);padding-top:12px;">
         <span class="nav-icon">⚙️</span>
         <span>Meu Perfil & Links</span>
@@ -3888,6 +3898,31 @@
           </div>
         </div>
         <div id="esfriar-lista" style="display:flex;flex-direction:column;gap:8px;"></div>
+      </div>
+
+      <!-- RENOVAÇÕES DE CLIENTES PREFERENCIAIS EM RISCO -->
+      <div id="renovacao-banner" style="display:none;margin-bottom:16px;background:rgba(245,200,66,0.08);border:1px solid rgba(245,200,66,0.35);border-radius:14px;padding:16px 18px;">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">
+          <span style="font-size:22px;">🔄</span>
+          <div>
+            <div style="font-size:14px;font-weight:600;color:#f5c842;">Renovações em risco</div>
+            <div style="font-size:12px;color:var(--text2);">Clientes Preferenciais sem compra registada há mais de 30 dias — a tua receita recorrente depende de manter estes clientes ativos.</div>
+          </div>
+        </div>
+        <div id="renovacao-lista" style="display:flex;flex-direction:column;gap:8px;"></div>
+      </div>
+
+      <!-- A MINHA PRÓPRIA ENCOMENDA — VENCIMENTO -->
+      <div id="encomenda-banner" style="display:none;margin-bottom:16px;border-radius:14px;padding:16px 18px;">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px;">
+          <span style="font-size:22px;" id="encomenda-banner-icon">📦</span>
+          <div style="flex:1;">
+            <div style="font-size:14px;font-weight:600;" id="encomenda-banner-titulo">A tua próxima encomenda</div>
+            <div style="font-size:12px;color:var(--text2);" id="encomenda-banner-texto"></div>
+          </div>
+          <button class="btn btn-secondary btn-sm" onclick="abrirPerfilModal(false)" style="white-space:nowrap;flex-shrink:0;">⚙️ Atualizar</button>
+          <button class="btn-snooze" onclick="snoozeEncomendaBanner()" title="Adiar 3 dias">⏸ 3d</button>
+        </div>
       </div>
 
       <!-- FOLLOW-UP ALERTS BANNER -->
@@ -4013,6 +4048,9 @@
       <!-- PRÓXIMO RANK WIDGET -->
       <div id="dash-rank-widget" style="display:none;margin-bottom:16px;"></div>
 
+      <!-- WIDGET PRÓXIMA QUALIFICAÇÃO EM TEMPO REAL -->
+      <div id="dash-qualif-rt-widget" style="margin-bottom:16px;display:none;"></div>
+
       <!-- STREAK DIÁRIO -->
       <div id="streak-widget" class="streak-widget">
         <div class="streak-fire" id="streak-fire">🔥</div>
@@ -4025,6 +4063,9 @@
           Recorde<span id="streak-best">0</span>dias
         </div>
       </div>
+
+      <!-- KPIs DE ATIVIDADE — ESTA SEMANA (v42) -->
+      <div id="dash-atividade-widget" style="margin-bottom:16px;"></div>
 
       <!-- SPARKLINE 7 DIAS -->
       <div class="dash-sparkline-wrap card" id="dash-sparkline-wrap" style="padding:14px 16px;">
@@ -4040,6 +4081,30 @@
         </div>
         <div id="dash-sparkline-svg" style="width:100%;"></div>
         <div style="display:flex;justify-content:space-between;margin-top:4px;" id="dash-spark-labels"></div>
+      </div>
+
+      <!-- HABITOS DIARIOS -->
+      <div class="card" id="habitos-widget" style="margin-bottom:14px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px;">
+          <div>
+            <div style="font-size:13px;font-weight:700;color:var(--text);">⚡ Hábitos de Hoje</div>
+            <div style="font-size:11px;color:var(--text2);margin-top:2px;" id="hab-data-label">—</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <div id="hab-progresso-label" style="font-size:12px;font-weight:700;color:var(--accent);">0/5</div>
+            <button class="btn btn-secondary btn-sm" onclick="habReset()" title="Reiniciar hábitos de hoje" style="padding:4px 8px;font-size:11px;">↺</button>
+          </div>
+        </div>
+        <!-- Barra de progresso -->
+        <div style="background:var(--surface3);border-radius:20px;height:5px;overflow:hidden;margin-bottom:14px;">
+          <div id="hab-barra" style="width:0%;height:100%;background:linear-gradient(90deg,var(--accent),var(--gold));border-radius:20px;transition:width .4s;"></div>
+        </div>
+        <!-- Lista de hábitos -->
+        <div id="hab-lista" style="display:flex;flex-direction:column;gap:8px;"></div>
+        <!-- Celebração -->
+        <div id="hab-celebracao" style="display:none;text-align:center;padding:10px 0 2px;font-size:13px;font-weight:700;color:var(--gold);">
+          🏆 Todos os hábitos concluídos hoje! Excelente!
+        </div>
       </div>
 
       <!-- CONQUISTAS / BADGES -->
@@ -4133,6 +4198,21 @@
         <button class="btn btn-primary" onclick="openModal('modal-lead')">＋ Novo Lead</button>
       </div>
       <div class="funnel-grid" id="funil-container"></div>
+    </div>
+
+    <!-- FUNIL DE RECRUTAMENTO (downline / novos Brand Partners) -->
+    <div id="page-recrutamento" class="page">
+      <div class="page-header">
+        <div>
+          <div class="page-title">🧲 Funil de Recrutamento</div>
+          <div class="page-sub">Pessoas que queres patrocinar como Brand Partner — separado do funil de clientes</div>
+        </div>
+        <button class="btn btn-primary" onclick="abrirNovoLeadRecrutamento()">＋ Novo Prospeto</button>
+      </div>
+      <div style="background:rgba(155,89,182,0.07);border:1px solid rgba(155,89,182,0.25);border-radius:12px;padding:12px 16px;margin-bottom:18px;font-size:12.5px;color:var(--text2);line-height:1.5;">
+        💡 Recrutar tem etapas próprias, diferentes de vender produto: aqui o objetivo é levar a pessoa até se tornar Brand Partner <strong>ativo</strong> (55 PV/mês), não só comprar uma vez.
+      </div>
+      <div class="funnel-grid" id="recrutamento-container"></div>
     </div>
 
     <!-- LISTA -->
@@ -4462,6 +4542,9 @@
           <div class="char-count" id="char-count"></div>
           <div class="copy-bar" id="copy-bar" style="display:none;">
             <button class="btn btn-secondary btn-sm" onclick="copiarPost()">📋 Copiar</button>
+            <button class="btn btn-sm" onclick="partilharPost('whatsapp')" style="background:rgba(37,211,102,0.15);color:#25d366;border:1px solid rgba(37,211,102,0.3);" title="Partilhar no WhatsApp">💬 WhatsApp</button>
+            <button class="btn btn-sm" onclick="partilharPost('facebook')" style="background:rgba(24,119,242,0.15);color:#1877f2;border:1px solid rgba(24,119,242,0.3);" title="Partilhar no Facebook">📘 Facebook</button>
+            <button class="btn btn-sm" onclick="partilharPost('instagram')" style="background:rgba(228,64,95,0.15);color:#e4405f;border:1px solid rgba(228,64,95,0.3);" title="Partilhar no Instagram">📸 Instagram</button>
             <button class="btn btn-secondary btn-sm" onclick="abrirAgendarModal()">📅 Agendar</button>
             <button class="btn btn-ai btn-sm" onclick="gerarPost()">🔄 Gerar outra versão</button>
           </div>
@@ -4732,6 +4815,7 @@
         <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
           <button class="btn btn-secondary btn-sm" onclick="abrirLixeira()" title="Lixeira">🗑️</button>
           <button class="btn btn-secondary btn-sm" onclick="abrirVerificarDuplicadosMembros()" title="Verificar Duplicados">🔍</button>
+          <button class="btn btn-secondary btn-sm" onclick="abrirImportEquipa()" title="Sincronizar com relatório CSV do back-office LifeWave" style="background:linear-gradient(135deg,rgba(0,212,170,0.15),rgba(0,132,255,0.1));border-color:rgba(0,212,170,0.3);color:var(--accent);">📊 Sincronizar CSV</button>
           <button class="btn btn-primary btn-sm" onclick="abrirNovoModalMembro()">＋ Membro</button>
         </div>
       </div>
@@ -5036,6 +5120,9 @@
       <!-- GRÁFICO EVOLUÇÃO 6 MESES (v20) -->
       <div id="com-grafico-evolucao" style="margin-bottom:24px;"></div>
 
+      <!-- PREVISOR DE CHURN DE CLIENTES PREFERENCIAIS -->
+      <div id="com-churn-module" style="margin-bottom:22px;"></div>
+
       <!-- ── MÓDULO PV/BV ── -->
       <div id="pv-rastreio-module" style="margin-bottom:22px;"></div>
 
@@ -5111,6 +5198,57 @@
       </div>
 
     </div><!-- end page-comissoes -->
+
+    <!-- ============================================================ -->
+    <!-- PAGE: RADAR DE RETENÇÃO DE CLIENTES PREFERIDOS               -->
+    <!-- ============================================================ -->
+    <div id="page-retencao" class="page">
+      <div class="page-header">
+        <div>
+          <div class="page-title">🔄 Radar de Retenção PC</div>
+          <div class="page-sub">Monitoriza todos os teus Clientes Preferidos e age antes de perderes receita recorrente</div>
+        </div>
+      </div>
+
+      <!-- RESUMO RÁPIDO -->
+      <div id="ret-resumo" style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px;"></div>
+
+      <!-- FILTROS -->
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;align-items:center;">
+        <select id="ret-filtro-estado" onchange="renderRetencao()" style="background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:7px 10px;font-size:12px;font-family:'DM Sans',sans-serif;cursor:pointer;">
+          <option value="">Todos os estados</option>
+          <option value="ativo">✅ Ativos (≤30 dias)</option>
+          <option value="risco">⚠️ Em risco (31–60 dias)</option>
+          <option value="critico">🔴 Crítico (61–90 dias)</option>
+          <option value="perdido">💀 Perdidos (90+ dias)</option>
+        </select>
+        <select id="ret-filtro-produto" onchange="renderRetencao()" style="background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:7px 10px;font-size:12px;font-family:'DM Sans',sans-serif;cursor:pointer;">
+          <option value="">Todos os produtos</option>
+        </select>
+        <input class="form-input" id="ret-pesquisa" placeholder="🔍 Pesquisar cliente..." oninput="renderRetencao()" style="flex:1;min-width:140px;padding:7px 12px;font-size:13px;">
+        <button class="btn btn-secondary btn-sm" onclick="renderRetencao()" style="white-space:nowrap;">🔄 Atualizar</button>
+      </div>
+
+      <!-- LISTA DE CLIENTES -->
+      <div id="ret-lista" style="display:flex;flex-direction:column;gap:10px;"></div>
+
+      <!-- MODAL IA MENSAGEM RETENCAO -->
+      <div id="ret-modal-ia" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.7);align-items:flex-end;justify-content:center;">
+        <div style="background:var(--surface);border-radius:20px 20px 0 0;padding:20px;width:100%;max-width:600px;max-height:80vh;overflow-y:auto;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+            <div style="font-size:15px;font-weight:700;color:var(--text);">💬 Mensagem de Retenção IA</div>
+            <button onclick="fecharRetIAModal()" style="background:none;border:none;color:var(--text2);font-size:20px;cursor:pointer;">✕</button>
+          </div>
+          <div id="ret-modal-ia-nome" style="font-size:12px;color:var(--accent);font-weight:600;margin-bottom:10px;"></div>
+          <div id="ret-modal-ia-texto" style="background:var(--surface2);border-radius:10px;padding:14px;font-size:13px;color:var(--text);line-height:1.6;min-height:80px;white-space:pre-wrap;"></div>
+          <div style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap;">
+            <button id="ret-modal-ia-wa" class="btn btn-primary" style="flex:1;" onclick="enviarRetIAWhatsApp()">📲 Enviar WhatsApp</button>
+            <button class="btn btn-secondary" onclick="gerarMensagemRetencaoIA()" style="flex:1;">🔄 Regenerar</button>
+            <button class="btn btn-secondary" onclick="copiarRetIAMensagem()" style="flex:1;">📋 Copiar</button>
+          </div>
+        </div>
+      </div>
+    </div><!-- end page-retencao -->
 
     <div id="page-luminate" class="page">
       <div class="page-header">
@@ -7238,6 +7376,13 @@
       <div class="bn-icon-wrap"><span class="bn-icon">💰</span></div>
       <span>Comissões</span>
     </div>
+    <div class="bn-item" id="bn-retencao" onclick="goTo('retencao')">
+      <div class="bn-icon-wrap">
+        <span class="bn-icon">🔄</span>
+        <span class="bn-badge" id="bn-badge-retencao" style="display:none;"></span>
+      </div>
+      <span>Retenção PC</span>
+    </div>
     <div class="bn-item" id="bn-luminate" onclick="goTo('luminate')">
       <div class="bn-icon-wrap"><span class="bn-icon">✈️</span></div>
       <span>Viagens</span>
@@ -7331,6 +7476,10 @@
       <div class="bn-icon-wrap"><span class="bn-icon">📔</span></div>
       <span>Diário</span>
     </div>
+    <div class="bn-item" id="bn-recrutamento" onclick="goTo('recrutamento')">
+      <div class="bn-icon-wrap"><span class="bn-icon">🧲</span></div>
+      <span>Recrutamento</span>
+    </div>
 
     <div class="bn-more-item" id="bn-more" onclick="abrirMenuMais()">
       <div class="bn-icon-wrap"><span class="bn-icon">☰</span></div>
@@ -7374,6 +7523,17 @@
     </div>
   </div>
 
+  <!-- MENU "MOVER PROSPETO" (Funil de Recrutamento — separado do funil de clientes) -->
+  <div class="modal-overlay" id="modal-menu-mover-recrut">
+    <div class="modal" style="max-width:380px;padding:20px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+        <div class="modal-title" style="margin-bottom:0;" id="menu-mover-recrut-titulo">Mover prospeto</div>
+        <button class="modal-close" onclick="closeModal('modal-menu-mover-recrut')">✕</button>
+      </div>
+      <div id="menu-mover-recrut-grid" style="display:flex;flex-direction:column;gap:8px;max-height:65vh;overflow-y:auto;"></div>
+    </div>
+  </div>
+
   <!-- MODAL DETALHE OBJEÇÃO movido para fora de .app — ver mais abaixo,
        junto aos outros modais globais (modal-ver-lead, modal-lead, etc.)
        para garantir que fica no mesmo stacking context e aparece por cima. -->
@@ -7413,6 +7573,20 @@
       <button class="modal-close" onclick="closeModal('modal-pv-registar')">✕</button>
     </div>
     <div id="pv-modal-mes-label" style="font-size:12px;color:var(--text2);margin-bottom:16px;"></div>
+
+    <!-- ── IMPORTAR FATURA ── -->
+    <div style="background:rgba(0,212,170,0.06);border:1px dashed rgba(0,212,170,0.3);border-radius:10px;padding:12px 14px;margin-bottom:18px;">
+      <div style="font-size:12px;font-weight:700;color:var(--accent);margin-bottom:8px;letter-spacing:.5px;">📄 IMPORTAR FATURA LIFEWAVE</div>
+      <div style="font-size:11.5px;color:var(--text2);margin-bottom:10px;line-height:1.5;">Faz upload do PDF da fatura e a IA preenche automaticamente o PV e notas.</div>
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+        <input type="file" accept="application/pdf,image/*" id="pv-fatura-file" style="display:none;" onchange="pvImportarFatura(this)">
+        <button class="btn btn-secondary btn-sm" onclick="document.getElementById('pv-fatura-file').click()" style="flex-shrink:0;">📂 Escolher PDF</button>
+        <span id="pv-fatura-nome" style="font-size:11px;color:var(--text3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">Nenhum ficheiro escolhido</span>
+      </label>
+      <div id="pv-fatura-status" style="font-size:11.5px;color:var(--text2);margin-top:8px;min-height:16px;"></div>
+    </div>
+    <!-- ── FIM IMPORTAR FATURA ── -->
+
     <div class="form-group">
       <label class="form-label">Volume Pessoal (PV) — as tuas vendas este mês</label>
       <input class="form-input" type="number" id="pv-input-pv" placeholder="Ex: 110" min="0" step="1">
@@ -7566,6 +7740,17 @@
           <option>Frio (desconhecidos)</option>
         </select>
       </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">🎯 Objetivo com este contacto</label>
+        <select class="form-select" id="f-objetivo">
+          <option value="cliente">🛒 Cliente (quer usar os produtos)</option>
+          <option value="parceiro">🧲 Parceiro (quer ser Brand Partner)</option>
+        </select>
+        <div style="font-size:11px;color:var(--text2);margin-top:4px;">Define se aparece no Funil de Leads (clientes) ou no Funil de Recrutamento (parceiros).</div>
+      </div>
+      <div class="form-group"></div>
     </div>
     <div class="form-row">
       <div class="form-group">
@@ -7827,36 +8012,131 @@
 
 <!-- MODAL: IMPORTAR CONTACTOS -->
 <div class="modal-overlay" id="modal-importar">
-  <div class="modal" style="max-width:600px;">
+  <div class="modal" style="max-width:640px;">
     <div class="modal-title">
       <span>📂 Importar Contactos</span>
       <button class="modal-close" onclick="closeModal('modal-importar')">✕</button>
     </div>
-    <div class="ai-note" style="margin-bottom:14px;">
-      <span>📋</span>
-      <span>Suporta ficheiros <strong>CSV, VCF (vCard)</strong> e <strong>Excel (.xlsx)</strong>. Colunas reconhecidas: nome, telefone, email, notas.</span>
+
+    <!-- Tabs: Contactos vs Equipa -->
+    <div style="display:flex;border-bottom:1px solid var(--border);margin-bottom:14px;gap:0;">
+      <button id="itab-btn-contactos" onclick="importarTab('contactos')" style="flex:1;padding:9px 12px;border:none;background:none;color:var(--accent);font-family:'DM Sans',sans-serif;font-size:12px;font-weight:700;cursor:pointer;border-bottom:2px solid var(--accent);margin-bottom:-1px;">👤 Contactos / Leads</button>
+      <button id="itab-btn-equipa" onclick="importarTab('equipa')" style="flex:1;padding:9px 12px;border:none;background:none;color:var(--text2);font-family:'DM Sans',sans-serif;font-size:12px;font-weight:600;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;">📊 Relatórios Back-Office LifeWave</button>
     </div>
-    <div class="import-zone" id="import-zone">
-      <input type="file" accept=".csv,.vcf,.xlsx,.xls" id="import-file-input" onchange="handleImportFile(this)">
-      <div class="img-upload-label">
-        <span class="upload-icon">📁</span>
-        <span style="font-weight:600;color:var(--text);">Clica ou arrasta o ficheiro aqui</span>
-        <span style="font-size:11px;">CSV · VCF · XLSX</span>
+
+    <!-- TAB CONTACTOS (original) -->
+    <div id="itab-contactos">
+      <div class="ai-note" style="margin-bottom:14px;">
+        <span>📋</span>
+        <span>Suporta ficheiros <strong>CSV, VCF (vCard)</strong> e <strong>Excel (.xlsx)</strong>. Colunas reconhecidas: nome, telefone, email, notas.</span>
       </div>
-    </div>
-    <div id="import-preview-area" style="display:none;margin-top:14px;">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
-        <div class="section-title" style="margin-bottom:0;" id="import-count-label">0 contactos encontrados</div>
-        <div style="display:flex;gap:8px;">
-          <button class="btn btn-secondary btn-sm" onclick="selecionarTodosImport(true)">✓ Todos</button>
-          <button class="btn btn-secondary btn-sm" onclick="selecionarTodosImport(false)">✗ Nenhum</button>
+      <div class="import-zone" id="import-zone">
+        <input type="file" accept=".csv,.vcf,.xlsx,.xls" id="import-file-input" onchange="handleImportFile(this)">
+        <div class="img-upload-label">
+          <span class="upload-icon">📁</span>
+          <span style="font-weight:600;color:var(--text);">Clica ou arrasta o ficheiro aqui</span>
+          <span style="font-size:11px;">CSV · VCF · XLSX</span>
         </div>
       </div>
-      <div class="import-preview" id="import-preview" style="display:block;"></div>
+      <div id="import-preview-area" style="display:none;margin-top:14px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+          <div class="section-title" style="margin-bottom:0;" id="import-count-label">0 contactos encontrados</div>
+          <div style="display:flex;gap:8px;">
+            <button class="btn btn-secondary btn-sm" onclick="selecionarTodosImport(true)">✓ Todos</button>
+            <button class="btn btn-secondary btn-sm" onclick="selecionarTodosImport(false)">✗ Nenhum</button>
+          </div>
+        </div>
+        <div class="import-preview" id="import-preview" style="display:block;"></div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-secondary" onclick="closeModal('modal-importar')">Cancelar</button>
+        <button class="btn btn-primary" id="import-confirm-btn" onclick="confirmarImport()" style="display:none;">✓ Importar Selecionados</button>
+      </div>
     </div>
-    <div class="modal-actions">
-      <button class="btn btn-secondary" onclick="closeModal('modal-importar')">Cancelar</button>
-      <button class="btn btn-primary" id="import-confirm-btn" onclick="confirmarImport()" style="display:none;">✓ Importar Selecionados</button>
+
+    <!-- TAB RELATÓRIOS BACK-OFFICE -->
+    <div id="itab-equipa" style="display:none;">
+      <div class="ai-note" style="margin-bottom:14px;">
+        <span>📊</span>
+        <span>Importa qualquer relatório CSV exportado do back-office LifeWave. O sistema <strong>deteta automaticamente</strong> o tipo de relatório e atualiza a tua equipa.</span>
+      </div>
+
+      <!-- Tipos de relatório suportados -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px;">
+        <div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:10px 12px;font-size:11px;color:var(--text2);line-height:1.5;">
+          <div style="font-weight:700;color:var(--accent);margin-bottom:4px;">✅ Suportados</div>
+          <div>📦 Encomendas da linha descendente</div>
+          <div>🏆 Categorias de pagamento</div>
+          <div>📈 Progressão nos títulos</div>
+          <div>🌱 Novos Brand Partners</div>
+          <div>👥 Clientes / Preferenciais / Reps</div>
+          <div>🔄 Taxa de Renovação Anual</div>
+        </div>
+        <div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:10px 12px;font-size:11px;color:var(--text2);line-height:1.5;">
+          <div style="font-weight:700;color:var(--gold);margin-bottom:4px;">💡 O que é atualizado</div>
+          <div>→ PV / BV / QDV do membro</div>
+          <div>→ Rank / Categoria</div>
+          <div>→ Estado (ativo/inativo)</div>
+          <div>→ Data de entrada</div>
+          <div>→ Tipo de membro</div>
+          <div>→ Novos membros criados</div>
+        </div>
+      </div>
+
+      <!-- Zona de upload -->
+      <div class="import-zone" id="lw-import-zone" onclick="document.getElementById('lw-csv-input').click()" style="cursor:pointer;">
+        <input type="file" accept=".csv" id="lw-csv-input" style="display:none;" onchange="lwHandleCSV(this)">
+        <div class="img-upload-label">
+          <span class="upload-icon">📊</span>
+          <span style="font-weight:600;color:var(--text);">Clica para selecionar o CSV do back-office</span>
+          <span style="font-size:11px;color:var(--text2);">Apenas ficheiros CSV exportados do LifeWave</span>
+        </div>
+      </div>
+
+      <!-- Área de resultado da deteção -->
+      <div id="lw-detect-area" style="display:none;margin-top:14px;">
+        <!-- tipo detetado -->
+        <div id="lw-tipo-banner" style="background:rgba(0,212,170,0.08);border:1px solid rgba(0,212,170,0.3);border-radius:10px;padding:10px 14px;margin-bottom:12px;display:flex;align-items:center;gap:10px;">
+          <span id="lw-tipo-icon" style="font-size:20px;">📊</span>
+          <div>
+            <div id="lw-tipo-label" style="font-size:13px;font-weight:700;color:var(--accent);">Detetando...</div>
+            <div id="lw-tipo-sub" style="font-size:11px;color:var(--text2);">–</div>
+          </div>
+          <div style="margin-left:auto;">
+            <select id="lw-tipo-override" onchange="lwAplicarTipoManual()" style="background:var(--surface3);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:4px 8px;font-size:11px;font-family:'DM Sans',sans-serif;">
+              <option value="">Auto-detetado</option>
+              <option value="encomendas">Encomendas da linha descendente</option>
+              <option value="categorias">Categorias de pagamento</option>
+              <option value="progressao">Progressão nos títulos</option>
+              <option value="novos_bps">Novos Brand Partners</option>
+              <option value="clientes">Clientes / Preferenciais / Reps</option>
+              <option value="renovacao">Taxa de Renovação Anual</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- pré-visualização -->
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+          <div style="font-size:12px;font-weight:700;color:var(--text);" id="lw-preview-label">0 registos</div>
+          <div style="display:flex;gap:6px;">
+            <div id="lw-novos-badge" style="display:none;background:rgba(0,212,170,0.15);color:var(--accent);font-size:10px;font-weight:700;padding:3px 8px;border-radius:20px;"></div>
+            <div id="lw-atualizados-badge" style="display:none;background:rgba(0,132,255,0.15);color:var(--accent2);font-size:10px;font-weight:700;padding:3px 8px;border-radius:20px;"></div>
+          </div>
+        </div>
+        <div id="lw-preview-table" style="max-height:220px;overflow-y:auto;border:1px solid var(--border);border-radius:10px;font-size:11px;"></div>
+
+        <!-- histórico de importações -->
+        <div id="lw-historico-area" style="margin-top:10px;display:none;">
+          <div style="font-size:11px;color:var(--text3);font-weight:600;margin-bottom:4px;">📋 Última importação</div>
+          <div id="lw-historico-texto" style="font-size:11px;color:var(--text2);"></div>
+        </div>
+      </div>
+
+      <div class="modal-actions" style="margin-top:14px;">
+        <button class="btn btn-secondary" onclick="lwResetImport()">🔄 Limpar</button>
+        <button class="btn btn-secondary" onclick="closeModal('modal-importar')">Cancelar</button>
+        <button class="btn btn-primary" id="lw-import-confirm-btn" onclick="lwConfirmarImport()" style="display:none;">✅ Sincronizar Equipa</button>
+      </div>
     </div>
   </div>
 </div>
@@ -8066,6 +8346,10 @@ function goTo(page, opts) {
   const items = document.querySelectorAll('.nav-item');
   const map = { dashboard: 0, acoes: 1, funil: 2, lista: 3, posts: 4, calendario: 5, agenda: 6, coach: 8, stats: 9, equipa: 10, comissoes: 11, luminate: 12, calculadora: 13, 'plano-comp': 14, formacao: 15, catalogo: 16, percurso: 17, stories: 18, objecoes: 19, metas: 20, templates: 21, promocoes: 22, checklist: 23, relatorio: 24, roleplay: 25, onboarding: 27, automacao: 28, mapa: 29, apresentacao: 30, diario: 31, analise: 32, tutorial: 33 };
   if (map[page] !== undefined && items[map[page]]) items[map[page]].classList.add('active');
+  // Fallback robusto: ativa também pelo id do nav-item (não depende da posição no DOM),
+  // usado por páginas adicionadas depois de o `map` posicional ter sido fixado.
+  const navElById = document.getElementById('nav-' + page);
+  if (navElById) navElById.classList.add('active');
   const bnEl = document.getElementById('bn-' + page);
   if (bnEl) {
     bnEl.classList.add('active');
@@ -8084,6 +8368,7 @@ function goTo(page, opts) {
   if (page === 'stats') renderStats();
   if (page === 'equipa') { renderEquipa(); renderMiniCRM(); }
   if (page === 'comissoes') renderComissoes();
+  if (page === 'retencao') renderRetencao();
   if (page === 'luminate') { renderLuminate(); viagemSetAI(viagemAI); }
   if (page === 'calculadora') renderCalculadora();
   if (page === 'formacao') formacaoInit();
@@ -8103,6 +8388,7 @@ function goTo(page, opts) {
   if (page === 'diario') renderDiario();
   if (page === 'tutorial') tutorialInit();
   if (page === 'analise') { if(typeof _acInitAI==='function') _acInitAI(); }
+  if (page === 'recrutamento') { _recrutPaginaPorColuna = {}; renderFunilRecrutamento(); }
   window.scrollTo(0, 0);
 
   // Gestão do histórico do browser: permite que o botão de retroceder do
@@ -8243,6 +8529,7 @@ function salvarLead() {
     email: document.getElementById('f-email').value.trim(),
     mercado: document.getElementById('f-mercado').value,
     estado: document.getElementById('f-estado').value,
+    objetivo: document.getElementById('f-objetivo')?.value || 'cliente',
     fonte: document.getElementById('f-fonte').value,
     notas: document.getElementById('f-notas').value.trim(),
     aniversario: document.getElementById('f-aniversario').value || '',
@@ -8294,6 +8581,7 @@ function editarLead(id) {
   document.getElementById('f-email').value = l.email;
   document.getElementById('f-mercado').value = l.mercado;
   document.getElementById('f-estado').value = l.estado;
+  const fObjEl = document.getElementById('f-objetivo'); if (fObjEl) fObjEl.value = l.objetivo || 'cliente';
   document.getElementById('f-fonte').value = l.fonte;
   document.getElementById('f-notas').value = l.notas;
   document.getElementById('f-aniversario').value = l.aniversario || '';
@@ -9178,6 +9466,9 @@ function renderDashboard() {
   if (typeof renderFollowUps === 'function') renderFollowUps();
   // Refresh esfriar alerts (leads quentes sem resposta)
   if (typeof renderEsfriarBanner === 'function') renderEsfriarBanner();
+  if (typeof renderRenovacaoBanner === 'function') renderRenovacaoBanner();
+  if (typeof renderEncomendaBanner === 'function') renderEncomendaBanner();
+  if (typeof atualizarBadgeRetencao === 'function') atualizarBadgeRetencao();
   // Refresh aniversários
   if (typeof renderAniversarios === 'function') renderAniversarios();
   // Refresh metas
@@ -9188,11 +9479,13 @@ function renderDashboard() {
   if (typeof renderAcoes === 'function') renderAcoes();
   // Refresh widget de qualificação semanal
   if (typeof renderDashQualifWidget === 'function') renderDashQualifWidget();
+  if (typeof renderDashQualifRT === 'function') renderDashQualifRT();
   // Refresh widget próximo rank
   if (typeof renderDashRankWidget === 'function') renderDashRankWidget();
   // Refresh widget de vendas
   if (typeof renderDashVendas === 'function') renderDashVendas();
   if (typeof renderSparkline === 'function') renderSparkline();
+  if (typeof renderAtividadeHabitos === 'function') renderAtividadeHabitos();
   if (typeof renderConquistas === 'function') renderConquistas();
   const tbody = document.getElementById('tbody-recentes');
   if (!leads.length) {
@@ -9238,7 +9531,7 @@ function renderFunil() {
   ];
   const container = document.getElementById('funil-container');
   container.innerHTML = cols.map(col => {
-    const group = leads.filter(l => l.estado === col.key);
+    const group = leads.filter(l => l.estado === col.key && (l.objetivo || 'cliente') !== 'parceiro');
     const total = group.reduce((s, l) => s + (parseFloat(l.valor) || 0), 0);
     const limite = _funilPaginaPorColuna[col.key] || FUNIL_PAGE_SIZE;
     const visiveis = group.slice(0, limite);
@@ -9400,7 +9693,171 @@ function kbTouchEnd(e, originCol) {
 }
 
 
-// ===== LISTA & FILTROS AVANÇADOS =====
+// =====================================================================
+// FUNIL DE RECRUTAMENTO — downline / novos Brand Partners
+// Totalmente separado do Funil de Leads (clientes): usa o mesmo array
+// `leads` como fonte de dados (para não duplicar contactos), mas só
+// trabalha com leads marcados `objetivo === 'parceiro'`, com etapas e
+// função de "mover" próprias — não toca em `kbDrop`, `executarAutomacoes`
+// nem em qualquer lógica do funil de clientes.
+// =====================================================================
+const RECRUT_ETAPAS = [
+  { key:'apresentado',  label:'🗣️ Apresentado',   color:'#8b9cf7' },
+  { key:'seguimento',   label:'🔁 Em Seguimento',  color:'#0084ff' },
+  { key:'kit_enviado',  label:'📦 Kit Enviado',     color:'#f5c842' },
+  { key:'inscrito',     label:'📝 Inscrito (BP)',   color:'#ff6b35' },
+  { key:'primeira_venda', label:'💰 1ª Venda/PV',  color:'#9b59b6' },
+  { key:'ativo',        label:'✅ Ativo (55 PV)',   color:'#00d4aa' },
+  { key:'parado',       label:'⏸️ Parado',          color:'#6b7a8f' },
+];
+
+const RECRUT_PAGE_SIZE = 30;
+let _recrutPaginaPorColuna = {};
+let _recrutDragLeadId = null;
+let _recrutDragColKey = null;
+
+function getLeadsRecrutamento() {
+  if (typeof leads === 'undefined') return [];
+  return leads.filter(l => l.objetivo === 'parceiro');
+}
+
+function renderFunilRecrutamento() {
+  const container = document.getElementById('recrutamento-container');
+  if (!container) return;
+  const todos = getLeadsRecrutamento();
+
+  container.innerHTML = RECRUT_ETAPAS.map(col => {
+    // Leads de recrutamento ainda não têm `estadoRecrut` definido nos registos
+    // antigos (campo é novo) — tratamos como "apresentado" por defeito.
+    const group = todos.filter(l => (l.estadoRecrut || 'apresentado') === col.key);
+    const limite = _recrutPaginaPorColuna[col.key] || RECRUT_PAGE_SIZE;
+    const visiveis = group.slice(0, limite);
+    const restantes = group.length - visiveis.length;
+    return `
+      <div class="funnel-col" data-recrut-col="${col.key}"
+           ondragover="recrutDragOver(event,this)"
+           ondragleave="recrutDragLeave(this)"
+           ondrop="recrutDrop(event,'${col.key}')">
+        <div class="funnel-header" style="color:${col.color}">
+          <span>${col.label}</span>
+          <div style="display:flex;align-items:center;gap:6px;">
+            <span style="background:rgba(255,255,255,0.06);color:var(--text2);font-size:11px;padding:2px 7px;border-radius:20px;">${group.length}</span>
+          </div>
+        </div>
+        <div class="funnel-body" data-recrut-col="${col.key}">
+          ${visiveis.length ? visiveis.map(l => `
+            <div class="lead-card kb-card"
+                 id="rkbc-${l.id}"
+                 draggable="true"
+                 data-id="${l.id}"
+                 data-recrut-col="${col.key}"
+                 ondragstart="recrutDragStart(event,'${l.id}','${col.key}')"
+                 ondragend="recrutDragEnd(event)"
+                 onclick="verLead('${l.id}')">
+              <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:6px;">
+                <div class="lead-name">${escapeHtml(l.nome || '')}</div>
+              </div>
+              <div class="lead-info">${escapeHtml(l.tel || l.email || 'Sem contacto')}</div>
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-top:6px;">
+                <span class="lead-badge" style="background:rgba(255,255,255,0.06);color:var(--text2)">${escapeHtml((l.mercado||'').split(' ')[0] || '')}</span>
+                <button class="kb-mover-btn" onclick="event.stopPropagation();abrirMenuMoverRecrutamento('${l.id}','${col.key}')" title="Mover para outra etapa" style="background:rgba(255,255,255,0.06);border:none;color:var(--text2);font-size:11px;padding:3px 8px;border-radius:20px;cursor:pointer;">↔ Mover</button>
+              </div>
+            </div>
+          `).join('') : `<div class="kb-drop-hint" data-recrut-col="${col.key}">Arrasta aqui</div>`}
+          ${restantes > 0 ? `<button class="btn btn-secondary btn-sm" style="width:100%;margin-top:8px;" onclick="verMaisRecrutColuna('${col.key}')">⬇️ Ver mais ${Math.min(restantes, RECRUT_PAGE_SIZE)} (${restantes} restantes)</button>` : ''}
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  // Badge de progresso no nav (quantos prospetos em risco de "Parado")
+  const badgeEl = document.getElementById('badge-recrutamento');
+  // (sem badge dedicado por agora — mantém-se simples; pode adicionar-se depois)
+}
+
+function verMaisRecrutColuna(colKey) {
+  _recrutPaginaPorColuna[colKey] = (_recrutPaginaPorColuna[colKey] || RECRUT_PAGE_SIZE) + RECRUT_PAGE_SIZE;
+  renderFunilRecrutamento();
+}
+
+function moverLeadParaEtapaRecrutamento(leadId, novaEtapa) {
+  const lead = leads.find(l => l.id === leadId);
+  if (!lead) return;
+  const anterior = lead.estadoRecrut || 'apresentado';
+  lead.estadoRecrut = novaEtapa;
+  lead.historico = lead.historico || [];
+  lead.historico.unshift({ tipo: 'estado', msg: `Recrutamento: "${recrutEtapaLabel(anterior)}" → "${recrutEtapaLabel(novaEtapa)}"`, data: new Date().toLocaleString('pt-PT') });
+  saveleads();
+  renderFunilRecrutamento();
+  if (novaEtapa === 'ativo') vibrarConfirmacao();
+  showToast('✅ ' + lead.nome + ' → ' + recrutEtapaLabel(novaEtapa));
+}
+
+function recrutEtapaLabel(key) {
+  const et = RECRUT_ETAPAS.find(e => e.key === key);
+  return et ? et.label.replace(/^[^\s]+\s/, '') : key;
+}
+
+function abrirMenuMoverRecrutamento(leadId, etapaAtual) {
+  const lead = leads.find(l => l.id === leadId);
+  if (!lead) return;
+  const grid = document.getElementById('menu-mover-recrut-grid');
+  document.getElementById('menu-mover-recrut-titulo').textContent = 'Mover ' + (lead.nome || 'prospeto');
+  grid.innerHTML = RECRUT_ETAPAS.map(et => {
+    const ativo = et.key === etapaAtual;
+    return `<div onclick="${ativo ? '' : `closeModal('modal-menu-mover-recrut');moverLeadParaEtapaRecrutamento('${leadId}','${et.key}')`}" style="display:flex;align-items:center;gap:8px;padding:12px;border-radius:10px;cursor:${ativo ? 'default' : 'pointer'};background:${ativo ? 'rgba(0,212,170,0.12)' : 'var(--surface2)'};color:${ativo ? 'var(--accent)' : 'var(--text)'};font-size:13px;font-weight:600;">
+      <span>${et.label}</span>${ativo ? '<span style="margin-left:auto;font-size:11px;color:var(--text2);">atual</span>' : ''}
+    </div>`;
+  }).join('');
+  document.getElementById('modal-menu-mover-recrut').classList.add('open');
+}
+
+/* ── Drag & drop (mouse) — próprio do funil de recrutamento ── */
+function recrutDragStart(e, id, colKey) {
+  _recrutDragLeadId = id;
+  _recrutDragColKey = colKey;
+  e.dataTransfer.effectAllowed = 'move';
+  setTimeout(() => {
+    const el = document.getElementById('rkbc-' + id);
+    if (el) el.style.opacity = '0.35';
+  }, 0);
+}
+function recrutDragEnd(e) {
+  if (_recrutDragLeadId) {
+    const el = document.getElementById('rkbc-' + _recrutDragLeadId);
+    if (el) el.style.opacity = '1';
+  }
+  _recrutDragLeadId = null;
+  _recrutDragColKey = null;
+}
+function recrutDragOver(e, col) {
+  e.preventDefault();
+  e.dataTransfer.dropEffect = 'move';
+  document.querySelectorAll('#recrutamento-container .funnel-col').forEach(c => c.classList.remove('kb-over'));
+  col.classList.add('kb-over');
+}
+function recrutDragLeave(col) {
+  col.classList.remove('kb-over');
+}
+function recrutDrop(e, targetCol) {
+  e.preventDefault();
+  document.querySelectorAll('#recrutamento-container .funnel-col').forEach(c => c.classList.remove('kb-over'));
+  if (!_recrutDragLeadId || _recrutDragColKey === targetCol) return;
+  moverLeadParaEtapaRecrutamento(_recrutDragLeadId, targetCol);
+}
+
+// Atalho "Novo Prospeto": abre o modal de lead normal, mas pré-define o
+// objetivo como "parceiro" para já cair direto no funil de recrutamento.
+function abrirNovoLeadRecrutamento() {
+  editingLeadId = null;
+  openModal('modal-lead');
+  setTimeout(() => {
+    const fObjEl = document.getElementById('f-objetivo');
+    if (fObjEl) fObjEl.value = 'parceiro';
+  }, 0);
+}
+
+
 let filtroContactoAtivo = false;
 let filtrosAvancadosAbertos = false;
 
@@ -9775,6 +10232,54 @@ function copiarPost() {
   });
 }
 
+async function partilharPost(plataforma) {
+  const texto = (document.getElementById('ai-text') || {}).textContent || '';
+  if (!texto || texto.includes('O teu post aparecerá aqui')) {
+    showToast('⚠️ Gera primeiro um post!');
+    return;
+  }
+
+  // Tenta Web Share API primeiro (funciona no mobile)
+  if (plataforma === 'whatsapp') {
+    if (navigator.share) {
+      try {
+        await navigator.share({ text: texto });
+        return;
+      } catch(e) { if (e.name === 'AbortError') return; }
+    }
+    // Fallback: deep link WhatsApp
+    const url = 'https://wa.me/?text=' + encodeURIComponent(texto);
+    window.open(url, '_blank');
+
+  } else if (plataforma === 'facebook') {
+    // Facebook não suporta pre-fill de texto por API pública — copia e abre
+    try { await navigator.clipboard.writeText(texto); } catch(e) {
+      const ta = document.createElement('textarea');
+      ta.value = texto; document.body.appendChild(ta); ta.select();
+      document.execCommand('copy'); document.body.removeChild(ta);
+    }
+    showToast('📋 Texto copiado! Cola no Facebook que vai abrir.');
+    setTimeout(() => window.open('https://www.facebook.com/', '_blank'), 800);
+
+  } else if (plataforma === 'instagram') {
+    // Instagram não permite deep link com texto — copia e abre app/site
+    try { await navigator.clipboard.writeText(texto); } catch(e) {
+      const ta = document.createElement('textarea');
+      ta.value = texto; document.body.appendChild(ta); ta.select();
+      document.execCommand('copy'); document.body.removeChild(ta);
+    }
+    showToast('📋 Texto copiado! Cola no Instagram que vai abrir.');
+    // Tenta abrir app nativa primeiro, fallback para site
+    const appUrl = 'instagram://camera';
+    const webUrl = 'https://www.instagram.com/';
+    const iframe = document.createElement('iframe');
+    iframe.style.display = 'none';
+    iframe.src = appUrl;
+    document.body.appendChild(iframe);
+    setTimeout(() => { document.body.removeChild(iframe); window.open(webUrl, '_blank'); }, 1200);
+  }
+}
+
 function abrirAgendarModal() {
   const texto = document.getElementById('ai-text')?.textContent;
   if (texto && !['O teu post aparecerá aqui', '❌'].some(s => texto.includes(s))) {
@@ -9844,14 +10349,21 @@ function renderCalendario() {
       <div class="scheduled-item">
         <div class="scheduled-dot" style="background:${p.plataforma==='Facebook'?'#0084ff':p.plataforma==='Instagram'?'#e1306c':'#25d366'}"></div>
         <div>
-          <div class="scheduled-text">${p.texto.slice(0,80)}${p.texto.length > 80 ? '…' : ''}</div>
+          <div class="scheduled-text">${escapeHtml(p.texto.slice(0,80))}${p.texto.length > 80 ? '…' : ''}</div>
           <div class="scheduled-meta">📘 ${p.plataforma} · ${label} às ${hora}
+            <button onclick="copiarPostAgendado('${p.id}')" style="background:none;border:none;color:var(--accent);cursor:pointer;font-size:11px;margin-left:8px;">📋 Copiar</button>
             <button onclick="eliminarPost('${p.id}')" style="background:none;border:none;color:#ff6b6b;cursor:pointer;font-size:11px;margin-left:8px;">✕ Remover</button>
           </div>
         </div>
       </div>
     `;
   }).join('');
+}
+
+function copiarPostAgendado(id) {
+  const p = posts.find(x => x.id === id);
+  if (!p) { showToast('❌ Post não encontrado'); return; }
+  copiarTextoSeguro(p.texto, '📋 Texto do post copiado!');
 }
 
 function eliminarPost(id) {
@@ -9954,6 +10466,9 @@ function getDefaultPerfil() {
     pais: '',           // e.g. "Portugal", "Brazil", "Spain"
     nomeDisplay: '',    // Display name used in AI prompts
     pv: 0, qdv: 0, secL: 0, secR: 0, olxl: 0, bvBinario: 0, // Compensação 2.0 volumes
+    dataInscricao: '',        // Data de inscrição como Brand Partner (YYYY-MM-DD)
+    dataProximaEncomenda: '', // Data de vencimento da próxima encomenda (YYYY-MM-DD)
+    cicloEncomendaDias: 31,   // Nº de dias entre encomendas — usado para recalcular automaticamente a próxima data
     // Links pessoais do utilizador
     linkInstagram: '',  // ex: https://instagram.com/miguellow
     linkFacebook: '',   // ex: https://facebook.com/miguellow
@@ -12651,6 +13166,7 @@ function openModal(id) {
     document.getElementById('modal-lead-title').textContent = '➕ Novo Lead';
     ['f-nome','f-tel','f-email','f-notas','f-aniversario'].forEach(f => document.getElementById(f).value = '');
     document.getElementById('f-estado').value = 'novo';
+    const fObjNovoEl = document.getElementById('f-objetivo'); if (fObjNovoEl) fObjNovoEl.value = 'cliente';
   }
   if (id === 'modal-lead') {
     const av = document.getElementById('f-duplicado-aviso');
@@ -12894,6 +13410,7 @@ function saveleads() {
   localStorage.setItem(getUserStorageKey('lw_leads'), JSON.stringify(leads));
   updateBadge();
   driveAutoSave();
+  driveEquipaAutoSave();
 }
 
 function savePosts() {
@@ -13080,7 +13597,10 @@ function entrarNaApp(user) {
 
   // Hide login screen, show app
   document.getElementById('login-screen').classList.add('hidden');
+  document.getElementById('login-screen').style.display = 'none';
   document.querySelector('.app').style.display = 'flex';
+  document.body.scrollTop = 0;
+  document.documentElement.scrollTop = 0;
 
   // Estabelece a entrada inicial do histórico para o botão de retroceder
   // (Android/Chrome) navegar dentro da app em vez de saltar logo para fora.
@@ -13537,13 +14057,27 @@ async function driveWriteFile(token, fileId, payload) {
 
 // ===================================================
 // EQUIPA PARTILHADA — pasta normal do Drive (não appData)
-// Membro escreve as suas compras; líder lê os ficheiros de todos
-// os membros da pasta e atualiza o PV/histórico automaticamente.
+// Membro escreve as suas compras + leads + atividade; o patrocinador direto
+// lê os ficheiros da pasta e atualiza a Equipa/Árvore automaticamente.
+// Funciona em cadeia: cada pessoa também re-publica um resumo já agregado
+// dos seus próprios downlines, para que a informação suba nível a nível
+// até ao topo (cada um sincroniza a sua própria app).
 // Usa o scope drive.file (acesso por ficheiro, não sensível).
 // ===================================================
 
-// Escreve (cria/atualiza) o ficheiro de compras do utilizador atual na pasta partilhada.
-// Chamado pelo MEMBRO sempre que regista uma compra.
+// Resume os leads do utilizador atual para partilhar com o patrocinador,
+// sem expor notas privadas — apenas o que é útil para acompanhar progresso.
+function resumirMeusLeadsParaPartilha() {
+  return (typeof leads !== 'undefined' ? leads : []).map(l => ({
+    nome: l.nome, estado: l.estado, mercado: l.mercado, data: l.data,
+    ultimoContacto: l.ultimoContacto || null
+  }));
+}
+
+// Escreve (cria/atualiza) o ficheiro de dados do utilizador atual na pasta partilhada
+// com o seu patrocinador direto. Inclui compras, leads, atividade semanal e o
+// roll-up já agregado dos seus próprios downlines diretos (efeito cascata).
+// Chamado pelo MEMBRO sempre que regista uma compra, lead ou atividade relevante.
 async function driveEscreverComprasNaPastaEquipa() {
   const token = googleAccessToken;
   const perfil = getUserPerfil();
@@ -13551,10 +14085,22 @@ async function driveEscreverComprasNaPastaEquipa() {
   if (!token || !pastaId || !currentUser?.email) return; // sem configuração, não faz nada
 
   const nomeFicheiro = 'compras_' + currentUser.email.replace(/[^a-zA-Z0-9@._-]/g, '_') + '.json';
+  const atividadeSemana = (typeof calcularKPIsAtividade === 'function') ? calcularKPIsAtividade(7).totais : null;
   const payload = {
     email: currentUser.email,
     nome: perfil.nomeDisplay || currentUser.name || '',
+    slug: perfil.slug || '',
     compras: JSON.parse(localStorage.getItem(getUserStorageKey('lw_minhas_compras')) || '[]'),
+    pv: perfil.pv || 0, qdv: perfil.qdv || 0, categoria: (typeof calcularCategoria === 'function')
+      ? calcularCategoria({ pv: perfil.pv, qdv: perfil.qdv, secL: perfil.secL, secR: perfil.secR, olxl: perfil.olxl }).cat
+      : null,
+    leads: resumirMeusLeadsParaPartilha(),
+    atividadeSemana,
+    // Downlines diretos já conhecidos por esta conta (vindos da própria página Equipa
+    // desta pessoa) — é isto que permite o roll-up subir mais do que 1 nível.
+    downlinesDiretos: (typeof membros !== 'undefined' ? membros : [])
+      .filter(m => (m.nivel || 1) === 1)
+      .map(m => ({ nome: m.nome, email: m.email || '', estado: m.estado, pv: m.pv || 0, categoria: m.categoria || null, clientes: m.clientes || 0 })),
     atualizadoEm: new Date().toISOString(),
   };
 
@@ -13575,12 +14121,18 @@ async function driveEscreverComprasNaPastaEquipa() {
       : 'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id';
     await fetch(url, { method: existente ? 'PATCH' : 'POST', headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'multipart/related; boundary=' + boundary }, body: multipart });
   } catch(e) {
-    console.warn('Falha ao sincronizar compras com a equipa partilhada:', e.message);
+    console.warn('Falha ao sincronizar com a equipa partilhada:', e.message);
   }
 }
 
 // Lê todos os ficheiros "compras_*.json" da pasta partilhada e atualiza
-// o PV/histórico de cada membro correspondente (por email). Chamado pelo LÍDER.
+// a Equipa (Ranking + Árvore) automaticamente. Chamado pelo PATROCINADOR.
+// - Se o email ainda não existir na lista de membros, cria-o automaticamente
+//   (fecha o ciclo do convite: o downline sincroniza e aparece sem ação manual).
+// - Traz PV/QDV/Categoria de Compensação 2.0 de cada membro.
+// - Faz roll-up de 1 nível: os "downlinesDiretos" que cada membro reportou
+//   no seu próprio ficheiro são criados/atualizados como Nível 2 aqui,
+//   ligados ao membro correspondente — é assim que a árvore sobe em cadeia.
 async function driveLerComprasDaEquipa(silencioso) {
   const token = googleAccessToken;
   const perfil = getUserPerfil();
@@ -13598,7 +14150,7 @@ async function driveLerComprasDaEquipa(silencioso) {
     const d = await res.json();
     const ficheiros = d.files || [];
     if (!ficheiros.length) {
-      if (!silencioso) showToast('Nenhum membro da equipa enviou compras ainda.');
+      if (!silencioso) showToast('Nenhum membro da equipa sincronizou ainda.');
       return;
     }
 
@@ -13608,16 +14160,58 @@ async function driveLerComprasDaEquipa(silencioso) {
       const dados = await contentRes.json().catch(() => null);
       if (!dados || !dados.email) continue;
 
-      const membro = membros.find(m => (m.email || '').toLowerCase() === dados.email.toLowerCase());
-      if (!membro) continue; // membro ainda não existe na tua lista de Equipa
+      let membro = membros.find(m => (m.email || '').toLowerCase() === dados.email.toLowerCase());
+      if (!membro) {
+        // Novo membro detetado via sincronização — cria-o automaticamente como Nível 1,
+        // em vez de ignorar (fecha o ciclo do link de convite).
+        membro = {
+          id: gerarId(), nome: dados.nome || dados.email, tel: '', email: dados.email,
+          nivel: 1, estado: 'ativo', clientes: 0, recrutados: 0,
+          slug: dados.slug || '', notas: '', pv: 0, qdv: 0, secL: 0, secR: 0, olxl: 0,
+          categoria: null, historico: [], ultimoContacto: null, compras: [],
+          data: new Date().toISOString().split('T')[0],
+        };
+        membros.unshift(membro);
+      }
 
       membro.compras = dados.compras || [];
+      if (typeof dados.pv === 'number') membro.pv = dados.pv;
+      if (typeof dados.qdv === 'number') membro.qdv = dados.qdv;
+      if (dados.categoria) membro.categoria = dados.categoria;
+      if (Array.isArray(dados.leads)) membro.leadsPartilhados = dados.leads;
+      if (dados.atividadeSemana) membro.atividadeSemana = dados.atividadeSemana;
       membro.historico = membro.historico || [];
       const jaTemEntrada = membro.historico.some(h => h.tipo === 'sync_equipa' && h.data === dados.atualizadoEm);
       if (!jaTemEntrada) {
-        membro.historico.push({ tipo: 'sync_equipa', msg: '🔄 Compras sincronizadas automaticamente da equipa partilhada', data: dados.atualizadoEm });
+        membro.historico.push({ tipo: 'sync_equipa', msg: '🔄 Dados sincronizados automaticamente da equipa partilhada', data: dados.atualizadoEm });
       }
       membrosAtualizados++;
+
+      // Roll-up: downlines diretos reportados por este membro entram como Nível 2
+      // (ou nivel+1 do membro, para continuar a cadeia corretamente).
+      if (Array.isArray(dados.downlinesDiretos)) {
+        const nivelFilho = (membro.nivel || 1) + 1;
+        dados.downlinesDiretos.forEach(dl => {
+          if (!dl.email && !dl.nome) return;
+          let neto = dl.email ? membros.find(m => (m.email || '').toLowerCase() === dl.email.toLowerCase()) : null;
+          if (!neto) {
+            neto = {
+              id: gerarId(), nome: dl.nome || dl.email, tel: '', email: dl.email || '',
+              nivel: nivelFilho, estado: dl.estado || 'ativo', clientes: dl.clientes || 0, recrutados: 0,
+              slug: '', notas: '', pv: dl.pv || 0, qdv: 0, secL: 0, secR: 0, olxl: 0,
+              categoria: dl.categoria || null, historico: [{ tipo:'sistema', msg:`Detetado via roll-up de ${membro.nome}`, data:new Date().toLocaleString('pt-PT') }],
+              ultimoContacto: null, compras: [], data: new Date().toISOString().split('T')[0],
+            };
+            membros.push(neto);
+          } else {
+            // Só atualiza o nível se ainda não tiver um nível mais "raso" definido manualmente
+            if (!neto.nivel || neto.nivel > nivelFilho) neto.nivel = nivelFilho;
+            if (typeof dl.pv === 'number') neto.pv = dl.pv;
+            if (dl.categoria) neto.categoria = dl.categoria;
+            if (typeof dl.clientes === 'number') neto.clientes = dl.clientes;
+          }
+        });
+      }
     }
 
     if (membrosAtualizados > 0) {
@@ -13750,16 +14344,25 @@ async function driveSync(mode) {
     // Na primeira sincronização manual: merge (Drive ganha em caso de conflito)
     if (mode === 'manual' && driveFileId) {
       const remote = await driveReadFile(googleAccessToken, driveFileId);
-      // Merge simples: soma arrays sem duplicados (por id)
-      const merge = (local, rem) => {
+
+      // IDs eliminados localmente (lixeira) — nunca devem "ressuscitar" ao
+      // vir do remoto, mesmo que o ficheiro do Drive ainda os tenha porque
+      // foi escrito antes da eliminação.
+      const lixeiraAtual = getLixeira();
+      const idsEliminadosLead = new Set(lixeiraAtual.filter(e => e.tipo === 'lead').map(e => e.item?.id));
+      const idsEliminadosMembro = new Set(lixeiraAtual.filter(e => e.tipo === 'membro').map(e => e.item?.id));
+
+      // Merge simples: soma arrays sem duplicados (por id), excluindo eliminados
+      const merge = (local, rem, idsExcluidos) => {
         if (!Array.isArray(local) || !Array.isArray(rem)) return local || rem || [];
+        const remFiltrado = idsExcluidos ? rem.filter(x => !idsExcluidos.has(x.id)) : rem;
         const ids = new Set(local.map(x => x.id));
-        return [...local, ...rem.filter(x => !ids.has(x.id))];
+        return [...local, ...remFiltrado.filter(x => !ids.has(x.id))];
       };
       const payload = getDrivePayload();
-      payload.leads            = merge(payload.leads,            remote.leads);
+      payload.leads            = merge(payload.leads,            remote.leads,   idsEliminadosLead);
       payload.posts            = merge(payload.posts,            remote.posts);
-      payload.membros          = merge(payload.membros,          remote.membros);
+      payload.membros          = merge(payload.membros,          remote.membros, idsEliminadosMembro);
       payload.eventos          = merge(payload.eventos,          remote.eventos);
       payload.vendas           = merge(payload.vendas,           remote.vendas);
       applyDrivePayload(payload);
@@ -13786,6 +14389,17 @@ async function driveSync(mode) {
 }
 
 // Auto-save com debounce (chama-se depois de cada save local)
+// Debounce para a sincronização da pasta partilhada da equipa — evita
+// disparar uma chamada à Drive API a cada pequena alteração de leads.
+let driveEquipaSaveTimer = null;
+function driveEquipaAutoSave() {
+  if (!currentUser || currentUser.method !== 'google') return;
+  const perfil = getUserPerfil();
+  if (!(perfil.pastaEquipa || '').trim()) return; // sem pasta configurada, não faz nada
+  clearTimeout(driveEquipaSaveTimer);
+  driveEquipaSaveTimer = setTimeout(() => driveEscreverComprasNaPastaEquipa(), 6000);
+}
+
 function driveAutoSave() {
   if (!currentUser || currentUser.method !== 'google') return;
   clearTimeout(driveAutoSaveTimer);
@@ -13903,10 +14517,16 @@ const IDIOMAS = [
 
 function abrirPerfilModal(isPrimeiraVez) {
   if (!currentUser) return;
-  const p = getUserPerfil();
+  let p = getUserPerfil();
+  // Antes de mostrar, garante que a data da próxima encomenda está atualizada
+  // (se já passou, avança automaticamente em ciclos até à próxima data futura).
+  p = atualizarProximaEncomendaAutomaticamente(p);
   document.getElementById('perfil-slug').value = p.slug || '';
   document.getElementById('perfil-nome').value = p.nomeDisplay || currentUser.name || '';
   document.getElementById('perfil-pais').value = p.pais || '';
+  document.getElementById('perfil-data-inscricao').value = p.dataInscricao || '';
+  document.getElementById('perfil-data-proxima-encomenda').value = p.dataProximaEncomenda || '';
+  document.getElementById('perfil-ciclo-encomenda').value = p.cicloEncomendaDias || 31;
 
   // Upline: from profile, or from URL ref= captured at login
   const savedUpline = p.upline || localStorage.getItem('lw_upline_ref') || '';
@@ -13963,7 +14583,77 @@ function abrirPerfilModal(isPrimeiraVez) {
   if (miSt) miSt.textContent = mistralKey.length    > 10 ? '✅ Guardada' : '';
   if (orSt) orSt.textContent = openrouterKey.length > 10 ? '✅ Guardada' : '';
   openModal('modal-perfil');
-  setTimeout(() => { previewPerfilLinks(); atualizarPerfilCategoriaPreview(); }, 50);
+  setTimeout(() => { previewPerfilLinks(); atualizarPerfilCategoriaPreview(); atualizarPerfilDatasPreview(); }, 50);
+}
+
+// ===== DATAS DE INSCRIÇÃO E PRÓXIMA ENCOMENDA (auto-cálculo) =====
+// Se a data de vencimento da próxima encomenda já passou, avança automaticamente
+// em ciclos de N dias até encontrar a próxima data no futuro — tal como o backoffice
+// LifeWave atualiza "Data de vencimento da próxima encomenda" a cada autoship processado.
+function atualizarProximaEncomendaAutomaticamente(perfil) {
+  const p = perfil || getUserPerfil();
+  if (!p.dataProximaEncomenda) return p;
+  const ciclo = parseInt(p.cicloEncomendaDias, 10) || 31;
+  let dt = new Date(p.dataProximaEncomenda + 'T00:00:00');
+  if (isNaN(dt.getTime())) return p;
+  const hoje = new Date(); hoje.setHours(0,0,0,0);
+  let avancou = false;
+  while (dt.getTime() < hoje.getTime()) {
+    dt.setDate(dt.getDate() + ciclo);
+    avancou = true;
+  }
+  if (avancou) {
+    p.dataProximaEncomenda = dt.toISOString().slice(0, 10);
+    saveUserPerfil(p);
+  }
+  return p;
+}
+
+function diasAteData(dataStr) {
+  if (!dataStr) return null;
+  const dt = new Date(dataStr + 'T00:00:00');
+  if (isNaN(dt.getTime())) return null;
+  const hoje = new Date(); hoje.setHours(0,0,0,0);
+  return Math.round((dt.getTime() - hoje.getTime()) / 86400000);
+}
+
+function formatarDataPT(dataStr) {
+  if (!dataStr) return '';
+  const dt = new Date(dataStr + 'T00:00:00');
+  if (isNaN(dt.getTime())) return '';
+  return dt.toLocaleDateString('pt-PT', { day: '2-digit', month: 'short', year: 'numeric' });
+}
+
+function atualizarPerfilDatasPreview() {
+  const container = document.getElementById('perfil-datas-preview');
+  if (!container) return;
+  const dataInscricao = document.getElementById('perfil-data-inscricao')?.value || '';
+  const dataProxima = document.getElementById('perfil-data-proxima-encomenda')?.value || '';
+  const ciclo = parseInt(document.getElementById('perfil-ciclo-encomenda')?.value, 10) || 31;
+
+  let html = '';
+  if (dataInscricao) {
+    const diasDesde = -diasAteData(dataInscricao);
+    html += `<div style="font-size:11.5px;color:var(--text2);margin-bottom:6px;">📝 Inscrito/a há <strong style="color:var(--text);">${diasDesde >= 0 ? diasDesde : 0} dias</strong> (${formatarDataPT(dataInscricao)})</div>`;
+  }
+  if (dataProxima) {
+    const dias = diasAteData(dataProxima);
+    let cor = 'var(--text2)', label = '';
+    if (dias === null) { label = ''; }
+    else if (dias < 0) { cor = '#ff5555'; label = `⚠️ Venceu há ${Math.abs(dias)} dia${Math.abs(dias)===1?'':'s'} — a app vai recalcular para a próxima data ao gravar`; }
+    else if (dias === 0) { cor = '#ff5555'; label = '⚠️ Vence hoje!'; }
+    else if (dias <= 5) { cor = '#f5c842'; label = `⏰ Vence em ${dias} dia${dias===1?'':'s'}`; }
+    else { cor = '#00d4aa'; label = `✓ Vence em ${dias} dias`; }
+    html += `<div style="background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-size:12px;color:${cor};">
+      📦 Próxima encomenda: <strong>${formatarDataPT(dataProxima)}</strong> · ${label}
+    </div>`;
+    if (dataProxima) {
+      let dt = new Date(dataProxima + 'T00:00:00');
+      dt.setDate(dt.getDate() + ciclo);
+      html += `<div style="font-size:10.5px;color:var(--text3);margin-top:5px;">Se não alterares, a encomenda seguinte cai em ${formatarDataPT(dt.toISOString().slice(0,10))} (ciclo de ${ciclo} dias)</div>`;
+    }
+  }
+  container.innerHTML = html || `<div style="font-size:11.5px;color:var(--text3);">Preenche as datas acima para veres os alertas de vencimento no dashboard.</div>`;
 }
 
 function atualizarPerfilCategoriaPreview() {
@@ -13997,6 +14687,19 @@ function salvarPerfil() {
   const secR = parseFloat(document.getElementById('perfil-secr').value) || 0;
   const olxl = parseFloat(document.getElementById('perfil-olxl').value) || 0;
   const bvBinario = parseFloat(document.getElementById('perfil-bv-binario').value) || 0;
+  const dataInscricao = (document.getElementById('perfil-data-inscricao')?.value || '').trim();
+  let dataProximaEncomenda = (document.getElementById('perfil-data-proxima-encomenda')?.value || '').trim();
+  const cicloEncomendaDias = parseInt(document.getElementById('perfil-ciclo-encomenda')?.value, 10) || 31;
+
+  // Se a data introduzida já passou, avança automaticamente em ciclos até à próxima data futura
+  if (dataProximaEncomenda) {
+    let dt = new Date(dataProximaEncomenda + 'T00:00:00');
+    if (!isNaN(dt.getTime())) {
+      const hoje = new Date(); hoje.setHours(0,0,0,0);
+      while (dt.getTime() < hoje.getTime()) dt.setDate(dt.getDate() + cicloEncomendaDias);
+      dataProximaEncomenda = dt.toISOString().slice(0, 10);
+    }
+  }
 
   if (!slug) { showToast('❌ O slug LifeWave é obrigatório'); return; }
 
@@ -14014,6 +14717,7 @@ function salvarPerfil() {
     .map(l => ({ nome: (l.nome || '').trim(), url: (l.url || '').trim() }))
     .filter(l => l.nome && l.url);
   const perfil = { slug, nomeDisplay: nome, pais, idioma, pv, qdv, secL, secR, olxl, bvBinario, upline, pastaEquipa,
+    dataInscricao, dataProximaEncomenda, cicloEncomendaDias,
     linkInstagram, linkFacebook, linkWhatsapp, linkYoutube, linkTiktok, linkWebsite, linksExtra };
   saveUserPerfil(perfil);
   // Save upline in persistent storage too
@@ -14022,6 +14726,7 @@ function salvarPerfil() {
   // Re-render dynamic content
   renderLinksRapidos();
   if (currentUser) atualizarSidebarUser(currentUser);
+  if (typeof renderEncomendaBanner === 'function') renderEncomendaBanner();
   closeModal('modal-perfil');
   showToast('✅ Perfil guardado! Os teus links foram atualizados.');
 
@@ -15675,6 +16380,377 @@ function snoozeEsfriar(leadId, days) {
     el.style.transform = 'translateX(20px)';
     setTimeout(() => renderEsfriarBanner(), 300);
   }
+}
+
+// ===================================================
+// RENOVAÇÕES DE CLIENTES PREFERENCIAIS EM RISCO
+// A receita recorrente (clientes "Preferido" em mensalidade) é o que dá
+// estabilidade ao negócio — perder uma renovação sem dar por isso é a forma
+// mais silenciosa de perder receita. Agrupa vendas tipo "preferido" por
+// cliente e avisa quando a última compra já passou da janela normal de
+// 30 dias, antes que o cliente cancele de vez.
+// ===================================================
+const RENOVACAO_DIAS_AVISO = 25;   // a partir daqui, mostra aviso (alguns dias antes dos 30)
+const RENOVACAO_DIAS_LIMITE = 60;  // acima disto, assume-se que já não é "risco" mas sim cliente perdido — deixa de aparecer aqui
+
+function getClientesPreferenciaisEmRisco() {
+  if (typeof vendas === 'undefined') return [];
+  const porCliente = {};
+  vendas.forEach(v => {
+    if (v.tipo !== 'preferido' || v.estado === 'cancelada') return;
+    const nome = (v.cliente || '').trim();
+    if (!nome) return;
+    const dt = new Date(v.data).getTime();
+    if (isNaN(dt)) return;
+    if (!porCliente[nome] || dt > porCliente[nome].dt) {
+      porCliente[nome] = { nome, dt, ultimaVenda: v };
+    }
+  });
+
+  const agora = Date.now();
+  return Object.values(porCliente)
+    .map(c => ({ ...c, dias: Math.floor((agora - c.dt) / 86400000) }))
+    .filter(c => c.dias >= RENOVACAO_DIAS_AVISO && c.dias <= RENOVACAO_DIAS_LIMITE)
+    .sort((a, b) => b.dias - a.dias);
+}
+
+function renderRenovacaoBanner() {
+  const banner = document.getElementById('renovacao-banner');
+  const list = document.getElementById('renovacao-lista');
+  if (!banner || !list) return;
+  if (typeof loadVendas === 'function') loadVendas();
+
+  const snoozeKey = getUserStorageKey('lw_renovacao_snooze');
+  const snoozed = JSON.parse(localStorage.getItem(snoozeKey) || '{}');
+  const agora = Date.now();
+
+  const risco = getClientesPreferenciaisEmRisco()
+    .filter(c => !(snoozed[c.nome] && agora < snoozed[c.nome]));
+
+  if (!risco.length) {
+    banner.style.display = 'none';
+    return;
+  }
+
+  banner.style.display = 'block';
+  list.innerHTML = risco.map(c => {
+    const idSeguro = c.nome.replace(/[^a-zA-Z0-9]/g, '_');
+    const leadMatch = (typeof leads !== 'undefined') ? leads.find(l => (l.nome||'').trim().toLowerCase() === c.nome.toLowerCase()) : null;
+    const tel = leadMatch?.tel ? limparTelefone(leadMatch.tel) : '';
+    const daysLabel = c.dias === 1 ? '1 dia' : `${c.dias} dias`;
+    return `
+      <div class="followup-item" id="ren-${idSeguro}" style="border-color:rgba(245,200,66,0.25);">
+        <div class="followup-item-urgency">🔄</div>
+        <div class="followup-item-info">
+          <div class="followup-item-name">${escapeHtml(c.nome)}</div>
+          <div class="followup-item-meta">⭐ Preferido · última compra: ${escapeHtml((c.ultimaVenda.produto||'').toString())}</div>
+        </div>
+        <div class="followup-item-days urgent" style="color:#f5c842;">${daysLabel} sem renovar</div>
+        <div class="followup-item-actions">
+          ${tel ? `<button class="btn btn-sm btn-wa-sm" onclick="renovacaoMensagemWA('${idSeguro}','${tel}','${encodeURIComponent(c.nome)}')" title="WhatsApp">💬</button>` : ''}
+          <button class="btn btn-secondary btn-sm" onclick="abrirNovaVenda('${c.nome.replace(/'/g,"\\'")}')" title="Registar renovação">💰</button>
+          <button class="btn-snooze" onclick="snoozeRenovacao('${c.nome.replace(/'/g,"\\'")}','${idSeguro}',5)" title="Adiar 5 dias">⏸ 5d</button>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function renovacaoMensagemWA(idSeguro, tel, nomeEncoded) {
+  const nome = decodeURIComponent(nomeEncoded).split(' ')[0];
+  const texto = `Olá ${nome}! 👋 Passei só para saber como tens estado com o teu X39 e se já está na altura de repor o teu patch mensal. Queres que te prepare o pedido? 😊`;
+  window.open('https://wa.me/' + tel + '?text=' + encodeURIComponent(texto), '_blank');
+}
+
+function snoozeRenovacao(nomeCliente, idSeguro, days) {
+  const snoozeKey = getUserStorageKey('lw_renovacao_snooze');
+  const snoozed = JSON.parse(localStorage.getItem(snoozeKey) || '{}');
+  snoozed[nomeCliente] = Date.now() + days * 24 * 60 * 60 * 1000;
+  localStorage.setItem(snoozeKey, JSON.stringify(snoozed));
+  const el = document.getElementById('ren-' + idSeguro);
+  if (el) {
+    el.style.transition = 'opacity 0.3s, transform 0.3s';
+    el.style.opacity = '0';
+    el.style.transform = 'translateX(20px)';
+    setTimeout(() => renderRenovacaoBanner(), 300);
+  }
+}
+
+// ===================================================
+// RADAR DE RETENÇÃO DE CLIENTES PREFERIDOS
+// Vista completa de todos os PCs com estado de saúde,
+// filtros, mensagem IA personalizada e acesso rápido WA.
+// ===================================================
+
+let _retIACliente = null; // cliente activo no modal IA
+
+function getClientesPreferenciaisRet() {
+  if (typeof vendas === 'undefined') return [];
+  const porCliente = {};
+  vendas.forEach(v => {
+    if (v.tipo !== 'preferido' || v.estado === 'cancelada') return;
+    const nome = (v.cliente || '').trim();
+    if (!nome) return;
+    const dt = new Date(v.data).getTime();
+    if (isNaN(dt)) return;
+    if (!porCliente[nome] || dt > porCliente[nome].dt) {
+      porCliente[nome] = { nome, dt, ultimaVenda: v, historico: [] };
+    }
+    porCliente[nome].historico.push(v);
+  });
+  const agora = Date.now();
+  return Object.values(porCliente).map(c => {
+    const dias = Math.floor((agora - c.dt) / 86400000);
+    let estado;
+    if (dias <= 30)       estado = 'ativo';
+    else if (dias <= 60)  estado = 'risco';
+    else if (dias <= 90)  estado = 'critico';
+    else                  estado = 'perdido';
+    const leadMatch = (typeof leads !== 'undefined') ? leads.find(l => (l.nome||'').trim().toLowerCase() === c.nome.toLowerCase()) : null;
+    const tel = leadMatch?.tel ? limparTelefone(leadMatch.tel) : '';
+    const totalCompras = c.historico.length;
+    return { ...c, dias, estado, tel, totalCompras, leadId: leadMatch?.id };
+  }).sort((a, b) => b.dias - a.dias);
+}
+
+function retEstadoLabel(estado) {
+  return { ativo: '✅ Ativo', risco: '⚠️ Em risco', critico: '🔴 Crítico', perdido: '💀 Perdido' }[estado] || estado;
+}
+
+function retEstadoCor(estado) {
+  return { ativo: '#00d4aa', risco: '#f5c842', critico: '#ff6b35', perdido: '#ff4444' }[estado] || 'var(--text2)';
+}
+
+function renderRetencao() {
+  if (typeof loadVendas === 'function') loadVendas();
+
+  const todos = getClientesPreferenciaisRet();
+  const filtroEstado  = document.getElementById('ret-filtro-estado')?.value || '';
+  const filtroProduto = document.getElementById('ret-filtro-produto')?.value || '';
+  const pesquisa      = (document.getElementById('ret-pesquisa')?.value || '').toLowerCase().trim();
+
+  // Popular select de produtos
+  const selectProd = document.getElementById('ret-filtro-produto');
+  if (selectProd) {
+    const prods = [...new Set(todos.map(c => c.ultimaVenda.produto).filter(Boolean))].sort();
+    const valorAtual = selectProd.value;
+    selectProd.innerHTML = '<option value="">Todos os produtos</option>' +
+      prods.map(p => `<option value="${p}" ${p === valorAtual ? 'selected' : ''}>${p}</option>`).join('');
+  }
+
+  // Resumo
+  const resumoEl = document.getElementById('ret-resumo');
+  if (resumoEl) {
+    const ativos   = todos.filter(c => c.estado === 'ativo').length;
+    const risco    = todos.filter(c => c.estado === 'risco').length;
+    const critico  = todos.filter(c => c.estado === 'critico').length;
+    const perdidos = todos.filter(c => c.estado === 'perdido').length;
+    resumoEl.innerHTML = `
+      <div style="background:rgba(0,212,170,0.08);border:1px solid rgba(0,212,170,0.25);border-radius:12px;padding:12px;text-align:center;">
+        <div style="font-size:22px;font-weight:800;color:#00d4aa;font-family:'Syne',sans-serif;">${ativos}</div>
+        <div style="font-size:11px;color:var(--text2);font-weight:600;">✅ Ativos</div>
+      </div>
+      <div style="background:rgba(245,200,66,0.08);border:1px solid rgba(245,200,66,0.25);border-radius:12px;padding:12px;text-align:center;cursor:pointer;" onclick="document.getElementById('ret-filtro-estado').value='risco';renderRetencao();">
+        <div style="font-size:22px;font-weight:800;color:#f5c842;font-family:'Syne',sans-serif;">${risco}</div>
+        <div style="font-size:11px;color:var(--text2);font-weight:600;">⚠️ Em risco</div>
+      </div>
+      <div style="background:rgba(255,107,53,0.08);border:1px solid rgba(255,107,53,0.25);border-radius:12px;padding:12px;text-align:center;cursor:pointer;" onclick="document.getElementById('ret-filtro-estado').value='critico';renderRetencao();">
+        <div style="font-size:22px;font-weight:800;color:#ff6b35;font-family:'Syne',sans-serif;">${critico + perdidos}</div>
+        <div style="font-size:11px;color:var(--text2);font-weight:600;">🔴 Crítico+</div>
+      </div>
+    `;
+  }
+
+  // Atualizar badge sidebar + bottom nav
+  const emAlerta = todos.filter(c => c.estado === 'risco' || c.estado === 'critico').length;
+  const badgeSide = document.getElementById('badge-retencao');
+  const badgeBn   = document.getElementById('bn-badge-retencao');
+  if (badgeSide) { badgeSide.textContent = emAlerta; badgeSide.style.display = emAlerta > 0 ? '' : 'none'; }
+  if (badgeBn)   { badgeBn.textContent  = emAlerta; badgeBn.style.display   = emAlerta > 0 ? '' : 'none'; }
+
+  // Filtrar
+  let lista = todos;
+  if (filtroEstado)  lista = lista.filter(c => c.estado === filtroEstado);
+  if (filtroProduto) lista = lista.filter(c => c.ultimaVenda.produto === filtroProduto);
+  if (pesquisa)      lista = lista.filter(c => c.nome.toLowerCase().includes(pesquisa));
+
+  const container = document.getElementById('ret-lista');
+  if (!container) return;
+
+  if (!lista.length) {
+    container.innerHTML = `<div class="empty-state"><div class="empty-icon">🔄</div>
+      ${todos.length === 0 ? 'Sem clientes Preferidos registados. Adiciona vendas com tipo "Preferido" em Comissões.' : 'Nenhum cliente corresponde ao filtro.'}</div>`;
+    return;
+  }
+
+  container.innerHTML = lista.map(c => {
+    const cor = retEstadoCor(c.estado);
+    const diasLabel = c.dias === 0 ? 'hoje' : c.dias === 1 ? '1 dia' : `${c.dias} dias`;
+    const prodLabel = c.ultimaVenda.produto || '—';
+    const valorLabel = c.ultimaVenda.valor ? `${parseFloat(c.ultimaVenda.valor).toFixed(0)}€` : '';
+    const idSafe = c.nome.replace(/[^a-zA-Z0-9]/g, '_');
+    return `
+    <div style="background:var(--surface);border:1px solid var(--border);border-left:4px solid ${cor};border-radius:12px;padding:14px 14px 12px;">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:14px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(c.nome)}</div>
+          <div style="font-size:11px;color:var(--text2);margin-top:2px;">📦 ${escapeHtml(prodLabel)}${valorLabel ? ` · ${valorLabel}/mês` : ''} · ${c.totalCompras} encomenda${c.totalCompras !== 1 ? 's' : ''}</div>
+        </div>
+        <div style="text-align:right;flex-shrink:0;">
+          <div style="font-size:12px;font-weight:700;color:${cor};">${retEstadoLabel(c.estado)}</div>
+          <div style="font-size:11px;color:var(--text3);margin-top:2px;">última há ${diasLabel}</div>
+        </div>
+      </div>
+      <!-- Barra de progresso de inatividade -->
+      <div style="height:4px;background:var(--surface3);border-radius:4px;margin-bottom:10px;overflow:hidden;">
+        <div style="height:100%;width:${Math.min(100, Math.round(c.dias/90*100))}%;background:${cor};border-radius:4px;transition:width .4s;"></div>
+      </div>
+      <!-- Ações -->
+      <div style="display:flex;gap:6px;flex-wrap:wrap;">
+        ${c.tel ? `<button class="btn btn-sm" style="background:rgba(37,211,102,0.15);color:#25d366;border:1px solid rgba(37,211,102,0.3);" onclick="retWADireto('${encodeURIComponent(c.tel)}','${encodeURIComponent(c.nome)}')">📲 WhatsApp</button>` : ''}
+        <button class="btn btn-sm btn-secondary" onclick="abrirRetIAModal('${idSafe}','${encodeURIComponent(c.nome)}','${encodeURIComponent(prodLabel)}','${encodeURIComponent(c.tel||'')}','${c.estado}',${c.dias})">🤖 Msg IA</button>
+        <button class="btn btn-sm btn-secondary" onclick="abrirNovaVenda('${c.nome.replace(/'/g,"\\'")}')" title="Registar nova compra">💰 Renovação</button>
+        ${c.leadId ? `<button class="btn btn-sm btn-secondary" onclick="abrirLead('${c.leadId}')" title="Ver perfil">👤 Perfil</button>` : ''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function retWADireto(telEnc, nomeEnc) {
+  const tel = decodeURIComponent(telEnc);
+  const nome = decodeURIComponent(nomeEnc).split(' ')[0];
+  const txt = `Olá ${nome}! 👋 Passei só para saber como estás com os teus patches. Está na altura de repor o teu pack mensal? 😊`;
+  window.open('https://wa.me/' + tel + '?text=' + encodeURIComponent(txt), '_blank');
+}
+
+function abrirRetIAModal(idSafe, nomeEnc, prodEnc, telEnc, estado, dias) {
+  _retIACliente = { idSafe, nome: decodeURIComponent(nomeEnc), produto: decodeURIComponent(prodEnc), tel: decodeURIComponent(telEnc), estado, dias };
+  const modal = document.getElementById('ret-modal-ia');
+  if (!modal) return;
+  modal.style.display = 'flex';
+  document.getElementById('ret-modal-ia-nome').textContent = `Cliente: ${_retIACliente.nome} · ${retEstadoLabel(estado)} · última compra há ${dias} dias`;
+  document.getElementById('ret-modal-ia-texto').textContent = '🤖 A gerar mensagem personalizada...';
+  gerarMensagemRetencaoIA();
+}
+
+function fecharRetIAModal() {
+  const modal = document.getElementById('ret-modal-ia');
+  if (modal) modal.style.display = 'none';
+  _retIACliente = null;
+}
+
+async function gerarMensagemRetencaoIA() {
+  if (!_retIACliente) return;
+  const { nome, produto, estado, dias } = _retIACliente;
+  const primeiroNome = nome.split(' ')[0];
+  const urgencia = { ativo: 'de manutenção suave', risco: 'amigável mas com sentido de urgência', critico: 'empática e com oferta de ajuda', perdido: 'calorosa de re-activação' }[estado] || 'amigável';
+  const prompt = `És um distribuidor LifeWave a enviar uma mensagem de WhatsApp a um Cliente Preferido chamado "${primeiroNome}" que usa ${produto || 'patches LifeWave'} e não compra há ${dias} dias.
+Escreve UMA mensagem de retenção ${urgencia}, curta (máximo 3 frases), natural, sem parecer publicidade. Não uses o nome do produto na abertura. Não uses asteriscos nem markdown. Começa com "Olá ${primeiroNome}!". Acaba com uma pergunta simples e gentil. Responde APENAS com a mensagem, sem mais nada.`;
+  const el = document.getElementById('ret-modal-ia-texto');
+  if (el) el.textContent = '⏳ A gerar...';
+  try {
+    const aiKey = (typeof getGeminiKey === 'function' && getGeminiKey()) ? null : null;
+    // Usa a função IA já existente na app se disponível
+    if (typeof callGeminiAPI === 'function') {
+      const resposta = await callGeminiAPI(prompt, 'retencao_msg');
+      if (el) el.textContent = (resposta || '').trim();
+    } else {
+      // Fallback: templates por estado
+      const templates = {
+        ativo:   `Olá ${primeiroNome}! 👋 Espero que estejas a sentir os benefícios do teu pack. Já está quase na altura de repor — queres que te prepare o pedido esta semana? 😊`,
+        risco:   `Olá ${primeiroNome}! 👋 Há algum tempo que não falamos — como tens estado? Queria saber se ainda tens stock do teu pack ou se já é altura de renovar. 😊`,
+        critico: `Olá ${primeiroNome}! 👋 Estava a pensar em ti e queria saber como estás. Tens estado bem? Se precisares de ajuda para retomar o teu pack, estou aqui para ajudar. 💚`,
+        perdido: `Olá ${primeiroNome}! 👋 Há muito que não falamos e queria só saber se estás bem. Sabes que podes sempre contar comigo se quiseres retomar ou tirar alguma dúvida. 😊`
+      };
+      if (el) el.textContent = templates[estado] || templates.risco;
+    }
+  } catch(e) {
+    const templates = {
+      ativo:   `Olá ${primeiroNome}! 👋 Espero que estejas a adorar o teu pack! Está quase na hora de repor — queres que trate do pedido? 😊`,
+      risco:   `Olá ${primeiroNome}! 👋 Como tens estado? Notei que já passou algum tempo desde a tua última encomenda. Queres ajuda para renovar? 😊`,
+      critico: `Olá ${primeiroNome}! 👋 Estive a pensar em ti. Como estás a sentir-te? Aqui se precisares de retomar ou tirar dúvidas, estou disponível. 💚`,
+      perdido: `Olá ${primeiroNome}! 👋 Há muito que não falamos! Queria só dizer que estou aqui e que tens sempre porta aberta se quiseres retomar a tua jornada. 😊`
+    };
+    if (el) el.textContent = templates[estado] || templates.risco;
+  }
+}
+
+function enviarRetIAWhatsApp() {
+  if (!_retIACliente?.tel) { showToast('⚠️ Sem número de telefone para este cliente'); return; }
+  const msg = document.getElementById('ret-modal-ia-texto')?.textContent || '';
+  if (!msg || msg.startsWith('⏳') || msg.startsWith('🤖')) { showToast('⏳ Aguarda a mensagem ser gerada'); return; }
+  window.open('https://wa.me/' + _retIACliente.tel + '?text=' + encodeURIComponent(msg), '_blank');
+}
+
+function copiarRetIAMensagem() {
+  const msg = document.getElementById('ret-modal-ia-texto')?.textContent || '';
+  if (!msg) return;
+  navigator.clipboard?.writeText(msg).then(() => showToast('✅ Mensagem copiada!')).catch(() => showToast('⚠️ Não foi possível copiar'));
+}
+
+// Atualiza badge do radar quando app carrega/actualiza vendas
+function atualizarBadgeRetencao() {
+  if (typeof loadVendas === 'function') loadVendas();
+  const todos = getClientesPreferenciaisRet();
+  const emAlerta = todos.filter(c => c.estado === 'risco' || c.estado === 'critico').length;
+  const badgeSide = document.getElementById('badge-retencao');
+  const badgeBn   = document.getElementById('bn-badge-retencao');
+  if (badgeSide) { badgeSide.textContent = emAlerta; badgeSide.style.display = emAlerta > 0 ? '' : 'none'; }
+  if (badgeBn)   { badgeBn.textContent  = emAlerta; badgeBn.style.display   = emAlerta > 0 ? '' : 'none'; }
+}
+
+// ===================================================
+// A MINHA PRÓPRIA ENCOMENDA — alerta de vencimento
+// Espelha, para o próprio utilizador, o mesmo aviso "Data de vencimento da
+// próxima encomenda" que o backoffice LifeWave mostra no perfil. Se a data
+// gravada já tiver passado, recalcula-se automaticamente em ciclos de N dias
+// (ver atualizarProximaEncomendaAutomaticamente) antes de decidir o alerta.
+// ===================================================
+const ENCOMENDA_DIAS_AVISO = 5; // a partir daqui (inclusive vencido), mostra o banner
+
+function renderEncomendaBanner() {
+  const banner = document.getElementById('encomenda-banner');
+  if (!banner || typeof getUserPerfil !== 'function') return;
+  let p = getUserPerfil();
+  if (!p.dataProximaEncomenda) { banner.style.display = 'none'; return; }
+
+  // Garante que a data já está "rolada" para a frente se tiver vencido
+  p = atualizarProximaEncomendaAutomaticamente(p);
+
+  const snoozeKey = getUserStorageKey('lw_encomenda_snooze');
+  const snoozedUntil = parseInt(localStorage.getItem(snoozeKey) || '0', 10);
+  if (Date.now() < snoozedUntil) { banner.style.display = 'none'; return; }
+
+  const dias = diasAteData(p.dataProximaEncomenda);
+  if (dias === null || dias > ENCOMENDA_DIAS_AVISO) { banner.style.display = 'none'; return; }
+
+  const icon = document.getElementById('encomenda-banner-icon');
+  const titulo = document.getElementById('encomenda-banner-titulo');
+  const texto = document.getElementById('encomenda-banner-texto');
+  let bg, border, cor, msg;
+  if (dias < 0) {
+    bg = 'rgba(255,70,70,0.08)'; border = 'rgba(255,70,70,0.35)'; cor = '#ff5555';
+    msg = `Venceu há ${Math.abs(dias)} dia${Math.abs(dias)===1?'':'s'} — confirma a data no teu backoffice LifeWave e atualiza aqui.`;
+  } else if (dias === 0) {
+    bg = 'rgba(255,70,70,0.08)'; border = 'rgba(255,70,70,0.35)'; cor = '#ff5555';
+    msg = 'Vence hoje! Garante que a tua encomenda/autoship está processada.';
+  } else {
+    bg = 'rgba(245,200,66,0.08)'; border = 'rgba(245,200,66,0.35)'; cor = '#f5c842';
+    msg = `Vence em ${dias} dia${dias===1?'':'s'} (${formatarDataPT(p.dataProximaEncomenda)}).`;
+  }
+  banner.style.background = bg;
+  banner.style.border = '1px solid ' + border;
+  if (icon) icon.textContent = dias <= 0 ? '🚨' : '📦';
+  if (titulo) { titulo.style.color = cor; titulo.textContent = dias <= 0 ? 'A tua encomenda venceu' : 'A tua próxima encomenda está a aproximar-se'; }
+  if (texto) texto.textContent = msg;
+  banner.style.display = 'block';
+}
+
+function snoozeEncomendaBanner() {
+  const snoozeKey = getUserStorageKey('lw_encomenda_snooze');
+  localStorage.setItem(snoozeKey, String(Date.now() + 3 * 24 * 60 * 60 * 1000));
+  const el = document.getElementById('encomenda-banner');
+  if (el) el.style.display = 'none';
 }
 
 function renderFollowUps() {
@@ -17753,24 +18829,54 @@ function renderCategoriasEquipa() {
     const proximo = proximaCategoria(m.categoria);
     if (!proximo) return;
     const ratios = [];
-    if (proximo.pv > 0) ratios.push((m.pv||0) / proximo.pv);
-    if (proximo.qdv > 0) ratios.push((m.qdv||0) / proximo.qdv);
-    if (proximo.secVal > 0) ratios.push(Math.min(m.secL||0, m.secR||0) / proximo.secVal);
-    if (proximo.olxl > 0) ratios.push((m.olxl||0) / proximo.olxl);
+    const faltas = []; // detalhe do que falta em cada métrica, para ação concreta
+    if (proximo.pv > 0) {
+      ratios.push((m.pv||0) / proximo.pv);
+      const f = proximo.pv - (m.pv||0);
+      if (f > 0) faltas.push({ label: 'PV', falta: f });
+    }
+    if (proximo.qdv > 0) {
+      ratios.push((m.qdv||0) / proximo.qdv);
+      const f = proximo.qdv - (m.qdv||0);
+      if (f > 0) faltas.push({ label: 'QDV', falta: f });
+    }
+    if (proximo.secVal > 0) {
+      ratios.push(Math.min(m.secL||0, m.secR||0) / proximo.secVal);
+      const f = proximo.secVal - Math.min(m.secL||0, m.secR||0);
+      if (f > 0) faltas.push({ label: 'Secção mais fraca', falta: f });
+    }
+    if (proximo.olxl > 0) {
+      ratios.push((m.olxl||0) / proximo.olxl);
+      const f = proximo.olxl - (m.olxl||0);
+      if (f > 0) faltas.push({ label: 'OLXL', falta: f });
+    }
     const minRatio = ratios.length ? Math.min(...ratios) : 0;
     if (minRatio >= 0.7 && minRatio < 1) {
-      perto.push({ nome: m.nome, atual: m.categoria, proximo: proximo.cat, pct: Math.round(minRatio*100) });
+      // ordena as faltas da maior para a menor para destacar o requisito mais limitante primeiro
+      faltas.sort((a,b) => b.falta - a.falta);
+      perto.push({ id: m.id, tel: m.tel, nome: m.nome, atual: m.categoria, proximo: proximo.cat, pct: Math.round(minRatio*100), faltas });
     }
   });
   perto.sort((a,b) => b.pct - a.pct);
 
   const pertoHtml = perto.length
-    ? perto.slice(0,5).map(p => `
-        <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);">
-          <div style="font-size:13px;"><strong>${p.nome}</strong> <span style="color:var(--text2);">— ${p.atual} → ${p.proximo}</span></div>
-          <div style="font-size:12px;font-weight:700;color:var(--gold);">${p.pct}%</div>
+    ? perto.slice(0,5).map(p => {
+        const faltaTxt = p.faltas.length
+          ? p.faltas.map(f => `${fmtNum(f.falta)} ${f.label}`).join(' · ')
+          : '';
+        return `
+        <div style="padding:8px 0;border-bottom:1px solid var(--border);">
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
+            <div style="font-size:13px;"><strong>${p.nome}</strong> <span style="color:var(--text2);">— ${p.atual} → ${p.proximo}</span></div>
+            <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
+              <div style="font-size:12px;font-weight:700;color:var(--gold);">${p.pct}%</div>
+              ${p.tel ? `<button class="btn btn-sm btn-wa" onclick="event.stopPropagation();abrirWAMembro('${p.id}','perto-rank',{proximo:'${p.proximo.replace(/'/g,"\\'")}',faltaTxt:'${faltaTxt.replace(/'/g,"\\'")}'})" title="Avisar via WhatsApp">💬</button>` : ''}
+            </div>
+          </div>
+          ${faltaTxt ? `<div style="font-size:11px;color:var(--text2);margin-top:3px;">Falta: ${faltaTxt}</div>` : ''}
         </div>
-      `).join('')
+      `;
+      }).join('')
     : `<div style="font-size:13px;color:var(--text2);">Ninguém a menos de 70% do próximo nível neste momento.</div>`;
 
   wrap.innerHTML = `
@@ -18453,12 +19559,27 @@ function verMembro(id) {
   openModal('modal-ver-membro');
 }
 
-function abrirWAMembro(id) {
+// Mensagens curtas e prontas para cada tipo de alerta de saúde de equipa —
+// usadas por abrirWAMembro() para que o botão "WA" nos alertas não abra o
+// WhatsApp vazio, obrigando a escrever a mensagem do zero todas as vezes.
+const MSG_ALERTA_MEMBRO = {
+  'inativo': (nome) => `Olá ${nome}! 👋 Reparei que não tens tido atividade recentemente. Tudo bem contigo? Estou aqui se precisares de ajuda ou quiseres conversar sobre os próximos passos. 💪`,
+  'sem-pv': (nome) => `Olá ${nome}! 👋 Vi que ainda não tens PV registado este mês — só para confirmar, já fizeste a tua compra/pedido? Se precisares de ajuda com isso ou tiveres alguma questão, diz-me! 😊`,
+  'pv-risco': (nome, extra) => `Olá ${nome}! 👋 Estás quase lá — faltam só ${extra || 'alguns'} PV para manteres o estado Ativo este mês. Posso ajudar-te a fechar isso antes do fim do mês?`,
+  'blb-expira': (nome) => `Olá ${nome}! 👋 O teu período de arranque (BLB) está a chegar ao fim — esta é a fase decisiva para aproveitar os bónus. Vamos falar sobre o que falta fazer?`,
+  'perto-rank': (nome, extra) => `Olá ${nome}! 🔥 Estás muito perto de subir para ${extra && extra.proximo ? extra.proximo : 'o próximo nível'}! Falta-te ${extra && extra.faltaTxt ? extra.faltaTxt : 'pouco'} — vamos fechar isso ainda este mês? Diz-me se precisares de ajuda para chegar lá. 💪`
+};
+
+function abrirWAMembro(id, tipoAlerta, extra) {
   const m = membros.find(x => x.id === id);
   if (!m || !m.tel) return;
-  window.open(`https://wa.me/${telParaWaMe(m.tel)}`, '_blank');
+  const primeiroNome = (m.nome || '').split(' ')[0] || m.nome;
+  const gerador = tipoAlerta && MSG_ALERTA_MEMBRO[tipoAlerta];
+  const texto = gerador ? gerador(primeiroNome, extra) : '';
+  const urlBase = `https://wa.me/${telParaWaMe(m.tel)}`;
+  window.open(texto ? urlBase + '?text=' + encodeURIComponent(texto) : urlBase, '_blank');
   m.historico = m.historico || [];
-  m.historico.push({ tipo: 'mensagem', msg: '💬 WhatsApp aberto', data: new Date().toLocaleString('pt-PT') });
+  m.historico.push({ tipo: 'mensagem', msg: '💬 WhatsApp aberto' + (tipoAlerta ? ' (' + tipoAlerta + ')' : ''), data: new Date().toLocaleString('pt-PT') });
   m.ultimoContacto = new Date().toISOString();
   saveMembros();
 }
@@ -18761,10 +19882,10 @@ function abrirMetaMensal() {
   openModal('modal-meta-mensal');
 }
 
-function abrirNovaVenda() {
+function abrirNovaVenda(clientePreFill) {
   editingVendaId = null;
   document.getElementById('modal-venda-title').textContent = '💰 Registar Venda';
-  document.getElementById('v-cliente').value = '';
+  document.getElementById('v-cliente').value = clientePreFill || '';
   document.getElementById('v-data').value = new Date().toISOString().slice(0,10);
   document.getElementById('v-produto').value = 'X39';
   document.getElementById('v-tipo').value = 'preferido';
@@ -18779,6 +19900,10 @@ function abrirNovaVenda() {
     dl.innerHTML = leads.filter(l => l.estado === 'cliente').map(l => `<option value="${l.nome}">`).join('');
   }
   openModal('modal-nova-venda');
+  // openModal() também reseta os campos deste modal (incluindo v-cliente) quando
+  // não está em edição — por isso o pré-preenchimento tem de ser feito DEPOIS,
+  // sobrepondo o reset, em vez de antes.
+  if (clientePreFill) document.getElementById('v-cliente').value = clientePreFill;
 }
 
 // ===== GRÁFICO DE EVOLUÇÃO DE COMISSÕES — últimos 6 meses (v20) =====
@@ -19022,6 +20147,7 @@ function renderComissoes() {
   }
 
   renderSimuladorBonus();
+  if (typeof renderChurnModule === 'function') renderChurnModule();
 }
 
 // ===== EXPORTAR RELATÓRIO DE COMISSÕES EM PDF =====
@@ -19201,6 +20327,36 @@ function renderSimuladorBonus() {
 
   const minhaCategoria = calcularCategoria({ pv: p.pv, qdv: p.qdv, secL: p.secL, secR: p.secR, olxl: p.olxl }).cat;
 
+  // --- Falta-te para o próximo nível (usa os volumes reais do Perfil, não input manual) ---
+  const proximoNivel = proximaCategoria(minhaCategoria);
+  let progressoProximoHtml = '';
+  if (proximoNivel) {
+    const pv = p.pv || 0, qdv = p.qdv || 0, secL = p.secL || 0, secR = p.secR || 0, olxl = p.olxl || 0;
+    // Estima o ganho semanal (Nível + Binário) na categoria atual vs. na categoria seguinte,
+    // mantendo os mesmos membros/BV — só muda a % que a categoria desbloqueia.
+    const ganhoAtualNivel = calcularBonusNivel(minhaCategoria, membros).total;
+    const ganhoAtualBin = calcularBonusBinario(minhaCategoria, p.bvBinario || 0).ganho || 0;
+    const ganhoProxNivel = calcularBonusNivel(proximoNivel.cat, membros).total;
+    const ganhoProxBin = calcularBonusBinario(proximoNivel.cat, p.bvBinario || 0).ganho || 0;
+    const diferencaSemanal = (ganhoProxNivel + ganhoProxBin) - (ganhoAtualNivel + ganhoAtualBin);
+
+    progressoProximoHtml = `
+      <div style="background:rgba(245,200,66,0.06);border:1px solid rgba(245,200,66,0.25);border-radius:var(--radius-sm);padding:14px;margin-bottom:16px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px;margin-bottom:10px;">
+          <div style="font-size:12px;font-weight:700;color:#f5c842;text-transform:uppercase;letter-spacing:0.6px;">📈 Falta-te para ${proximoNivel.cat}</div>
+          ${diferencaSemanal > 0 ? `<div style="font-size:12px;color:var(--text2);">+ <strong style="color:#f5c842;">${fmtMoeda(diferencaSemanal)}</strong>/semana estimado</div>` : ''}
+        </div>
+        ${barraProgresso('Volume Pessoal (PV)', pv, proximoNivel.pv, 'var(--accent)')}
+        ${barraProgresso('Volume Qualificado Linha Descendente (QDV)', qdv, proximoNivel.qdv, 'var(--accent2)')}
+        ${proximoNivel.secVal > 0 ? barraProgresso('Secção mais fraca', Math.min(secL, secR), proximoNivel.secVal, 'var(--gold)') : ''}
+        ${proximoNivel.olxl > 0 ? barraProgresso('Volume Fora das Secções (OLXL)', olxl, proximoNivel.olxl, 'var(--accent3)') : ''}
+        <div style="font-size:10.5px;color:var(--text3);margin-top:6px;">Baseado nos volumes guardados no teu Perfil. Atualiza-os lá para refinar esta estimativa.</div>
+      </div>
+    `;
+  } else {
+    progressoProximoHtml = `<div style="background:rgba(245,200,66,0.06);border:1px solid rgba(245,200,66,0.25);border-radius:var(--radius-sm);padding:12px 14px;margin-bottom:16px;font-size:12.5px;color:var(--gold);text-align:center;">🎉 Estás no nível máximo do Percurso para o Sucesso!</div>`;
+  }
+
   // --- Bónus de Ganhos por Nível ---
   const membrosComPV = membros.filter(m => (m.pv || 0) > 0);
   const resultNivel = calcularBonusNivel(minhaCategoria, membros);
@@ -19232,6 +20388,8 @@ function renderSimuladorBonus() {
         </div>
         <button class="btn btn-secondary btn-sm" onclick="abrirPerfilModal(false)">⚙️ Editar volumes</button>
       </div>
+
+      ${progressoProximoHtml}
 
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-bottom:16px;">
         <div class="stat-card c1" style="padding:14px 16px;">
@@ -20354,6 +21512,146 @@ async function catMostrarImagens(produtoId) {
 
 
 // ============================================================
+// PREVISOR DE CHURN — CLIENTES PREFERENCIAIS EM RISCO PRECOCE
+// Diferente do "renovacao-banner" (que avisa só quando já passaram 25+ dias
+// fixos desde a última compra "preferido"), este módulo aprende o RITMO
+// PRÓPRIO de cada cliente: olha para os intervalos entre as suas compras
+// anteriores e sinaliza quando o atraso atual já é desproporcional ao seu
+// padrão habitual — por vezes mais cedo que os 25 dias fixos, por vezes
+// mais tarde (ex: cliente que compra a cada 45 dias não é "risco" aos 30).
+// É 100% read-only sobre `vendas` — não escreve nem altera nada existente.
+// ============================================================
+function calcularChurnClientesPreferenciais() {
+  if (typeof vendas === 'undefined' || !Array.isArray(vendas)) return [];
+
+  // Agrupa compras tipo "preferido" por cliente, ordenadas por data
+  const porCliente = {};
+  vendas.forEach(v => {
+    if (v.tipo !== 'preferido' || v.estado === 'cancelada') return;
+    const nome = (v.cliente || '').trim();
+    if (!nome) return;
+    const dt = new Date(v.data).getTime();
+    if (isNaN(dt)) return;
+    if (!porCliente[nome]) porCliente[nome] = [];
+    porCliente[nome].push({ dt, data: v.data, produto: v.produto });
+  });
+
+  const agora = Date.now();
+  const resultado = [];
+
+  Object.keys(porCliente).forEach(nome => {
+    const compras = porCliente[nome].sort((a, b) => a.dt - b.dt);
+    if (compras.length < 1) return;
+
+    const ultima = compras[compras.length - 1];
+    const diasDesdeUltima = Math.floor((agora - ultima.dt) / 86400000);
+
+    let intervaloMedio, fonteIntervalo;
+    if (compras.length >= 2) {
+      // Calcula intervalos entre compras consecutivas e usa a média
+      const intervalos = [];
+      for (let i = 1; i < compras.length; i++) {
+        intervalos.push((compras[i].dt - compras[i-1].dt) / 86400000);
+      }
+      intervaloMedio = intervalos.reduce((a,b) => a+b, 0) / intervalos.length;
+      fonteIntervalo = 'historico';
+    } else {
+      // Só há uma compra — usa 31 dias (ciclo padrão LifeWave) como referência
+      intervaloMedio = 31;
+      fonteIntervalo = 'padrao';
+    }
+    if (intervaloMedio < 7) intervaloMedio = 7; // proteção contra outliers (ex: compras no mesmo dia)
+
+    const pctAtraso = diasDesdeUltima / intervaloMedio;
+
+    // Classificação de risco com base no atraso relativo ao próprio padrão do cliente
+    let risco = null;
+    if (pctAtraso >= 1.8) risco = { nivel: 'critico', label: '🔴 Risco crítico', cor: '#ff5555' };
+    else if (pctAtraso >= 1.3) risco = { nivel: 'alto', label: '🟠 Risco alto', cor: '#ff8c42' };
+    else if (pctAtraso >= 1.05) risco = { nivel: 'atencao', label: '🟡 A vigiar', cor: '#f5c842' };
+
+    if (!risco) return; // dentro do padrão normal — não aparece na lista
+
+    resultado.push({
+      nome,
+      diasDesdeUltima,
+      intervaloMedio: Math.round(intervaloMedio),
+      fonteIntervalo,
+      nCompras: compras.length,
+      ultimoProduto: ultima.produto || '',
+      ultimaData: ultima.data,
+      risco
+    });
+  });
+
+  // Ordena por gravidade (mais atrasado em relação ao seu próprio padrão primeiro)
+  resultado.sort((a, b) => (b.diasDesdeUltima / b.intervaloMedio) - (a.diasDesdeUltima / a.intervaloMedio));
+  return resultado;
+}
+
+function renderChurnModule() {
+  const el = document.getElementById('com-churn-module');
+  if (!el) return;
+
+  const lista = calcularChurnClientesPreferenciais();
+
+  if (!lista.length) {
+    el.innerHTML = `
+      <div class="card" style="background:rgba(0,212,170,0.04);border:1px solid rgba(0,212,170,0.15);margin-bottom:0;">
+        <div style="display:flex;align-items:center;gap:12px;">
+          <span style="font-size:26px;">🛡️</span>
+          <div>
+            <div style="font-size:13px;font-weight:700;color:var(--text);">Previsor de Churn</div>
+            <div style="font-size:12px;color:var(--text2);">Nenhum cliente Preferencial em risco neste momento — todos dentro do ritmo habitual de compra.</div>
+          </div>
+        </div>
+      </div>`;
+    return;
+  }
+
+  const idSeguro = (n) => n.replace(/[^a-zA-Z0-9]/g, '_');
+
+  el.innerHTML = `
+    <div class="card" style="margin-bottom:0;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;flex-wrap:wrap;gap:8px;">
+        <div class="section-title" style="margin:0;display:flex;align-items:center;gap:8px;">
+          🛡️ Previsor de Churn <span style="font-size:11px;font-weight:700;background:rgba(255,107,53,0.15);color:#ff8c42;border-radius:20px;padding:2px 9px;">${lista.length}</span>
+        </div>
+      </div>
+      <div style="font-size:11.5px;color:var(--text2);margin-bottom:14px;line-height:1.5;">
+        Compara o atraso atual de cada cliente Preferencial com o <strong>ritmo de compra habitual dele próprio</strong> — não com um número fixo de dias. Apanha sinais de risco antes do alerta de renovação no Dashboard.
+      </div>
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        ${lista.map(c => {
+          const tel = (typeof leads !== 'undefined') ? (leads.find(l => (l.nome||'').trim().toLowerCase() === c.nome.toLowerCase())?.tel || '') : '';
+          const telLimpo = tel ? limparTelefone(tel) : '';
+          return `
+          <div class="followup-item" style="border-color:${c.risco.cor}40;">
+            <div class="followup-item-urgency">${c.risco.label.split(' ')[0]}</div>
+            <div class="followup-item-info">
+              <div class="followup-item-name">${escapeHtml(c.nome)}</div>
+              <div class="followup-item-meta">
+                ${escapeHtml(c.risco.label.split(' ').slice(1).join(' '))} · costuma comprar a cada ${c.intervaloMedio}d${c.fonteIntervalo === 'padrao' ? ' (estimado, só 1 compra)' : ''} · sem comprar há ${c.diasDesdeUltima}d
+              </div>
+            </div>
+            <div class="followup-item-days urgent" style="color:${c.risco.cor};">${Math.round((c.diasDesdeUltima / c.intervaloMedio) * 100)}% do ciclo</div>
+            <div class="followup-item-actions">
+              ${telLimpo ? `<button class="btn btn-sm btn-wa-sm" onclick="churnMensagemWA('${telLimpo}','${encodeURIComponent(c.nome)}')" title="WhatsApp">💬</button>` : ''}
+              <button class="btn btn-secondary btn-sm" onclick="abrirNovaVenda('${c.nome.replace(/'/g,"\\'")}')" title="Registar renovação">💰</button>
+            </div>
+          </div>`;
+        }).join('')}
+      </div>
+    </div>`;
+}
+
+function churnMensagemWA(tel, nomeEncoded) {
+  const nome = decodeURIComponent(nomeEncoded).split(' ')[0];
+  const texto = `Olá ${nome}! 👋 Reparei que já não repões o teu patch há um tempinho — queres que te prepare já o próximo pedido para não ficares sem? 😊`;
+  window.open('https://wa.me/' + tel + '?text=' + encodeURIComponent(texto), '_blank');
+}
+
+// ============================================================
 // PREVISÃO DE COMISSÃO DO MÊS
 // ============================================================
 function renderPrevisaoComissao() {
@@ -20856,8 +22154,8 @@ function renderPrevisaoComissao() {
     <div style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px;margin:14px 0;">
       <div style="font-size:11px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:0.7px;margin-bottom:8px;">🔄 Equipa Partilhada (Google Drive)</div>
       <div style="font-size:11.5px;color:var(--text2);line-height:1.5;margin-bottom:10px;">
-        <strong>Se és líder:</strong> cola aqui o ID de uma pasta do teu Google Drive partilhada com a equipa. As compras que cada membro registar na app dele ficam automaticamente visíveis para ti.<br>
-        <strong>Se és membro:</strong> cola o ID da pasta que o teu líder partilhou contigo — as tuas compras passam a ser enviadas para lá automaticamente.
+        <strong>Se és líder:</strong> cola aqui o ID de uma pasta do teu Google Drive partilhada com a equipa. As compras, leads e atividade que cada membro registar na app dele ficam automaticamente visíveis para ti (incluindo a equipa dos teus diretos, em cadeia).<br>
+        <strong>Se és membro:</strong> cola o ID da pasta que o teu líder partilhou contigo — as tuas compras, leads e atividade passam a ser enviados para lá automaticamente.
       </div>
       <div class="form-group" style="margin-bottom:8px;">
         <label class="form-label">ID da pasta partilhada</label>
@@ -20912,6 +22210,28 @@ function renderPrevisaoComissao() {
           <option value="nl">🇳🇱 Nederlands</option>
         </select>
       </div>
+    </div>
+
+    <div style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px;margin:14px 0;">
+      <div style="font-size:11px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:0.7px;margin-bottom:10px;">📅 Datas de Inscrição e Encomendas</div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">📝 Data de Inscrição</label>
+          <input class="form-input" type="date" id="perfil-data-inscricao" onchange="atualizarPerfilDatasPreview()">
+        </div>
+        <div class="form-group">
+          <label class="form-label">📦 Vencimento da Próxima Encomenda</label>
+          <input class="form-input" type="date" id="perfil-data-proxima-encomenda" onchange="atualizarPerfilDatasPreview()">
+        </div>
+      </div>
+      <div class="form-group" style="margin-bottom:0;">
+        <label class="form-label">🔁 Ciclo entre encomendas (dias)</label>
+        <input class="form-input" type="number" id="perfil-ciclo-encomenda" placeholder="31" min="1" style="max-width:120px;" onchange="atualizarPerfilDatasPreview()">
+        <div style="font-size:11px;color:var(--text2);margin-top:4px;">
+          Sempre que a data de vencimento passar, a app calcula automaticamente a próxima data somando este nº de dias — tal como o teu backoffice LifeWave.
+        </div>
+      </div>
+      <div id="perfil-datas-preview" style="margin-top:10px;"></div>
     </div>
 
     <!-- Preview dos links -->
@@ -23153,26 +24473,26 @@ function renderMiniCRM() {
         tier1.push({ m, s, tipo:'inativo',
           icon:'😴', cor:'#ff6b6b', corFundo:'rgba(255,107,107,0.06)',
           msg:`Membro inativo — sem atividade registada. Liga ou envia mensagem de motivação.`,
-          acao: m.tel ? `<button class="btn btn-sm btn-wa" onclick="abrirWAMembro('${m.id}')">💬 WhatsApp</button><button class="btn btn-sm btn-ai" onclick="gerarMsgApoioMembro('${m.id}')">🤖 Msg IA</button>` : `<button class="btn btn-sm btn-ai" onclick="gerarMsgApoioMembro('${m.id}')">🤖 Msg IA</button>`
+          acao: m.tel ? `<button class="btn btn-sm btn-wa" onclick="abrirWAMembro('${m.id}','inativo')">💬 WhatsApp</button><button class="btn btn-sm btn-ai" onclick="gerarMsgApoioMembro('${m.id}')">🤖 Msg IA</button>` : `<button class="btn btn-sm btn-ai" onclick="gerarMsgApoioMembro('${m.id}')">🤖 Msg IA</button>`
         });
       } else if (s.pv === 0 && m.estado !== 'inativo') {
         tier1.push({ m, s, tipo:'sem-pv',
           icon:'❌', cor:'#ff6b6b', corFundo:'rgba(255,107,107,0.06)',
           msg:`Sem PV registado — pode perder o estado Ativo. Verifica se comprou recentemente.`,
-          acao: m.tel ? `<button class="btn btn-sm btn-wa" onclick="abrirWAMembro('${m.id}')">💬 WA</button><button class="btn btn-sm btn-secondary" onclick="verMembro('${m.id}')">🩺 Ver</button>` : `<button class="btn btn-sm btn-secondary" onclick="verMembro('${m.id}')">🩺 Ver</button>`
+          acao: m.tel ? `<button class="btn btn-sm btn-wa" onclick="abrirWAMembro('${m.id}','sem-pv')">💬 WA</button><button class="btn btn-sm btn-secondary" onclick="verMembro('${m.id}')">🩺 Ver</button>` : `<button class="btn btn-sm btn-secondary" onclick="verMembro('${m.id}')">🩺 Ver</button>`
         });
       } else if (s.pvEmRisco) {
         const falta = 55 - s.pv;
         tier2.push({ m, s, tipo:'pv-risco',
           icon:'⚠️', cor:'var(--gold)', corFundo:'rgba(245,200,66,0.05)',
           msg:`PV em risco — ${s.pv}/55 · Faltam ${falta} PV para manter estado Ativo este mês.`,
-          acao: m.tel ? `<button class="btn btn-sm btn-wa" onclick="abrirWAMembro('${m.id}')">💬 WA</button><button class="btn btn-sm btn-secondary" onclick="verMembro('${m.id}')">🩺 Saúde</button>` : `<button class="btn btn-sm btn-secondary" onclick="verMembro('${m.id}')">🩺 Saúde</button>`
+          acao: m.tel ? `<button class="btn btn-sm btn-wa" onclick="abrirWAMembro('${m.id}','pv-risco','${falta}')">💬 WA</button><button class="btn btn-sm btn-secondary" onclick="verMembro('${m.id}')">🩺 Saúde</button>` : `<button class="btn btn-sm btn-secondary" onclick="verMembro('${m.id}')">🩺 Saúde</button>`
         });
       } else if (s.arranqueAtivo && s.semanasRestantes <= 2) {
         tier2.push({ m, s, tipo:'blb-expira',
           icon:'🚀', cor:'var(--gold)', corFundo:'rgba(245,200,66,0.05)',
           msg:`BLB ${s.semanasRestantes===0?'expira esta semana':s.semanasRestantes===1?'expira na próxima semana':'expira em 2 semanas'} — ${s.semanasDecorridas} de 9 semanas. Última fase de arranque!`,
-          acao: m.tel ? `<button class="btn btn-sm btn-wa" onclick="abrirWAMembro('${m.id}')">💬 WA</button><button class="btn btn-sm btn-secondary" onclick="verMembro('${m.id}')">🩺 Ver BLB</button>` : `<button class="btn btn-sm btn-secondary" onclick="verMembro('${m.id}')">🩺 Ver BLB</button>`
+          acao: m.tel ? `<button class="btn btn-sm btn-wa" onclick="abrirWAMembro('${m.id}','blb-expira')">💬 WA</button><button class="btn btn-sm btn-secondary" onclick="verMembro('${m.id}')">🩺 Ver BLB</button>` : `<button class="btn btn-sm btn-secondary" onclick="verMembro('${m.id}')">🩺 Ver BLB</button>`
         });
       }
 
@@ -23695,6 +25015,7 @@ function renderListaLembretes() {
         </div>
       </div>
       <div class="notif-item-actions">
+        ${l._leadId && l._textoSequencia ? `<button class="notif-snooze-btn" onclick="enviarWhatsAppParaLead('${l._leadId}', ${JSON.stringify(l._textoSequencia)})" title="Enviar esta mensagem da sequência">💬 Enviar</button>` : ''}
         ${atrasado ? `<button class="notif-snooze-btn" onclick="adiarLembrete('${l.id}',15)">+15m</button>` : ''}
         <button class="notif-snooze-btn" onclick="adiarLembrete('${l.id}',60)">+1h</button>
         <button class="notif-snooze-btn" onclick="concluirLembrete('${l.id}')">✅</button>
@@ -23746,9 +25067,9 @@ function eliminarLembrete(id) {
   showToast('🗑 Lembrete removido');
 }
 
-function dispararNotificacao(titulo, corpo, icon) {
+function dispararNotificacao(titulo, corpo, icon, acaoHtml) {
   // In-app toast first (always works)
-  mostrarNotifToast(titulo, corpo, icon);
+  mostrarNotifToast(titulo, corpo, icon, acaoHtml);
 
   // Browser notification if permission granted
   if ('Notification' in window && Notification.permission === 'granted') {
@@ -23766,7 +25087,7 @@ function dispararNotificacao(titulo, corpo, icon) {
   }
 }
 
-function mostrarNotifToast(titulo, corpo, icon) {
+function mostrarNotifToast(titulo, corpo, icon, acaoHtml) {
   // Remove existing
   document.querySelectorAll('.notif-toast').forEach(t => t.remove());
 
@@ -23777,18 +25098,19 @@ function mostrarNotifToast(titulo, corpo, icon) {
     <div class="notif-toast-body">
       <div class="notif-toast-title">${titulo}</div>
       <div class="notif-toast-msg">${corpo}</div>
+      ${acaoHtml || ''}
     </div>
     <button class="notif-toast-close" onclick="fecharNotifToast(this)">✕</button>
   `;
   document.body.appendChild(toast);
 
-  // Auto remove after 8s
+  // Auto remove after 8s (ou 14s se houver uma ação, para dar tempo de clicar)
   setTimeout(() => {
     if (toast.parentNode) {
       toast.style.animation = 'notifSlideOut 0.3s ease forwards';
       setTimeout(() => toast.remove(), 300);
     }
-  }, 8000);
+  }, acaoHtml ? 14000 : 8000);
 }
 
 function fecharNotifToast(btn) {
@@ -23799,7 +25121,41 @@ function fecharNotifToast(btn) {
   }
 }
 
-// ===== AVISO DE EVENTOS DA AGENDA PRÓXIMOS (v20) =====
+// ===== AVISO DE POSTS AGENDADOS (v21) =====
+// Mesmo padrão de verificarEventosProximos: corre no mesmo intervalo de 30s,
+// dispara quando a hora agendada chega (ou já passou há pouco), evita repetir.
+// A app não publica automaticamente nas redes sociais — isso exigiria integração
+// com a API de cada plataforma — por isso o aviso vem com um botão para copiar
+// o texto, para o utilizador colar e publicar manualmente.
+function verificarPostsAgendados() {
+  try {
+    if (typeof posts === 'undefined' || !Array.isArray(posts)) return;
+    const agora = Date.now();
+    let disparouAlgum = false;
+    posts.forEach(p => {
+      if (!p.data || p._avisoDisparado) return;
+      const dt = new Date(p.data).getTime();
+      if (isNaN(dt)) return;
+      // Dispara a partir da hora marcada até 5 min depois (janela de tolerância,
+      // para não perder o aviso se a app estiver em segundo plano no momento exato)
+      if (dt <= agora && dt >= agora - 5 * 60000) {
+        p._avisoDisparado = true;
+        disparouAlgum = true;
+        const plataformaIcon = { Facebook:'📘', Instagram:'📸', WhatsApp:'💬' }[p.plataforma] || '📱';
+        const acaoHtml = `<button onclick="copiarPostAgendado('${p.id}');fecharNotifToast(this)" style="margin-top:6px;background:var(--accent);color:var(--bg);border:none;border-radius:8px;padding:6px 12px;font-size:12px;font-weight:700;cursor:pointer;">📋 Copiar texto do post</button>`;
+        dispararNotificacao(
+          plataformaIcon + ' Está na hora de publicar!',
+          (p.texto||'').slice(0,90) + ((p.texto||'').length > 90 ? '…' : ''),
+          plataformaIcon,
+          acaoHtml
+        );
+      }
+    });
+    if (disparouAlgum) savePosts();
+  } catch(e) {}
+}
+
+
 // Mesmo padrão de verificarLembretes: corre no mesmo intervalo de 30s,
 // dispara 15 min antes da hora marcada, evita repetir o aviso.
 const AVISO_AGENDA_MINUTOS_ANTES = 15;
@@ -23863,6 +25219,7 @@ function iniciarVerificacaoLembretes() {
   _notifCheckInterval = setInterval(() => {
     verificarLembretes();
     verificarEventosProximos();
+    verificarPostsAgendados();
   }, 30000);
 }
 
@@ -24248,7 +25605,7 @@ async function alertasIAAnalisar() {
   let leads = []; try { leads = JSON.parse(localStorage.getItem(getUserStorageKey('lw_leads')))||[]; } catch(e) {}
   let membros = []; try { membros = JSON.parse(localStorage.getItem(getUserStorageKey('lw_membros')))||[]; } catch(e) {}
   let vendasAlerta = []; try { vendasAlerta = JSON.parse(localStorage.getItem(getUserStorageKey('lw_vendas')))||[]; } catch(e) {}
-  let postsAg = []; try { postsAg = JSON.parse(localStorage.getItem('lw_posts_agendados'))||[]; } catch(e) {}
+  let postsAg = []; try { postsAg = JSON.parse(localStorage.getItem(getUserStorageKey('lw_posts')))||[]; } catch(e) {}
 
   const cfg = JSON.parse(localStorage.getItem(ALERTAS_CONFIG_KEY)||'{}');
   const diasFollowup = cfg.followupDias || 7;
@@ -24257,6 +25614,8 @@ async function alertasIAAnalisar() {
   const agora = Date.now();
   const hoje  = new Date();
   const diasRestantes = new Date(hoje.getFullYear(), hoje.getMonth()+1, 0).getDate() - hoje.getDate();
+  // Posts agendados para hoje (com 1h de tolerância) ou no futuro — usado pelo alerta "sem posts agendados"
+  const postsAgFuturos = postsAg.filter(p => p.data && new Date(p.data).getTime() >= agora - 3600000);
 
   const alertasLocais = [];
 
@@ -24332,7 +25691,7 @@ async function alertasIAAnalisar() {
   }
 
   // 5. Sem posts
-  if (cfg['cb_sem-post'] !== false && postsAg.length === 0) {
+  if (cfg['cb_sem-post'] !== false && postsAgFuturos.length === 0) {
     alertasLocais.push({
       icon:'📱', cor:'rgba(0,212,170,0.06)', borda:'rgba(0,212,170,0.15)',
       titulo:'Nenhum post agendado para os próximos dias',
@@ -25611,6 +26970,103 @@ function pvGuardar() {
   }
 }
 
+// ── Importar Fatura LifeWave ──────────────────────────────
+async function pvImportarFatura(input) {
+  const file = input.files && input.files[0];
+  if (!file) return;
+
+  const nomeEl   = document.getElementById('pv-fatura-nome');
+  const statusEl = document.getElementById('pv-fatura-status');
+  if (nomeEl) nomeEl.textContent = file.name;
+  if (statusEl) statusEl.innerHTML = '⏳ A analisar a fatura com IA…';
+
+  // Ler ficheiro como base64
+  let base64 = '';
+  try {
+    base64 = await new Promise((res, rej) => {
+      const r = new FileReader();
+      r.onload = () => res(r.result.split(',')[1]);
+      r.onerror = () => rej(new Error('Erro ao ler ficheiro'));
+      r.readAsDataURL(file);
+    });
+  } catch(e) {
+    if (statusEl) statusEl.innerHTML = '❌ Erro ao ler o ficheiro.';
+    return;
+  }
+
+  const isPdf = file.type === 'application/pdf';
+  const mediaType = file.type || 'image/jpeg';
+
+  const prompt = `Analisa esta fatura LifeWave e extrai APENAS os seguintes dados em JSON puro (sem markdown, sem blocos de código):
+{
+  "pv": <número total de Volume Points (QV) da encomenda, ou 0 se não encontrado>,
+  "total": <valor total pago em euros, número>,
+  "data": "<data da encomenda no formato YYYY-MM-DD>",
+  "produtos": "<lista resumida dos produtos, ex: X39 Patches x3, Core Upgrade>"
+}
+Regras:
+- "pv" é a soma dos valores na coluna "Volume cada" multiplicados pela quantidade, ou o campo QV/PV se existir na fatura.
+- Se não encontrares QV/PV, coloca 0.
+- Responde APENAS com o JSON, sem mais texto.`;
+
+  try {
+    // Detecta qual IA usar (prefere Gemini por suporte nativo a PDF; fallback Claude)
+    const ai = (typeof geminiKey !== 'undefined' && geminiKey && geminiKey.length > 10) ? 'gemini'
+             : (typeof claudeKey !== 'undefined' && claudeKey && claudeKey.length > 10) ? 'claude'
+             : 'gemini';
+
+    const resposta = await chamarIADocumento({ ai, prompt, base64, isPdf, mediaType, maxTokens: 500 });
+
+    // Parse JSON
+    let dados = null;
+    try {
+      const clean = resposta.replace(/```json|```/g, '').trim();
+      dados = JSON.parse(clean);
+    } catch(e) {
+      // Tenta extrair JSON de dentro do texto
+      const m = resposta.match(/\{[\s\S]*\}/);
+      if (m) dados = JSON.parse(m[0]);
+    }
+
+    if (!dados) throw new Error('Não foi possível extrair dados da fatura.');
+
+    // Preenche os campos
+    const pvVal = parseFloat(dados.pv) || 0;
+    const pvInp = document.getElementById('pv-input-pv');
+    const notasInp = document.getElementById('pv-input-notas');
+
+    if (pvInp && pvVal > 0) pvInp.value = pvVal;
+
+    // Monta nota automática
+    let nota = '';
+    if (dados.data) nota += `Fatura ${dados.data}`;
+    if (dados.total) nota += (nota ? ' · ' : '') + `Total: ${dados.total}€`;
+    if (dados.produtos) nota += (nota ? ' · ' : '') + dados.produtos;
+    if (nota && notasInp && !notasInp.value) notasInp.value = nota;
+
+    // Feedback
+    let msg = pvVal > 0
+      ? `✅ PV detectado: <strong>${pvVal}</strong>`
+      : '⚠️ PV não encontrado na fatura (preenchido como 0)';
+    if (dados.total) msg += ` · Total: <strong>${dados.total}€</strong>`;
+    if (statusEl) statusEl.innerHTML = msg;
+
+    // Reset input para permitir novo upload do mesmo ficheiro
+    input.value = '';
+
+  } catch(e) {
+    const msg = (e.message || '').toLowerCase();
+    let erro = '❌ Erro ao analisar a fatura.';
+    if (msg.includes('no_key') || msg.includes('no key') || msg.includes('chave')) {
+      erro = '🔑 Configura a chave Gemini ou Claude nas definições para usar esta função.';
+    } else if (msg.includes('quota') || msg.includes('429')) {
+      erro = '⛔ Quota da IA esgotada. Tenta mais tarde.';
+    }
+    if (statusEl) statusEl.innerHTML = erro;
+    input.value = '';
+  }
+}
+
 // ── Hook na renderComissoes existente ─────────────────────
 (function hookPV() {
   const _orig = window.renderComissoes;
@@ -26618,7 +28074,7 @@ function arvoreRender() {
   wrap.innerHTML = `
     <div style="display:flex;flex-direction:column;align-items:center;gap:0;">
 
-      // NO RAIZ: EU
+      <!-- NO RAIZ: EU -->
       <div style="position:relative;">
         ${_arvoreNó(
           { id:'eu', nome: euNome, pv: euPV, estado:'ativo', nivel:0 },
@@ -26627,7 +28083,7 @@ function arvoreRender() {
         ${porNivel[1].length ? '<div style="width:2px;height:20px;background:rgba(0,212,170,0.3);margin:0 auto;"></div>' : ''}
       </div>
 
-      // NIVEL 1
+      <!-- NIVEL 1 -->
       ${porNivel[1].length ? `
       <div style="position:relative;width:100%;">
         <!-- linha horizontal -->
@@ -26651,13 +28107,13 @@ function arvoreRender() {
         </div>
       </div>` : ''}
 
-      // NIVEL 3 se nao ha nivel 1
+      <!-- NIVEL 3 se nao ha nivel 1 -->
       ${!porNivel[1].length && porNivel[2].length ? `
       <div style="display:flex;flex-wrap:wrap;justify-content:center;gap:10px;margin-top:4px;">
         ${porNivel[2].map(m => _arvoreNó(m, false, false)).join('')}
       </div>` : ''}
 
-      // Nivel 3+ separado se existir
+      <!-- Nivel 3+ separado se existir -->
       ${porNivel[3].length ? `
       <div style="margin-top:20px;width:100%;">
         <div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.7px;text-align:center;margin-bottom:10px;">Nível 3+</div>
@@ -26668,7 +28124,7 @@ function arvoreRender() {
 
     </div>
 
-    // Estatisticas rapidas
+    <!-- Estatisticas rapidas -->
     <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:24px;">
       <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px;text-align:center;">
         <div style="font-size:20px;font-weight:700;color:var(--accent);">${membros.filter(m=>m.estado==='ativo').length}</div>
@@ -26839,6 +28295,7 @@ function guardarVolumesChecklist() {
   chkSaveVolumes({ catAlvo, pv, qdv, secL, secR, olxl, bin });
   closeModal('modal-chk-volumes');
   renderChecklist();
+  if (typeof renderDashQualifRT === 'function') renderDashQualifRT();
   showToast('✅ Volumes guardados!');
 }
 
@@ -27122,6 +28579,164 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }, 1500);
 });
+// ===================================================
+// WIDGET PRÓXIMA QUALIFICAÇÃO EM TEMPO REAL v38
+// Combina dados do perfil + checklist semanal +
+// countdown fim de mês + alerta de ritmo.
+// ===================================================
+
+function diasAteFinDoMes() {
+  const hoje = new Date();
+  const fimMes = new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0);
+  return Math.max(0, Math.ceil((fimMes - hoje) / 86400000));
+}
+
+function renderDashQualifRT() {
+  const el = document.getElementById('dash-qualif-rt-widget');
+  if (!el) return;
+
+  // Dados do perfil (calculadora principal)
+  const p = (typeof perfil !== 'undefined' && perfil) ? perfil : {};
+  const pvPerfil  = parseFloat(p.pv)   || 0;
+  const qdvPerfil = parseFloat(p.qdv)  || 0;
+  const secL = parseFloat(p.secL) || 0;
+  const secR = parseFloat(p.secR) || 0;
+  const olxl = parseFloat(p.olxl) || 0;
+
+  // Dados do checklist semanal (mais recentes se existirem)
+  const chk = (typeof chkGetVolumes === 'function') ? chkGetVolumes() : null;
+  const pv  = chk ? (chk.pv  || pvPerfil)  : pvPerfil;
+  const qdv = chk ? (chk.qdv || qdvPerfil) : qdvPerfil;
+
+  // Sem nenhum dado — convite simples
+  if (pv === 0 && qdv === 0) {
+    el.style.display = 'block';
+    el.innerHTML = `
+      <div style="background:var(--surface2);border:1px dashed rgba(0,132,255,0.3);border-radius:14px;padding:14px 18px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
+        <div style="display:flex;align-items:center;gap:10px;">
+          <span style="font-size:22px;">🎯</span>
+          <div>
+            <div style="font-size:13px;font-weight:700;color:var(--text);">Painel de Qualificação em Tempo Real</div>
+            <div style="font-size:11.5px;color:var(--text2);">Actualiza o teu perfil com os volumes do backoffice para ver o progresso.</div>
+          </div>
+        </div>
+        <button class="btn btn-secondary btn-sm" onclick="event.stopPropagation();abrirPerfilModal(false)">✏️ Atualizar Volumes</button>
+      </div>`;
+    return;
+  }
+
+  // Rank atual e próximo
+  let catAtual, proxCat;
+  if (typeof calcularCategoria === 'function') {
+    catAtual = calcularCategoria({ pv, qdv, secL, secR, olxl }).cat;
+    const proxObj = typeof proximaCategoria === 'function' ? proximaCategoria(catAtual) : null;
+    proxCat = proxObj;
+  } else {
+    el.style.display = 'none';
+    return;
+  }
+
+  // Countdown fim do mês
+  const diasRestantes = diasAteFinDoMes();
+  const urgenciaMes = diasRestantes <= 5 ? 'critico' : diasRestantes <= 10 ? 'alerta' : 'normal';
+  const corDias = urgenciaMes === 'critico' ? '#ff4444' : urgenciaMes === 'alerta' ? '#f5c842' : 'var(--accent)';
+
+  // Membros da equipa (downline qualificados)
+  const membros = (typeof equipaData !== 'undefined' && Array.isArray(equipaData)) ? equipaData : [];
+  const membrosQualif = membros.filter(m => {
+    if (!m.pv) return false;
+    const pvM = parseFloat(m.pv) || 0;
+    return pvM >= 55; // Active BP ou superior
+  }).length;
+  const totalMembros = membros.length;
+
+  // Barras de progresso
+  const mkBarra = (label, atual, meta) => {
+    if (!meta || meta === 0) return '';
+    const pct = Math.min(100, Math.round(atual / meta * 100));
+    const falta = Math.max(0, meta - atual);
+    const cor = pct >= 100 ? '#00d4aa' : pct >= 80 ? '#f5c842' : pct >= 50 ? '#0084ff' : '#ff6b35';
+    const faltaLabel = falta > 0 ? `<span style="font-size:10px;color:var(--text3);">faltam ${falta.toLocaleString('pt-PT')}</span>` : `<span style="font-size:10px;color:#00d4aa;">✅</span>`;
+    return `
+      <div style="margin-bottom:9px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px;">
+          <span style="font-size:11px;color:var(--text2);font-weight:600;">${label}</span>
+          <div style="display:flex;align-items:center;gap:6px;">
+            <span style="font-size:11px;font-weight:700;color:${cor};">${atual.toLocaleString('pt-PT')} / ${meta.toLocaleString('pt-PT')}</span>
+            ${faltaLabel}
+          </div>
+        </div>
+        <div style="height:6px;background:var(--surface3);border-radius:10px;overflow:hidden;">
+          <div style="height:100%;width:${pct}%;background:${cor};border-radius:10px;transition:width .5s ease;"></div>
+        </div>
+      </div>`;
+  };
+
+  // Alerta de ritmo: se faltam poucos dias e ainda falta muito PV
+  let alertaRitmoHTML = '';
+  if (proxCat && diasRestantes > 0 && diasRestantes <= 10) {
+    const pvFalta = Math.max(0, proxCat.pv - pv);
+    if (pvFalta > 0) {
+      const pvPorDia = (pvFalta / diasRestantes).toFixed(1);
+      alertaRitmoHTML = `
+        <div style="background:rgba(255,107,53,0.1);border:1px solid rgba(255,107,53,0.3);border-radius:10px;padding:10px 12px;margin-bottom:12px;display:flex;align-items:center;gap:8px;">
+          <span style="font-size:16px;">⚡</span>
+          <div style="font-size:12px;color:var(--text);">
+            <strong style="color:#ff6b35;">Precisas de ~${pvPorDia} PV/dia</strong> nos próximos ${diasRestantes} dias para atingir <strong>${proxCat.cat}</strong>.
+          </div>
+        </div>`;
+    }
+  } else if (proxCat && diasRestantes === 0) {
+    alertaRitmoHTML = `<div style="background:rgba(255,68,68,0.1);border:1px solid rgba(255,68,68,0.3);border-radius:10px;padding:10px 12px;margin-bottom:12px;font-size:12px;font-weight:700;color:#ff4444;">🚨 Último dia do mês — age agora!</div>`;
+  }
+
+  // Ícones de rank
+  const catIcon = { 'Brand Partner':'🌱','Brand Partner Ativo':'🌿','1-Star Manager':'⭐','2-Star Manager':'⭐⭐','3-Star Manager':'⭐⭐⭐','1-Star Director':'🥉','2-Star Director':'🥈','3-Star Director':'🥇','1-Star Executive':'💎','2-Star Executive':'💎💎','3-Star Executive':'💎💎💎','1-Star Presidential':'👑','2-Star Presidential':'👑👑','3-Star Presidential':'👑👑👑' };
+
+  el.style.display = 'block';
+  el.innerHTML = `
+    <div style="background:var(--surface);border:1px solid rgba(0,132,255,0.2);border-radius:14px;padding:16px 18px;">
+      <!-- Cabeçalho -->
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px;">
+        <div>
+          <div style="font-size:13px;font-weight:700;color:var(--text);">🎯 Qualificação — ${new Date().toLocaleString('pt-PT',{month:'long',year:'numeric'})}</div>
+          <div style="font-size:11px;color:var(--text2);margin-top:2px;">${catIcon[catAtual]||'📊'} <strong style="color:var(--text);">${catAtual}</strong> ${proxCat ? `→ <strong style="color:var(--accent2);">${catIcon[proxCat.cat]||'🎯'} ${proxCat.cat}</strong>` : '🏆 Rank máximo'}</div>
+        </div>
+        <div style="text-align:right;">
+          <div style="font-size:20px;font-weight:800;color:${corDias};font-family:'Syne',sans-serif;">${diasRestantes}d</div>
+          <div style="font-size:10px;color:var(--text3);">até fim do mês</div>
+        </div>
+      </div>
+
+      ${alertaRitmoHTML}
+
+      ${proxCat ? `
+        ${mkBarra('Volume Pessoal (PV)', pv, proxCat.pv)}
+        ${proxCat.qdv > 0 ? mkBarra('Volume Linha Descendente (QDV)', qdv, proxCat.qdv) : ''}
+        ${proxCat.secVal > 0 ? mkBarra('Secção mais fraca (QV)', Math.min(secL, secR), proxCat.secVal) : ''}
+        ${proxCat.olxl > 0 ? mkBarra('Volume OLXL', olxl, proxCat.olxl) : ''}
+      ` : '<div style="text-align:center;padding:6px;color:var(--gold);font-weight:700;font-size:13px;">🏆 Rank máximo atingido!</div>'}
+
+      <!-- Equipa -->
+      ${totalMembros > 0 ? `
+      <div style="border-top:1px solid var(--border);margin-top:10px;padding-top:10px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
+        <div style="font-size:11px;color:var(--text2);">👥 Equipa activa (≥55 PV)</div>
+        <div style="display:flex;align-items:center;gap:6px;">
+          <span style="font-size:13px;font-weight:700;color:var(--accent);">${membrosQualif}</span>
+          <span style="font-size:11px;color:var(--text3);">/ ${totalMembros} membros</span>
+          ${membrosQualif < totalMembros ? `<span style="font-size:10px;color:#f5c842;font-weight:600;">${totalMembros - membrosQualif} em risco</span>` : '<span style="font-size:10px;color:#00d4aa;font-weight:600;">✅ todos</span>'}
+        </div>
+      </div>` : ''}
+
+      <!-- Acções rápidas -->
+      <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;">
+        <button class="btn btn-secondary btn-sm" onclick="event.stopPropagation();abrirModalChkVolumes()">✏️ Atualizar Volumes</button>
+        <button class="btn btn-secondary btn-sm" onclick="event.stopPropagation();goTo('checklist')">📋 Ver Checklist</button>
+        <button class="btn btn-secondary btn-sm" onclick="event.stopPropagation();goTo('calculadora')">🧮 Calculadora</button>
+      </div>
+    </div>`;
+}
+
 // ===================================================
 // ============================================================
 // RELATORIO SEMANAL IA
@@ -27648,6 +29263,17 @@ const AUTO_BIBLIOTECA = [
   { id:'lib_negociacao_lembrete', icon:'🤝', titulo:'Lembrete ao entrar em Negociação', trigger:{ tipo:'estado_muda', de:'*', para:'negociacao' }, action:{ tipo:'criar_lembrete', dias:2, mensagem:'Dar seguimento à negociação com {nome} — fechar antes que esfrie!' }, desc:'Agenda um lembrete 2 dias depois de entrar em Negociação.', tag:'Vendas' },
   { id:'lib_aniversario_msg', icon:'🎂', titulo:'Mensagem de Aniversário', trigger:{ tipo:'aniversario' }, action:{ tipo:'copiar_mensagem', texto:'Parabéns, {nome}! 🎂🎉 Espero que tenhas um dia incrível! Um abraço grande.' }, desc:'No dia de aniversário de um lead, prepara mensagem de parabéns.', tag:'Relacionamento' },
   { id:'lib_interessado_apresentacao', icon:'📊', titulo:'Enviar Apresentação a Interessado', trigger:{ tipo:'estado_muda', de:'*', para:'interessado' }, action:{ tipo:'notificar', texto:'{nome} está Interessado — envia a apresentação do X39 agora enquanto o interesse está quente!' }, desc:'Notificação imediata quando um lead passa a Interessado.', tag:'Vendas' },
+  { id:'lib_sequencia_novo_lead', icon:'🧵', titulo:'Sequência de Follow-up — Novo Lead', trigger:{ tipo:'lead_criado' }, action:{ tipo:'iniciar_sequencia', passos:[
+      { dias:0, texto:'Olá {nome}! 👋 Foi um gosto falar contigo. Fico por aqui se tiveres alguma pergunta sobre o LifeWave X39 — qualquer coisa, é só dizeres!' },
+      { dias:3, texto:'Olá {nome}! Só a confirmar — tiveste oportunidade de pensar no que falámos? Estou aqui para esclarecer qualquer dúvida 😊' },
+      { dias:7, texto:'Olá {nome}! Lembrei-me de ti — há sempre tempo para conversarmos com mais calma sobre o X39 se ainda tiveres interesse. Como tens passado?' },
+      { dias:14, texto:'Olá {nome}! Não quero ser inoportuno/a — só deixo a porta aberta para quando fizer sentido para ti. Conta comigo quando quiseres! 💚' }
+    ] }, desc:'Cria automaticamente 4 lembretes com mensagens prontas (Dia 0, 3, 7 e 14) para acompanhar um lead novo sem o deixares esfriar.', tag:'Prospeção' },
+  { id:'lib_sequencia_pos_venda', icon:'🧵', titulo:'Sequência Pós-Venda — Acompanhamento Cliente', trigger:{ tipo:'estado_muda', de:'*', para:'cliente' }, action:{ tipo:'iniciar_sequencia', passos:[
+      { dias:1, texto:'Olá {nome}! 🎉 Bem-vindo(a)! Já recebeste informação sobre como usar corretamente o teu patch? Qualquer dúvida, fala comigo.' },
+      { dias:7, texto:'Olá {nome}! Como tens sentido a tua rotina de bem-estar com o X39 esta primeira semana? Adorava saber como estás 😊' },
+      { dias:30, texto:'Olá {nome}! Já passou um mês — que tal renovarmos o teu pedido para não interromperes a rotina? Posso ajudar-te com isso agora.' }
+    ] }, desc:'Cria 3 lembretes com mensagens prontas (Dia 1, 7 e 30) para acompanhares um novo cliente e apoiares a renovação.', tag:'Retenção' },
 ];
 
 function getAutoRegras() { try { return JSON.parse(localStorage.getItem(getUserStorageKey('lw_automacao_regras')) || '[]'); } catch(e) { return []; } }
@@ -27680,7 +29306,7 @@ function renderAutomacao() {
 }
 
 function descreverTrigger(t) { if(t.tipo==='estado_muda')return `Lead passa a "${estadoLabel(t.para)}"`; if(t.tipo==='lead_criado')return 'Novo lead adicionado'; if(t.tipo==='sem_contacto_dias')return `Sem contacto há ${t.dias} dias`; if(t.tipo==='aniversario')return 'Aniversário do lead'; return t.tipo; }
-function descreverAction(a) { if(a.tipo==='criar_lembrete')return `Cria lembrete em ${a.dias} dia(s)`; if(a.tipo==='copiar_mensagem')return 'Prepara mensagem para enviar'; if(a.tipo==='mudar_estado')return `Move para "${estadoLabel(a.estado)}"`; if(a.tipo==='notificar')return 'Mostra notificação'; return a.tipo; }
+function descreverAction(a) { if(a.tipo==='criar_lembrete')return `Cria lembrete em ${a.dias} dia(s)`; if(a.tipo==='copiar_mensagem')return 'Prepara mensagem para enviar'; if(a.tipo==='mudar_estado')return `Move para "${estadoLabel(a.estado)}"`; if(a.tipo==='notificar')return 'Mostra notificação'; if(a.tipo==='iniciar_sequencia')return `Inicia sequência de ${(a.passos||[]).length} mensagens`; return a.tipo; }
 function iconeTrigger(tipo) { return { estado_muda:'🔄', lead_criado:'👋', sem_contacto_dias:'🥶', aniversario:'🎂' }[tipo] || '⚙️'; }
 
 function renderAutomacaoGrid() {
@@ -27831,6 +29457,34 @@ function executarAcaoRegra(regra, lead) {
     if (typeof dispararNotificacao === 'function') dispararNotificacao('⚙️ Automação LifeWave CRM', texto, '⚙️');
     else showToast('⚙️ ' + texto);
     registarAutoLogRegra(regra, '🔔', texto);
+  } else if (a.tipo === 'iniciar_sequencia') {
+    // Cria um lembrete por cada passo da sequência, já com o texto da mensagem
+    // pronto a enviar (via enviarWhatsAppParaLead) quando o lembrete disparar.
+    const passos = Array.isArray(a.passos) ? a.passos : [];
+    if (typeof lembretes !== 'undefined' && passos.length) {
+      passos.forEach((passo, idx) => {
+        const dataDisparo = new Date();
+        dataDisparo.setDate(dataDisparo.getDate() + (passo.dias || 0));
+        dataDisparo.setHours(9, 0, 0, 0);
+        lembretes.push({
+          id: 'autoseq_' + regra.id + '_' + lead.id + '_' + idx + '_' + Date.now(),
+          tipo: 'followup',
+          mensagem: `[Sequência ${idx+1}/${passos.length}] ${substituirVariaveis(passo.texto, lead).substring(0,70)}${passo.texto.length>70?'…':''}`,
+          proximoDisparo: dataDisparo.toISOString(),
+          repeticao: 'uma',
+          criado: new Date().toISOString(),
+          concluido: false,
+          disparadoCount: 0,
+          _leadId: lead.id,
+          _auto: true,
+          _regraId: regra.id,
+          _textoSequencia: substituirVariaveis(passo.texto, lead)
+        });
+      });
+      if (typeof saveLembretes === 'function') saveLembretes();
+    }
+    registarAutoLogRegra(regra, '🧵', `Iniciou sequência de ${passos.length} mensagens para <b>${lead.nome}</b>`);
+    showToast('🧵 Sequência iniciada para ' + lead.nome + ' (' + passos.length + ' mensagens agendadas)');
   }
 }
 function registarAutoLogRegra(regra, icon, texto) { const log = getAutoLog(); log.push({ icon, texto, regraId: regra.id, data: new Date().toLocaleString('pt-PT') }); saveAutoLog(log); }
@@ -28354,8 +30008,8 @@ function mostrarMsgFunil(lead, novoEstado) {
   _msgFunilLead = lead;
 
   // Busca link pessoal do utilizador se existir
-  const perfil = JSON.parse(localStorage.getItem('lw_perfil') || '{}');
-  const link = perfil.linkPessoal || perfil.link || '';
+  const perfilMsgFunil = JSON.parse(localStorage.getItem(getUserStorageKey('lw_perfil')) || '{}');
+  const link = perfilMsgFunil.linkPessoal || perfilMsgFunil.link || '';
 
   const nome = lead.nome ? lead.nome.split(' ')[0] : 'amigo/a';
   const texto = cfg.msg(nome, link);
@@ -29099,8 +30753,104 @@ function renderSparkline() {
 }
 
 // ===================================================
-// CONQUISTAS / BADGES
+// KPIs DE ATIVIDADE — "ESTA SEMANA" (v42)
+// Mede hábitos diários de prospeção (inputs), separado das métricas
+// de comissão/resultado (que são lentas e desmotivam no curto prazo).
+// Reaproveita o histórico já guardado em cada lead — não cria
+// nenhum armazenamento novo.
 // ===================================================
+
+// Faz parse de strings no formato toLocaleString('pt-PT'): "DD/MM/YYYY, HH:MM:SS"
+// ou "DD/MM/YYYY". Devolve null se não conseguir interpretar.
+function parseHistoricoData(str) {
+  if (!str) return null;
+  const m = String(str).match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+  if (!m) {
+    const d = new Date(str);
+    return isNaN(d.getTime()) ? null : d;
+  }
+  return new Date(+m[3], +m[2] - 1, +m[1]);
+}
+
+// Classifica uma entrada de histórico numa categoria de atividade.
+// Devolve null se a entrada não for relevante para os KPIs de hábito
+// (ex: notas administrativas, fusões de duplicados, etc.)
+function classificarAtividade(h) {
+  if (!h || !h.msg) return null;
+  const msg = h.msg;
+  if (h.tipo === 'sistema' && msg.includes('Lead adicionado')) return 'contactos';
+  if (h.tipo === 'mensagem' || h.tipo === 'chamada') return 'interacoes';
+  if (h.tipo === 'nota' && msg.includes('Guião IA gerado')) return 'apresentacoes';
+  if (h.tipo === 'sistema' && msg.includes('Convertido para cliente')) return 'conversoes';
+  if (h.tipo === 'estado' && msg.includes('"Cliente"')) return 'conversoes';
+  return null;
+}
+
+// Agrega os KPIs de atividade dos últimos `numDias` dias (hoje incluído).
+function calcularKPIsAtividade(numDias) {
+  const hoje = new Date();
+  hoje.setHours(0,0,0,0);
+  const porDia = {}; // 'YYYY-MM-DD' -> { contactos, interacoes, apresentacoes, conversoes }
+  for (let i = numDias - 1; i >= 0; i--) {
+    const d = new Date(hoje.getTime() - i * 86400000);
+    porDia[d.toISOString().slice(0,10)] = { contactos:0, interacoes:0, apresentacoes:0, conversoes:0, data:d };
+  }
+  const limiteInicio = new Date(hoje.getTime() - (numDias - 1) * 86400000);
+
+  (typeof leads !== 'undefined' ? leads : []).forEach(l => {
+    (l.historico || []).forEach(h => {
+      const cat = classificarAtividade(h);
+      if (!cat) return;
+      const dt = parseHistoricoData(h.data);
+      if (!dt || dt < limiteInicio) return;
+      const key = dt.toISOString().slice(0,10);
+      if (porDia[key]) porDia[key][cat]++;
+    });
+  });
+
+  const dias = Object.values(porDia).sort((a,b) => a.data - b.data);
+  const totais = dias.reduce((acc,d) => {
+    acc.contactos += d.contactos; acc.interacoes += d.interacoes;
+    acc.apresentacoes += d.apresentacoes; acc.conversoes += d.conversoes;
+    return acc;
+  }, { contactos:0, interacoes:0, apresentacoes:0, conversoes:0 });
+
+  return { dias, totais };
+}
+
+function renderAtividadeHabitos() {
+  const el = document.getElementById('dash-atividade-widget');
+  if (!el) return;
+
+  const { totais } = calcularKPIsAtividade(7);
+  const taxaConversao = totais.contactos > 0 ? Math.round((totais.conversoes / totais.contactos) * 100) : 0;
+
+  const mkStat = (icon, valor, label, cor) => `
+    <div style="flex:1;min-width:0;text-align:center;padding:10px 6px;">
+      <div style="font-size:20px;line-height:1;margin-bottom:4px;">${icon}</div>
+      <div style="font-size:19px;font-weight:800;color:${cor};font-family:'Syne',sans-serif;line-height:1;">${valor}</div>
+      <div style="font-size:10px;color:var(--text2);margin-top:3px;line-height:1.3;">${label}</div>
+    </div>`;
+
+  el.innerHTML = `
+    <div class="card" style="padding:14px 12px;cursor:pointer;" onclick="goTo('acoes')" title="Hábitos de prospeção dos últimos 7 dias">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;padding:0 4px;">
+        <div style="font-size:12px;font-weight:700;color:var(--text2);">📈 Esta Semana — Atividade</div>
+        ${totais.contactos > 0 ? `<div style="font-size:10px;color:var(--text3);">Conversão: <span style="color:var(--accent);font-weight:700;">${taxaConversao}%</span></div>` : ''}
+      </div>
+      <div style="display:flex;align-items:stretch;">
+        ${mkStat('👋', totais.contactos, 'Novos contactos', 'var(--accent2)')}
+        ${mkStat('💬', totais.interacoes, 'Mensagens/chamadas', 'var(--accent)')}
+        ${mkStat('🎯', totais.apresentacoes, 'Apresentações', 'var(--gold)')}
+        ${mkStat('🏆', totais.conversoes, 'Conversões', 'var(--accent3)')}
+      </div>
+      ${(totais.contactos + totais.interacoes + totais.apresentacoes + totais.conversoes) === 0
+        ? `<div style="font-size:11px;color:var(--text3);text-align:center;margin-top:6px;">Sem atividade registada esta semana — começa por adicionar ou contactar um lead.</div>`
+        : ''}
+    </div>`;
+}
+
+
 const CONQUISTAS_DEF = [
   { id:'primeiro_lead',    icon:'🌱', nome:'Primeiro Passo',       desc:'1º lead adicionado',              check:(l)=>l.length>=1 },
   { id:'dez_leads',        icon:'📋', nome:'Pipeline Ativo',        desc:'10 leads no CRM',                 check:(l)=>l.length>=10 },
@@ -29929,6 +31679,599 @@ function acSetTemp(el, val) {
   if (inp) inp.value = val;
 }
 
+</script>
+
+<script>
+// HABITOS DIARIOS - LifeWave CRM v35
+// Sem alterar código existente
+
+const HAB_DEF = [
+  { id:'contacto',  icon:'📞', label:'Contactei pelo menos 1 pessoa nova',          cor:'var(--accent)'  },
+  { id:'post',      icon:'✨', label:'Publiquei ou preparei conteúdo para as redes', cor:'#b47aff'        },
+  { id:'followup',  icon:'🔄', label:'Fiz follow-up a um lead existente',            cor:'var(--accent2)' },
+  { id:'aprendi',   icon:'📚', label:'Aprendi algo sobre o produto ou o negócio',    cor:'var(--gold)'    },
+  { id:'gratidao',  icon:'💚', label:'Partilhei um testemunho ou agradecimento',     cor:'#a3e635'        },
+];
+
+function habKey() {
+  try {
+    var uk = typeof getUserStorageKey==='function' ? getUserStorageKey : function(k){return k;};
+    return uk('lw_habitos');
+  } catch(e){ return 'lw_habitos'; }
+}
+
+function habHoje() {
+  return new Date().toISOString().split('T')[0];
+}
+
+function habLoad() {
+  try {
+    var d = JSON.parse(localStorage.getItem(habKey()) || '{}');
+    if (d.data !== habHoje()) return { data: habHoje(), feitos: {} };
+    return d;
+  } catch(e){ return { data: habHoje(), feitos: {} }; }
+}
+
+function habSave(state) {
+  try { localStorage.setItem(habKey(), JSON.stringify(state)); } catch(e){}
+}
+
+function habStreakKey() {
+  try {
+    var uk = typeof getUserStorageKey==='function' ? getUserStorageKey : function(k){return k;};
+    return uk('lw_hab_streak');
+  } catch(e){ return 'lw_hab_streak'; }
+}
+
+function habLoadStreak() {
+  try { return JSON.parse(localStorage.getItem(habStreakKey()) || '{"count":0,"best":0,"lastDate":""}'); } catch(e){ return {count:0,best:0,lastDate:''}; }
+}
+function habSaveStreak(s) {
+  try { localStorage.setItem(habStreakKey(), JSON.stringify(s)); } catch(e){}
+}
+
+function habRender() {
+  var state  = habLoad();
+  var feitos = state.feitos || {};
+  var total  = HAB_DEF.length;
+  var done   = HAB_DEF.filter(function(h){ return feitos[h.id]; }).length;
+  var pct    = Math.round(done / total * 100);
+
+  var dataEl = document.getElementById('hab-data-label');
+  var progEl = document.getElementById('hab-progresso-label');
+  var barEl  = document.getElementById('hab-barra');
+  var listaEl= document.getElementById('hab-lista');
+  var celebEl= document.getElementById('hab-celebracao');
+
+  if (dataEl) {
+    var hoje = new Date();
+    var dias = ['Domingo','Segunda','Terça','Quarta','Quinta','Sexta','Sábado'];
+    dataEl.textContent = dias[hoje.getDay()] + ', ' + hoje.toLocaleDateString('pt-PT',{day:'2-digit',month:'long'});
+  }
+  if (progEl) { progEl.textContent = done + '/' + total; progEl.style.color = done===total ? 'var(--gold)' : 'var(--accent)'; }
+  if (barEl)  barEl.style.width = pct + '%';
+  if (celebEl) celebEl.style.display = done === total ? 'block' : 'none';
+
+  if (listaEl) {
+    listaEl.innerHTML = HAB_DEF.map(function(h) {
+      var isFeito = !!feitos[h.id];
+      return '<div onclick="habToggle(\'' + h.id + '\')" style="display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:10px;cursor:pointer;border:1px solid ' + (isFeito ? h.cor.replace(')',',0.3)').replace('var(--','rgba(0,212,170,') : 'var(--border)') + ';background:' + (isFeito ? h.cor.replace('var(--accent)','rgba(0,212,170,0.08)').replace('var(--gold)','rgba(245,200,66,0.08)').replace('var(--accent2)','rgba(0,132,255,0.08)').replace('#b47aff','rgba(180,122,255,0.08)').replace('#a3e635','rgba(163,230,53,0.08)') : 'transparent') + ';transition:all .2s;">'
+        + '<div style="width:28px;height:28px;border-radius:50%;border:2px solid ' + (isFeito ? h.cor : 'var(--border)') + ';display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;transition:all .2s;">'
+        + (isFeito ? '✅' : h.icon) + '</div>'
+        + '<div style="flex:1;font-size:12.5px;color:' + (isFeito ? 'var(--text3)' : 'var(--text)') + ';' + (isFeito ? 'text-decoration:line-through;' : '') + 'transition:all .2s;">' + h.label + '</div>'
+        + '</div>';
+    }).join('');
+  }
+}
+
+function habToggle(id) {
+  var state = habLoad();
+  if (!state.feitos) state.feitos = {};
+  state.feitos[id] = !state.feitos[id];
+  habSave(state);
+
+  // Verificar se completou todos — atualizar streak
+  var done = HAB_DEF.filter(function(h){ return state.feitos[h.id]; }).length;
+  if (done === HAB_DEF.length) {
+    var streak = habLoadStreak();
+    var ontem  = new Date(); ontem.setDate(ontem.getDate()-1);
+    var ontemStr = ontem.toISOString().split('T')[0];
+    if (streak.lastDate === ontemStr) {
+      streak.count++;
+    } else if (streak.lastDate !== habHoje()) {
+      streak.count = 1;
+    }
+    streak.lastDate = habHoje();
+    if (streak.count > (streak.best||0)) streak.best = streak.count;
+    habSaveStreak(streak);
+    if (typeof showToast==='function') showToast('🏆 Todos os hábitos concluídos! Streak: ' + streak.count + ' dias!');
+  }
+
+  habRender();
+}
+
+function habReset() {
+  var state = { data: habHoje(), feitos: {} };
+  habSave(state);
+  habRender();
+}
+
+// Inicializar quando dashboard é mostrado
+(function() {
+  var _orig = window.goTo;
+  if (typeof _orig === 'function') {
+    window.goTo = function(page) {
+      _orig.apply(this, arguments);
+      if (page === 'dashboard') setTimeout(habRender, 60);
+    };
+  }
+  // Init imediato no load
+  document.addEventListener('DOMContentLoaded', function() {
+    setTimeout(habRender, 400);
+  });
+})();
+</script>
+
+<!-- ============================================================
+     MÓDULO: SINCRONIZAÇÃO CSV BACK-OFFICE LIFEWAVE (v39)
+     Deteta automaticamente o tipo de relatório e atualiza equipa
+     ============================================================ -->
+<script>
+// ── Estado global do módulo ──────────────────────────────────────
+let _lwCSVDados = [];      // linhas parsed do CSV
+let _lwCSVTipo = null;     // tipo detetado
+let _lwCSVHeaders = [];    // cabeçalhos normalizados
+
+// ── Abrir modal na tab correta ───────────────────────────────────
+function abrirImportEquipa() {
+  openModal('modal-importar');
+  importarTab('equipa');
+}
+
+// ── Troca de tabs no modal de importar ───────────────────────────
+function importarTab(tab) {
+  document.getElementById('itab-contactos').style.display = tab === 'contactos' ? '' : 'none';
+  document.getElementById('itab-equipa').style.display    = tab === 'equipa'    ? '' : 'none';
+  const btnC = document.getElementById('itab-btn-contactos');
+  const btnE = document.getElementById('itab-btn-equipa');
+  if (tab === 'contactos') {
+    btnC.style.color = 'var(--accent)'; btnC.style.borderBottom = '2px solid var(--accent)';
+    btnE.style.color = 'var(--text2)';  btnE.style.borderBottom = '2px solid transparent';
+  } else {
+    btnE.style.color = 'var(--accent)'; btnE.style.borderBottom = '2px solid var(--accent)';
+    btnC.style.color = 'var(--text2)';  btnC.style.borderBottom = '2px solid transparent';
+  }
+}
+
+// ── Parser CSV robusto (suporta aspas, vírgulas, ponto-e-vírgula) ─
+function lwParseCSV(texto) {
+  // Normaliza quebras de linha
+  texto = texto.replace(/\r\n/g, '\n').replace(/\r/g, '\n').trim();
+  const linhas = texto.split('\n');
+  if (linhas.length < 2) return { headers: [], rows: [] };
+
+  // Deteta delimitador (vírgula ou ponto-e-vírgula)
+  const primeira = linhas[0];
+  const delim = (primeira.split(';').length > primeira.split(',').length) ? ';' : ',';
+
+  function parseLinha(linha) {
+    const campos = [];
+    let atual = '', dentroAspas = false;
+    for (let i = 0; i < linha.length; i++) {
+      const c = linha[i];
+      if (c === '"') { dentroAspas = !dentroAspas; continue; }
+      if (c === delim && !dentroAspas) { campos.push(atual.trim()); atual = ''; continue; }
+      atual += c;
+    }
+    campos.push(atual.trim());
+    return campos;
+  }
+
+  const headers = parseLinha(linhas[0]).map(h => h.toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9_\s]/g, '').trim()
+    .replace(/\s+/g, '_'));
+
+  const rows = [];
+  for (let i = 1; i < linhas.length; i++) {
+    if (!linhas[i].trim()) continue;
+    const vals = parseLinha(linhas[i]);
+    const obj = {};
+    headers.forEach((h, idx) => { obj[h] = (vals[idx] || '').trim(); });
+    rows.push(obj);
+  }
+  return { headers, rows };
+}
+
+// ── Deteção automática do tipo de relatório ───────────────────────
+// Mapeia conjuntos de palavras-chave nos cabeçalhos a tipos conhecidos
+const LW_TIPOS = [
+  {
+    id: 'encomendas',
+    label: 'Encomendas da linha descendente',
+    icon: '📦',
+    sub: 'Atualiza PV / BV de cada membro',
+    keywords: [['pv','volume','order','encomenda','commissionable'],['name','nome','distribuidor','id']],
+    campoNome: ['name','nome','distributor_name','nome_do_distribuidor','nome_completo'],
+    campoPV:   ['pv','personal_volume','volume_pessoal','cv','commissionable_volume'],
+    campoBV:   ['bv','business_volume','volume_de_negocio','gv','group_volume','ov'],
+    campoID:   ['id','distributor_id','id_do_distribuidor','member_id'],
+  },
+  {
+    id: 'categorias',
+    label: 'Categorias de pagamento da equipa',
+    icon: '🏆',
+    sub: 'Atualiza rank / categoria de cada membro',
+    keywords: [['rank','title','titulo','categoria','category','payment','pagamento']],
+    campoNome: ['name','nome','distributor_name','nome_do_distribuidor'],
+    campoRank: ['rank','title','titulo','categoria','category','payment_title','titulo_de_pagamento'],
+    campoID:   ['id','distributor_id'],
+  },
+  {
+    id: 'progressao',
+    label: 'Progressão nos títulos da linha descendente',
+    icon: '📈',
+    sub: 'Regista subidas de rank na equipa',
+    keywords: [['previous','anterior','new','novo','promotion','promocao','progressao','progression']],
+    campoNome: ['name','nome','distributor_name'],
+    campoRankAnterior: ['previous_title','titulo_anterior','old_rank','rank_anterior'],
+    campoRankNovo:     ['new_title','novo_titulo','new_rank','novo_rank'],
+    campoID:   ['id','distributor_id'],
+  },
+  {
+    id: 'novos_bps',
+    label: 'Lista de novos Brand Partners',
+    icon: '🌱',
+    sub: 'Cria membros novos e regista data de entrada',
+    keywords: [['enrollment','inscricao','join','entrada','sponsor','patrocinador'],['name','nome']],
+    campoNome: ['name','nome','distributor_name','enrollee_name'],
+    campoData: ['enrollment_date','data_de_inscricao','join_date','data_entrada','date'],
+    campoSponsor: ['sponsor_name','nome_do_patrocinador','upline','patrocinador'],
+    campoID:   ['id','distributor_id','enrollee_id'],
+  },
+  {
+    id: 'clientes',
+    label: 'Clientes / Preferenciais / Reps',
+    icon: '👥',
+    sub: 'Atualiza tipo de membro na equipa',
+    keywords: [['customer','client','cliente','preferred','preferencial','rep','type','tipo']],
+    campoNome: ['name','nome','customer_name','client_name'],
+    campoTipo: ['type','tipo','customer_type','account_type'],
+    campoID:   ['id','customer_id','client_id'],
+  },
+  {
+    id: 'renovacao',
+    label: 'Taxa de Renovação Anual',
+    icon: '🔄',
+    sub: 'Identifica membros com renovação próxima ou em falta',
+    keywords: [['renewal','renovacao','renew','anniversary','aniversario','expir']],
+    campoNome: ['name','nome','distributor_name'],
+    campoData: ['renewal_date','data_de_renovacao','expiry_date','anniversary_date'],
+    campoEstado: ['status','estado','renewed','renovado'],
+    campoID:   ['id','distributor_id'],
+  },
+];
+
+function lwDetetarTipo(headers) {
+  let melhorScore = 0, melhorTipo = null;
+  for (const tipo of LW_TIPOS) {
+    let score = 0;
+    for (const grupo of tipo.keywords) {
+      const match = grupo.some(kw => headers.some(h => h.includes(kw)));
+      if (match) score++;
+    }
+    // bonus se campo nome existe
+    if (tipo.campoNome && tipo.campoNome.some(c => headers.includes(c))) score += 0.5;
+    if (score > melhorScore) { melhorScore = score; melhorTipo = tipo; }
+  }
+  return melhorScore >= 1 ? melhorTipo : null;
+}
+
+// ── Encontra o valor de um campo tentando vários nomes alternativos ─
+function lwGetCampo(row, candidatos) {
+  for (const c of candidatos) {
+    if (row[c] !== undefined && row[c] !== '') return row[c];
+  }
+  return '';
+}
+
+// ── Normaliza nome de rank do LifeWave para categoria interna ────
+function lwNormalizarRank(rawRank) {
+  if (!rawRank) return null;
+  const r = rawRank.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
+  const MAP = [
+    ['3-star director', '3-Star Director'],
+    ['2-star director', '2-Star Director'],
+    ['1-star director', '1-Star Director'],
+    ['3-star manager',  '3-Star Manager'],
+    ['2-star manager',  '2-Star Manager'],
+    ['1-star manager',  '1-Star Manager'],
+    ['senior manager',  'Senior Manager'],
+    ['manager',         'Manager'],
+    ['brand partner ativo', 'Brand Partner Ativo'],
+    ['brand partner',   'Brand Partner Ativo'],
+    ['active brand partner', 'Brand Partner Ativo'],
+    ['inativo',         null],
+    ['inactive',        null],
+  ];
+  for (const [chave, val] of MAP) {
+    if (r.includes(chave)) return val;
+  }
+  // Retorna tal-e-qual capitalizado se não reconhecido
+  return rawRank.trim();
+}
+
+// ── Normaliza nome para match (remove acentos, lowercase, espaços extra) ─
+function lwNormNome(nome) {
+  return (nome || '').toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .replace(/\s+/g, ' ').trim();
+}
+
+// ── Handler do upload CSV ────────────────────────────────────────
+function lwHandleCSV(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const { headers, rows } = lwParseCSV(e.target.result);
+      _lwCSVHeaders = headers;
+      _lwCSVDados = rows;
+
+      // Deteção automática
+      const tipoOverride = document.getElementById('lw-tipo-override').value;
+      _lwCSVTipo = tipoOverride
+        ? LW_TIPOS.find(t => t.id === tipoOverride)
+        : lwDetetarTipo(headers);
+
+      lwRenderPreview();
+    } catch(err) {
+      showToast('❌ Erro ao ler CSV: ' + err.message);
+    }
+  };
+  reader.readAsText(file, 'UTF-8');
+}
+
+// ── Override manual do tipo ──────────────────────────────────────
+function lwAplicarTipoManual() {
+  const v = document.getElementById('lw-tipo-override').value;
+  _lwCSVTipo = v ? LW_TIPOS.find(t => t.id === v) : lwDetetarTipo(_lwCSVHeaders);
+  lwRenderPreview();
+}
+
+// ── Render da pré-visualização ───────────────────────────────────
+function lwRenderPreview() {
+  const area = document.getElementById('lw-detect-area');
+  area.style.display = '';
+
+  // Banner de tipo
+  const banner = document.getElementById('lw-tipo-banner');
+  const icon   = document.getElementById('lw-tipo-icon');
+  const label  = document.getElementById('lw-tipo-label');
+  const sub    = document.getElementById('lw-tipo-sub');
+
+  if (_lwCSVTipo) {
+    icon.textContent  = _lwCSVTipo.icon;
+    label.textContent = _lwCSVTipo.label;
+    sub.textContent   = `${_lwCSVDados.length} registos · ${_lwCSVTipo.sub}`;
+    banner.style.background = 'rgba(0,212,170,0.08)';
+    banner.style.borderColor = 'rgba(0,212,170,0.3)';
+  } else {
+    icon.textContent  = '⚠️';
+    label.textContent = 'Tipo não reconhecido';
+    sub.textContent   = `${_lwCSVDados.length} registos · Seleciona o tipo manualmente acima`;
+    banner.style.background = 'rgba(245,200,66,0.08)';
+    banner.style.borderColor = 'rgba(245,200,66,0.3)';
+  }
+
+  // Analisa matches com membros existentes
+  const nomesExistentes = membros.map(m => lwNormNome(m.nome));
+  let novos = 0, atualizados = 0;
+  const tipo = _lwCSVTipo;
+
+  const linhasPreview = _lwCSVDados.slice(0, 200);
+  const previewRows = linhasPreview.map(row => {
+    const nomeRaw = tipo ? lwGetCampo(row, tipo.campoNome) : (row['nome'] || row['name'] || Object.values(row)[0] || '');
+    const normNome = lwNormNome(nomeRaw);
+    const existe = normNome && nomesExistentes.some(n => n === normNome || n.includes(normNome) || normNome.includes(n));
+    if (existe) atualizados++; else novos++;
+    return { nomeRaw, existe, row };
+  });
+
+  document.getElementById('lw-preview-label').textContent = `${_lwCSVDados.length} registos no CSV`;
+
+  const badgeN = document.getElementById('lw-novos-badge');
+  const badgeA = document.getElementById('lw-atualizados-badge');
+  if (novos > 0) { badgeN.style.display = ''; badgeN.textContent = `${novos} novos`; } else { badgeN.style.display = 'none'; }
+  if (atualizados > 0) { badgeA.style.display = ''; badgeA.textContent = `${atualizados} a atualizar`; } else { badgeA.style.display = 'none'; }
+
+  // Tabela de preview
+  const table = document.getElementById('lw-preview-table');
+  const chaves = Object.keys(_lwCSVDados[0] || {}).slice(0, 6);
+  table.innerHTML = `
+    <table style="width:100%;border-collapse:collapse;">
+      <thead>
+        <tr style="background:var(--surface2);">
+          <th style="padding:6px 8px;text-align:left;font-size:10px;color:var(--text2);font-weight:600;border-bottom:1px solid var(--border);">Estado</th>
+          ${chaves.map(k => `<th style="padding:6px 8px;text-align:left;font-size:10px;color:var(--text2);font-weight:600;border-bottom:1px solid var(--border);">${k}</th>`).join('')}
+        </tr>
+      </thead>
+      <tbody>
+        ${previewRows.slice(0,50).map(r => `
+          <tr style="border-bottom:1px solid var(--border);">
+            <td style="padding:5px 8px;">
+              <span style="font-size:9px;font-weight:700;padding:2px 6px;border-radius:20px;background:${r.existe ? 'rgba(0,132,255,0.15)' : 'rgba(0,212,170,0.15)'};color:${r.existe ? 'var(--accent2)' : 'var(--accent)'};">
+                ${r.existe ? '🔄 Atualizar' : '🆕 Novo'}
+              </span>
+            </td>
+            ${chaves.map(k => `<td style="padding:5px 8px;font-size:10px;color:var(--text);max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${r.row[k] || '–'}</td>`).join('')}
+          </tr>
+        `).join('')}
+        ${previewRows.length > 50 ? `<tr><td colspan="${chaves.length + 1}" style="padding:8px;text-align:center;font-size:10px;color:var(--text3);">... e mais ${previewRows.length - 50} registos</td></tr>` : ''}
+      </tbody>
+    </table>
+  `;
+
+  // Histórico
+  const histKey = getUserStorageKey('lw_import_historico');
+  const hist = JSON.parse(localStorage.getItem(histKey) || '[]');
+  const histArea = document.getElementById('lw-historico-area');
+  const histTxt  = document.getElementById('lw-historico-texto');
+  if (hist.length > 0) {
+    const ult = hist[hist.length - 1];
+    histTxt.textContent = `${ult.tipo} · ${ult.data} · ${ult.novos} novos · ${ult.atualizados} atualizados`;
+    histArea.style.display = '';
+  }
+
+  // Mostra botão de confirmar
+  document.getElementById('lw-import-confirm-btn').style.display = _lwCSVTipo ? '' : 'none';
+}
+
+// ── Confirmar importação e aplicar dados ─────────────────────────
+function lwConfirmarImport() {
+  if (!_lwCSVTipo || !_lwCSVDados.length) { showToast('⚠️ Nenhum dado para importar'); return; }
+
+  let novos = 0, atualizados = 0;
+  const tipo = _lwCSVTipo;
+
+  _lwCSVDados.forEach(row => {
+    const nomeRaw = lwGetCampo(row, tipo.campoNome);
+    if (!nomeRaw) return;
+
+    const normNome = lwNormNome(nomeRaw);
+    let membro = membros.find(m => lwNormNome(m.nome) === normNome
+      || lwNormNome(m.nome).includes(normNome)
+      || normNome.includes(lwNormNome(m.nome)));
+
+    const isNovo = !membro;
+    if (isNovo) {
+      membro = {
+        id: gerarId(),
+        nome: nomeRaw.trim(),
+        tel: '', email: '', nivel: 1,
+        estado: 'ativo', clientes: 0, recrutados: 0,
+        slug: '', notas: '', pv: 0, qdv: 0, secL: 0, secR: 0, olxl: 0,
+        categoria: null, historico: [], ultimoContacto: null, compras: [],
+        data: new Date().toISOString().split('T')[0],
+      };
+    }
+
+    // Aplica dados conforme o tipo de relatório
+    if (tipo.id === 'encomendas') {
+      const pvRaw  = lwGetCampo(row, tipo.campoPV);
+      const bvRaw  = lwGetCampo(row, tipo.campoBV);
+      const pv = parseFloat((pvRaw || '0').replace(/[^\d.,]/g,'').replace(',','.')) || 0;
+      const bv = parseFloat((bvRaw || '0').replace(/[^\d.,]/g,'').replace(',','.')) || 0;
+      membro.pv = pv;
+      if (bv > 0) membro.qdv = bv;
+      // Atualiza estado com base no PV
+      if (pv >= 55) { membro.estado = 'ativo'; }
+      else if (pv > 0) { membro.estado = 'iniciante'; }
+      else { membro.estado = 'inativo'; }
+      // Recalcula categoria
+      membro.categoria = calcularCategoria({ pv: membro.pv, qdv: membro.qdv, secL: membro.secL||0, secR: membro.secR||0, olxl: membro.olxl||0 }).cat;
+    }
+
+    else if (tipo.id === 'categorias') {
+      const rankRaw = lwGetCampo(row, tipo.campoRank);
+      const rankNorm = lwNormalizarRank(rankRaw);
+      if (rankNorm) membro.categoria = rankNorm;
+    }
+
+    else if (tipo.id === 'progressao') {
+      const rankNovo = lwNormalizarRank(lwGetCampo(row, tipo.campoRankNovo));
+      if (rankNovo) {
+        membro.categoria = rankNovo;
+        membro.historico = membro.historico || [];
+        membro.historico.push({
+          tipo: 'estado',
+          msg: `Subiu para "${rankNovo}" (importado do back-office)`,
+          data: new Date().toLocaleString('pt-PT')
+        });
+      }
+    }
+
+    else if (tipo.id === 'novos_bps') {
+      const dataRaw = lwGetCampo(row, tipo.campoData);
+      if (dataRaw) {
+        // Tenta normalizar data (DD/MM/YYYY → YYYY-MM-DD)
+        const parts = dataRaw.split(/[\/\-\.]/);
+        if (parts.length === 3) {
+          const y = parts[2].length === 4 ? parts[2] : parts[0];
+          const m2 = parts[2].length === 4 ? parts[1] : parts[1];
+          const d = parts[2].length === 4 ? parts[0] : parts[2];
+          membro.data = `${y}-${m2.padStart(2,'0')}-${d.padStart(2,'0')}`;
+        }
+      }
+      const sponsor = lwGetCampo(row, tipo.campoSponsor);
+      if (sponsor && !membro.notas) membro.notas = `Patrocinador: ${sponsor}`;
+      membro.estado = 'ativo';
+    }
+
+    else if (tipo.id === 'clientes') {
+      const tipoRaw = lwGetCampo(row, tipo.campoTipo);
+      if (tipoRaw) {
+        const t = tipoRaw.toLowerCase();
+        if (t.includes('preferred') || t.includes('preferencial')) membro.tipoCliente = 'preferencial';
+        else if (t.includes('rep')) membro.tipoCliente = 'rep';
+        else membro.tipoCliente = 'final';
+      }
+    }
+
+    else if (tipo.id === 'renovacao') {
+      const dataRen = lwGetCampo(row, tipo.campoData);
+      if (dataRen) membro.dataRenovacao = dataRen;
+      const estadoRen = lwGetCampo(row, tipo.campoEstado || []);
+      if (estadoRen) {
+        const e = estadoRen.toLowerCase();
+        if (e.includes('not') || e.includes('nao') || e.includes('falt')) membro.estado = 'inativo';
+      }
+    }
+
+    // Adiciona ou atualiza
+    if (isNovo) {
+      membros.unshift(membro);
+      novos++;
+    } else {
+      const idx = membros.findIndex(m => m.id === membro.id);
+      if (idx >= 0) membros[idx] = membro;
+      atualizados++;
+    }
+  });
+
+  saveMembros();
+  renderEquipa();
+
+  // Guarda histórico
+  const histKey = getUserStorageKey('lw_import_historico');
+  const hist = JSON.parse(localStorage.getItem(histKey) || '[]');
+  hist.push({
+    tipo: tipo.label,
+    data: new Date().toLocaleString('pt-PT'),
+    novos, atualizados,
+    total: _lwCSVDados.length
+  });
+  // Guarda apenas os últimos 20
+  if (hist.length > 20) hist.splice(0, hist.length - 20);
+  localStorage.setItem(histKey, JSON.stringify(hist));
+
+  showToast(`✅ Sincronizado! ${novos} novos · ${atualizados} atualizados`);
+  lwResetImport();
+  closeModal('modal-importar');
+  goTo('equipa');
+}
+
+// ── Reset do estado do módulo ────────────────────────────────────
+function lwResetImport() {
+  _lwCSVDados = [];
+  _lwCSVTipo  = null;
+  _lwCSVHeaders = [];
+  document.getElementById('lw-csv-input').value = '';
+  document.getElementById('lw-detect-area').style.display = 'none';
+  document.getElementById('lw-import-confirm-btn').style.display = 'none';
+  document.getElementById('lw-tipo-override').value = '';
+}
 </script>
 
 </body>
