@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, interactive-widget=resizes-content">
-<title>LifeWave CRM v40 — Gestão de Leads & Posts</title>
+<title>LifeWave CRM v54 — Gestão de Leads & Posts</title>
 
 <!-- ===== PWA: manifest, ícones e meta tags ===== -->
 <link rel="manifest" href="manifest.json">
@@ -16,6 +16,8 @@
 <meta name="apple-mobile-web-app-title" content="Alfa Team CRM">
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
 <script src="https://accounts.google.com/gsi/client" async defer></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
 <style>
   :root {
     --bg: #0a0f1e;
@@ -81,6 +83,34 @@
   .badge-desc  { font-size:10px; color:var(--text2); line-height:1.3; }
   .badge-earned-tag { font-size:9px; font-weight:700; color:var(--accent); background:rgba(0,212,170,0.12); border-radius:20px; padding:2px 7px; margin-top:2px; }
   .badge-locked-tag { font-size:9px; color:var(--text3); margin-top:2px; }
+
+  /* ===== RECOMENDADOR DE PRODUTO ===== */
+  .recom-step-header { margin-bottom:18px; text-align:center; }
+  .recom-step-num { font-size:11px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.8px;margin-bottom:6px; }
+  .recom-step-title { font-family:'Syne',sans-serif;font-size:19px;font-weight:700;color:var(--text);margin-bottom:4px; }
+  .recom-step-sub { font-size:13px;color:var(--text2); }
+  .recom-grid { display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;margin-top:4px; }
+  .recom-card {
+    background:var(--surface2);border:2px solid var(--border);border-radius:var(--radius);
+    padding:16px 12px;cursor:pointer;text-align:center;transition:all .15s;
+  }
+  .recom-card:hover { border-color:var(--accent);background:var(--surface3); }
+  .recom-card.selected { border-color:var(--accent);background:rgba(0,212,170,0.1); }
+  .recom-card-icon { font-size:28px;margin-bottom:8px; }
+  .recom-card-label { font-size:13px;font-weight:700;color:var(--text);margin-bottom:4px; }
+  .recom-card-desc { font-size:11px;color:var(--text2);line-height:1.4; }
+  .recom-produto-card {
+    background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);
+    padding:16px;display:flex;gap:14px;align-items:flex-start;
+  }
+  .recom-produto-card.principal { border-color:rgba(0,212,170,0.4);background:linear-gradient(135deg,rgba(0,212,170,0.07),rgba(0,132,255,0.04)); }
+  .recom-produto-emoji { font-size:36px;flex-shrink:0; }
+  .recom-produto-info { flex:1; }
+  .recom-produto-badge { font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;padding:2px 8px;border-radius:20px;margin-bottom:6px;display:inline-block; }
+  .recom-produto-nome { font-size:15px;font-weight:700;color:var(--text);margin-bottom:4px; }
+  .recom-produto-desc { font-size:12px;color:var(--text2);line-height:1.5;margin-bottom:8px; }
+  .recom-produto-beneficios { display:flex;flex-wrap:wrap;gap:5px; }
+  .recom-ben-tag { font-size:10px;background:var(--surface3);color:var(--text2);border-radius:20px;padding:3px 9px; }
 
   /* ===== SPARKLINE DASHBOARD ===== */
   .dash-sparkline-wrap { margin-bottom:16px; }
@@ -420,7 +450,11 @@
     justify-content: space-between;
   }
   .modal-close { background: none; border: none; color: var(--text2); font-size: 20px; cursor: pointer; }
-  .modal-actions { display: flex; gap: 10px; margin-top: 20px; justify-content: flex-end; }
+  .modal-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 20px; justify-content: flex-end; }
+  @media (max-width: 768px) {
+    .modal-actions { justify-content: flex-start; }
+    .modal-actions .btn { flex: 0 1 auto; }
+  }
 
   /* POSTS AREA */
   .posts-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
@@ -859,6 +893,25 @@
   .link-url { font-size: 11px; color: var(--text2); word-break: break-all; }
 
   /* SCROLLBAR */
+  /* Indicador de scroll horizontal nas tabs de Equipa — mostra que há
+     mais abas escondidas (ex: "Desafios", "Visão do Líder") fora da tela */
+  .etab-fade {
+    position: absolute;
+    top: 0;
+    bottom: 2px;
+    width: 28px;
+    pointer-events: none;
+    transition: opacity 0.15s;
+  }
+  .etab-fade-right {
+    right: 0;
+    background: linear-gradient(to right, transparent, var(--bg) 85%);
+  }
+  .etab-fade-left {
+    left: 0;
+    background: linear-gradient(to left, transparent, var(--bg) 85%);
+  }
+
   ::-webkit-scrollbar { width: 6px; }
   ::-webkit-scrollbar-track { background: var(--surface); }
   ::-webkit-scrollbar-thumb { background: var(--surface3); border-radius: 3px; }
@@ -3119,6 +3172,13 @@
     #btn-global-search { bottom: 24px; }
   }
 
+  /* Esconder botões flutuantes quando há um modal/overlay aberto por cima,
+     para não tapar botões de ações (Editar/Eliminar/Partilhar, etc.) */
+  body.lw-modal-active #btn-reopen-welcome,
+  body.lw-modal-active #btn-global-search {
+    display: none !important;
+  }
+
   @keyframes welcomePop {
     0% { transform: scale(0.94) translateY(20px); opacity: 0; }
     100% { transform: scale(1) translateY(0); opacity: 1; }
@@ -3712,6 +3772,11 @@
         <span class="nav-icon">📦</span>
         <span>Catálogo</span>
       </div>
+      <div class="nav-item" onclick="goTo('recomendador')" id="nav-recomendador">
+        <span class="nav-icon">🧪</span>
+        <span>Qual Patch?</span>
+        <span style="background:var(--accent);color:var(--bg);font-size:9px;font-weight:700;padding:2px 6px;border-radius:20px;margin-left:auto;">Novo</span>
+      </div>
       <div class="nav-item" onclick="abrirSimuladorPIB()">
         <span class="nav-icon">🧾</span>
         <span>Simulador PIB</span>
@@ -3889,27 +3954,19 @@
       </div>
 
       <!-- LEADS QUENTES A ESFRIAR (prioridade máxima) -->
-      <div id="esfriar-banner" style="display:none;margin-bottom:16px;background:rgba(255,70,70,0.08);border:1px solid rgba(255,70,70,0.35);border-radius:14px;padding:16px 18px;">
-        <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">
-          <span style="font-size:22px;">🔥</span>
-          <div>
-            <div style="font-size:14px;font-weight:600;color:#ff5555;">Interesse a esfriar — age agora</div>
-            <div style="font-size:12px;color:var(--text2);">Estes leads mostraram interesse mas estão sem resposta há demasiado tempo. É aqui que se perde negócio fechado.</div>
-          </div>
-        </div>
-        <div id="esfriar-lista" style="display:flex;flex-direction:column;gap:8px;"></div>
-      </div>
-
       <!-- RENOVAÇÕES DE CLIENTES PREFERENCIAIS EM RISCO -->
-      <div id="renovacao-banner" style="display:none;margin-bottom:16px;background:rgba(245,200,66,0.08);border:1px solid rgba(245,200,66,0.35);border-radius:14px;padding:16px 18px;">
-        <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">
+      <!-- Atalho leve para a página "Radar de Retenção PC" — não duplica
+           cálculo: usa getClientesPreferenciaisRet(), a mesma fonte de dados
+           da página dedicada, só para mostrar a contagem e abrir lá. -->
+      <div id="renovacao-banner" style="display:none;margin-bottom:16px;background:rgba(245,200,66,0.08);border:1px solid rgba(245,200,66,0.35);border-radius:14px;padding:16px 18px;cursor:pointer;" onclick="goTo('retencao')">
+        <div style="display:flex;align-items:center;gap:10px;">
           <span style="font-size:22px;">🔄</span>
-          <div>
-            <div style="font-size:14px;font-weight:600;color:#f5c842;">Renovações em risco</div>
-            <div style="font-size:12px;color:var(--text2);">Clientes Preferenciais sem compra registada há mais de 30 dias — a tua receita recorrente depende de manter estes clientes ativos.</div>
+          <div style="flex:1;">
+            <div style="font-size:14px;font-weight:600;color:#f5c842;" id="renovacao-banner-titulo">Renovações em risco</div>
+            <div style="font-size:12px;color:var(--text2);">Clientes Preferenciais a precisar de atenção — toca para abrir o Radar de Retenção.</div>
           </div>
+          <span style="font-size:18px;color:var(--text2);">→</span>
         </div>
-        <div id="renovacao-lista" style="display:flex;flex-direction:column;gap:8px;"></div>
       </div>
 
       <!-- A MINHA PRÓPRIA ENCOMENDA — VENCIMENTO -->
@@ -3987,6 +4044,9 @@
         </button>
       </div>
 
+      <!-- WIDGET PRÓXIMA AÇÃO — 1 foco, 1 botão -->
+      <div id="proxima-acao-widget" style="display:none;margin-bottom:16px;border-radius:16px;padding:16px 18px;cursor:pointer;border:1.5px solid var(--accent);background:linear-gradient(135deg,rgba(139,156,247,0.10),rgba(139,156,247,0.04));"></div>
+
       <div class="stats-grid">
         <div class="stat-card c1">
           <div class="stat-label">Total Leads</div>
@@ -4044,6 +4104,9 @@
         </div>
         <div class="metas-grid" id="dash-metas-grid"></div>
       </div>
+
+      <!-- TOP LEADS MAIS QUENTES -->
+      <div id="dash-top-leads-widget" style="margin-bottom:16px;"></div>
 
       <!-- PRÓXIMO RANK WIDGET -->
       <div id="dash-rank-widget" style="display:none;margin-bottom:16px;"></div>
@@ -4821,12 +4884,16 @@
       </div>
 
       <!-- TABS EQUIPA -->
-      <div style="display:flex;gap:0;margin-bottom:24px;border-bottom:2px solid var(--border);overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;">
+      <div class="etab-tabs-wrap" style="position:relative;margin-bottom:24px;">
+        <div id="etab-tabs-scroll" class="etab-tabs-scroll" style="display:flex;gap:0;border-bottom:2px solid var(--border);overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;" onscroll="_etabUpdateFade()">
         <button id="etab-btn-ranking" onclick="equipaTab('ranking')" style="padding:10px 14px;border:none;background:none;color:var(--accent);font-family:'DM Sans',sans-serif;font-size:12px;font-weight:700;cursor:pointer;border-bottom:2px solid var(--accent);margin-bottom:-2px;white-space:nowrap;flex-shrink:0;">🏆 Ranking</button>
         <button id="etab-btn-minicrm" onclick="equipaTab('minicrm')" style="padding:10px 14px;border:none;background:none;color:var(--text2);font-family:'DM Sans',sans-serif;font-size:12px;font-weight:600;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;white-space:nowrap;flex-shrink:0;">👁️ Visão do Líder <span style="background:var(--accent2);color:#fff;font-size:9px;font-weight:700;padding:2px 6px;border-radius:20px;margin-left:4px;">Novo</span></button>
         <button id="etab-btn-arvore" onclick="equipaTab('arvore')" style="padding:10px 14px;border:none;background:none;color:var(--text2);font-family:'DM Sans',sans-serif;font-size:12px;font-weight:600;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;white-space:nowrap;flex-shrink:0;">🌳 Árvore</button>
         <button id="etab-btn-leaderboard" onclick="equipaTab('leaderboard')" style="padding:10px 14px;border:none;background:none;color:var(--text2);font-family:'DM Sans',sans-serif;font-size:12px;font-weight:600;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;white-space:nowrap;flex-shrink:0;">🏆 Leaderboard</button>
         <button id="etab-btn-desafios" onclick="equipaTab('desafios')" style="padding:10px 14px;border:none;background:none;color:var(--text2);font-family:'DM Sans',sans-serif;font-size:12px;font-weight:600;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;white-space:nowrap;flex-shrink:0;">🎯 Desafios <span style="background:#ff6b35;color:#fff;font-size:9px;font-weight:700;padding:2px 6px;border-radius:20px;margin-left:4px;">Novo</span></button>
+        </div>
+        <div id="etab-fade-right" class="etab-fade etab-fade-right"></div>
+        <div id="etab-fade-left" class="etab-fade etab-fade-left" style="display:none;"></div>
       </div>
 
       <!-- TAB: RANKING -->
@@ -6040,6 +6107,168 @@
     </div><!-- end page-catalogo -->
 
     <!-- ============================================================ -->
+    <!-- PAGE: RECOMENDADOR DE PRODUTO                                 -->
+    <!-- ============================================================ -->
+    <div id="page-recomendador" class="page">
+
+      <div class="page-header">
+        <div>
+          <div class="page-title">🧪 Qual Patch é Certo?</div>
+          <div class="page-sub">Responde a 4 perguntas — recebe a recomendação certa + script pronto</div>
+        </div>
+        <button class="btn btn-secondary btn-sm" onclick="recomReset()">🔄 Recomeçar</button>
+      </div>
+
+      <!-- WIZARD STEPS -->
+      <div id="recom-wizard" style="max-width:560px;margin:0 auto;">
+
+        <!-- STEP 1: Perfil -->
+        <div id="recom-step-1" class="recom-step">
+          <div class="recom-step-header">
+            <div class="recom-step-num">1 / 4</div>
+            <div class="recom-step-title">Quem é esta pessoa?</div>
+            <div class="recom-step-sub">Seleciona o perfil mais próximo</div>
+          </div>
+          <div class="recom-grid">
+            <div class="recom-card" onclick="recomSelect(1,'perfil','ativo')">
+              <div class="recom-card-icon">🏋️</div>
+              <div class="recom-card-label">Desportista / Ativo</div>
+              <div class="recom-card-desc">Treina regularmente, foco em performance</div>
+            </div>
+            <div class="recom-card" onclick="recomSelect(1,'perfil','profissional')">
+              <div class="recom-card-icon">💼</div>
+              <div class="recom-card-label">Profissional</div>
+              <div class="recom-card-desc">Vida stressante, muito trabalho mental</div>
+            </div>
+            <div class="recom-card" onclick="recomSelect(1,'perfil','50mais')">
+              <div class="recom-card-icon">🌿</div>
+              <div class="recom-card-label">50+ / Bem-estar</div>
+              <div class="recom-card-desc">Foco em longevidade e qualidade de vida</div>
+            </div>
+            <div class="recom-card" onclick="recomSelect(1,'perfil','geral')">
+              <div class="recom-card-icon">😊</div>
+              <div class="recom-card-label">Geral / Preventivo</div>
+              <div class="recom-card-desc">Quer melhorar a saúde em geral</div>
+            </div>
+            <div class="recom-card" onclick="recomSelect(1,'perfil','beleza')">
+              <div class="recom-card-icon">💆</div>
+              <div class="recom-card-label">Beleza / Pele</div>
+              <div class="recom-card-desc">Foco em aparência e cuidado da pele</div>
+            </div>
+            <div class="recom-card" onclick="recomSelect(1,'perfil','peso')">
+              <div class="recom-card-icon">⚖️</div>
+              <div class="recom-card-label">Gestão de Peso</div>
+              <div class="recom-card-desc">Quer controlar o apetite e emagrecer</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- STEP 2: Objetivo principal -->
+        <div id="recom-step-2" class="recom-step" style="display:none;">
+          <div class="recom-step-header">
+            <div class="recom-step-num">2 / 4</div>
+            <div class="recom-step-title">Qual é o objetivo principal?</div>
+            <div class="recom-step-sub">O que mais te preocupa agora?</div>
+          </div>
+          <div class="recom-grid" id="recom-objetivos-grid">
+            <!-- preenchido por JS conforme perfil -->
+          </div>
+        </div>
+
+        <!-- STEP 3: Orçamento / nível -->
+        <div id="recom-step-3" class="recom-step" style="display:none;">
+          <div class="recom-step-header">
+            <div class="recom-step-num">3 / 4</div>
+            <div class="recom-step-title">Qual o nível de investimento?</div>
+            <div class="recom-step-sub">Para ajustar a recomendação ao bolso</div>
+          </div>
+          <div class="recom-grid">
+            <div class="recom-card" onclick="recomSelect(3,'orcamento','entrada')">
+              <div class="recom-card-icon">🌱</div>
+              <div class="recom-card-label">Entrada</div>
+              <div class="recom-card-desc">Começar com 1 produto</div>
+            </div>
+            <div class="recom-card" onclick="recomSelect(3,'orcamento','intermedio')">
+              <div class="recom-card-icon">🚀</div>
+              <div class="recom-card-label">Intermédio</div>
+              <div class="recom-card-desc">Protocolo completo 2-3 produtos</div>
+            </div>
+            <div class="recom-card" onclick="recomSelect(3,'orcamento','completo')">
+              <div class="recom-card-icon">👑</div>
+              <div class="recom-card-label">Completo</div>
+              <div class="recom-card-desc">Máximos resultados, kit completo</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- STEP 4: Contexto extra -->
+        <div id="recom-step-4" class="recom-step" style="display:none;">
+          <div class="recom-step-header">
+            <div class="recom-step-num">4 / 4</div>
+            <div class="recom-step-title">Alguma condição específica?</div>
+            <div class="recom-step-sub">Ajuda a refinar a recomendação (opcional)</div>
+          </div>
+          <div class="recom-grid">
+            <div class="recom-card" onclick="recomSelect(4,'condicao','nenhuma')">
+              <div class="recom-card-icon">✅</div>
+              <div class="recom-card-label">Nenhuma</div>
+              <div class="recom-card-desc">Sem restrições especiais</div>
+            </div>
+            <div class="recom-card" onclick="recomSelect(4,'condicao','dor')">
+              <div class="recom-card-icon">🔴</div>
+              <div class="recom-card-label">Dor crónica</div>
+              <div class="recom-card-desc">Costas, articulações, musculatura</div>
+            </div>
+            <div class="recom-card" onclick="recomSelect(4,'condicao','imunidade')">
+              <div class="recom-card-icon">🛡️</div>
+              <div class="recom-card-label">Imunidade baixa</div>
+              <div class="recom-card-desc">Fica doente com frequência</div>
+            </div>
+            <div class="recom-card" onclick="recomSelect(4,'condicao','gravidez')">
+              <div class="recom-card-icon">⚠️</div>
+              <div class="recom-card-label">Grávida / Amamentar</div>
+              <div class="recom-card-desc">Recomendações adaptadas</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- RESULTADO -->
+        <div id="recom-resultado" style="display:none;">
+          <div style="text-align:center;margin-bottom:20px;">
+            <div style="font-size:32px;margin-bottom:8px;">✅</div>
+            <div style="font-family:'Syne',sans-serif;font-size:20px;font-weight:700;color:var(--accent);">Recomendação Personalizada</div>
+            <div style="font-size:13px;color:var(--text2);margin-top:4px;">Baseada nas respostas desta pessoa</div>
+          </div>
+
+          <!-- Produto principal -->
+          <div id="recom-principal" style="margin-bottom:14px;"></div>
+
+          <!-- Protocolo complementar -->
+          <div id="recom-complementar" style="margin-bottom:14px;"></div>
+
+          <!-- Script pronto -->
+          <div style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:14px;">
+            <div style="font-size:11px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.6px;margin-bottom:10px;">💬 Script Pronto</div>
+            <div id="recom-script" style="font-size:13.5px;color:var(--text);line-height:1.7;white-space:pre-wrap;"></div>
+            <button class="btn btn-secondary btn-sm" style="margin-top:12px;width:100%;" onclick="recomCopiarScript()">📋 Copiar Script</button>
+          </div>
+
+          <!-- Ações -->
+          <div style="display:flex;gap:10px;">
+            <button class="btn btn-primary" style="flex:1;" onclick="recomAbrirGuiao()">📝 Gerar Guião IA</button>
+            <button class="btn btn-secondary" style="flex:1;" onclick="recomReset()">🔄 Nova Consulta</button>
+          </div>
+
+          <!-- Aviso compliance -->
+          <div style="margin-top:14px;background:rgba(245,200,66,0.08);border:1px solid rgba(245,200,66,0.25);border-radius:10px;padding:10px 12px;font-size:11px;color:var(--text2);line-height:1.5;">
+            ⚠️ <strong>Compliance:</strong> Nunca uses termos como "cura", "trata" ou "clinicamente provado". Fala sempre em "suporta", "apoia" e "resultados reportados por utilizadores".
+          </div>
+        </div>
+
+      </div><!-- end wizard -->
+    </div><!-- end page-recomendador -->
+
+    <!-- ============================================================ -->
     <!-- PAGE: PERCURSO PARA O SUCESSO                                -->
     <!-- ============================================================ -->
     <div id="page-percurso" class="page">
@@ -6847,6 +7076,7 @@
       <div style="display:flex;gap:0;margin-bottom:20px;border-bottom:2px solid var(--border);">
         <button id="ac-input-btn-texto" onclick="acInputTab('texto')" style="padding:10px 18px;border:none;background:none;color:var(--accent);font-family:'DM Sans',sans-serif;font-size:13px;font-weight:700;cursor:pointer;border-bottom:2px solid var(--accent);margin-bottom:-2px;">💬 Colar texto</button>
         <button id="ac-input-btn-imagem" onclick="acInputTab('imagem')" style="padding:10px 18px;border:none;background:none;color:var(--text2);font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;">📷 Screenshot</button>
+        <button id="ac-input-btn-ficheiro" onclick="acInputTab('ficheiro')" style="padding:10px 18px;border:none;background:none;color:var(--text2);font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;">📁 Ficheiro .txt</button>
       </div>
       <div id="ac-input-texto">
         <div class="form-group" style="margin-bottom:12px;">
@@ -6874,6 +7104,29 @@
         <div class="form-group" style="margin-bottom:16px;">
           <label class="form-label">Contexto adicional (opcional)</label>
           <input class="form-input" id="ac-contexto-imagem" placeholder="Ex: Prospecto 45 anos, professora, hesitante no preco">
+        </div>
+      </div>
+      <!-- PAINEL: Ficheiro .txt (exportação WhatsApp) -->
+      <div id="ac-input-ficheiro" style="display:none;">
+        <div style="margin-bottom:12px;min-height:130px;display:flex;flex-direction:column;align-items:center;justify-content:center;border:2px dashed var(--border);border-radius:var(--radius);padding:20px;cursor:pointer;" onclick="document.getElementById('ac-file-txt').click()">
+          <input type="file" accept=".txt,.zip,text/plain,application/zip" id="ac-file-txt" onchange="acHandleFicheiroTxt(this)" style="display:none;">
+          <div id="ac-txt-placeholder" style="text-align:center;">
+            <div style="font-size:30px;margin-bottom:8px;">📁</div>
+            <div style="font-size:13px;font-weight:600;color:var(--text);">Clica para seleccionar o ficheiro</div>
+            <div style="font-size:12px;color:var(--text2);margin-top:6px;line-height:1.5;">No WhatsApp: <strong>Conversa → ⋮ → Mais → Exportar conversa</strong><br>Aceita <strong>.zip</strong> (exportação normal) ou <strong>.txt</strong></div>
+          </div>
+          <div id="ac-txt-loaded" style="display:none;text-align:center;">
+            <div style="font-size:28px;margin-bottom:6px;">✅</div>
+            <div id="ac-txt-filename" style="font-size:13px;font-weight:700;color:var(--accent);margin-bottom:4px;"></div>
+            <div id="ac-txt-info" style="font-size:11.5px;color:var(--text2);"></div>
+          </div>
+        </div>
+        <div id="ac-txt-remove" style="display:none;margin-bottom:12px;">
+          <button class="btn btn-danger btn-sm" onclick="acRemoverFicheiroTxt()">🗑️ Remover ficheiro</button>
+        </div>
+        <div class="form-group" style="margin-bottom:16px;">
+          <label class="form-label">Contexto adicional (opcional)</label>
+          <input class="form-input" id="ac-contexto-ficheiro" placeholder="Ex: Prospecto 45 anos, professora, hesitante no preço">
         </div>
       </div>
       <!-- Plataforma -->
@@ -7480,6 +7733,10 @@
       <div class="bn-icon-wrap"><span class="bn-icon">🧲</span></div>
       <span>Recrutamento</span>
     </div>
+    <div class="bn-item" id="bn-recomendador" onclick="goTo('recomendador')">
+      <div class="bn-icon-wrap"><span class="bn-icon">🧪</span></div>
+      <span>Qual Patch?</span>
+    </div>
 
     <div class="bn-more-item" id="bn-more" onclick="abrirMenuMais()">
       <div class="bn-icon-wrap"><span class="bn-icon">☰</span></div>
@@ -7508,7 +7765,7 @@
           <span id="mais-theme-dot" style="position:absolute;top:4px;left:4px;width:14px;height:14px;border-radius:50%;background:var(--text3);transition:all .25s;display:inline-block;"></span>
         </span>
       </div>
-      <div id="menu-mais-grid" style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;max-height:65vh;overflow-y:auto;"></div>
+      <div id="menu-mais-grid" style="max-height:65vh;overflow-y:auto;display:flex;flex-direction:column;gap:0;"></div>
     </div>
   </div>
 
@@ -7552,6 +7809,7 @@
       <textarea id="msg-funil-texto" rows="7" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:14px;color:var(--text);font-size:13px;font-family:'DM Sans',sans-serif;line-height:1.6;resize:vertical;"></textarea>
     </div>
     <div style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap;">
+      <div id="msg-funil-tel-info" style="width:100%;font-size:11px;padding:6px 10px;border-radius:8px;margin-bottom:4px;display:none;"></div>
       <button class="btn btn-primary" style="flex:1;" onclick="msgFunilEnviarWA()">
         <span style="margin-right:6px;">📲</span> Abrir WhatsApp
       </button>
@@ -8028,14 +8286,14 @@
     <div id="itab-contactos">
       <div class="ai-note" style="margin-bottom:14px;">
         <span>📋</span>
-        <span>Suporta ficheiros <strong>CSV, VCF (vCard)</strong> e <strong>Excel (.xlsx)</strong>. Colunas reconhecidas: nome, telefone, email, notas.</span>
+        <span>Suporta ficheiros <strong>CSV, VCF (vCard)</strong> e <strong>Excel (.xlsx / .xls)</strong>. Colunas reconhecidas: nome, telefone, email, notas.</span>
       </div>
       <div class="import-zone" id="import-zone">
         <input type="file" accept=".csv,.vcf,.xlsx,.xls" id="import-file-input" onchange="handleImportFile(this)">
         <div class="img-upload-label">
           <span class="upload-icon">📁</span>
           <span style="font-weight:600;color:var(--text);">Clica ou arrasta o ficheiro aqui</span>
-          <span style="font-size:11px;">CSV · VCF · XLSX</span>
+          <span style="font-size:11px;">CSV · VCF · XLSX · XLS</span>
         </div>
       </div>
       <div id="import-preview-area" style="display:none;margin-top:14px;">
@@ -8085,7 +8343,7 @@
 
       <!-- Zona de upload -->
       <div class="import-zone" id="lw-import-zone" onclick="document.getElementById('lw-csv-input').click()" style="cursor:pointer;">
-        <input type="file" accept=".csv" id="lw-csv-input" style="display:none;" onchange="lwHandleCSV(this)">
+        <input type="file" accept=".csv,.xlsx,.xls" id="lw-csv-input" style="display:none;" onchange="lwHandleCSV(this)">
         <div class="img-upload-label">
           <span class="upload-icon">📊</span>
           <span style="font-weight:600;color:var(--text);">Clica para selecionar o CSV do back-office</span>
@@ -8312,27 +8570,150 @@ function moverLeadParaEtapa(leadId, novaEtapa) {
   showToast('✅ ' + lead.nome + ' → ' + novaEtapa);
   executarAutomacoes(lead, estadoAnterior, novaEtapa);
   mostrarMsgFunil(lead, novaEtapa);
+
+  // Ponte para Comissões: o lead acabou de se tornar cliente — é o momento
+  // certo de registar a venda, antes que se esqueça em que ficou a conversa.
+  if (novaEtapa === 'cliente' && estadoAnterior !== 'cliente') {
+    setTimeout(() => sugerirRegistarVenda(lead), 400);
+  }
+}
+
+function sugerirRegistarVenda(lead) {
+  const jaTemVendaRecente = (typeof vendas !== 'undefined') && vendas.some(v => {
+    if (!v.cliente || v.cliente.trim().toLowerCase() !== (lead.nome||'').trim().toLowerCase()) return false;
+    const dt = new Date(v.data).getTime();
+    return !isNaN(dt) && (Date.now() - dt) < 7 * 86400000; // já registou venda nos últimos 7 dias
+  });
+  if (jaTemVendaRecente) return; // já tratado, não repete a sugestão
+
+  if (!confirm('🎉 ' + lead.nome + ' tornou-se cliente!\n\nQueres já registar a venda em Comissões?')) return;
+  abrirNovaVenda(lead.nome);
 }
 
 function abrirMenuMais() {
-  const grid = document.getElementById('menu-mais-grid');
-  const itens = Array.from(document.querySelectorAll('.bottom-nav .bn-item:not(.bn-pinned)'));
-  grid.innerHTML = itens.map(it => {
-    const icone = it.querySelector('.bn-icon') ? it.querySelector('.bn-icon').textContent : '•';
-    // O label é o <span> filho DIRETO do bn-item (não dentro do bn-icon-wrap,
-    // e não a bn-icon nem a bn-badge). Evita apanhar o número do badge.
+  // Grupos temáticos ordenados por prioridade
+  const GRUPOS = [
+    {
+      label: '🎯 Prospecção & Vendas',
+      itens: ['acoes','metas','mapa','promocoes','objecoes','analise','mensagens']
+    },
+    {
+      label: '📣 Conteúdo & Comunicação',
+      itens: ['posts','stories','templates','apresentacao']
+    },
+    {
+      label: '🤝 Equipa & Recrutamento',
+      itens: ['equipa','recrutamento','onboarding','automacao']
+    },
+    {
+      label: '💰 Negócio & Finanças',
+      itens: ['comissoes','plano-comp','calculadora','simulador-pib','retencao']
+    },
+    {
+      label: '📦 Produtos & Formação',
+      itens: ['catalogo','recomendador','formacao']
+    },
+    {
+      label: '📈 Análise & Crescimento',
+      itens: ['stats','relatorio','checklist']
+    },
+    {
+      label: '🌟 Motivação & Percurso',
+      itens: ['percurso','diario','roleplay','coach']
+    },
+    {
+      label: '🌍 Viagens & Eventos',
+      itens: ['luminate','calendario']
+    }
+  ];
+
+  // Palavras-chave por grupo para classificar módulos novos automaticamente
+  const PALAVRAS_GRUPO = [
+    { idx: 0, keys: ['lead','venda','prospect','funil','contacto','mensagem','analise','obje','promo','meta','mapa','acao'] },
+    { idx: 1, keys: ['post','storie','template','apresenta','conteudo','comunic','publicar','reel'] },
+    { idx: 2, keys: ['equipa','recrut','onboard','automa','parceiro','membro','downline'] },
+    { idx: 3, keys: ['comiss','plano','calcula','simulad','retencao','finan','pagamento','bonus','pib'] },
+    { idx: 4, keys: ['catalogo','produto','patch','forma','treino','aprender','recomend'] },
+    { idx: 5, keys: ['stat','relator','checklist','qualif','analise','crescimento','kpi'] },
+    { idx: 6, keys: ['percurso','diario','coach','roleplay','motiv','rank','conquist'] },
+    { idx: 7, keys: ['luminate','viagem','evento','calend','agenda','conferencia'] }
+  ];
+
+  function classificarModulo(id, label) {
+    const texto = (id + ' ' + label).toLowerCase();
+    for (const g of PALAVRAS_GRUPO) {
+      if (g.keys.some(k => texto.includes(k))) return g.idx;
+    }
+    return -1; // não classificado
+  }
+
+  // Recolher todos os bn-item por id para lookup rápido
+  const bnMap = {};
+  document.querySelectorAll('.bottom-nav .bn-item').forEach(el => {
+    const id = el.id ? el.id.replace('bn-', '') : null;
+    if (id) bnMap[id] = el;
+  });
+
+  function getLabel(el) {
     let label = '';
-    Array.from(it.children).forEach(child => {
+    Array.from(el.children).forEach(child => {
       if (child.tagName === 'SPAN' && !child.classList.contains('bn-icon') && !child.classList.contains('bn-badge')) {
         label = child.textContent.trim();
       }
     });
-    const onclickAttr = it.getAttribute('onclick') || '';
-    return '<div onclick="closeModal(\'modal-menu-mais\');' + onclickAttr.replace(/"/g, '&quot;') + '" style="display:flex;flex-direction:column;align-items:center;gap:4px;padding:12px 4px;border-radius:12px;cursor:pointer;background:var(--surface2);text-align:center;">' +
-      '<span style="font-size:20px;">' + icone + '</span>' +
-      '<span style="font-size:10.5px;color:var(--text2);line-height:1.2;">' + label + '</span>' +
-      '</div>';
-  }).join('');
+    return label;
+  }
+
+  function renderItem(el) {
+    const icone = el.querySelector('.bn-icon') ? el.querySelector('.bn-icon').textContent : '•';
+    const label = getLabel(el);
+    const onclickAttr = el.getAttribute('onclick') || '';
+    return '<div onclick="closeModal(\'modal-menu-mais\');' + onclickAttr.replace(/"/g, '&quot;') + '" '
+      + 'style="display:flex;flex-direction:column;align-items:center;gap:4px;padding:11px 4px 10px;border-radius:12px;cursor:pointer;background:var(--surface2);text-align:center;border:1px solid var(--border);transition:background .15s;" '
+      + 'onpointerdown="this.style.background=\'var(--surface3)\'" onpointerup="this.style.background=\'var(--surface2)\'" onpointerleave="this.style.background=\'var(--surface2)\'">'
+      + '<span style="font-size:22px;line-height:1;">' + icone + '</span>'
+      + '<span style="font-size:10px;color:var(--text2);line-height:1.25;margin-top:2px;">' + label + '</span>'
+      + '</div>';
+  }
+
+  // Pinned e ignorados no menu
+  const IGNORAR = new Set(['dashboard','funil','lista','agenda']);
+
+  // Construir grupos com os itens definidos
+  const gruposExtras = GRUPOS.map(() => []);
+  const usados = new Set();
+
+  GRUPOS.forEach((grupo, gi) => {
+    grupo.itens.forEach(id => {
+      if (bnMap[id]) { gruposExtras[gi].push(id); usados.add(id); }
+    });
+  });
+
+  // Módulos novos não mapeados → classificar por palavras-chave automaticamente
+  Object.keys(bnMap).forEach(id => {
+    if (usados.has(id) || IGNORAR.has(id)) return;
+    const label = getLabel(bnMap[id]);
+    const gi = classificarModulo(id, label);
+    if (gi >= 0) { gruposExtras[gi].push(id); }
+    else { gruposExtras[0].push(id); } // dúvida → Prospecção & Vendas (grupo mais activo)
+    usados.add(id);
+  });
+
+  const grid = document.getElementById('menu-mais-grid');
+  let html = '';
+
+  GRUPOS.forEach((grupo, gi) => {
+    const itemsHTML = gruposExtras[gi].map(id => renderItem(bnMap[id]));
+    if (!itemsHTML.length) return;
+    html += '<div style="margin-bottom:14px;">'
+      + '<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.8px;color:var(--accent);margin-bottom:7px;padding-bottom:5px;border-bottom:1px solid var(--border);">'
+      + grupo.label + '</div>'
+      + '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;">'
+      + itemsHTML.join('')
+      + '</div></div>';
+  });
+
+  grid.innerHTML = html;
   document.getElementById('modal-menu-mais').classList.add('open');
 }
 
@@ -8366,13 +8747,14 @@ function goTo(page, opts) {
   if (page === 'agenda') renderAgenda();
   if (page === 'coach') coachInit();
   if (page === 'stats') renderStats();
-  if (page === 'equipa') { renderEquipa(); renderMiniCRM(); }
+  if (page === 'equipa') { renderEquipa(); renderMiniCRM(); setTimeout(_etabUpdateFade, 50); }
   if (page === 'comissoes') renderComissoes();
   if (page === 'retencao') renderRetencao();
   if (page === 'luminate') { renderLuminate(); viagemSetAI(viagemAI); }
   if (page === 'calculadora') renderCalculadora();
   if (page === 'formacao') formacaoInit();
   if (page === 'catalogo') renderCatalogo();
+  if (page === 'recomendador') recomInit();
   if (page === 'percurso') renderPercurso();
   if (page === 'stories') storiesInit();
   if (page === 'objecoes') objecoesInit();
@@ -9339,14 +9721,116 @@ function estadoLabel(e) {
 
 // ===== DASHBOARD =====
 // ─────────────────────────────────────────────────
+// ⚡ WIDGET PRÓXIMA AÇÃO — Dashboard
+// ─────────────────────────────────────────────────
+function renderProximaAcao() {
+  const el = document.getElementById('proxima-acao-widget');
+  if (!el) return;
+
+  // 1. Follow-up mais urgente (mais dias sem contacto, não cliente/perdido)
+  const ativos = leads.filter(l => !['cliente','perdido'].includes(l.estado));
+  const comDias = ativos.map(l => ({ lead: l, dias: diasSemContacto(l) }))
+                        .filter(x => x.dias !== null)
+                        .sort((a, b) => b.dias - a.dias);
+
+  // 2. Lead em negociação (oportunidade quente)
+  const emNeg = leads.filter(l => l.estado === 'negociacao');
+
+  let acao = null; // { emoji, titulo, subtitulo, cor, onClick }
+
+  if (comDias.length > 0 && comDias[0].dias >= 5) {
+    const { lead, dias } = comDias[0];
+    const urgente = dias >= 14;
+    acao = {
+      emoji: urgente ? '🚨' : '⏰',
+      titulo: `Follow-up: ${lead.nome}`,
+      subtitulo: `${dias} dias sem contacto — ${lead.estado === 'interessado' ? 'está interessado, não deixes arrefecer' : 'entra em contacto hoje'}`,
+      cor: urgente ? '#ff5555' : '#f59e0b',
+      pagina: 'lista',
+      leadId: lead.id,
+      btnLabel: lead.tel ? '📲 Abrir Lead' : '👁️ Ver Lead'
+    };
+  } else if (emNeg.length > 0) {
+    const lead = emNeg[0];
+    acao = {
+      emoji: '🤝',
+      titulo: `Fechar negócio: ${lead.nome}`,
+      subtitulo: `Em negociação — é o momento certo para avançar`,
+      cor: '#ff6b35',
+      pagina: 'lista',
+      leadId: lead.id,
+      btnLabel: '👁️ Ver Lead'
+    };
+  } else if (leads.filter(l => l.estado === 'novo').length > 0) {
+    const novos = leads.filter(l => l.estado === 'novo');
+    acao = {
+      emoji: '🆕',
+      titulo: `${novos.length} lead${novos.length > 1 ? 's novos' : ' novo'} por contactar`,
+      subtitulo: `Dá o primeiro passo hoje — o contacto inicial é o mais importante`,
+      cor: '#8b9cf7',
+      pagina: 'funil',
+      leadId: null,
+      btnLabel: '📋 Ver Funil'
+    };
+  } else if (leads.length === 0) {
+    acao = {
+      emoji: '➕',
+      titulo: 'Adiciona o teu primeiro lead',
+      subtitulo: 'Começa a construir o teu funil de negócio',
+      cor: '#8b9cf7',
+      pagina: null,
+      leadId: null,
+      btnLabel: '➕ Novo Lead',
+      modal: 'modal-lead'
+    };
+  }
+
+  if (!acao) { el.style.display = 'none'; return; }
+
+  el.style.display = 'block';
+  el.style.borderColor = acao.cor;
+  el.innerHTML = `
+    <div style="display:flex;align-items:center;gap:12px;">
+      <span style="font-size:26px;flex-shrink:0;">${acao.emoji}</span>
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:11px;font-weight:700;letter-spacing:.06em;color:${acao.cor};text-transform:uppercase;margin-bottom:2px;">⚡ Próxima Ação</div>
+        <div style="font-size:14px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${acao.titulo}</div>
+        <div style="font-size:11.5px;color:var(--text2);margin-top:2px;">${acao.subtitulo}</div>
+      </div>
+      <button class="btn btn-primary btn-sm" style="flex-shrink:0;white-space:nowrap;" onclick="event.stopPropagation();${
+        acao.modal ? `openModal('${acao.modal}')` :
+        acao.leadId ? `verLead('${acao.leadId}')` :
+        `goTo('${acao.pagina}')`
+      }">${acao.btnLabel}</button>
+    </div>
+  `;
+  // Clicar no card também navega
+  el.onclick = () => {
+    if (acao.modal) { openModal(acao.modal); return; }
+    if (acao.leadId) { verLead(acao.leadId); return; }
+    if (acao.pagina) goTo(acao.pagina);
+  };
+}
+
+// ─────────────────────────────────────────────────
 // 🏆 WIDGET PRÓXIMO RANK — Dashboard
 // ─────────────────────────────────────────────────
 function renderDashRankWidget() {
   const el = document.getElementById('dash-rank-widget');
   if (!el) return;
 
+  // Evita duplicação: o "Painel de Qualificação em Tempo Real" (mais completo,
+  // com countdown e equipa) cobre a mesma informação. Se já estiver visível,
+  // este widget mais simples não se mostra — mas continua 100% funcional e
+  // visível sozinho caso o outro painel não tenha dados.
+  const qualifRtEl = document.getElementById('dash-qualif-rt-widget');
+  if (qualifRtEl && qualifRtEl.style.display !== 'none' && qualifRtEl.innerHTML.trim() !== '') {
+    el.style.display = 'none';
+    return;
+  }
+
   // Dados do perfil (protecção se ainda não carregado)
-  const p = (typeof perfil !== 'undefined' && perfil) ? perfil : {};
+  const p = (typeof getUserPerfil === 'function') ? getUserPerfil() : {};
   const pv    = parseFloat(p.pv)   || 0;
   const qdv   = parseFloat(p.qdv)  || 0;
   const secL  = parseFloat(p.secL) || 0;
@@ -9453,6 +9937,95 @@ function renderDashRankWidget() {
     </div>`;
 }
 
+// ─────────────────────────────────────────────────
+// 🔥 WIDGET LEADS — Top por score + alerta esfriar
+// ─────────────────────────────────────────────────
+function renderTopLeadsWidget() {
+  const el = document.getElementById('dash-top-leads-widget');
+  if (!el) return;
+
+  const snoozeKey = getUserStorageKey('lw_followup_snooze');
+  const snoozed = JSON.parse(localStorage.getItem(snoozeKey) || '{}');
+  const agora = Date.now();
+
+  const ativos = leads.filter(l => l.estado !== 'cliente' && l.estado !== 'perdido');
+  if (!ativos.length) { el.innerHTML = ''; return; }
+
+  // Leads com interesse a esfriar (interessado/negociação, 2+ dias, não snoozed)
+  const esfriar = ativos
+    .filter(l => ['interessado','negociacao'].includes(l.estado))
+    .map(l => ({ l, sc: calcularScore(l).score, dias: diasSemContacto(l), alerta: true }))
+    .filter(({ dias, l }) => dias !== null && dias >= 2 && !(snoozed[l.id] && agora < snoozed[l.id]))
+    .sort((a, b) => (b.dias||0) - (a.dias||0));
+
+  // Top leads por score (excluindo os que já estão em esfriar)
+  const esfriarIds = new Set(esfriar.map(x => x.l.id));
+  const topScore = ativos
+    .filter(l => !esfriarIds.has(l.id))
+    .map(l => ({ l, sc: calcularScore(l).score, dias: diasSemContacto(l), alerta: false }))
+    .sort((a, b) => b.sc - a.sc)
+    .slice(0, Math.max(0, 3 - esfriar.length));
+
+  const todos = [...esfriar, ...topScore].slice(0, 3);
+  if (!todos.length) { el.innerHTML = ''; return; }
+
+  const temAlerta = esfriar.length > 0;
+  const bordaCor = temAlerta ? 'rgba(255,70,70,0.35)' : 'rgba(0,212,170,0.2)';
+  const fundoCor = temAlerta ? 'rgba(255,70,70,0.05)' : 'var(--surface2)';
+  const titulo   = temAlerta ? '🔥 Leads a precisar de atenção' : '🔥 Leads Mais Quentes';
+  const subtitulo = temAlerta
+    ? `<span style="font-size:10px;background:rgba(255,70,70,0.15);color:#ff5555;padding:2px 8px;border-radius:20px;font-weight:700;">⚠️ Interesse a esfriar</span>`
+    : `<span style="font-size:10px;color:var(--text3);font-weight:400;">score automático</span>`;
+
+  const barCor  = (sc, alerta) => alerta ? '#ff5555' : sc >= 8 ? '#ff5555' : sc >= 6 ? '#ff9300' : sc >= 4 ? '#f5c842' : '#8a99b3';
+  const barLarg = sc => Math.round((sc / 10) * 100);
+
+  el.innerHTML = `
+    <div style="background:${fundoCor};border:1px solid ${bordaCor};border-radius:14px;padding:16px 18px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+        <div style="font-size:13px;font-weight:700;color:var(--text);display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+          ${titulo} ${subtitulo}
+        </div>
+        <button onclick="goTo('lista')" style="background:none;border:none;color:var(--accent);font-size:11px;cursor:pointer;font-weight:600;white-space:nowrap;">Ver todos →</button>
+      </div>
+      ${todos.map(({ l, sc, dias, alerta }) => {
+        const tel = l.tel ? limparTelefone(l.tel) : '';
+        const diasTxt = dias !== null ? `${dias}d sem contacto` : 'Novo';
+        const diasCor = alerta ? '#ff5555' : dias === null ? 'var(--text3)' : dias >= 7 ? '#f59e0b' : 'var(--accent)';
+        const cardBorder = alerta ? 'border:1px solid rgba(255,70,70,0.2);' : '';
+        return `
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;padding:10px 12px;background:var(--surface3);border-radius:10px;cursor:pointer;${cardBorder}" onclick="verLead('${l.id}')">
+          <div style="flex:1;min-width:0;">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px;">
+              <div style="font-size:13px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${l.nome}</div>
+              <div style="font-size:11px;font-weight:800;color:${barCor(sc,alerta)};white-space:nowrap;margin-left:8px;">${scoreEmoji(sc)} ${sc}/10</div>
+            </div>
+            <div style="background:var(--surface2);border-radius:20px;height:5px;overflow:hidden;margin-bottom:5px;">
+              <div style="height:100%;width:${barLarg(sc)}%;background:${barCor(sc,alerta)};border-radius:20px;transition:width .5s;"></div>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <span style="font-size:10px;color:var(--text2);">${estadoLabel(l.estado)} · ${(l.mercado||'').split(' ')[0]}</span>
+              <span style="font-size:10px;color:${diasCor};font-weight:600;">${diasTxt}</span>
+            </div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:4px;flex-shrink:0;">
+            ${tel ? `<button onclick="event.stopPropagation();abrirMensagemFollowUp('${l.id}')" style="background:rgba(0,212,170,0.12);border:1px solid rgba(0,212,170,0.25);border-radius:8px;color:var(--accent);font-size:15px;padding:5px 7px;cursor:pointer;" title="Gerar mensagem com IA">🤖💬</button>` : ''}
+            ${alerta ? `<button onclick="event.stopPropagation();snoozeEsfriar('${l.id}',2)" style="background:rgba(255,255,255,0.05);border:1px solid var(--border);border-radius:8px;color:var(--text3);font-size:10px;padding:4px 6px;cursor:pointer;" title="Adiar 2 dias">⏸2d</button>` : ''}
+          </div>
+        </div>`;
+      }).join('')}
+    </div>`;
+}
+
+function snoozeEsfriar(leadId, days) {
+  const snoozeKey = getUserStorageKey('lw_followup_snooze');
+  const snoozed = JSON.parse(localStorage.getItem(snoozeKey) || '{}');
+  snoozed[leadId] = Date.now() + days * 24 * 60 * 60 * 1000;
+  localStorage.setItem(snoozeKey, JSON.stringify(snoozed));
+  renderTopLeadsWidget();
+  showToast(`⏸ Adiado ${days} dias`);
+}
+
 function renderDashboard() {
   document.getElementById('stat-total').textContent = leads.length;
   document.getElementById('stat-prog').textContent = leads.filter(l => ['contactado','interessado'].includes(l.estado)).length;
@@ -9465,7 +10038,6 @@ function renderDashboard() {
   // Refresh follow-up alerts
   if (typeof renderFollowUps === 'function') renderFollowUps();
   // Refresh esfriar alerts (leads quentes sem resposta)
-  if (typeof renderEsfriarBanner === 'function') renderEsfriarBanner();
   if (typeof renderRenovacaoBanner === 'function') renderRenovacaoBanner();
   if (typeof renderEncomendaBanner === 'function') renderEncomendaBanner();
   if (typeof atualizarBadgeRetencao === 'function') atualizarBadgeRetencao();
@@ -9482,11 +10054,15 @@ function renderDashboard() {
   if (typeof renderDashQualifRT === 'function') renderDashQualifRT();
   // Refresh widget próximo rank
   if (typeof renderDashRankWidget === 'function') renderDashRankWidget();
+  // Refresh top leads mais quentes
+  if (typeof renderTopLeadsWidget === 'function') renderTopLeadsWidget();
   // Refresh widget de vendas
   if (typeof renderDashVendas === 'function') renderDashVendas();
   if (typeof renderSparkline === 'function') renderSparkline();
   if (typeof renderAtividadeHabitos === 'function') renderAtividadeHabitos();
   if (typeof renderConquistas === 'function') renderConquistas();
+  if (typeof renderDigestDiario === 'function') renderDigestDiario();
+  if (typeof renderProximaAcao === 'function') renderProximaAcao();
   const tbody = document.getElementById('tbody-recentes');
   if (!leads.length) {
     tbody.innerHTML = '<tr><td colspan="6" class="empty-state">Sem leads ainda. Adiciona o primeiro!</td></tr>';
@@ -9791,6 +10367,57 @@ function moverLeadParaEtapaRecrutamento(leadId, novaEtapa) {
   renderFunilRecrutamento();
   if (novaEtapa === 'ativo') vibrarConfirmacao();
   showToast('✅ ' + lead.nome + ' → ' + recrutEtapaLabel(novaEtapa));
+
+  // Ponte para o Onboarding: a pessoa acabou de se inscrever como Brand
+  // Partner — os primeiros 7 dias são a fase mais crítica para a retenção.
+  // Em vez de o utilizador ter de se lembrar de ir a Onboarding e digitar o
+  // nome outra vez, perguntamos aqui mesmo, já com os dados do lead prontos.
+  if (novaEtapa === 'inscrito' && anterior !== 'inscrito') {
+    setTimeout(() => sugerirOnboardingDeRecrutamento(lead), 400);
+  }
+
+  // Ponte para a Equipa: a pessoa atingiu 55 PV e está oficialmente Ativa —
+  // já é um membro de equipa "a sério", não só um prospeto. Sugere abrir o
+  // modal de Membro já com nome/telefone preenchidos.
+  if (novaEtapa === 'ativo' && anterior !== 'ativo') {
+    setTimeout(() => sugerirAdicionarAEquipa(lead), 400);
+  }
+}
+
+function sugerirAdicionarAEquipa(lead) {
+  const jaExiste = (typeof membros !== 'undefined') && membros.some(m => (m.nome||'').trim().toLowerCase() === (lead.nome||'').trim().toLowerCase());
+  if (jaExiste) return; // já está na equipa, não repete a sugestão
+
+  if (!confirm('🏆 ' + lead.nome + ' atingiu o estado Ativo (55 PV)!\n\nQueres já adicioná-lo(a) à tua Equipa para começares a acompanhar o desempenho?')) return;
+
+  goTo('equipa');
+  setTimeout(() => abrirNovoModalMembro({ nome: lead.nome, tel: lead.tel || '', notas: 'Vindo do Funil de Recrutamento' }), 150);
+}
+
+function sugerirOnboardingDeRecrutamento(lead) {
+  const jaExiste = (typeof _obDist !== 'undefined' && Array.isArray(_obDist))
+    ? _obDist.some(d => d.nome && d.nome.trim().toLowerCase() === (lead.nome||'').trim().toLowerCase())
+    : false;
+  if (jaExiste) return; // já está em onboarding, não repete a sugestão
+
+  if (!confirm('🎉 ' + lead.nome + ' inscreveu-se como Brand Partner!\n\nQueres já começar a acompanhar os primeiros 7 dias críticos no Onboarding?')) return;
+
+  if (typeof obLoad === 'function') obLoad();
+  _obDist.unshift({
+    id: Date.now(),
+    nome: lead.nome,
+    tel: lead.tel || '',
+    data: new Date().toISOString().split('T')[0],
+    produto: 'X39',
+    objetivo: 'ambos',
+    notas: 'Vindo do Funil de Recrutamento',
+    check: {},
+    leadId: lead.id
+  });
+  if (typeof obSaveD === 'function') obSaveD();
+  showToast('🚀 ' + lead.nome + ' adicionado ao Onboarding!');
+  goTo('onboarding');
+  setTimeout(() => { if (typeof obRenderLista === 'function') obRenderLista(); if (typeof obBadge === 'function') obBadge(); }, 100);
 }
 
 function recrutEtapaLabel(key) {
@@ -11589,8 +12216,42 @@ function handleImportFile(input) {
   const file = input.files[0];
   if (!file) return;
   const ext = file.name.split('.').pop().toLowerCase();
-  const reader = new FileReader();
+  const isExcel = ext === 'xlsx' || ext === 'xls';
 
+  if (isExcel) {
+    if (typeof XLSX === 'undefined') {
+      showToast('❌ Biblioteca Excel não carregada. Verifica a ligação à internet.');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = e => {
+      try {
+        const wb = XLSX.read(e.target.result, { type: 'array' });
+        const ws = wb.Sheets[wb.SheetNames[0]];
+        const data = XLSX.utils.sheet_to_json(ws, { defval: '' });
+        if (!data.length) { showToast('❌ Ficheiro Excel vazio.'); return; }
+        const headers = Object.keys(data[0]).map(h => h.trim().toLowerCase());
+        const idxNome  = headers.findIndex(h => h.includes('nome') || h.includes('name'));
+        const idxTel   = headers.findIndex(h => h.includes('tel') || h.includes('phone') || h.includes('mob'));
+        const idxEmail = headers.findIndex(h => h.includes('email') || h.includes('mail'));
+        const idxNotas = headers.findIndex(h => h.includes('nota') || h.includes('note') || h.includes('obs'));
+        const hKeys = Object.keys(data[0]);
+        importContactos = data.map(row => ({
+          nome:  String(row[hKeys[idxNome  >= 0 ? idxNome  : 0]] ?? '').trim(),
+          tel:   String(row[hKeys[idxTel   >= 0 ? idxTel   : -1]] ?? '').trim(),
+          email: String(row[hKeys[idxEmail >= 0 ? idxEmail : -1]] ?? '').trim(),
+          notas: String(row[hKeys[idxNotas >= 0 ? idxNotas : -1]] ?? '').trim(),
+        })).filter(c => c.nome);
+        renderImportPreview();
+      } catch(err) {
+        showToast('❌ Erro ao ler Excel: ' + err.message);
+      }
+    };
+    reader.readAsArrayBuffer(file);
+    return;
+  }
+
+  const reader = new FileReader();
   reader.onload = e => {
     const content = e.target.result;
     if (ext === 'vcf') {
@@ -11598,17 +12259,12 @@ function handleImportFile(input) {
     } else if (ext === 'csv') {
       importContactos = parseCSV(content);
     } else {
-      showToast('❌ Formato não suportado. Usa CSV ou VCF.');
+      showToast('❌ Formato não suportado. Usa CSV, VCF ou Excel (.xlsx/.xls).');
       return;
     }
     renderImportPreview();
   };
-
-  if (ext === 'vcf' || ext === 'csv') {
-    reader.readAsText(file, 'UTF-8');
-  } else {
-    showToast('❌ Por agora suportamos CSV e VCF (vCard).');
-  }
+  reader.readAsText(file, 'UTF-8');
 }
 
 function parseVCF(text) {
@@ -12514,6 +13170,17 @@ function abrirMensagem(leadId, canal) {
   initMsgAISelector();
 }
 
+// Abre o modal de mensagem pré-configurado para follow-up e gera mensagem IA automaticamente
+function abrirMensagemFollowUp(leadId) {
+  abrirMensagem(leadId, 'whatsapp');
+  // Aguarda o modal abrir e define objetivo follow-up + gera IA
+  setTimeout(() => {
+    const sel = document.getElementById('msg-ia-objetivo');
+    if (sel) { sel.value = 'followup'; toggleCampoRespostaLead(); }
+    gerarMsgIA();
+  }, 200);
+}
+
 function setMsgCanal(canal) {
   msgCanal = canal;
   ['whatsapp','sms','tel'].forEach(c => {
@@ -12609,7 +13276,6 @@ async function gerarMsgIA() {
   else if (produto && !negocio) foco = 'focada em falar do produto LifeWave X39 (benefícios, uso, resultados), sem mencionar a oportunidade de negócio';
   else if (!negocio && !produto) foco = 'genérica e amigável, sem focar especificamente em negócio ou produto';
 
-  // Num primeiro contacto, reconectar é sempre prioritário — ignora negócio/produto independentemente das categorias marcadas
   if (objetivo === 'primeiro') foco = 'puramente de reconexão pessoal, sem qualquer menção a negócio ou produto';
 
   const objetivoInstrucao = {
@@ -12620,11 +13286,52 @@ async function gerarMsgIA() {
     cliente: 'É uma mensagem de BEM-VINDO CLIENTE — celebra a decisão, dá boas-vindas à família LifeWave, oferece suporte.'
   }[objetivo] || '';
 
+  // ── Análise do histórico da conversa ──────────────
+  const hist = (l.historico || []).slice(-12); // últimas 12 entradas
+  const histResumo = hist.length > 0
+    ? hist.map(h => `[${h.data || ''}] ${h.tipo || ''}: ${h.msg || ''}`).join('\n')
+    : 'Sem histórico de interações registado.';
+
+  // Sinais de perfil no histórico + notas
+  const textoAnalise = ((l.notas || '') + ' ' + hist.map(h => h.msg || '').join(' ')).toLowerCase();
+  const sinaisDistribuidor = ['negócio','negocio','distribui','parceria','equipa','team','ganhar','rendimento','renda','comissão','comissao','trabalho extra','oportunidade','recrutamento'];
+  const sinaisCliente = ['dor','dorsal','energia','sono','patch','produto','x39','x49','aeon','glutathione','phototherapy','bem-estar','saúde','resultado'];
+  const pontosDist = sinaisDistribuidor.filter(s => textoAnalise.includes(s)).length;
+  const pontosCliente = sinaisCliente.filter(s => textoAnalise.includes(s)).length;
+
+  let perfilDetectado;
+  if (pontosDist >= 2 && pontosCliente >= 2) perfilDetectado = 'AMBOS (interesse em produto E negócio)';
+  else if (pontosDist >= 2) perfilDetectado = 'DISTRIBUIDOR POTENCIAL (interesse no negócio/parceria)';
+  else if (pontosCliente >= 2) perfilDetectado = 'CLIENTE POTENCIAL (interesse no produto/bem-estar)';
+  else perfilDetectado = 'INDEFINIDO (histórico insuficiente para determinar — mantém mensagem aberta)';
+
+  // ── Deteção de contexto de retenção ──────────────
+  const temAlertaRetencao = (l.historico || []).some(h => h._retencao);
+  const ultimaRetencao = temAlertaRetencao
+    ? (l.historico || []).filter(h => h._retencao).slice(-1)[0]
+    : null;
+  const contextoRetencao = ultimaRetencao
+    ? `\n⚠️ CONTEXTO DE RETENÇÃO: Este cliente tem AutoShip/encomenda em risco (${ultimaRetencao._retencao === 'critico' ? 'CRÍTICO' : 'EM RISCO'}). A última renovação foi há mais de ${ultimaRetencao.msg?.match(/(\d+) dias/)?.[1] || '30'} dias. O objetivo desta mensagem é perceber se tudo está bem com o produto, reforçar o valor que já recebe, e garantir a continuidade — sem pressão direta para renovar.`
+    : '';
+
   const prompt = `Cria uma mensagem de ${canal} para enviar a ${l.nome}, ${foco}.
 ${objetivoInstrucao}
+${contextoRetencao}
+
+--- CONTEXTO DO LEAD ---
 Estado atual: ${estadoLabel(l.estado)}
 Mercado: ${l.mercado}
-${l.notas ? `Notas sobre esta pessoa (usa para personalizar, não cites a nota literalmente): ${l.notas}` : 'Sem notas pessoais guardadas — mantém a mensagem genérica mas calorosa.'}
+Notas: ${l.notas || 'Nenhuma'}
+
+--- HISTÓRICO DA CONVERSA (usa para personalizar) ---
+${histResumo}
+
+--- PERFIL DETETADO PELA IA ---
+Com base no histórico e nas notas, este lead parece ser: ${perfilDetectado}
+${perfilDetectado.includes('DISTRIBUIDOR') ? '→ Adapta a mensagem para alguém que mostrou interesse em ganhar dinheiro extra / ter um negócio próprio.' : ''}
+${perfilDetectado.includes('CLIENTE') ? '→ Adapta a mensagem para alguém que mostrou interesse em bem-estar, saúde ou o produto em si.' : ''}
+${perfilDetectado.includes('AMBOS') ? '→ A pessoa tem interesse tanto no produto como no negócio. Mantém a mensagem equilibrada ou pergunta o que a motiva mais.' : ''}
+${perfilDetectado.includes('INDEFINIDO') ? '→ Não há sinais claros ainda. Usa uma abordagem aberta e tenta perceber o interesse com uma pergunta suave.' : ''}
 
 Regras:
 - Escreve em Português de Portugal
@@ -12635,6 +13342,7 @@ Regras:
 - Usa APENAS linguagem aprovada: "suporta", "promove", "pode ajudar a manter", "fotomodulação", "bem-estar geral"
 - Evita frases que pareçam um script copiado (ex: "pergunta aleatória", "espero que estejas bem!! 😊" genérico)
 - Termina com uma pergunta aberta ou convite suave
+- Não repitas factos óbvios do histórico de forma mecânica — usa-os com naturalidade
 
 ${LW_COMPLIANCE_MSG}
 
@@ -12664,9 +13372,12 @@ function enviarMensagem() {
 
   if (msgCanal === 'whatsapp') {
     const telWA = telParaWaMe(tel);
-    window.open(`https://wa.me/${telWA}?text=${encodedTexto}`, '_blank');
+    const url = `https://wa.me/${telWA}?text=${encodedTexto}`;
+    const waWin = window.open(url, '_blank');
+    if (!waWin || waWin.closed || typeof waWin.closed === 'undefined') {
+      window.location.href = url;
+    }
   } else if (msgCanal === 'sms') {
-    // sms: URI — works on mobile browsers
     window.location.href = `sms:${tel}?body=${encodedTexto}`;
   }
 
@@ -14244,17 +14955,186 @@ function saveMinhasCompras(compras) {
   localStorage.setItem(getUserStorageKey('lw_minhas_compras'), JSON.stringify(compras));
 }
 
+// Considera duplicado: mesmo produto + mesma quantidade + mesmo dia
+// (compara só a data, não a hora exata, porque a fatura e o registo manual
+// raramente têm o mesmo timestamp ao segundo mas referem-se à mesma compra).
+function existeCompraDuplicada(compras, produtoId, qtd, dataISO) {
+  const diaNovo = new Date(dataISO).toDateString();
+  return compras.some(c => c.produtoId === produtoId && c.qtd === qtd && new Date(c.data).toDateString() === diaNovo);
+}
+
 function adicionarMinhaCompra() {
   const produtoId = document.getElementById('mc-produto').value;
   const qtd = parseInt(document.getElementById('mc-qtd').value) || 1;
   const produto = CATALOGO_PRODUTOS.find(p => p.id === produtoId);
   if (!produto) return;
   const compras = getMinhasCompras();
-  compras.unshift({ produtoId, nome: produto.nome, emoji: produto.emoji, qtd, qv: produto.qv * qtd, data: new Date().toISOString() });
+  const agoraISO = new Date().toISOString();
+
+  if (existeCompraDuplicada(compras, produtoId, qtd, agoraISO)) {
+    if (!confirm(`⚠️ Já tens "${produto.nome}${qtd > 1 ? ' ×' + qtd : ''}" registado hoje.\n\nQueres adicionar mesmo assim (compra repetida no mesmo dia)?`)) return;
+  }
+
+  compras.unshift({ produtoId, nome: produto.nome, emoji: produto.emoji, qtd, qv: produto.qv * qtd, data: agoraISO });
   saveMinhasCompras(compras);
   document.getElementById('mc-qtd').value = '1';
   renderMinhasComprasModal();
   driveEscreverComprasNaPastaEquipa();
+}
+
+// ── Importar fatura: identifica vários produtos/quantidades de uma vez ──
+// Reaproveita chamarIADocumento (mesma usada no widget PV) e a mesma
+// estrutura de dados de adicionarMinhaCompra() — não cria um sistema novo,
+// só preenche automaticamente a lista que já existia.
+async function mcImportarFatura(input) {
+  const file = input.files && input.files[0];
+  if (!file) return;
+
+  const nomeEl   = document.getElementById('mc-fatura-nome');
+  const statusEl = document.getElementById('mc-fatura-status');
+  if (nomeEl) nomeEl.textContent = file.name;
+  if (statusEl) statusEl.innerHTML = '⏳ A analisar a fatura com IA…';
+
+  let base64 = '';
+  try {
+    base64 = await new Promise((res, rej) => {
+      const r = new FileReader();
+      r.onload = () => res(r.result.split(',')[1]);
+      r.onerror = () => rej(new Error('Erro ao ler ficheiro'));
+      r.readAsDataURL(file);
+    });
+  } catch(e) {
+    if (statusEl) statusEl.innerHTML = '❌ Erro ao ler o ficheiro.';
+    return;
+  }
+
+  const isPdf = file.type === 'application/pdf';
+  const mediaType = file.type || 'image/jpeg';
+
+  // Lista de IDs válidos do catálogo, para a IA escolher exatamente um destes
+  const idsValidos = CATALOGO_PRODUTOS.map(p => p.id).join(', ');
+  const nomesAjuda = CATALOGO_PRODUTOS.map(p => `${p.id} = ${p.nome}`).join('; ');
+
+  const prompt = `Analisa esta fatura/recibo LifeWave e extrai os dados em JSON puro (sem markdown, sem blocos de código):
+{
+  "numeroFatura": "<número da fatura/encomenda/pedido, tal como aparece no documento, ou vazio se não encontrares>",
+  "idUtilizador": "<ID, username ou nome de afiliado (Brand Partner) do titular da fatura, tal como aparece no documento, ou vazio se não encontrares>",
+  "itens": [ { "id": "<um destes ids: ${idsValidos}>", "qtd": <número de unidades/caixas> } ],
+  "data": "<data da encomenda no formato YYYY-MM-DD, ou vazio se não encontrares>"
+}
+Tabela de correspondência nome→id: ${nomesAjuda}
+Regras:
+- "numeroFatura" e "idUtilizador" servem para identificar a quem pertence o documento e evitar duplicados — procura-os no cabeçalho/rodapé da fatura (ex: "Nº Encomenda", "Order #", "Invoice #", "ID Afiliado", "Distributor ID", "Username").
+- Cada produto distinto da fatura deve aparecer como um item separado em "itens".
+- Se não conseguires identificar com confiança o id de um produto, ignora essa linha (não inventes).
+- "qtd" é o número de unidades/caixas desse produto, não o PV.
+- Responde APENAS com o JSON, sem mais texto.`;
+
+  try {
+    const ai = (typeof geminiKey !== 'undefined' && geminiKey && geminiKey.length > 10) ? 'gemini'
+             : (typeof claudeKey !== 'undefined' && claudeKey && claudeKey.length > 10) ? 'claude'
+             : 'gemini';
+
+    const resposta = await chamarIADocumento({ ai, prompt, base64, isPdf, mediaType, maxTokens: 600 });
+
+    let dados = null;
+    try {
+      const clean = resposta.replace(/```json|```/g, '').trim();
+      dados = JSON.parse(clean);
+    } catch(e) {
+      const m = resposta.match(/\{[\s\S]*\}/);
+      if (m) dados = JSON.parse(m[0]);
+    }
+
+    if (!dados || !Array.isArray(dados.itens) || !dados.itens.length) {
+      if (statusEl) statusEl.innerHTML = '⚠️ Não foram identificados produtos reconhecíveis na fatura.';
+      input.value = '';
+      return;
+    }
+
+    // ── Verificação de identidade: a fatura pertence-te? ──
+    // Compara o ID/username detetado no documento com o slug do teu Perfil
+    // (o mesmo ID de afiliado LifeWave). Se não corresponder, avisa antes
+    // de importar — pode ser a fatura de outra pessoa da equipa.
+    const idDetetado = (dados.idUtilizador || '').trim();
+    const meuSlug = (typeof getUserPerfil === 'function' ? (getUserPerfil().slug || '') : '').trim();
+    if (idDetetado && meuSlug) {
+      const normaliza = s => s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]/g, '');
+      if (normaliza(idDetetado) !== normaliza(meuSlug)) {
+        const continuar = confirm(`⚠️ Esta fatura parece pertencer a "${idDetetado}", mas o teu perfil está configurado como "${meuSlug}".\n\nQueres importar mesmo assim?`);
+        if (!continuar) {
+          if (statusEl) statusEl.innerHTML = '⏸️ Importação cancelada (ID do utilizador não corresponde).';
+          input.value = '';
+          return;
+        }
+      }
+    }
+
+    const numeroFatura = (dados.numeroFatura || '').trim();
+
+    // ── Duplicado por nº de fatura já importada (critério principal) ──
+    const comprasExistentes = getMinhasCompras();
+    if (numeroFatura && comprasExistentes.some(c => c.numeroFatura === numeroFatura)) {
+      if (statusEl) statusEl.innerHTML = `↩️ A fatura nº <strong>${numeroFatura}</strong> já foi importada anteriormente — nada de novo adicionado.`;
+      input.value = '';
+      return;
+    }
+
+    // Adiciona cada item identificado, reaproveitando a mesma estrutura de
+    // getMinhasCompras()/saveMinhasCompras() usada pelo botão "+ Adicionar".
+    // Cada compra guarda também o nº de fatura (se identificado), que é o
+    // critério principal de duplicado entre importações. Quando a fatura
+    // não tem número legível, usa-se o fallback produto+quantidade+dia.
+    const compras = comprasExistentes;
+    const dataCompra = dados.data ? new Date(dados.data + 'T00:00:00').toISOString() : new Date().toISOString();
+    let adicionados = 0;
+    let ignorados = 0;
+    const nomesAdicionados = [];
+
+    dados.itens.forEach(item => {
+      const produto = CATALOGO_PRODUTOS.find(p => p.id === item.id);
+      if (!produto) return;
+      const qtd = parseInt(item.qtd, 10) || 1;
+
+      if (!numeroFatura && existeCompraDuplicada(compras, produto.id, qtd, dataCompra)) {
+        ignorados++;
+        return;
+      }
+
+      compras.unshift({ produtoId: produto.id, nome: produto.nome, emoji: produto.emoji, qtd, qv: produto.qv * qtd, data: dataCompra, numeroFatura: numeroFatura || '', idUtilizador: idDetetado || '' });
+      nomesAdicionados.push(`${produto.emoji} ${produto.nome}${qtd > 1 ? ' ×' + qtd : ''}`);
+      adicionados++;
+    });
+
+    if (adicionados === 0) {
+      if (statusEl) statusEl.innerHTML = ignorados > 0
+        ? `↩️ ${ignorados} item(ns) já estavam registados — nada de novo para adicionar.`
+        : '⚠️ Os produtos da fatura não correspondem ao catálogo conhecido.';
+      input.value = '';
+      return;
+    }
+
+    saveMinhasCompras(compras);
+    renderMinhasComprasModal();
+    if (typeof driveEscreverComprasNaPastaEquipa === 'function') driveEscreverComprasNaPastaEquipa();
+
+    let msgFinal = `✅ Adicionado: ${nomesAdicionados.join(', ')}`;
+    if (numeroFatura) msgFinal += ` · Fatura nº ${numeroFatura}`;
+    if (ignorados > 0) msgFinal += ` · ↩️ ${ignorados} já estava(m) registado(s)`;
+    if (statusEl) statusEl.innerHTML = msgFinal;
+    input.value = '';
+
+  } catch(e) {
+    const msg = (e.message || '').toLowerCase();
+    let erro = '❌ Erro ao analisar a fatura.';
+    if (msg.includes('no_key') || msg.includes('no key') || msg.includes('chave')) {
+      erro = '🔑 Configura a chave Gemini ou Claude nas definições para usar esta função.';
+    } else if (msg.includes('quota') || msg.includes('429')) {
+      erro = '⛔ Quota da IA esgotada. Tenta mais tarde.';
+    }
+    if (statusEl) statusEl.innerHTML = erro;
+    input.value = '';
+  }
 }
 
 function removerMinhaCompra(idx) {
@@ -14285,15 +15165,51 @@ function renderMinhasComprasModal() {
     return `
       <div style="display:flex;align-items:center;gap:8px;padding:6px 8px;background:var(--surface3);border-radius:8px;${dias > 31 ? 'opacity:0.5;' : ''}">
         <span style="font-size:14px;">${c.emoji || '📦'}</span>
-        <span style="font-size:12px;color:var(--text);flex:1;">${c.nome}${c.qtd > 1 ? ' ×' + c.qtd : ''}</span>
+        <div style="flex:1;min-width:0;">
+          <span style="font-size:12px;color:var(--text);">${c.nome}${c.qtd > 1 ? ' ×' + c.qtd : ''}</span>
+          ${c.numeroFatura ? `<div style="font-size:9.5px;color:var(--text3);">Fatura nº ${c.numeroFatura}</div>` : ''}
+        </div>
         <span style="font-size:11px;color:var(--accent);font-weight:700;">${c.qv} PV</span>
         <span style="font-size:10px;color:var(--text2);white-space:nowrap;">${new Date(c.data).toLocaleDateString('pt-PT')}</span>
         <button onclick="removerMinhaCompra(${i})" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:13px;padding:0 2px;">✕</button>
       </div>`;
   }).join('');
+
+  atualizarSugestaoPvDasCompras();
 }
 
-// Função principal: manual ou auto-save
+// ── Sugestão de PV a partir das Minhas Compras ──────────────────────
+// Não sobrescreve nada automaticamente: mostra a soma dos últimos 31 dias
+// e deixa o utilizador decidir se quer aplicar ao campo PV do Perfil (que
+// é o valor lido pelo Painel de Qualificação, Simulador de Bónus, etc.).
+// Assim evita-se qualquer dupla contagem silenciosa ou sobreposição com
+// um valor que o utilizador já tenha inserido manualmente.
+function atualizarSugestaoPvDasCompras() {
+  const el = document.getElementById('perfil-pv-sugestao-compras');
+  if (!el) return;
+  const compras = getMinhasCompras();
+  const agora = Date.now();
+  const somaPV = compras.filter(c => (agora - new Date(c.data).getTime()) / 86400000 <= 31).reduce((s, c) => s + c.qv, 0);
+
+  if (somaPV <= 0) { el.innerHTML = ''; return; }
+
+  const pvAtualInput = parseFloat(document.getElementById('perfil-pv')?.value) || 0;
+  if (pvAtualInput === somaPV) {
+    el.innerHTML = `<span style="color:var(--accent);">✓ Já corresponde às Minhas Compras (${somaPV} PV, últimos 31 dias)</span>`;
+    return;
+  }
+  el.innerHTML = `📦 As Minhas Compras somam <strong style="color:var(--accent);">${somaPV} PV</strong> nos últimos 31 dias —
+    <button type="button" onclick="usarPvDasMinhasCompras(${somaPV})" style="background:none;border:none;color:var(--accent);text-decoration:underline;cursor:pointer;font-size:10.5px;padding:0;">usar este valor</button>`;
+}
+
+function usarPvDasMinhasCompras(valor) {
+  const inp = document.getElementById('perfil-pv');
+  if (!inp) return;
+  inp.value = valor;
+  if (typeof atualizarPerfilCategoriaPreview === 'function') atualizarPerfilCategoriaPreview();
+  atualizarSugestaoPvDasCompras();
+  showToast('✅ PV atualizado para ' + valor + ' — grava o Perfil para confirmar');
+}// Função principal: manual ou auto-save
 async function driveSync(mode) {
   if (!currentUser || currentUser.method !== 'google') return;
   if (driveSyncPending) return;
@@ -14541,17 +15457,32 @@ function abrirPerfilModal(isPrimeiraVez) {
   document.getElementById('perfil-bv-binario').value = p.bvBinario || '';
   // Links pessoais
   const setLink = (id, val) => { const el = document.getElementById(id); if (el) el.value = val || ''; };
-  setLink('perfil-link-instagram', p.linkInstagram);
-  setLink('perfil-link-facebook',  p.linkFacebook);
-  setLink('perfil-link-whatsapp',  p.linkWhatsapp);
-  setLink('perfil-link-youtube',   p.linkYoutube);
-  setLink('perfil-link-tiktok',    p.linkTiktok);
-  setLink('perfil-link-website',   p.linkWebsite);
+  setLink('perfil-link-instagram',      p.linkInstagram);
+  setLink('perfil-link-instagram-page', p.linkInstagramPage);
+  setLink('perfil-link-facebook',       p.linkFacebook);
+  setLink('perfil-link-facebook-page',  p.linkFacebookPage);
+  setLink('perfil-link-whatsapp',       p.linkWhatsapp);
+  // Preencher campo de telemóvel a partir do link WhatsApp
+  const telEl = document.getElementById('perfil-telemovel');
+  if (telEl) {
+    const waLink = p.linkWhatsapp || '';
+    const numMatch = waLink.match(/wa\.me\/(\d+)/);
+    const numTel = p.telemovel || (numMatch ? numMatch[1] : '');
+    telEl.value = numTel;
+    perfilAtualizarWhatsApp(numTel);
+  }
+  setLink('perfil-link-youtube',        p.linkYoutube);
+  setLink('perfil-link-tiktok',         p.linkTiktok);
+  setLink('perfil-link-website',        p.linkWebsite);
+  // Email LifeWave
+  const emailEl = document.getElementById('perfil-email-lw');
+  if (emailEl) emailEl.value = p.emailLW || currentUser?.email || '';
   // Links extra personalizados
   _linksExtraPerfilState = Array.isArray(p.linksExtra) ? p.linksExtra.map(l => ({ nome: l.nome || '', url: l.url || '' })) : [];
   renderLinksExtraPerfilModal();
   popularSelectProdutosMinhasCompras();
   renderMinhasComprasModal();
+  atualizarSugestaoPvDasCompras();
   const titulo = document.getElementById('perfil-modal-titulo');
   const aviso = document.getElementById('perfil-primeira-vez-aviso');
   if (titulo) titulo.textContent = isPrimeiraVez ? '👋 Configura o teu perfil' : '⚙️ Meu Perfil';
@@ -14703,22 +15634,38 @@ function salvarPerfil() {
 
   if (!slug) { showToast('❌ O slug LifeWave é obrigatório'); return; }
 
+  // Email LifeWave — obrigatório
+  const emailLW = (document.getElementById('perfil-email-lw')?.value || '').trim();
+  if (!emailLW) {
+    const avisoEl = document.getElementById('perfil-email-aviso');
+    if (avisoEl) avisoEl.style.display = 'block';
+    document.getElementById('perfil-email-lw')?.focus();
+    showToast('❌ O email LifeWave é obrigatório');
+    return;
+  }
+  const avisoEl = document.getElementById('perfil-email-aviso');
+  if (avisoEl) avisoEl.style.display = 'none';
+
   const upline = (document.getElementById('perfil-upline')?.value || '').trim();
   const pastaEquipa = (document.getElementById('perfil-pasta-equipa')?.value || '').trim();
   // Links pessoais
-  const linkInstagram = (document.getElementById('perfil-link-instagram')?.value || '').trim();
-  const linkFacebook  = (document.getElementById('perfil-link-facebook')?.value  || '').trim();
-  const linkWhatsapp  = (document.getElementById('perfil-link-whatsapp')?.value  || '').trim();
-  const linkYoutube   = (document.getElementById('perfil-link-youtube')?.value   || '').trim();
-  const linkTiktok    = (document.getElementById('perfil-link-tiktok')?.value    || '').trim();
-  const linkWebsite   = (document.getElementById('perfil-link-website')?.value   || '').trim();
+  const linkInstagram     = (document.getElementById('perfil-link-instagram')?.value      || '').trim();
+  const linkInstagramPage = (document.getElementById('perfil-link-instagram-page')?.value || '').trim();
+  const linkFacebook      = (document.getElementById('perfil-link-facebook')?.value       || '').trim();
+  const linkFacebookPage  = (document.getElementById('perfil-link-facebook-page')?.value  || '').trim();
+  const linkWhatsapp      = (document.getElementById('perfil-link-whatsapp')?.value       || '').trim();
+  const telemovel         = (document.getElementById('perfil-telemovel')?.value            || '').replace(/\D/g,'').trim();
+  const linkYoutube       = (document.getElementById('perfil-link-youtube')?.value        || '').trim();
+  const linkTiktok        = (document.getElementById('perfil-link-tiktok')?.value         || '').trim();
+  const linkWebsite       = (document.getElementById('perfil-link-website')?.value        || '').trim();
   // Links extra personalizados: só guarda os que têm nome E url preenchidos
   const linksExtra = _linksExtraPerfilState
     .map(l => ({ nome: (l.nome || '').trim(), url: (l.url || '').trim() }))
     .filter(l => l.nome && l.url);
-  const perfil = { slug, nomeDisplay: nome, pais, idioma, pv, qdv, secL, secR, olxl, bvBinario, upline, pastaEquipa,
+  const perfil = { slug, nomeDisplay: nome, emailLW, telemovel, pais, idioma, pv, qdv, secL, secR, olxl, bvBinario, upline, pastaEquipa,
     dataInscricao, dataProximaEncomenda, cicloEncomendaDias,
-    linkInstagram, linkFacebook, linkWhatsapp, linkYoutube, linkTiktok, linkWebsite, linksExtra };
+    linkInstagram, linkInstagramPage, linkFacebook, linkFacebookPage,
+    linkWhatsapp, linkYoutube, linkTiktok, linkWebsite, linksExtra };
   saveUserPerfil(perfil);
   // Save upline in persistent storage too
   if (upline) localStorage.setItem('lw_upline_ref', upline);
@@ -15341,6 +16288,15 @@ function copiarGuiao() {
   } else {
     showToast('📋 Guião copiado!');
   }
+
+  // P1 — Follow-up automático após copiar guião
+  if (guiaoLeadId) {
+    const lGuiao = leads.find(x => x.id === guiaoLeadId);
+    if (lGuiao && lGuiao.estado !== 'cliente' && lGuiao.estado !== 'frio') {
+      _pfLeadIdAtual = guiaoLeadId;
+      setTimeout(() => abrirModalProximoFollowUp(lGuiao), 600);
+    }
+  }
 }
 
 function copiarFallback(texto) {
@@ -15687,7 +16643,21 @@ function scoreColor(score) {
 
 function scoreBadgeHtml(l) {
   const { score } = calcularScore(l);
-  return `<span class="score-badge ${scoreClass(score)}">${scoreEmoji(score)} ${score}/10</span>`;
+  let html = `<span class="score-badge ${scoreClass(score)}">${scoreEmoji(score)} ${score}/10</span>`;
+
+  // P2 — Indicador de atraso de follow-up (só leads activos)
+  if (l.estado !== 'cliente' && l.estado !== 'frio' && l.estado !== 'perdido') {
+    const dias = diasSemContacto(l);
+    if (dias !== null) {
+      if (dias >= 14) {
+        html += ` <span class="score-badge" style="background:rgba(255,70,70,0.18);color:#ff5555;border:1px solid rgba(255,70,70,0.3);">⏰ ${dias}d</span>`;
+      } else if (dias >= 7) {
+        html += ` <span class="score-badge" style="background:rgba(245,158,11,0.18);color:#f59e0b;border:1px solid rgba(245,158,11,0.3);">⏰ ${dias}d</span>`;
+      }
+    }
+  }
+
+  return html;
 }
 
 // ===== FOLLOW-UP ALERTS =====
@@ -16318,161 +17288,78 @@ function snoozeAcao(leadId, days) {
   showToast(`⏸ Adiado ${days} dias`);
 }
 
-function renderEsfriarBanner() {
-  const banner = document.getElementById('esfriar-banner');
-  const list = document.getElementById('esfriar-lista');
-  if (!banner || !list) return;
-
-  const snoozeKey = getUserStorageKey('lw_followup_snooze');
-  const snoozed = JSON.parse(localStorage.getItem(snoozeKey) || '{}');
-  const agora = Date.now();
-
-  // Leads interessado/negociação sem contacto há 2+ dias — momento mais caro de perder
-  const alertas = leads
-    .filter(l => ['interessado', 'negociacao'].includes(l.estado))
-    .map(l => ({ l, dias: diasSemContacto(l) }))
-    .filter(({ l, dias }) => {
-      if (dias === null || dias < 2) return false;
-      const snoozeUntil = snoozed[l.id];
-      if (snoozeUntil && agora < snoozeUntil) return false;
-      return true;
-    })
-    .sort((a, b) => (b.dias || 0) - (a.dias || 0));
-
-  if (!alertas.length) {
-    banner.style.display = 'none';
-    return;
-  }
-
-  banner.style.display = 'block';
-
-  list.innerHTML = alertas.map(({ l, dias }) => {
-    const estadoL = l.estado === 'negociacao' ? 'Negociação' : 'Interessado';
-    const daysLabel = dias === 1 ? '1 dia' : `${dias} dias`;
-    const tel = l.tel ? limparTelefone(l.tel) : '';
-    return `
-      <div class="followup-item" id="esf-${l.id}" style="border-color:rgba(255,70,70,0.25);">
-        <div class="followup-item-urgency">🔥</div>
-        <div class="followup-item-info">
-          <div class="followup-item-name">${l.nome}</div>
-          <div class="followup-item-meta">${estadoL} · ${l.mercado.split(' ')[0]}${tel ? ' · 📱 ' + l.tel : ''}</div>
-        </div>
-        <div class="followup-item-days urgent">${daysLabel} sem resposta</div>
-        <div class="followup-item-actions">
-          ${tel ? `<button class="btn btn-sm btn-wa-sm" onclick="abrirMensagem('${l.id}','whatsapp')" title="WhatsApp">💬</button>` : ''}
-          <button class="btn btn-secondary btn-sm" onclick="verLead('${l.id}')" title="Ver lead">👁</button>
-          <button class="btn-snooze" onclick="snoozeEsfriar('${l.id}',2)" title="Adiar 2 dias">⏸ 2d</button>
-        </div>
-      </div>
-    `;
-  }).join('');
-}
-
-function snoozeEsfriar(leadId, days) {
-  const snoozeKey = getUserStorageKey('lw_followup_snooze');
-  const snoozed = JSON.parse(localStorage.getItem(snoozeKey) || '{}');
-  snoozed[leadId] = Date.now() + days * 24 * 60 * 60 * 1000;
-  localStorage.setItem(snoozeKey, JSON.stringify(snoozed));
-  const el = document.getElementById('esf-' + leadId);
-  if (el) {
-    el.style.transition = 'opacity 0.3s, transform 0.3s';
-    el.style.opacity = '0';
-    el.style.transform = 'translateX(20px)';
-    setTimeout(() => renderEsfriarBanner(), 300);
-  }
-}
-
 // ===================================================
-// RENOVAÇÕES DE CLIENTES PREFERENCIAIS EM RISCO
+// ATALHO NO DASHBOARD PARA O RADAR DE RETENÇÃO
 // A receita recorrente (clientes "Preferido" em mensalidade) é o que dá
-// estabilidade ao negócio — perder uma renovação sem dar por isso é a forma
-// mais silenciosa de perder receita. Agrupa vendas tipo "preferido" por
-// cliente e avisa quando a última compra já passou da janela normal de
-// 30 dias, antes que o cliente cancele de vez.
+// estabilidade ao negócio. Este atalho não duplica cálculo — reutiliza
+// getClientesPreferenciaisRet(), a mesma função que alimenta a página
+// "Radar de Retenção PC" (mais completa, com segmentação Ativo/Risco/
+// Crítico/Perdido, filtros e mensagens de IA). Aqui só mostra a contagem
+// de quem precisa de atenção (estado "risco" ou "critico") e abre essa
+// página ao tocar — assim há sempre uma única fonte de verdade.
 // ===================================================
-const RENOVACAO_DIAS_AVISO = 25;   // a partir daqui, mostra aviso (alguns dias antes dos 30)
-const RENOVACAO_DIAS_LIMITE = 60;  // acima disto, assume-se que já não é "risco" mas sim cliente perdido — deixa de aparecer aqui
-
-function getClientesPreferenciaisEmRisco() {
-  if (typeof vendas === 'undefined') return [];
-  const porCliente = {};
-  vendas.forEach(v => {
-    if (v.tipo !== 'preferido' || v.estado === 'cancelada') return;
-    const nome = (v.cliente || '').trim();
-    if (!nome) return;
-    const dt = new Date(v.data).getTime();
-    if (isNaN(dt)) return;
-    if (!porCliente[nome] || dt > porCliente[nome].dt) {
-      porCliente[nome] = { nome, dt, ultimaVenda: v };
-    }
-  });
-
-  const agora = Date.now();
-  return Object.values(porCliente)
-    .map(c => ({ ...c, dias: Math.floor((agora - c.dt) / 86400000) }))
-    .filter(c => c.dias >= RENOVACAO_DIAS_AVISO && c.dias <= RENOVACAO_DIAS_LIMITE)
-    .sort((a, b) => b.dias - a.dias);
-}
-
 function renderRenovacaoBanner() {
   const banner = document.getElementById('renovacao-banner');
-  const list = document.getElementById('renovacao-lista');
-  if (!banner || !list) return;
+  if (!banner) return;
   if (typeof loadVendas === 'function') loadVendas();
+  if (typeof getClientesPreferenciaisRet !== 'function') { banner.style.display = 'none'; return; }
 
-  const snoozeKey = getUserStorageKey('lw_renovacao_snooze');
-  const snoozed = JSON.parse(localStorage.getItem(snoozeKey) || '{}');
-  const agora = Date.now();
-
-  const risco = getClientesPreferenciaisEmRisco()
-    .filter(c => !(snoozed[c.nome] && agora < snoozed[c.nome]));
-
-  if (!risco.length) {
-    banner.style.display = 'none';
-    return;
-  }
+  const emAlerta = getClientesPreferenciaisRet().filter(c => c.estado === 'risco' || c.estado === 'critico');
+  if (!emAlerta.length) { banner.style.display = 'none'; return; }
 
   banner.style.display = 'block';
-  list.innerHTML = risco.map(c => {
-    const idSeguro = c.nome.replace(/[^a-zA-Z0-9]/g, '_');
-    const leadMatch = (typeof leads !== 'undefined') ? leads.find(l => (l.nome||'').trim().toLowerCase() === c.nome.toLowerCase()) : null;
-    const tel = leadMatch?.tel ? limparTelefone(leadMatch.tel) : '';
-    const daysLabel = c.dias === 1 ? '1 dia' : `${c.dias} dias`;
-    return `
-      <div class="followup-item" id="ren-${idSeguro}" style="border-color:rgba(245,200,66,0.25);">
-        <div class="followup-item-urgency">🔄</div>
-        <div class="followup-item-info">
-          <div class="followup-item-name">${escapeHtml(c.nome)}</div>
-          <div class="followup-item-meta">⭐ Preferido · última compra: ${escapeHtml((c.ultimaVenda.produto||'').toString())}</div>
-        </div>
-        <div class="followup-item-days urgent" style="color:#f5c842;">${daysLabel} sem renovar</div>
-        <div class="followup-item-actions">
-          ${tel ? `<button class="btn btn-sm btn-wa-sm" onclick="renovacaoMensagemWA('${idSeguro}','${tel}','${encodeURIComponent(c.nome)}')" title="WhatsApp">💬</button>` : ''}
-          <button class="btn btn-secondary btn-sm" onclick="abrirNovaVenda('${c.nome.replace(/'/g,"\\'")}')" title="Registar renovação">💰</button>
-          <button class="btn-snooze" onclick="snoozeRenovacao('${c.nome.replace(/'/g,"\\'")}','${idSeguro}',5)" title="Adiar 5 dias">⏸ 5d</button>
-        </div>
-      </div>
-    `;
-  }).join('');
-}
+  const titulo = document.getElementById('renovacao-banner-titulo');
+  if (titulo) titulo.textContent = `${emAlerta.length} cliente${emAlerta.length === 1 ? '' : 's'} Preferencia${emAlerta.length === 1 ? 'l' : 'is'} a precisar de atenção`;
 
-function renovacaoMensagemWA(idSeguro, tel, nomeEncoded) {
-  const nome = decodeURIComponent(nomeEncoded).split(' ')[0];
-  const texto = `Olá ${nome}! 👋 Passei só para saber como tens estado com o teu X39 e se já está na altura de repor o teu patch mensal. Queres que te prepare o pedido? 😊`;
-  window.open('https://wa.me/' + tel + '?text=' + encodeURIComponent(texto), '_blank');
-}
-
-function snoozeRenovacao(nomeCliente, idSeguro, days) {
-  const snoozeKey = getUserStorageKey('lw_renovacao_snooze');
-  const snoozed = JSON.parse(localStorage.getItem(snoozeKey) || '{}');
-  snoozed[nomeCliente] = Date.now() + days * 24 * 60 * 60 * 1000;
-  localStorage.setItem(snoozeKey, JSON.stringify(snoozed));
-  const el = document.getElementById('ren-' + idSeguro);
-  if (el) {
-    el.style.transition = 'opacity 0.3s, transform 0.3s';
-    el.style.opacity = '0';
-    el.style.transform = 'translateX(20px)';
-    setTimeout(() => renderRenovacaoBanner(), 300);
+  // ── Criar lembretes automáticos de retenção ──────
+  // Para cada cliente em risco/crítico com leadId conhecido,
+  // cria um lembrete "uma vez" para hoje (9h) se ainda não existir um igual.
+  if (typeof lembretes === 'undefined' || typeof saveLembretes !== 'function') return;
+  let criados = 0;
+  emAlerta.forEach(c => {
+    if (!c.leadId) return; // sem lead associado, não cria
+    const idLembrete = `ret_${c.leadId}`;
+    // Evita duplicados: só cria se não existe lembrete activo para este cliente
+    const jaExiste = lembretes.some(l => l._retencaoLeadId === c.leadId && !l.concluido);
+    if (jaExiste) return;
+    const data = new Date();
+    data.setHours(9, 0, 0, 0);
+    lembretes.push({
+      id: idLembrete + '_' + Date.now(),
+      tipo: 'followup',
+      mensagem: `🔄 Retenção: ${c.nome} — ${c.estado === 'critico' ? '🔴 Crítico' : '⚠️ Em risco'} (${c.dias}d sem renovar). Entra em contacto hoje.`,
+      proximoDisparo: data.toISOString(),
+      repeticao: 'uma',
+      criado: new Date().toISOString(),
+      concluido: false,
+      disparadoCount: 0,
+      _retencaoLeadId: c.leadId,
+      _retencaoCliente: c.nome,
+      _retencaoDias: c.dias,
+      _retencaoEstado: c.estado,
+      _auto: true
+    });
+    criados++;
+  });
+  if (criados > 0) {
+    saveLembretes();
+    // Actualiza o lead no CRM: adiciona nota de retenção no histórico se ainda não tiver
+    emAlerta.forEach(c => {
+      if (!c.leadId) return;
+      const lead = (typeof leads !== 'undefined') ? leads.find(l => l.id === c.leadId) : null;
+      if (!lead) return;
+      lead.historico = lead.historico || [];
+      const jaTemNota = lead.historico.some(h => h._retencao && h._retencao === c.estado);
+      if (!jaTemNota) {
+        lead.historico.push({
+          data: new Date().toLocaleString('pt-PT'),
+          tipo: 'sistema',
+          msg: `⚠️ Alerta de retenção automático: ${c.dias} dias sem renovar AutoShip (estado: ${c.estado === 'critico' ? 'Crítico' : 'Em risco'}).`,
+          _retencao: c.estado
+        });
+      }
+    });
+    if (typeof saveLeads === 'function') saveLeads();
   }
 }
 
@@ -16605,7 +17492,7 @@ function renderRetencao() {
       <div style="height:4px;background:var(--surface3);border-radius:4px;margin-bottom:10px;overflow:hidden;">
         <div style="height:100%;width:${Math.min(100, Math.round(c.dias/90*100))}%;background:${cor};border-radius:4px;transition:width .4s;"></div>
       </div>
-      <!-- Ações -->
+      <!-- A??es -->
       <div style="display:flex;gap:6px;flex-wrap:wrap;">
         ${c.tel ? `<button class="btn btn-sm" style="background:rgba(37,211,102,0.15);color:#25d366;border:1px solid rgba(37,211,102,0.3);" onclick="retWADireto('${encodeURIComponent(c.tel)}','${encodeURIComponent(c.nome)}')">📲 WhatsApp</button>` : ''}
         <button class="btn btn-sm btn-secondary" onclick="abrirRetIAModal('${idSafe}','${encodeURIComponent(c.nome)}','${encodeURIComponent(prodLabel)}','${encodeURIComponent(c.tel||'')}','${c.estado}',${c.dias})">🤖 Msg IA</button>
@@ -16620,7 +17507,7 @@ function retWADireto(telEnc, nomeEnc) {
   const tel = decodeURIComponent(telEnc);
   const nome = decodeURIComponent(nomeEnc).split(' ')[0];
   const txt = `Olá ${nome}! 👋 Passei só para saber como estás com os teus patches. Está na altura de repor o teu pack mensal? 😊`;
-  window.open('https://wa.me/' + tel + '?text=' + encodeURIComponent(txt), '_blank');
+  window.location.href = 'https://wa.me/' + tel + '?text=' + encodeURIComponent(txt);
 }
 
 function abrirRetIAModal(idSafe, nomeEnc, prodEnc, telEnc, estado, dias) {
@@ -16679,7 +17566,7 @@ function enviarRetIAWhatsApp() {
   if (!_retIACliente?.tel) { showToast('⚠️ Sem número de telefone para este cliente'); return; }
   const msg = document.getElementById('ret-modal-ia-texto')?.textContent || '';
   if (!msg || msg.startsWith('⏳') || msg.startsWith('🤖')) { showToast('⏳ Aguarda a mensagem ser gerada'); return; }
-  window.open('https://wa.me/' + _retIACliente.tel + '?text=' + encodeURIComponent(msg), '_blank');
+  window.location.href = 'https://wa.me/' + _retIACliente.tel + '?text=' + encodeURIComponent(msg);
 }
 
 function copiarRetIAMensagem() {
@@ -16803,7 +17690,7 @@ function renderFollowUps() {
         </div>
         <div class="followup-item-days ${daysClass}">${daysLabel} sem contacto</div>
         <div class="followup-item-actions">
-          ${tel ? `<button class="btn btn-sm btn-wa-sm" onclick="abrirMensagem('${l.id}','whatsapp')" title="WhatsApp">💬</button>` : ''}
+          ${tel ? `<button class="btn btn-sm btn-wa-sm" onclick="abrirMensagemFollowUp('${l.id}')" title="Gerar mensagem de follow-up com IA e abrir WhatsApp">🤖💬</button>` : ''}
           <button class="btn btn-secondary btn-sm" onclick="verLead('${l.id}')" title="Ver lead">👁</button>
           <button class="btn-snooze" onclick="snoozeFollowUp('${l.id}',3)" title="Adiar 3 dias">⏸ 3d</button>
         </div>
@@ -17103,7 +17990,45 @@ function renderDigestDiario() {
     }
   }
 
-  if (itens.length === 0) {
+  // ── Lead do Dia ──────────────────────────────────
+  const ativos = leads.filter(l => l.estado !== 'cliente' && l.estado !== 'perdido' && l.estado !== 'frio');
+  let leadDiaHtml = '';
+  if (ativos.length > 0) {
+    const melhor = ativos
+      .map(l => ({ l, sc: calcularScore(l).score, dias: diasSemContacto(l) }))
+      .sort((a, b) => b.sc - a.sc)[0];
+    const { l, sc, dias } = melhor;
+    const tel = l.tel ? limparTelefone(l.tel) : '';
+
+    // Ação sugerida com base no estado
+    const acaoMap = {
+      novo:        { txt: '👋 Fazer o primeiro contacto', emoji: '👋' },
+      contactado:  { txt: '🌉 Enviar apresentação do produto', emoji: '🌉' },
+      interessado: { txt: '⚡ Marcar conversa ou apresentação', emoji: '⚡' },
+      negociacao:  { txt: '💰 Fechar a venda hoje', emoji: '💰' }
+    };
+    const acao = acaoMap[l.estado] || { txt: '📞 Entrar em contacto', emoji: '📞' };
+    const diasTxt = dias !== null ? `${dias}d sem contacto` : 'Novo';
+    const diasCor = dias === null ? 'var(--accent)' : dias >= 7 ? '#ff5555' : dias >= 3 ? '#f59e0b' : 'var(--accent)';
+
+    leadDiaHtml = `
+      <div style="background:linear-gradient(135deg,rgba(0,212,170,0.08),rgba(0,132,255,0.05));border:1px solid rgba(0,212,170,0.25);border-radius:12px;padding:12px 14px;margin-bottom:10px;">
+        <div style="font-size:10px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px;">🎯 Lead do Dia</div>
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
+          <div style="flex:1;min-width:0;">
+            <div style="font-size:15px;font-weight:800;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${l.nome}</div>
+            <div style="font-size:11px;color:var(--text2);margin-top:2px;">${estadoLabel(l.estado)} · ${(l.mercado||'').split(' ')[0]} · <span style="color:${diasCor};font-weight:700;">${diasTxt}</span></div>
+            <div style="font-size:12px;color:var(--text);margin-top:6px;font-weight:600;">${acao.txt}</div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:6px;flex-shrink:0;align-items:flex-end;">
+            <span style="font-size:13px;font-weight:800;color:${sc>=8?'#ff5555':sc>=6?'#ff9300':'#f5c842'};">${scoreEmoji(sc)} ${sc}/10</span>
+            ${tel ? `<button onclick="abrirMensagemFollowUp('${l.id}')" style="background:var(--accent);border:none;border-radius:8px;color:#000;font-size:12px;font-weight:700;padding:6px 12px;cursor:pointer;white-space:nowrap;">🤖💬 Agir</button>` : `<button onclick="verLead('${l.id}')" style="background:var(--surface3);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:12px;font-weight:600;padding:6px 12px;cursor:pointer;">👁 Ver</button>`}
+          </div>
+        </div>
+      </div>`;
+  }
+
+  if (itens.length === 0 && !leadDiaHtml) {
     card.style.display = 'none';
     return;
   }
@@ -17112,7 +18037,7 @@ function renderDigestDiario() {
   const hoje = new Date().toLocaleDateString('pt-PT', { weekday: 'long', day: 'numeric', month: 'long' });
   subEl.textContent = hoje.charAt(0).toUpperCase() + hoje.slice(1);
 
-  itensEl.innerHTML = itens.map(it => `
+  itensEl.innerHTML = leadDiaHtml + itens.map(it => `
     <div ${it.fn ? `onclick="${it.fn}" style="cursor:pointer;"` : ''} style="display:flex;align-items:center;gap:10px;padding:8px 10px;background:rgba(255,255,255,0.03);border-radius:10px;">
       <span style="font-size:16px;flex-shrink:0;">${it.icon}</span>
       <span style="font-size:13px;color:var(--text);flex:1;">${it.texto}</span>
@@ -19171,7 +20096,7 @@ function editarMembro(id) {
   openModal('modal-membro');
 }
 
-function abrirNovoModalMembro() {
+function abrirNovoModalMembro(preFill) {
   editingMembroId = null;
   _comprasMembroAtual = [];
   document.getElementById('modal-membro-title').textContent = '👤 Adicionar Membro da Equipa';
@@ -19185,6 +20110,14 @@ function abrirNovoModalMembro() {
   renderComprasMembroModal();
   atualizarCategoriaPreview();
   openModal('modal-membro');
+  // openModal() reseta os campos deste modal quando não está em edição —
+  // por isso o pré-preenchimento (vindo do Funil de Recrutamento) tem de
+  // ser feito DEPOIS, sobrepondo o reset (mesmo motivo de abrirNovaVenda).
+  if (preFill) {
+    if (preFill.nome) document.getElementById('mb-nome').value = preFill.nome;
+    if (preFill.tel)  document.getElementById('mb-tel').value  = preFill.tel;
+    if (preFill.notas) document.getElementById('mb-notas').value = preFill.notas;
+  }
 }
 
 function popularSelectProdutosMembro() {
@@ -19577,7 +20510,7 @@ function abrirWAMembro(id, tipoAlerta, extra) {
   const gerador = tipoAlerta && MSG_ALERTA_MEMBRO[tipoAlerta];
   const texto = gerador ? gerador(primeiroNome, extra) : '';
   const urlBase = `https://wa.me/${telParaWaMe(m.tel)}`;
-  window.open(texto ? urlBase + '?text=' + encodeURIComponent(texto) : urlBase, '_blank');
+  window.location.href = texto ? urlBase + '?text=' + encodeURIComponent(texto) : urlBase;
   m.historico = m.historico || [];
   m.historico.push({ tipo: 'mensagem', msg: '💬 WhatsApp aberto' + (tipoAlerta ? ' (' + tipoAlerta + ')' : ''), data: new Date().toLocaleString('pt-PT') });
   m.ultimoContacto = new Date().toISOString();
@@ -21648,7 +22581,7 @@ function renderChurnModule() {
 function churnMensagemWA(tel, nomeEncoded) {
   const nome = decodeURIComponent(nomeEncoded).split(' ')[0];
   const texto = `Olá ${nome}! 👋 Reparei que já não repões o teu patch há um tempinho — queres que te prepare já o próximo pedido para não ficares sem? 😊`;
-  window.open('https://wa.me/' + tel + '?text=' + encodeURIComponent(texto), '_blank');
+  window.location.href = 'https://wa.me/' + tel + '?text=' + encodeURIComponent(texto);
 }
 
 // ============================================================
@@ -22140,6 +23073,23 @@ function renderPrevisaoComissao() {
       <div style="font-size:11px;color:var(--text2);margin-top:4px;">O teu nome real (não username) — usado nos guiões e mensagens IA</div>
     </div>
 
+    <div class="form-group">
+      <label class="form-label">📧 Email LifeWave <span style="color:var(--danger);font-size:10px;margin-left:4px;">● Obrigatório</span></label>
+      <input class="form-input" id="perfil-email-lw" type="email" placeholder="Ex: miguel@gmail.com" required>
+      <div style="font-size:11px;color:var(--text2);margin-top:4px;">O email associado à tua conta LifeWave — usado para identificar faturas e sincronização</div>
+      <div id="perfil-email-aviso" style="display:none;font-size:11px;color:var(--danger);margin-top:4px;font-weight:600;">⚠️ Email obrigatório para importar faturas e sincronizar dados.</div>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label" style="display:flex;align-items:center;gap:6px;">💬 Telemóvel / WhatsApp</label>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <input class="form-input" id="perfil-telemovel" type="tel" placeholder="Ex: 351912345678" oninput="perfilAtualizarWhatsApp(this.value)" style="flex:1;">
+      </div>
+      <div style="font-size:11px;color:var(--text2);margin-top:4px;">Número com código de país sem espaços nem + (ex: 351912345678). O link WhatsApp é gerado automaticamente.</div>
+      <div id="perfil-wa-preview" style="display:none;margin-top:6px;font-size:11.5px;color:var(--accent);background:rgba(0,212,170,0.07);border:1px solid rgba(0,212,170,0.2);border-radius:8px;padding:6px 10px;"></div>
+      <input type="hidden" id="perfil-link-whatsapp">
+    </div>
+
     <div class="form-group" id="perfil-upline-group">
       <label class="form-label">👥 Upline (quem te convidou)</label>
       <div style="display:flex;gap:8px;align-items:center;">
@@ -22174,6 +23124,20 @@ function renderPrevisaoComissao() {
         <div style="font-size:11px;color:var(--text2);">Últimos 31 dias: <strong id="mc-soma" style="color:var(--accent);">0 PV</strong></div>
       </div>
       <div style="font-size:11px;color:var(--text2);margin-bottom:10px;">Regista aqui as tuas próprias compras LifeWave. Se configuraste a pasta partilhada acima, ficam visíveis automaticamente para o teu líder.</div>
+
+      <!-- ── IMPORTAR FATURA (preenche a lista de compras automaticamente) ── -->
+      <div style="background:rgba(0,212,170,0.06);border:1px dashed rgba(0,212,170,0.3);border-radius:10px;padding:10px 12px;margin-bottom:12px;">
+        <div style="font-size:11px;font-weight:700;color:var(--accent);margin-bottom:6px;letter-spacing:.4px;">📄 IMPORTAR FATURA</div>
+        <div style="font-size:11px;color:var(--text2);margin-bottom:8px;line-height:1.4;">Faz upload do PDF/foto da fatura LifeWave e a IA identifica os produtos e quantidades.</div>
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+          <input type="file" accept="application/pdf,image/*" id="mc-fatura-file" style="display:none;" onchange="mcImportarFatura(this)">
+          <button class="btn btn-secondary btn-sm" onclick="document.getElementById('mc-fatura-file').click()" style="flex-shrink:0;">📂 Escolher ficheiro</button>
+          <span id="mc-fatura-nome" style="font-size:10.5px;color:var(--text3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">Nenhum ficheiro escolhido</span>
+        </label>
+        <div id="mc-fatura-status" style="font-size:11px;color:var(--text2);margin-top:6px;min-height:14px;"></div>
+      </div>
+      <!-- ── FIM IMPORTAR FATURA ── -->
+
       <div style="display:flex;gap:8px;margin-bottom:10px;">
         <select class="form-select" id="mc-produto" style="flex:2;"></select>
         <input class="form-input" type="number" id="mc-qtd" value="1" min="1" style="flex:0 0 60px;" title="Quantidade">
@@ -22256,6 +23220,7 @@ function renderPrevisaoComissao() {
         <div class="form-group">
           <label class="form-label">Volume Pessoal (PV)</label>
           <input class="form-input" type="number" id="perfil-pv" placeholder="0" min="0" oninput="atualizarPerfilCategoriaPreview()">
+          <div id="perfil-pv-sugestao-compras" style="font-size:10.5px;color:var(--text2);margin-top:5px;"></div>
         </div>
         <div class="form-group">
           <label class="form-label">Volume Qualificado da Linha Descendente (QDV)</label>
@@ -22366,15 +23331,22 @@ function renderPrevisaoComissao() {
       <div class="form-group" style="margin-bottom:10px;">
         <label class="form-label" style="display:flex;align-items:center;gap:6px;">📸 Instagram</label>
         <input class="form-input" id="perfil-link-instagram" placeholder="https://instagram.com/o_teu_username" type="url">
+        <div style="font-size:10.5px;color:var(--text3);margin-top:3px;">Perfil pessoal Instagram</div>
+      </div>
+      <div class="form-group" style="margin-bottom:10px;">
+        <label class="form-label" style="font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;">📸 Página Instagram (Negócio)</label>
+        <input class="form-input" id="perfil-link-instagram-page" placeholder="https://instagram.com/o_teu_username_negocio" type="url">
+        <div style="font-size:10.5px;color:var(--text3);margin-top:3px;">Página de negócio separada (se tiveres)</div>
       </div>
       <div class="form-group" style="margin-bottom:10px;">
         <label class="form-label" style="display:flex;align-items:center;gap:6px;">📘 Facebook</label>
         <input class="form-input" id="perfil-link-facebook" placeholder="https://facebook.com/o_teu_perfil" type="url">
+        <div style="font-size:10.5px;color:var(--text3);margin-top:3px;">Perfil pessoal Facebook</div>
       </div>
       <div class="form-group" style="margin-bottom:10px;">
-        <label class="form-label" style="display:flex;align-items:center;gap:6px;">💬 WhatsApp (link direto)</label>
-        <input class="form-input" id="perfil-link-whatsapp" placeholder="https://wa.me/351912345678" type="url">
-        <div style="font-size:10.5px;color:var(--text3);margin-top:3px;">Formato: wa.me/[código país][número] — ex: wa.me/351912345678</div>
+        <label class="form-label" style="font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;">📘 Página Facebook (Negócio)</label>
+        <input class="form-input" id="perfil-link-facebook-page" placeholder="https://facebook.com/a_tua_pagina_negocio" type="url">
+        <div style="font-size:10.5px;color:var(--text3);margin-top:3px;">Página de negócio separada (se tiveres)</div>
       </div>
       <div class="form-group" style="margin-bottom:10px;">
         <label class="form-label" style="display:flex;align-items:center;gap:6px;">▶️ YouTube</label>
@@ -24277,7 +25249,7 @@ function formacaoEnviarPlanoMembro(id, nome, tel) {
   const msg = `Olá ${nome}! 🎉\n\nBem-vindo(a) à equipa LifeWave! Aqui está o teu Plano dos Primeiros 30 Dias:\n\n🗓️ *SEMANA 1 - Arranque:*\n${semana1}\n\nUsa a app CRM para acompanhar o teu progresso. Qualquer dúvida, conta comigo! 💪`;
   const telLimpo = telParaWaMe(tel);
   if (telLimpo) {
-    window.open(`https://wa.me/${telLimpo}?text=${encodeURIComponent(msg)}`, '_blank');
+    window.location.href = `https://wa.me/${telLimpo}?text=${encodeURIComponent(msg)}`;
   } else {
     copiarTextoSeguro(msg, '');
     showToast('📋 Mensagem copiada! (sem nº de telefone para abrir WhatsApp)');
@@ -24382,6 +25354,17 @@ function formacaoGuardarPlanoIA() {
 // =====================================================
 // MINI-CRM — VISÃO DO LÍDER
 // =====================================================
+
+function _etabUpdateFade() {
+  const scroller = document.getElementById('etab-tabs-scroll');
+  const fadeRight = document.getElementById('etab-fade-right');
+  const fadeLeft  = document.getElementById('etab-fade-left');
+  if (!scroller || !fadeRight || !fadeLeft) return;
+  const maxScroll = scroller.scrollWidth - scroller.clientWidth;
+  fadeLeft.style.display  = scroller.scrollLeft > 4 ? 'block' : 'none';
+  fadeRight.style.display = scroller.scrollLeft < maxScroll - 4 ? 'block' : 'none';
+}
+window.addEventListener('resize', () => { if (document.getElementById('page-equipa')?.classList.contains('active')) _etabUpdateFade(); });
 
 function equipaTab(tab) {
   const tabs = ['ranking','minicrm','arvore','leaderboard','desafios'];
@@ -24781,7 +25764,7 @@ Responde APENAS com o texto da mensagem, em Português de Portugal.`;
         setTimeout(() => {
           if (confirm('Abrir WhatsApp com ' + m.nome + '?')) {
             const tel = telParaWaMe(m.tel);
-            window.open('https://wa.me/' + tel + '?text=' + encodeURIComponent(resposta), '_blank');
+            window.location.href = 'https://wa.me/' + tel + '?text=' + encodeURIComponent(resposta);
           }
         }, 500);
       }
@@ -26999,12 +27982,14 @@ async function pvImportarFatura(input) {
 
   const prompt = `Analisa esta fatura LifeWave e extrai APENAS os seguintes dados em JSON puro (sem markdown, sem blocos de código):
 {
+  "numeroFatura": "<número da fatura, ex: 18593095>",
   "pv": <número total de Volume Points (QV) da encomenda, ou 0 se não encontrado>,
   "total": <valor total pago em euros, número>,
   "data": "<data da encomenda no formato YYYY-MM-DD>",
   "produtos": "<lista resumida dos produtos, ex: X39 Patches x3, Core Upgrade>"
 }
 Regras:
+- "numeroFatura" é o número/ID da fatura que aparece no cabeçalho (ex: "Fatura #18593095" → "18593095").
 - "pv" é a soma dos valores na coluna "Volume cada" multiplicados pela quantidade, ou o campo QV/PV se existir na fatura.
 - Se não encontrares QV/PV, coloca 0.
 - Responde APENAS com o JSON, sem mais texto.`;
@@ -27030,6 +28015,31 @@ Regras:
 
     if (!dados) throw new Error('Não foi possível extrair dados da fatura.');
 
+    // ── Verificar duplicado pelo número de fatura ──────────
+    const numFatura = String(dados.numeroFatura || '').trim();
+    if (numFatura) {
+      const fatKey = getUserStorageKey ? getUserStorageKey('lw_faturas_importadas') : 'lw_faturas_importadas';
+      let faturasImportadas = [];
+      try { faturasImportadas = JSON.parse(localStorage.getItem(fatKey) || '[]'); } catch(e) {}
+
+      if (faturasImportadas.includes(numFatura)) {
+        if (statusEl) statusEl.innerHTML = `⚠️ <strong>Fatura #${numFatura} já foi importada anteriormente!</strong> Verifica se não estás a duplicar o registo.`;
+        // Mostrar aviso mas deixar o utilizador decidir
+        const pvVal = parseFloat(dados.pv) || 0;
+        const pvInp = document.getElementById('pv-input-pv');
+        if (pvInp && pvVal > 0) pvInp.value = pvVal;
+        let nota = numFatura ? `Fatura #${numFatura}` : '';
+        if (dados.data)    nota += (nota ? ' · ' : '') + dados.data;
+        if (dados.total)   nota += (nota ? ' · ' : '') + `Total: ${dados.total}€`;
+        if (dados.produtos) nota += (nota ? ' · ' : '') + dados.produtos;
+        nota += ' ⚠️ DUPLICADO';
+        const notasInp = document.getElementById('pv-input-notas');
+        if (nota && notasInp && !notasInp.value) notasInp.value = nota;
+        input.value = '';
+        return;
+      }
+    }
+
     // Preenche os campos
     const pvVal = parseFloat(dados.pv) || 0;
     const pvInp = document.getElementById('pv-input-pv');
@@ -27037,17 +28047,32 @@ Regras:
 
     if (pvInp && pvVal > 0) pvInp.value = pvVal;
 
-    // Monta nota automática
+    // Monta nota automática com número de fatura
     let nota = '';
-    if (dados.data) nota += `Fatura ${dados.data}`;
+    if (dados.numeroFatura) nota += `Fatura #${dados.numeroFatura}`;
+    if (dados.data) nota += (nota ? ' · ' : '') + `${dados.data}`;
     if (dados.total) nota += (nota ? ' · ' : '') + `Total: ${dados.total}€`;
     if (dados.produtos) nota += (nota ? ' · ' : '') + dados.produtos;
     if (nota && notasInp && !notasInp.value) notasInp.value = nota;
+
+    // Registar fatura como importada para evitar duplicados futuros
+    if (numFatura) {
+      const fatKey = getUserStorageKey ? getUserStorageKey('lw_faturas_importadas') : 'lw_faturas_importadas';
+      let faturasImportadas = [];
+      try { faturasImportadas = JSON.parse(localStorage.getItem(fatKey) || '[]'); } catch(e) {}
+      if (!faturasImportadas.includes(numFatura)) {
+        faturasImportadas.push(numFatura);
+        // Manter só as últimas 100 faturas
+        if (faturasImportadas.length > 100) faturasImportadas = faturasImportadas.slice(-100);
+        try { localStorage.setItem(fatKey, JSON.stringify(faturasImportadas)); } catch(e) {}
+      }
+    }
 
     // Feedback
     let msg = pvVal > 0
       ? `✅ PV detectado: <strong>${pvVal}</strong>`
       : '⚠️ PV não encontrado na fatura (preenchido como 0)';
+    if (dados.numeroFatura) msg = `📄 Fatura <strong>#${dados.numeroFatura}</strong> · ` + msg;
     if (dados.total) msg += ` · Total: <strong>${dados.total}€</strong>`;
     if (statusEl) statusEl.innerHTML = msg;
 
@@ -27651,7 +28676,7 @@ function obRenderLista() {
           <div style="font-size:11px;color:${ativo?'var(--accent2)':'var(--accent)'};font-weight:600;">${ativo?'Dia '+diaN+' de 7':'✅ Onboarding completo'}</div>
         </div>
         <div style="display:flex;gap:5px;flex-shrink:0;">
-          ${d.tel?`<a href="https://wa.me/${d.tel.replace(/\D/g,'')}" target="_blank" class="btn btn-secondary btn-sm" style="padding:5px 9px;">💬</a>`:''}
+          ${d.tel?`<button class="btn btn-secondary btn-sm" style="padding:5px 9px;" onclick="obMensagemWA(${i})" title="WhatsApp">💬</button>`:''}
           <button class="btn btn-danger btn-sm" onclick="obRemoverDist(${i})" style="padding:5px 9px;">🗑️</button>
         </div>
       </div>
@@ -27677,6 +28702,25 @@ function obRenderLista() {
 function obProxTarefa(d) {
   for (const dia of OB_DIAS) for (const t of dia.tarefas) if (!d.check?.[t.id]) return t.icon+' '+t.texto;
   return '🎉 Todas as tarefas concluídas!';
+}
+
+function obMensagemWA(idx) {
+  const d = _obDist[idx];
+  if (!d || !d.tel) return;
+  const telLimpo = telParaWaMe(d.tel);
+  if (!telLimpo) { showToast('❌ Telefone inválido para WhatsApp'); return; }
+
+  const primeiroNome = (d.nome || '').split(' ')[0] || d.nome;
+  const dias = Math.floor((Date.now() - new Date(d.data).getTime()) / 864e5);
+  const diaN = Math.min(dias + 1, 7);
+  const prox = obProxTarefa(d);
+  const completo = prox.startsWith('🎉');
+
+  const texto = completo
+    ? `Olá ${primeiroNome}! 🎉 Completaste os primeiros 7 dias na equipa LifeWave! Como te sentes? Vamos falar sobre os próximos passos para continuares a crescer no negócio. 💪`
+    : `Olá ${primeiroNome}! 👋 Estás no dia ${diaN} de 7 da tua jornada de arranque na LifeWave.\n\nA próxima tarefa é: ${prox}\n\nComo está a correr? Estou aqui para te ajudar em qualquer dúvida! 💚`;
+
+  window.location.href = `https://wa.me/${telLimpo}?text=${encodeURIComponent(texto)}`;
 }
 
 // ── Render: Checklist global ──────────────────────────────
@@ -28596,17 +29640,21 @@ function renderDashQualifRT() {
   if (!el) return;
 
   // Dados do perfil (calculadora principal)
-  const p = (typeof perfil !== 'undefined' && perfil) ? perfil : {};
+  const p = (typeof getUserPerfil === 'function') ? getUserPerfil() : {};
   const pvPerfil  = parseFloat(p.pv)   || 0;
   const qdvPerfil = parseFloat(p.qdv)  || 0;
-  const secL = parseFloat(p.secL) || 0;
-  const secR = parseFloat(p.secR) || 0;
-  const olxl = parseFloat(p.olxl) || 0;
+  const secLPerfil = parseFloat(p.secL) || 0;
+  const secRPerfil = parseFloat(p.secR) || 0;
+  const olxlPerfil = parseFloat(p.olxl) || 0;
 
-  // Dados do checklist semanal (mais recentes se existirem)
+  // Dados do checklist semanal (mais recentes se existirem) — usados como
+  // override quando preenchidos, com o Perfil como fallback em cada campo.
   const chk = (typeof chkGetVolumes === 'function') ? chkGetVolumes() : null;
-  const pv  = chk ? (chk.pv  || pvPerfil)  : pvPerfil;
-  const qdv = chk ? (chk.qdv || qdvPerfil) : qdvPerfil;
+  const pv   = chk ? (chk.pv   || pvPerfil)   : pvPerfil;
+  const qdv  = chk ? (chk.qdv  || qdvPerfil)  : qdvPerfil;
+  const secL = chk ? (chk.secL || secLPerfil) : secLPerfil;
+  const secR = chk ? (chk.secR || secRPerfil) : secRPerfil;
+  const olxl = chk ? (chk.olxl || olxlPerfil) : olxlPerfil;
 
   // Sem nenhum dado — convite simples
   if (pv === 0 && qdv === 0) {
@@ -28642,13 +29690,13 @@ function renderDashQualifRT() {
   const corDias = urgenciaMes === 'critico' ? '#ff4444' : urgenciaMes === 'alerta' ? '#f5c842' : 'var(--accent)';
 
   // Membros da equipa (downline qualificados)
-  const membros = (typeof equipaData !== 'undefined' && Array.isArray(equipaData)) ? equipaData : [];
-  const membrosQualif = membros.filter(m => {
+  const membrosLista = (typeof membros !== 'undefined' && Array.isArray(membros)) ? membros : [];
+  const membrosQualif = membrosLista.filter(m => {
     if (!m.pv) return false;
     const pvM = parseFloat(m.pv) || 0;
     return pvM >= 55; // Active BP ou superior
   }).length;
-  const totalMembros = membros.length;
+  const totalMembros = membrosLista.length;
 
   // Barras de progresso
   const mkBarra = (label, atual, meta) => {
@@ -28696,7 +29744,7 @@ function renderDashQualifRT() {
   el.style.display = 'block';
   el.innerHTML = `
     <div style="background:var(--surface);border:1px solid rgba(0,132,255,0.2);border-radius:14px;padding:16px 18px;">
-      <!-- Cabeçalho -->
+      <!-- Cabe?alho -->
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px;">
         <div>
           <div style="font-size:13px;font-weight:700;color:var(--text);">🎯 Qualificação — ${new Date().toLocaleString('pt-PT',{month:'long',year:'numeric'})}</div>
@@ -28728,7 +29776,7 @@ function renderDashQualifRT() {
         </div>
       </div>` : ''}
 
-      <!-- Acções rápidas -->
+      <!-- Ac??es r?pidas -->
       <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;">
         <button class="btn btn-secondary btn-sm" onclick="event.stopPropagation();abrirModalChkVolumes()">✏️ Atualizar Volumes</button>
         <button class="btn btn-secondary btn-sm" onclick="event.stopPropagation();goTo('checklist')">📋 Ver Checklist</button>
@@ -30018,6 +31066,26 @@ function mostrarMsgFunil(lead, novoEstado) {
   document.getElementById('msg-funil-subtitulo').textContent = cfg.subtitulo;
   document.getElementById('msg-funil-texto').value = texto;
 
+  // Indicador de telefone
+  const telInfoEl = document.getElementById('msg-funil-tel-info');
+  if (telInfoEl) {
+    const telRaw = lead.tel || '';
+    const telLimpo = telRaw ? telParaWaMe(telRaw) : '';
+    if (telLimpo) {
+      telInfoEl.style.display = 'block';
+      telInfoEl.style.background = 'rgba(0,212,170,0.08)';
+      telInfoEl.style.border = '1px solid rgba(0,212,170,0.25)';
+      telInfoEl.style.color = 'var(--accent)';
+      telInfoEl.innerHTML = '📱 Vai abrir conversa com <b>' + lead.nome + '</b> · +' + telLimpo;
+    } else {
+      telInfoEl.style.display = 'block';
+      telInfoEl.style.background = 'rgba(255,107,53,0.08)';
+      telInfoEl.style.border = '1px solid rgba(255,107,53,0.25)';
+      telInfoEl.style.color = 'var(--accent3)';
+      telInfoEl.innerHTML = '⚠️ <b>' + lead.nome + '</b> não tem telefone — o WhatsApp vai abrir sem contacto. <span onclick="closeModal(\'modal-msg-funil\');editarLead(\'' + lead.id + '\')" style="text-decoration:underline;cursor:pointer;">Adicionar número →</span>';
+    }
+  }
+
   // Pequeno delay para não colidir com outros modais que fecharam
   setTimeout(() => {
     document.getElementById('modal-msg-funil').classList.add('open');
@@ -30043,14 +31111,42 @@ function msgFunilCopiar() {
 function msgFunilEnviarWA() {
   const txt = document.getElementById('msg-funil-texto').value;
   if (!txt) return;
-  // Tenta pré-preencher com o telefone do lead se existir
-  const tel = _msgFunilLead?.telefone?.replace(/\D/g,'') || '';
+
+  const tel = _msgFunilLead?.tel ? telParaWaMe(_msgFunilLead.tel) : '';
   const encoded = encodeURIComponent(txt);
-  const url = tel
-    ? `https://wa.me/${tel}?text=${encoded}`
-    : `https://wa.me/?text=${encoded}`;
-  window.open(url, '_blank');
+
+  if (!tel) {
+    // Sem telefone — não abre WA às cegas, pede para adicionar número
+    if (confirm('⚠️ ' + (_msgFunilLead?.nome || 'Este lead') + ' não tem número de telefone.\n\nQueres adicionar agora para poder enviar direto para o WhatsApp?')) {
+      closeModal('modal-msg-funil');
+      if (_msgFunilLead?.id && typeof editarLead === 'function') editarLead(_msgFunilLead.id);
+    }
+    return;
+  }
+
+  const url = `https://wa.me/${tel}?text=${encoded}`;
+
+  // Tenta window.open primeiro (preserva o estado da app local)
+  // Se bloqueado pelo browser, cai para location.href como fallback
+  const waWin = window.open(url, '_blank');
+  if (!waWin || waWin.closed || typeof waWin.closed === 'undefined') {
+    window.location.href = url;
+  }
+
+  // Registar contacto no histórico do lead
+  if (_msgFunilLead && typeof saveleads === 'function') {
+    _msgFunilLead.historico = _msgFunilLead.historico || [];
+    _msgFunilLead.historico.push({
+      tipo: 'mensagem',
+      msg: '💬 WhatsApp enviado via Funil: "' + txt.slice(0, 60) + (txt.length > 60 ? '…' : '') + '"',
+      data: new Date().toLocaleString('pt-PT')
+    });
+    _msgFunilLead.ultimoContacto = new Date().toISOString();
+    saveleads();
+  }
+
   closeModal('modal-msg-funil');
+  showToast('💬 A abrir WhatsApp com ' + (tel ? tel : '') + '...');
 }
 
 
@@ -30215,9 +31311,9 @@ function enviarWhatsAppParaLead(leadId, texto) {
   const textoFinal = substituirVariaveisWAI(texto, l);
   if (l && l.tel) {
     const telLimpo = telParaWaMe(l.tel);
-    window.open(`https://wa.me/${telLimpo}?text=${encodeURIComponent(textoFinal)}`, '_blank');
+    window.location.href = `https://wa.me/${telLimpo}?text=${encodeURIComponent(textoFinal)}`;
   } else {
-    window.open(`https://wa.me/?text=${encodeURIComponent(textoFinal)}`, '_blank');
+    window.location.href = `https://wa.me/?text=${encodeURIComponent(textoFinal)}`;
   }
 }
 
@@ -30273,9 +31369,9 @@ function selecionarLeadParaWA(leadId) {
   fecharSeletorWA();
   if (l && l.tel) {
     const telLimpo = telParaWaMe(l.tel);
-    window.open(`https://wa.me/${telLimpo}?text=${encodeURIComponent(textoFinal)}`, '_blank');
+    window.location.href = `https://wa.me/${telLimpo}?text=${encodeURIComponent(textoFinal)}`;
   } else {
-    window.open(`https://wa.me/?text=${encodeURIComponent(textoFinal)}`, '_blank');
+    window.location.href = `https://wa.me/?text=${encodeURIComponent(textoFinal)}`;
     if (l) showToast('ℹ️ ' + l.nome + ' não tem número guardado — escolhe o contacto no WhatsApp');
   }
 }
@@ -31157,10 +32253,12 @@ function escapeHtml(str) {
 // ANALISE DE CONVERSA IA - LifeWave CRM v32
 var _acImagemB64 = null;
 var _acInputTab = 'texto';
+var _acFicheiroTxtConteudo = null; // texto carregado do .txt exportado do WhatsApp
+var _acFicheiroMetaDados = null;   // { nomeContacto, tel } extraídos do ficheiro/zip
 
 function acInputTab(tab) {
   _acInputTab = tab;
-  ['texto','imagem'].forEach(function(t) {
+  ['texto','imagem','ficheiro'].forEach(function(t) {
     var p = document.getElementById('ac-input-'+t);
     var b = document.getElementById('ac-input-btn-'+t);
     if (p) p.style.display = t===tab ? 'block' : 'none';
@@ -31170,6 +32268,132 @@ function acInputTab(tab) {
       b.style.fontWeight = t===tab ? '700' : '600';
     }
   });
+  // Quando muda para ficheiro, garante que o canal fica WhatsApp por defeito
+  if (tab === 'ficheiro') {
+    var pills = document.querySelectorAll('#ac-plat-pills .pill');
+    pills.forEach(function(p) {
+      var isWA = p.getAttribute('onclick') && p.getAttribute('onclick').indexOf('whatsapp') !== -1;
+      p.classList.toggle('active', isWA);
+    });
+    var platInp = document.getElementById('ac-plataforma');
+    if (platInp) platInp.value = 'whatsapp';
+  }
+}
+
+function acHandleFicheiroTxt(input) {
+  var file = input.files[0];
+  if (!file) return;
+
+  var isZip = file.name.toLowerCase().endsWith('.zip') || file.type === 'application/zip';
+
+  // Opção A: extrai número do nome do ficheiro zip
+  // Ex: "WhatsApp Chat with +351912345678.zip"
+  function extrairTelDoNomeFicheiro(nome) {
+    var m = nome.match(/(\+?\d[\d\s\-]{7,}\d)/);
+    if (m) return m[1].replace(/[\s\-]/g, '');
+    return '';
+  }
+  var telDoFicheiro = isZip ? extrairTelDoNomeFicheiro(file.name) : '';
+
+  function processarTexto(raw, nomeOrigem) {
+    _acFicheiroTxtConteudo = raw;
+
+    var linhas = raw.split('\n');
+    var nMsgs = linhas.filter(function(l) { return /^\d{1,2}\/\d{1,2}\/\d{2,4}/.test(l.trim()); }).length;
+
+    // Extrair os dois remetentes únicos
+    var remetentes = [];
+    for (var i = 0; i < linhas.length; i++) {
+      var m = linhas[i].match(/^\d{1,2}\/\d{1,2}\/\d{2,4},?\s*\d{1,2}:\d{2}(?::\d{2})?(?:\s*[AP]M)?\s*[-–]\s*(.+?):/);
+      if (m) {
+        var r = m[1].trim();
+        if (r.length > 0 && r.length < 60 && remetentes.indexOf(r) === -1) remetentes.push(r);
+        if (remetentes.length >= 2) break;
+      }
+    }
+
+    // Identifica qual remetente é o contacto (não o utilizador)
+    var nomeContacto = '';
+    if (remetentes.length === 1) {
+      nomeContacto = remetentes[0];
+    } else if (remetentes.length >= 2) {
+      var perfil = {};
+      try { perfil = JSON.parse(localStorage.getItem(getUserStorageKey('lw_perfil')) || '{}'); } catch(x){}
+      var meuNome = (perfil.nomeDisplay || perfil.nome || '').trim().toLowerCase();
+      if (meuNome) {
+        nomeContacto = remetentes[0].toLowerCase().includes(meuNome.split(' ')[0]) ? remetentes[1] : remetentes[0];
+      } else {
+        nomeContacto = remetentes[1];
+      }
+    }
+
+    // Guarda metadados para usar em acGuardarNoLead (Opção A + B)
+    _acFicheiroMetaDados = { nomeContacto: nomeContacto, tel: telDoFicheiro };
+
+    var placeholder = document.getElementById('ac-txt-placeholder');
+    var loaded = document.getElementById('ac-txt-loaded');
+    var fname = document.getElementById('ac-txt-filename');
+    var finfo = document.getElementById('ac-txt-info');
+    var rem = document.getElementById('ac-txt-remove');
+    if (placeholder) placeholder.style.display = 'none';
+    if (loaded) loaded.style.display = 'block';
+    if (fname) fname.textContent = nomeOrigem;
+
+    var infoTxt = nMsgs + ' mensagens';
+    if (nomeContacto) infoTxt += ' · ' + nomeContacto;
+    else infoTxt += ' · Contacto não identificado';
+    if (telDoFicheiro) infoTxt += ' · 📱 ' + telDoFicheiro;
+    if (finfo) finfo.textContent = infoTxt;
+    if (rem) rem.style.display = 'block';
+
+    // Pré-preenche campo de contexto
+    var ctx = document.getElementById('ac-contexto-ficheiro');
+    if (ctx && !ctx.value) {
+      var ctxVal = nomeContacto ? 'Contacto: ' + nomeContacto : '';
+      if (telDoFicheiro) ctxVal += (ctxVal ? ' · ' : '') + 'Tel: ' + telDoFicheiro;
+      if (ctxVal) ctx.value = ctxVal;
+    }
+
+    showToast('✅ Conversa carregada — ' + nMsgs + ' mensagens');
+  }
+
+  if (isZip) {
+    var reader = new FileReader();
+    reader.onload = function(e) {
+      JSZip.loadAsync(e.target.result).then(function(zip) {
+        var txtFile = null;
+        zip.forEach(function(path, zipEntry) {
+          if (!txtFile && path.toLowerCase().endsWith('.txt') && !zipEntry.dir) txtFile = zipEntry;
+        });
+        if (!txtFile) { showToast('❌ Não foi encontrado ficheiro .txt dentro do zip.'); return; }
+        txtFile.async('string').then(function(conteudo) {
+          processarTexto(conteudo, txtFile.name);
+        }).catch(function() { showToast('❌ Erro ao ler o ficheiro dentro do zip.'); });
+      }).catch(function() { showToast('❌ Erro ao abrir o zip. Tenta novamente.'); });
+    };
+    reader.onerror = function() { showToast('❌ Erro ao ler o ficheiro.'); };
+    reader.readAsArrayBuffer(file);
+  } else {
+    var reader2 = new FileReader();
+    reader2.onload = function(e) { processarTexto(e.target.result, file.name); };
+    reader2.onerror = function() { showToast('❌ Erro ao ler o ficheiro.'); };
+    reader2.readAsText(file, 'UTF-8');
+  }
+}
+
+function acRemoverFicheiroTxt() {
+  _acFicheiroTxtConteudo = null;
+  _acFicheiroMetaDados = null;
+  var placeholder = document.getElementById('ac-txt-placeholder');
+  var loaded = document.getElementById('ac-txt-loaded');
+  var rem = document.getElementById('ac-txt-remove');
+  var inp = document.getElementById('ac-file-txt');
+  var ctx = document.getElementById('ac-contexto-ficheiro');
+  if (placeholder) placeholder.style.display = 'block';
+  if (loaded) loaded.style.display = 'none';
+  if (rem) rem.style.display = 'none';
+  if (inp) inp.value = '';
+  if (ctx) ctx.value = '';
 }
 
 function acHandleImagem(input) {
@@ -31221,14 +32445,17 @@ async function acAnalisar() {
     var claudeKey = localStorage.getItem(uk('lw_claudeKey')) || localStorage.getItem('lw_claudeKey') || '';
 
     var isImg = (!!_acImagemB64);
+    var isFicheiro = (_acInputTab === 'ficheiro');
     var texto = '';
     try { texto = (document.getElementById('ac-texto').value || '').trim(); } catch(x){}
+    // Se tab "ficheiro", usa o conteúdo do .txt carregado
+    if (isFicheiro && _acFicheiroTxtConteudo) texto = _acFicheiroTxtConteudo.trim();
     var ctx = '';
-    try { ctx = (document.getElementById(isImg ? 'ac-contexto-imagem' : 'ac-contexto-texto').value || '').trim(); } catch(x){}
+    try { ctx = (document.getElementById(isImg ? 'ac-contexto-imagem' : isFicheiro ? 'ac-contexto-ficheiro' : 'ac-contexto-texto').value || '').trim(); } catch(x){}
     var plat = 'whatsapp';
     try { plat = document.getElementById('ac-plataforma').value || 'whatsapp'; } catch(x){}
 
-    if (!isImg && !texto) { acErr('Cola o texto ou faz upload de screenshot.'); return; }
+    if (!isImg && !texto) { acErr(isFicheiro ? 'Faz upload de um ficheiro .txt do WhatsApp primeiro.' : 'Cola o texto ou faz upload de screenshot.'); return; }
 
     var temChave = isImg
       ? !!(geminiKey || claudeKey || grokKey || mistralKey || openrouterKey)
@@ -31266,7 +32493,7 @@ async function acAnalisar() {
       + ' 2) Write the field "proxima_mensagem" EXCLUSIVELY in that detected language — never translate it to another language.'
       + ' 3) Write ALL other JSON fields (resumo, objecoes, pontos_positivos, erros_cometidos, proximo_passo, dica_extra) in ' + uiLangName + '.'
       + ' 4) Also extract the contact/prospect name if visible (e.g. chat header name in a screenshot, or a name mentioned in the pasted text). If no name is identifiable, return an empty string.'
-      + ' Respond ONLY in valid JSON with this exact structure: {"nome_detectado":"Maria Silva","sentimento":"positivo","fase":"interesse","resumo":"texto","objecoes":["obj1"],"pontos_positivos":["p1"],"erros_cometidos":["e1"],"proxima_mensagem":"msg exacta no idioma do prospecto","proximo_passo":"accao","probabilidade_conversao":60,"dica_extra":"dica","idioma_prospecto":"fr"}';
+      + ' 5) If a phone number or email address is visible in the conversation (e.g. shared by the prospect), extract it; otherwise return empty string. Respond ONLY in valid JSON with this exact structure: {"nome_detectado":"Maria Silva","tel_detectado":"+351912345678","email_detectado":"maria@email.com","sentimento":"positivo","fase":"interesse","resumo":"texto","objecoes":["obj1"],"pontos_positivos":["p1"],"erros_cometidos":["e1"],"proxima_mensagem":"msg exacta no idioma do prospecto","proximo_passo":"accao","probabilidade_conversao":60,"dica_extra":"dica","idioma_prospecto":"fr"}';
     var promptText = sys + '\n\nTemperatura do lead: ' + acTemp + '. Analisa esta conversa de ' + platLabel + (isImg ? '. Vê a imagem.' : ':\n\n' + texto) + (ctx ? '\n\nContexto: ' + ctx : '') + '\n\nResponde APENAS com JSON valido.';
 
     // Sistema central de fallback automático — cobre texto e imagem,
@@ -31421,9 +32648,14 @@ function acMostrarResultado(r) {
         ? '<div style="font-size:12px;color:var(--text2);margin-bottom:10px;">Nome detetado na conversa: <strong style="color:var(--text);">' + nomeDetectado + '</strong></div>'
         : '<div style="font-size:12px;color:var(--text2);margin-bottom:10px;">Não foi possível detetar um nome automaticamente — escolhe ou cria o lead manualmente.</div>')
     + '<input class="form-input" id="ac-lead-nome" placeholder="Nome do lead" value="' + nomeDetectado.replace(/"/g,'&quot;') + '" style="margin-bottom:8px;">'
-    + '<select class="form-select" id="ac-lead-existente" style="margin-bottom:10px;" onchange="acOnLeadExistenteChange()">'
+    + '<select class="form-select" id="ac-lead-existente" style="margin-bottom:8px;" onchange="acOnLeadExistenteChange()">'
     + '<option value="">+ Criar novo lead com este nome</option>'
     + '</select>'
+    + (function() {
+        // Opção B: campo de telemóvel manual (pré-preenchido se o zip tinha número)
+        var telPre = (_acFicheiroMetaDados && _acFicheiroMetaDados.tel) ? _acFicheiroMetaDados.tel : (r.tel_detectado || '');
+        return '<input class="form-input" id="ac-lead-tel" placeholder="📱 Telemóvel (opcional)" value="' + telPre.replace(/"/g,'&quot;') + '" style="margin-bottom:10px;">';
+      })()
     + '<input type="hidden" id="ac-estado-sugerido" value="' + estadoSugerido + '">'
     + estadoSugestaoHtml
     + '<button class="btn btn-primary btn-sm" style="width:100%;justify-content:center;" onclick="acGuardarNoLead()" id="ac-btn-guardar-lead">💾 Guardar análise no Lead</button>'
@@ -31435,8 +32667,32 @@ function acMostrarResultado(r) {
     + '<div style="display:flex;align-items:center;gap:10px;"><span style="font-size:28px;">' + (sIcon[sent]||'😐') + '</span><div><div style="font-size:11px;color:var(--text2);margin-bottom:2px;">Sentimento</div><div style="font-size:14px;font-weight:700;color:' + (sCor[sent]||'var(--text)') + ';">' + sent.replace('_',' ') + '</div></div></div>'
     + '<div style="text-align:right;"><div style="font-size:11px;color:var(--text2);margin-bottom:2px;">Fase</div><div style="font-size:13px;font-weight:700;color:var(--text);">' + (fLbl[fase]||fase) + '</div></div></div>'
     + '<div style="font-size:12.5px;color:var(--text2);line-height:1.6;margin-bottom:12px;">' + (r.resumo||'') + '</div>'
-    + '<div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text2);margin-bottom:5px;"><span>Probabilidade de conversao</span><span style="font-weight:700;color:' + probCor + ';">' + prob + '%</span></div>'
-    + '<div style="background:var(--surface3);border-radius:20px;height:7px;overflow:hidden;"><div style="width:' + prob + '%;height:100%;background:' + probCor + ';border-radius:20px;transition:width .5s;"></div></div></div>'
+    + (function() {
+        var probLabel = prob >= 80 ? '🔥 Muito provável fechar' : prob >= 60 ? '✅ Boas hipóteses' : prob >= 40 ? '⚠️ Incerto — precisa de trabalho' : '❌ Pouco provável agora';
+        var svgR = 26, svgC = 32, svgStroke = 6;
+        var circ = 2 * Math.PI * svgR;
+        var offset = circ - (prob / 100) * circ;
+        var svgGauge = '<svg width="64" height="64" style="transform:rotate(-90deg);flex-shrink:0;">'
+          + '<circle cx="32" cy="32" r="26" fill="none" stroke="var(--surface3)" stroke-width="6"/>'
+          + '<circle cx="32" cy="32" r="26" fill="none" stroke="' + probCor + '" stroke-width="6" stroke-dasharray="' + circ.toFixed(1) + '" stroke-dashoffset="' + offset.toFixed(1) + '" stroke-linecap="round" style="transition:stroke-dashoffset .6s;"/>'
+          + '</svg>';
+        var moveBtn = estadoSugerido && estadoSugerido !== estadoAtualPre
+          ? '<button class=\"btn btn-primary btn-sm\" style=\"margin-top:10px;width:100%;justify-content:center;\" onclick=\"var cb=document.getElementById(\'ac-lead-mudar-estado\');if(cb)cb.checked=true;var gb=document.getElementById(\'ac-btn-guardar-lead\');if(gb)gb.click();\">⚡ Mover para ' + estadoLabel(estadoSugerido) + '</button>'
+          : '';
+        return '<div style=\"margin-bottom:0;\"></div>'
+          + '<div style=\"background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:14px;display:flex;align-items:center;gap:14px;\">'
+          + '<div style=\"position:relative;display:flex;align-items:center;justify-content:center;flex-shrink:0;\">'
+          + svgGauge
+          + '<div style=\"position:absolute;text-align:center;\">'
+          + '<div style=\"font-size:14px;font-weight:800;font-family:Syne,sans-serif;color:' + probCor + ';\">' + prob + '%</div>'
+          + '</div></div>'
+          + '<div style=\"flex:1;min-width:0;\">'
+          + '<div style=\"font-size:11px;color:var(--text2);margin-bottom:2px;\">Probabilidade de Fecho</div>'
+          + '<div style=\"font-size:13px;font-weight:700;color:' + probCor + ';\">' + probLabel + '</div>'
+          + '<div style=\"background:var(--surface3);border-radius:20px;height:5px;overflow:hidden;margin-top:8px;\"><div style=\"width:' + prob + '%;height:100%;background:' + probCor + ';border-radius:20px;transition:width .6s;\"></div></div>'
+          + moveBtn
+          + '</div></div></div>';
+      })()
     + leadAssocHtml
     + objecoesHtml
     + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">' + pontosHtml + errosHtml + '</div>'
@@ -31546,18 +32802,25 @@ function acGuardarNoLead() {
       }
       lead = duplicado;
     } else {
+      // P3 — Preencher campos com dados já detetados pela IA
+      var r0 = _acUltimaAnalise.resultado || {};
+      var mercadoAC = 'Mercado Frio';
+      if (r0.sentimento === 'positivo' || r0.fase === 'pronto_para_comprar' || r0.fase === 'interesse') mercadoAC = '🔥 Mercado Quente';
+      else if (r0.sentimento === 'neutro' || r0.fase === 'consideracao') mercadoAC = '🌡️ Mercado Morno';
+      var notasAC = r0.resumo || '';
+      if (r0.objecoes && r0.objecoes.length) notasAC += (notasAC ? '\n' : '') + 'Objeções: ' + r0.objecoes.join('; ');
       lead = {
         id: gerarId(),
         nome: nome,
         tel: '',
         email: '',
-        mercado: '',
+        mercado: mercadoAC,
         estado: 'novo',
         fonte: 'Análise de Conversa IA',
-        notas: '',
+        notas: notasAC,
         aniversario: '',
         data: new Date().toLocaleDateString('pt-PT'),
-        historico: [{ tipo: 'sistema', msg: 'Lead criado a partir da Análise de Conversa IA', data: new Date().toLocaleString('pt-PT') }]
+        historico: [{ tipo: 'sistema', msg: 'Lead criado via Análise de Conversa IA (prob. conversão: ' + (r0.probabilidade_conversao || '?') + '%)', data: new Date().toLocaleString('pt-PT') }]
       };
       leads.unshift(lead);
     }
@@ -31566,6 +32829,17 @@ function acGuardarNoLead() {
   lead.historico = lead.historico || [];
   lead.historico.unshift(entrada);
   lead.ultimoContacto = new Date().toISOString();
+
+  // Opção A: preenche telemóvel se veio do nome do ficheiro zip e o lead não tem
+  if (_acFicheiroMetaDados && _acFicheiroMetaDados.tel && !lead.tel) {
+    lead.tel = _acFicheiroMetaDados.tel;
+    lead.historico.unshift({ tipo: 'sistema', msg: '📱 Telemóvel preenchido automaticamente a partir do ficheiro WhatsApp: ' + _acFicheiroMetaDados.tel, data: new Date().toLocaleString('pt-PT') });
+  }
+  // Opção B: campo manual de telemóvel no formulário de associação
+  var telManual = (document.getElementById('ac-lead-tel') ? document.getElementById('ac-lead-tel').value.trim() : '');
+  if (telManual && !lead.tel) {
+    lead.tel = telManual;
+  }
 
   // Aplica a mudança de estado sugerida pela IA, se o utilizador a confirmou na checkbox.
   var checkboxEstado = document.getElementById('ac-lead-mudar-estado');
@@ -31589,6 +32863,17 @@ function acGuardarNoLead() {
 
   showToast('✓ Análise guardada no lead "' + lead.nome + '"');
 
+  // P3b — Sugerir adicionar contacto detetado pela IA se o lead não o tiver
+  var r1 = _acUltimaAnalise ? (_acUltimaAnalise.resultado || {}) : {};
+  var telDet = (r1.tel_detectado || '').trim();
+  var emailDet = (r1.email_detectado || '').trim();
+  var sugestoes = [];
+  if (telDet && !lead.tel) sugestoes.push({ campo: 'tel', label: '📱 Telefone', valor: telDet });
+  if (emailDet && !lead.email) sugestoes.push({ campo: 'email', label: '✉️ Email', valor: emailDet });
+  if (sugestoes.length) {
+    setTimeout(function() { acMostrarSugestaoContacto(lead, sugestoes); }, 400);
+  }
+
   // Reflete a escolha no select, para o caso de o utilizador guardar outra vez
   var selAfter = document.getElementById('ac-lead-existente');
   if (selAfter) {
@@ -31601,6 +32886,60 @@ function acGuardarNoLead() {
     }
     selAfter.value = lead.id;
   }
+}
+
+function acMostrarSugestaoContacto(lead, sugestoes) {
+  // Remove popup anterior se existir
+  var existente = document.getElementById('ac-contacto-popup');
+  if (existente) existente.remove();
+
+  var popup = document.createElement('div');
+  popup.id = 'ac-contacto-popup';
+  popup.style.cssText = 'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);z-index:9999;background:var(--surface2);border:1px solid rgba(0,212,170,0.35);border-radius:14px;padding:16px 20px;max-width:340px;width:92%;box-shadow:0 8px 32px rgba(0,0,0,0.5);animation:slideUpFade 0.25s ease;';
+
+  var titulo = document.createElement('div');
+  titulo.style.cssText = 'font-size:12px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.6px;margin-bottom:8px;';
+  titulo.textContent = '📋 Contacto detetado na conversa';
+  popup.appendChild(titulo);
+
+  var desc = document.createElement('div');
+  desc.style.cssText = 'font-size:12.5px;color:var(--text2);margin-bottom:12px;line-height:1.4;';
+  desc.textContent = 'A IA detetou dados de contacto. Queres adicionar ao lead "' + lead.nome + '"?';
+  popup.appendChild(desc);
+
+  sugestoes.forEach(function(s) {
+    var row = document.createElement('div');
+    row.style.cssText = 'display:flex;align-items:center;justify-content:space-between;background:var(--surface3);border-radius:8px;padding:8px 12px;margin-bottom:8px;gap:10px;';
+
+    var info = document.createElement('div');
+    info.style.cssText = 'font-size:12px;color:var(--text);';
+    info.innerHTML = '<span style="color:var(--text2);">' + s.label + '</span><br><strong>' + s.valor + '</strong>';
+
+    var btn = document.createElement('button');
+    btn.textContent = '+ Adicionar';
+    btn.style.cssText = 'background:var(--accent);color:var(--bg);border:none;border-radius:6px;padding:5px 10px;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;';
+    btn.onclick = function() {
+      lead[s.campo] = s.valor;
+      saveleads();
+      row.innerHTML = '<span style="font-size:12px;color:var(--accent);">✓ ' + s.label + ' guardado!</span>';
+      btn.remove();
+      if (typeof renderFunil === 'function') renderFunil();
+      if (typeof renderLista === 'function') renderLista();
+    };
+
+    row.appendChild(info);
+    row.appendChild(btn);
+    popup.appendChild(row);
+  });
+
+  var btnFechar = document.createElement('button');
+  btnFechar.textContent = 'Ignorar';
+  btnFechar.style.cssText = 'background:none;border:none;color:var(--text3);font-size:11px;cursor:pointer;margin-top:4px;padding:0;';
+  btnFechar.onclick = function() { popup.remove(); };
+  popup.appendChild(btnFechar);
+
+  document.body.appendChild(popup);
+  setTimeout(function() { if (popup.parentNode) popup.remove(); }, 15000);
 }
 
 function acCopiarMsg() {
@@ -31662,6 +33001,7 @@ function acNovaAnalise() {
   var c1 = document.getElementById('ac-contexto-texto'); if(c1) c1.value = '';
   var c2 = document.getElementById('ac-contexto-imagem'); if(c2) c2.value = '';
   acRemoverImagem();
+  acRemoverFicheiroTxt();
   acInputTab('texto');
 }
 
@@ -32012,25 +33352,56 @@ function lwNormNome(nome) {
 function lwHandleCSV(input) {
   const file = input.files[0];
   if (!file) return;
-  const reader = new FileReader();
-  reader.onload = function(e) {
-    try {
-      const { headers, rows } = lwParseCSV(e.target.result);
-      _lwCSVHeaders = headers;
-      _lwCSVDados = rows;
+  const ext = file.name.split('.').pop().toLowerCase();
+  const isExcel = ext === 'xlsx' || ext === 'xls';
 
-      // Deteção automática
-      const tipoOverride = document.getElementById('lw-tipo-override').value;
-      _lwCSVTipo = tipoOverride
-        ? LW_TIPOS.find(t => t.id === tipoOverride)
-        : lwDetetarTipo(headers);
+  function processarDados(headers, rows) {
+    _lwCSVHeaders = headers;
+    _lwCSVDados = rows;
+    const tipoOverride = document.getElementById('lw-tipo-override').value;
+    _lwCSVTipo = tipoOverride
+      ? LW_TIPOS.find(t => t.id === tipoOverride)
+      : lwDetetarTipo(headers);
+    lwRenderPreview();
+  }
 
-      lwRenderPreview();
-    } catch(err) {
-      showToast('❌ Erro ao ler CSV: ' + err.message);
+  if (isExcel) {
+    if (typeof XLSX === 'undefined') {
+      showToast('❌ Biblioteca Excel não carregada. Verifica a ligação à internet.');
+      return;
     }
-  };
-  reader.readAsText(file, 'UTF-8');
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      try {
+        const wb = XLSX.read(e.target.result, { type: 'array' });
+        const ws = wb.Sheets[wb.SheetNames[0]];
+        const data = XLSX.utils.sheet_to_json(ws, { defval: '' });
+        if (!data.length) { showToast('❌ Ficheiro Excel vazio ou sem dados.'); return; }
+        // Normalizar headers para lowercase sem espaços extra
+        const headers = Object.keys(data[0]).map(h => h.trim().toLowerCase());
+        const rows = data.map(row => {
+          const r = {};
+          Object.keys(row).forEach(k => { r[k.trim().toLowerCase()] = String(row[k] ?? '').trim(); });
+          return r;
+        });
+        processarDados(headers, rows);
+      } catch(err) {
+        showToast('❌ Erro ao ler Excel: ' + err.message);
+      }
+    };
+    reader.readAsArrayBuffer(file);
+  } else {
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      try {
+        const { headers, rows } = lwParseCSV(e.target.result);
+        processarDados(headers, rows);
+      } catch(err) {
+        showToast('❌ Erro ao ler CSV: ' + err.message);
+      }
+    };
+    reader.readAsText(file, 'UTF-8');
+  }
 }
 
 // ── Override manual do tipo ──────────────────────────────────────
@@ -32079,7 +33450,7 @@ function lwRenderPreview() {
     return { nomeRaw, existe, row };
   });
 
-  document.getElementById('lw-preview-label').textContent = `${_lwCSVDados.length} registos no CSV`;
+  document.getElementById('lw-preview-label').textContent = `${_lwCSVDados.length} registos no ficheiro`;
 
   const badgeN = document.getElementById('lw-novos-badge');
   const badgeA = document.getElementById('lw-atualizados-badge');
@@ -32256,10 +33627,60 @@ function lwConfirmarImport() {
   if (hist.length > 20) hist.splice(0, hist.length - 20);
   localStorage.setItem(histKey, JSON.stringify(hist));
 
-  showToast(`✅ Sincronizado! ${novos} novos · ${atualizados} atualizados`);
+  // P4 — Resumo inteligente pós-import com alertas críticos
+  const alertasCriticos = membros.filter(m => m.estado === 'inativo' || (m.estado !== 'inativo' && (m.pv||0) === 0)).length;
+  const alertasUrgentes = membros.filter(m => { const pv = m.pv||0; return pv > 0 && pv < 55; }).length;
+  let resumoMsg = `✅ Sincronizado! ${novos} novo${novos!==1?'s':''} · ${atualizados} atualizado${atualizados!==1?'s':''}`;
+  if (alertasCriticos > 0 || alertasUrgentes > 0) {
+    resumoMsg += ` · `;
+    if (alertasCriticos > 0) resumoMsg += `🔴 ${alertasCriticos} crítico${alertasCriticos!==1?'s':''}`;
+    if (alertasCriticos > 0 && alertasUrgentes > 0) resumoMsg += ` · `;
+    if (alertasUrgentes > 0) resumoMsg += `🟡 ${alertasUrgentes} em risco`;
+  }
+  showToast(resumoMsg);
+
+  // Mostrar popup de resumo se houver alertas
+  if (alertasCriticos > 0 || alertasUrgentes > 0) {
+    setTimeout(() => lwMostrarResumoImport(novos, atualizados, alertasCriticos, alertasUrgentes), 600);
+  }
+
   lwResetImport();
   closeModal('modal-importar');
   goTo('equipa');
+}
+
+function lwMostrarResumoImport(novos, atualizados, criticos, urgentes) {
+  var existente = document.getElementById('lw-import-resumo-popup');
+  if (existente) existente.remove();
+
+  var popup = document.createElement('div');
+  popup.id = 'lw-import-resumo-popup';
+  popup.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:9999;background:var(--surface2);border:1px solid rgba(0,212,170,0.3);border-radius:16px;padding:20px 24px;max-width:360px;width:92%;box-shadow:0 16px 48px rgba(0,0,0,0.6);';
+
+  var titulo = '<div style="font-family:Syne,sans-serif;font-size:16px;font-weight:700;color:var(--text);margin-bottom:4px;">📊 Resumo da Sincronização</div>';
+  var sub = '<div style="font-size:12px;color:var(--text2);margin-bottom:16px;">' + novos + ' novo' + (novos!==1?'s':'') + ' · ' + atualizados + ' atualizado' + (atualizados!==1?'s':'') + '</div>';
+
+  var alertasHtml = '';
+  if (criticos > 0) {
+    alertasHtml += '<div style="display:flex;align-items:center;gap:10px;background:rgba(255,107,107,0.08);border:1px solid rgba(255,107,107,0.25);border-radius:10px;padding:10px 14px;margin-bottom:8px;">'
+      + '<span style="font-size:20px;">🔴</span>'
+      + '<div><div style="font-size:13px;font-weight:700;color:#ff6b6b;">' + criticos + ' membro' + (criticos!==1?'s':'') + ' em estado crítico</div>'
+      + '<div style="font-size:11.5px;color:var(--text2);">Inativo ou sem PV — precisa de ação imediata</div></div></div>';
+  }
+  if (urgentes > 0) {
+    alertasHtml += '<div style="display:flex;align-items:center;gap:10px;background:rgba(245,200,66,0.07);border:1px solid rgba(245,200,66,0.25);border-radius:10px;padding:10px 14px;margin-bottom:8px;">'
+      + '<span style="font-size:20px;">🟡</span>'
+      + '<div><div style="font-size:13px;font-weight:700;color:var(--gold);">' + urgentes + ' membro' + (urgentes!==1?'s':'') + ' com PV em risco</div>'
+      + '<div style="font-size:11.5px;color:var(--text2);">PV abaixo de 55 — podem perder o estado Ativo</div></div></div>';
+  }
+
+  var acoes = '<div style="display:flex;gap:8px;margin-top:16px;">'
+    + '<button onclick="document.getElementById(\'lw-import-resumo-popup\').remove()" style="flex:1;background:var(--surface3);border:1px solid var(--border);color:var(--text2);border-radius:8px;padding:9px;font-size:12px;cursor:pointer;">Fechar</button>'
+    + '<button onclick="document.getElementById(\'lw-import-resumo-popup\').remove();goTo(\'equipa\')" style="flex:1;background:var(--accent);color:var(--bg);border:none;border-radius:8px;padding:9px;font-size:12px;font-weight:700;cursor:pointer;">👀 Ver Alertas</button>'
+    + '</div>';
+
+  popup.innerHTML = titulo + sub + alertasHtml + acoes;
+  document.body.appendChild(popup);
 }
 
 // ── Reset do estado do módulo ────────────────────────────────────
@@ -32272,6 +33693,756 @@ function lwResetImport() {
   document.getElementById('lw-import-confirm-btn').style.display = 'none';
   document.getElementById('lw-tipo-override').value = '';
 }
+</script>
+
+<script>
+// ===================================================
+// RECOMENDADOR DE PRODUTO — Qual Patch é Certo?
+// ===================================================
+
+// Estado do wizard
+let _recomRespostas = {};
+
+// Objetivos por perfil
+const RECOM_OBJETIVOS = {
+  ativo:         [
+    { id:'performance', icon:'🏆', label:'Performance', desc:'Força, velocidade e resistência' },
+    { id:'recuperacao', icon:'⚡', label:'Recuperação', desc:'Recuperar mais rápido após treino' },
+    { id:'energia',     icon:'🔋', label:'Energia',    desc:'Mais energia e disposição' },
+    { id:'massa',       icon:'💪', label:'Massa muscular', desc:'Ganho de massa e composição' },
+  ],
+  profissional:  [
+    { id:'foco',        icon:'🧠', label:'Foco mental', desc:'Clareza, concentração, memória' },
+    { id:'stress',      icon:'😮‍💨', label:'Stress/Ansiedade', desc:'Reduzir o stress crónico' },
+    { id:'energia',     icon:'🔋', label:'Energia',    desc:'Combater o cansaço diário' },
+    { id:'sono',        icon:'🌙', label:'Sono',       desc:'Dormir melhor e recuperar' },
+  ],
+  '50mais':      [
+    { id:'longevidade',  icon:'🌿', label:'Longevidade', desc:'Anti-envelhecimento celular' },
+    { id:'articulacoes', icon:'🦴', label:'Articulações', desc:'Dores nas juntas e mobilidade' },
+    { id:'imunidade',    icon:'🛡️', label:'Imunidade',  desc:'Fortalecer o sistema imune' },
+    { id:'energia',      icon:'🔋', label:'Vitalidade', desc:'Mais energia e disposição' },
+  ],
+  geral:         [
+    { id:'energia',     icon:'🔋', label:'Energia',    desc:'Mais energia no dia a dia' },
+    { id:'sono',        icon:'🌙', label:'Sono',       desc:'Melhorar a qualidade do sono' },
+    { id:'bemestar',    icon:'✨', label:'Bem-estar geral', desc:'Sentir-me melhor em geral' },
+    { id:'imunidade',   icon:'🛡️', label:'Imunidade', desc:'Fortalecer defesas' },
+  ],
+  beleza:        [
+    { id:'pele',        icon:'💆', label:'Pele jovem', desc:'Reduzir rugas e firmeza' },
+    { id:'brilho',      icon:'✨', label:'Luminosidade', desc:'Pele mais luminosa e hidratada' },
+    { id:'antiage',     icon:'🌿', label:'Anti-idade', desc:'Abordagem completa anti-envelhecimento' },
+    { id:'energia',     icon:'🔋', label:'Energia',   desc:'Mais vitalidade e disposição' },
+  ],
+  peso:          [
+    { id:'apetite',     icon:'🍽️', label:'Controlo do apetite', desc:'Reduzir desejos alimentares' },
+    { id:'metabolismo', icon:'🔥', label:'Metabolismo', desc:'Acelerar o metabolismo' },
+    { id:'hormonal',    icon:'⚖️', label:'Equilíbrio hormonal', desc:'Reequilíbrio hormonal natural' },
+    { id:'energia',     icon:'🔋', label:'Energia',  desc:'Energia para exercício' },
+  ],
+};
+
+// Motor de recomendação — devolve { principal, complementares[], script }
+function recomMotor(respostas) {
+  const { perfil, objetivo, orcamento, condicao } = respostas;
+  let principal = null;
+  let complementares = [];
+
+  // ── Regras por objetivo (principal) ──────────────────────────────
+  const regras = {
+    performance:  { p:'x49',    c:['x39','aeon'] },
+    recuperacao:  { p:'x39',    c:['icewave','x49'] },
+    energia:      { p:'x39',    c:['energy','aeon'] },
+    massa:        { p:'x49',    c:['x39','carn'] },
+    foco:         { p:'x39',    c:['carn','aeon'] },
+    stress:       { p:'aeon',   c:['x39','silent'] },
+    sono:         { p:'silent', c:['x39','aeon'] },
+    longevidade:  { p:'x39',    c:['aeon','glut'] },
+    articulacoes: { p:'icewave',c:['x39','aeon'] },
+    imunidade:    { p:'glut',   c:['x39','aeon'] },
+    bemestar:     { p:'x39',    c:['aeon','energy'] },
+    pele:         { p:'alavida-trio', c:['x39','aeon'] },
+    brilho:       { p:'alavida-trio', c:['glut'] },
+    antiage:      { p:'x39',    c:['yage-system','alavida-trio'] },
+    apetite:      { p:'sp6',    c:['x39','energy'] },
+    metabolismo:  { p:'sp6',    c:['x39','x49'] },
+    hormonal:     { p:'sp6',    c:['x39','aeon'] },
+  };
+
+  const regra = regras[objetivo] || { p:'x39', c:['aeon','energy'] };
+  principal = CATALOGO_PRODUTOS.find(p => p.id === regra.p) || CATALOGO_PRODUTOS[0];
+
+  // Condicao override
+  if (condicao === 'dor' && objetivo !== 'articulacoes') {
+    complementares = ['icewave', ...regra.c.filter(c => c !== 'icewave')];
+  } else if (condicao === 'imunidade') {
+    complementares = ['glut', ...regra.c.filter(c => c !== 'glut')];
+  } else if (condicao === 'gravidez') {
+    // SP6 não recomendado em grávidas
+    if (principal.id === 'sp6') principal = CATALOGO_PRODUTOS.find(p => p.id === 'x39');
+    complementares = regra.c.filter(c => c !== 'sp6');
+  } else {
+    complementares = regra.c;
+  }
+
+  // Filtrar por orçamento
+  if (orcamento === 'entrada') complementares = [];
+  else if (orcamento === 'intermedio') complementares = complementares.slice(0, 1);
+  // completo: todos
+
+  // Resolve objetos
+  complementares = complementares
+    .map(id => CATALOGO_PRODUTOS.find(p => p.id === id))
+    .filter(Boolean);
+
+  // Bundle override — se completo + x39+x49 faz sentido
+  if (orcamento === 'completo' && (objetivo === 'performance' || objetivo === 'massa') && principal.id === 'x49') {
+    const bundle = CATALOGO_PRODUTOS.find(p => p.id === 'x39x49');
+    if (bundle) { principal = bundle; complementares = complementares.filter(c => c.id !== 'x39' && c.id !== 'x49'); }
+  }
+  if (orcamento === 'completo' && (objetivo === 'longevidade' || objetivo === 'antiage' || objetivo === 'imunidade')) {
+    const yage = CATALOGO_PRODUTOS.find(p => p.id === 'yage-system');
+    if (yage && !complementares.find(c => c.id === 'yage-system')) complementares.unshift(yage);
+    complementares = complementares.filter(c => c.id !== 'aeon' && c.id !== 'glut' && c.id !== 'carn').slice(0, 2);
+  }
+
+  // Gerar script
+  const primeiroNome = '[Nome]';
+  const script = gerarScriptRecom(principal, complementares, perfil, objetivo, condicao, primeiroNome);
+
+  return { principal, complementares, script };
+}
+
+function gerarScriptRecom(principal, complementares, perfil, objetivo, condicao, nome) {
+  var NL = '\n';
+  var aberturas = {
+    ativo:        nome + ', para quem treina e quer resultados a serio,',
+    profissional: nome + ', para quem tem uma vida exigente e precisa de estar no seu melhor,',
+    geral:        nome + ', se queres sentir-te simplesmente melhor no dia a dia,',
+    beleza:       nome + ', para quem quer cuidar da pele com tecnologia de ponta,',
+    peso:         nome + ', para quem quer apoiar o processo de emagrecimento de forma natural,'
+  };
+  var abertura = aberturas[perfil] || (nome + ',');
+  if (perfil === '50mais') abertura = nome + ', para quem valoriza a qualidade de vida e a longevidade,';
+
+  var objetivosTexto = {
+    performance: 'mais forca e performance', recuperacao: 'recuperacao mais rapida',
+    energia: 'mais energia', massa: 'ganho muscular', foco: 'mais foco e clareza mental',
+    stress: 'reduzir o stress', sono: 'melhorar o sono', longevidade: 'longevidade e anti-envelhecimento',
+    articulacoes: 'apoiar as articulacoes', imunidade: 'reforcar a imunidade',
+    bemestar: 'bem-estar geral', pele: 'rejuvenescimento da pele', brilho: 'pele mais luminosa',
+    antiage: 'anti-envelhecimento completo', apetite: 'controlo do apetite',
+    metabolismo: 'apoiar o metabolismo', hormonal: 'equilibrio hormonal'
+  };
+  var objTexto = objetivosTexto[objetivo] || 'bem-estar';
+
+  var parts = [];
+  parts.push(abertura + ' a minha recomendacao para ' + objTexto + ' e o ' + principal.nome + '.');
+  parts.push(principal.desc);
+
+  if (principal.beneficios && principal.beneficios.length) {
+    var bens = ['Principais beneficios reportados:'];
+    principal.beneficios.slice(0, 3).forEach(function(b) { bens.push('- ' + b); });
+    parts.push(bens.join(NL));
+  }
+
+  if (complementares.length > 0) {
+    var nomes = complementares.map(function(c) { return c.nome; }).join(' e ');
+    parts.push('Para potenciar os resultados, podes combinar com ' + nomes + '.');
+  }
+
+  if (condicao === 'gravidez') {
+    parts.push('Nota: como estas gravida ou a amamentar, evita o SP6 Complete. Os restantes patches sao geralmente bem tolerados - mas consulta o teu medico antes de comecar.');
+  }
+
+  parts.push('Nao precisas de tomar nada - e so colocar na pele. Sem quimicos, sem estimulantes.' + NL + 'Queres que te explique como funciona ou que te envie mais informacao?');
+
+  return parts.join(NL + NL);
+}
+
+// ── Renderização do resultado ────────────────────────────────────
+function recomRenderProdutoCard(produto, isPrincipal) {
+  const badgeLabel = isPrincipal ? '⭐ Principal' : '➕ Complementar';
+  const badgeColor = isPrincipal ? 'rgba(0,212,170,0.2);color:var(--accent)' : 'rgba(0,132,255,0.15);color:var(--accent2)';
+  return `
+    <div class="recom-produto-card ${isPrincipal ? 'principal' : ''}" style="margin-bottom:10px;">
+      <div class="recom-produto-emoji">${produto.emoji}</div>
+      <div class="recom-produto-info">
+        <span class="recom-produto-badge" style="background:${badgeColor};">${badgeLabel}</span>
+        <div class="recom-produto-nome">${produto.nome}</div>
+        <div class="recom-produto-desc">${produto.desc}</div>
+        <div class="recom-produto-beneficios">
+          ${(produto.beneficios || []).slice(0,3).map(b => `<span class="recom-ben-tag">${b}</span>`).join('')}
+        </div>
+      </div>
+    </div>`;
+}
+
+// ── Interação do wizard ──────────────────────────────────────────
+function recomInit() {
+  // Não faz nada especial no init — só mostra o step 1
+}
+
+function recomSelect(step, campo, valor) {
+  _recomRespostas[campo] = valor;
+
+  // Marca selecionado visualmente
+  const stepEl = document.getElementById('recom-step-' + step);
+  if (stepEl) {
+    stepEl.querySelectorAll('.recom-card').forEach(c => c.classList.remove('selected'));
+    event.currentTarget.classList.add('selected');
+  }
+
+  // Avança após pequeno delay para o utilizador ver a seleção
+  setTimeout(() => {
+    if (step === 1) {
+      // Preenche objetivos conforme perfil
+      const grid = document.getElementById('recom-objetivos-grid');
+      const objetivos = RECOM_OBJETIVOS[valor] || RECOM_OBJETIVOS.geral;
+      grid.innerHTML = objetivos.map(o => `
+        <div class="recom-card" onclick="recomSelect(2,'objetivo','${o.id}')">
+          <div class="recom-card-icon">${o.icon}</div>
+          <div class="recom-card-label">${o.label}</div>
+          <div class="recom-card-desc">${o.desc}</div>
+        </div>`).join('');
+      recomMostrarStep(2);
+    } else if (step === 2) {
+      recomMostrarStep(3);
+    } else if (step === 3) {
+      recomMostrarStep(4);
+    } else if (step === 4) {
+      recomMostrarResultado();
+    }
+  }, 180);
+}
+
+function recomMostrarStep(n) {
+  [1,2,3,4].forEach(i => {
+    const el = document.getElementById('recom-step-' + i);
+    if (el) el.style.display = i === n ? '' : 'none';
+  });
+  document.getElementById('recom-resultado').style.display = 'none';
+  window.scrollTo(0, 0);
+}
+
+function recomMostrarResultado() {
+  [1,2,3,4].forEach(i => {
+    const el = document.getElementById('recom-step-' + i);
+    if (el) el.style.display = 'none';
+  });
+
+  const { principal, complementares, script } = recomMotor(_recomRespostas);
+
+  // Principal
+  document.getElementById('recom-principal').innerHTML = recomRenderProdutoCard(principal, true);
+
+  // Complementares
+  const compEl = document.getElementById('recom-complementar');
+  if (complementares.length > 0) {
+    compEl.innerHTML = `
+      <div style="font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.6px;margin-bottom:8px;">🔗 Protocolo Complementar</div>
+      ${complementares.map(c => recomRenderProdutoCard(c, false)).join('')}`;
+  } else {
+    compEl.innerHTML = '';
+  }
+
+  // Script
+  document.getElementById('recom-script').textContent = script.replace(/\*\*/g, '');
+
+  document.getElementById('recom-resultado').style.display = '';
+  window.scrollTo(0, 0);
+}
+
+function recomCopiarScript() {
+  const texto = document.getElementById('recom-script').textContent;
+  copiarTextoSeguro(texto, '📋 Script copiado!');
+}
+
+function recomAbrirGuiao() {
+  const { principal } = recomMotor(_recomRespostas);
+
+  // P5 — Mini-modal de seleção de lead, depois abre guião pré-configurado
+  var existente = document.getElementById('recom-guiao-popup');
+  if (existente) existente.remove();
+
+  var popup = document.createElement('div');
+  popup.id = 'recom-guiao-popup';
+  popup.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:9999;background:var(--surface2);border:1px solid rgba(0,212,170,0.3);border-radius:16px;padding:20px;max-width:380px;width:92%;box-shadow:0 16px 48px rgba(0,0,0,0.6);';
+
+  var titulo = '<div style="font-family:Syne,sans-serif;font-size:15px;font-weight:700;color:var(--text);margin-bottom:4px;">🎯 Gerar Guião para qual Lead?</div>';
+  var sub = '<div style="font-size:12px;color:var(--text2);margin-bottom:12px;">Produto: <strong style="color:var(--accent);">' + principal.nome + '</strong></div>';
+
+  var searchHtml = '<input id="recom-guiao-search" class="form-input" placeholder="🔍 Pesquisar lead..." style="margin-bottom:10px;" oninput="recomGuiaoFiltrar()">';
+
+  var listaHtml = '<div id="recom-guiao-lista" style="max-height:220px;overflow-y:auto;display:flex;flex-direction:column;gap:6px;margin-bottom:12px;"></div>';
+
+  var acoes = '<div style="display:flex;gap:8px;">'
+    + '<button onclick="document.getElementById(\'recom-guiao-popup\').remove()" style="flex:1;background:var(--surface3);border:1px solid var(--border);color:var(--text2);border-radius:8px;padding:9px;font-size:12px;cursor:pointer;">Cancelar</button>'
+    + '</div>';
+
+  popup.innerHTML = titulo + sub + searchHtml + listaHtml + acoes;
+  document.body.appendChild(popup);
+
+  // Preencher lista de leads
+  recomGuiaoFiltrar();
+  setTimeout(() => { var s = document.getElementById('recom-guiao-search'); if(s) s.focus(); }, 100);
+}
+
+function recomGuiaoFiltrar() {
+  var pesq = (document.getElementById('recom-guiao-search') || {}).value || '';
+  pesq = pesq.toLowerCase().trim();
+  var lista = document.getElementById('recom-guiao-lista');
+  if (!lista) return;
+
+  var leadsAtivos = (typeof leads !== 'undefined' ? leads : [])
+    .filter(l => l.estado !== 'frio' && l.estado !== 'cliente')
+    .filter(l => !pesq || l.nome.toLowerCase().includes(pesq))
+    .slice(0, 12);
+
+  if (!leadsAtivos.length) {
+    lista.innerHTML = '<div style="font-size:12px;color:var(--text3);text-align:center;padding:16px;">Nenhum lead encontrado</div>';
+    return;
+  }
+
+  lista.innerHTML = leadsAtivos.map(function(l) {
+    var iniciais = l.nome.split(' ').map(function(w){ return w[0]||''; }).join('').slice(0,2).toUpperCase();
+    return '<div onclick="recomGuiaoConfirmar(\'' + l.id + '\')" style="display:flex;align-items:center;gap:10px;background:var(--surface3);border:1px solid var(--border);border-radius:8px;padding:10px 12px;cursor:pointer;transition:border-color .15s;">'
+      + '<div style="width:32px;height:32px;border-radius:50%;background:rgba(0,212,170,0.15);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:var(--accent);flex-shrink:0;">' + iniciais + '</div>'
+      + '<div style="flex:1;min-width:0;"><div style="font-size:13px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + l.nome + '</div>'
+      + '<div style="font-size:11px;color:var(--text2);">' + l.mercado + ' &nbsp;·&nbsp; ' + estadoLabel(l.estado) + '</div></div>'
+      + '<span style="font-size:16px;color:var(--accent);">›</span>'
+      + '</div>';
+  }).join('');
+}
+
+function recomGuiaoConfirmar(leadId) {
+  var popup = document.getElementById('recom-guiao-popup');
+  if (popup) popup.remove();
+
+  var { principal } = recomMotor(_recomRespostas);
+  var perfil = _recomRespostas.perfil || 'geral';
+  var objetivo = _recomRespostas.objetivo || 'bem-estar';
+
+  // Contexto pré-preenchido com dados do recomendador
+  var contexto = 'Produto a apresentar: ' + principal.nome + '. Perfil da pessoa: ' + perfil + '. Objetivo principal: ' + objetivo + '.';
+  if (_recomRespostas.condicao && _recomRespostas.condicao !== 'nenhuma') {
+    contexto += ' Condição específica: ' + _recomRespostas.condicao + '.';
+  }
+
+  // Abrir guião pré-configurado
+  abrirGuiaoIA(leadId);
+  setTimeout(function() {
+    // Pré-selecionar "Apresentar Produto"
+    var btnProduto = document.querySelector('.guiao-tipo-btn[data-tipo="apresentacao-produto"]');
+    if (btnProduto) setGuiaoTipo(btnProduto);
+    // Pré-preencher contexto
+    var ctxInput = document.getElementById('guiao-contexto');
+    if (ctxInput) ctxInput.value = contexto;
+  }, 200);
+}
+
+function recomReset() {
+  _recomRespostas = {};
+  [1,2,3,4].forEach(i => {
+    const el = document.getElementById('recom-step-' + i);
+    if (el) {
+      el.style.display = i === 1 ? '' : 'none';
+      el.querySelectorAll('.recom-card').forEach(c => c.classList.remove('selected'));
+    }
+  });
+  document.getElementById('recom-resultado').style.display = 'none';
+  window.scrollTo(0, 0);
+}
+</script>
+
+<script>
+// CAMPO TELEMOVEL / WHATSAPP - auto-gera link
+function perfilAtualizarWhatsApp(val) {
+  var num = (val || '').replace(/\D/g, '').trim();
+  var hiddenEl  = document.getElementById('perfil-link-whatsapp');
+  var previewEl = document.getElementById('perfil-wa-preview');
+
+  if (!num) {
+    if (hiddenEl)  hiddenEl.value = '';
+    if (previewEl) previewEl.style.display = 'none';
+    return;
+  }
+
+  // Garantir que tem código de país (PT = 351 por defeito se começar com 9)
+  if (num.length <= 9 && num.startsWith('9')) num = '351' + num;
+
+  var link = 'https://wa.me/' + num;
+  if (hiddenEl)  hiddenEl.value = link;
+  if (previewEl) {
+    previewEl.style.display = 'block';
+    previewEl.innerHTML = '✅ Link gerado: <a href="' + link + '" target="_blank" style="color:var(--accent);text-decoration:underline;">' + link + '</a>';
+  }
+}
+</script>
+
+<!-- ============================================================ -->
+<!-- lwBridge — Ligações automáticas entre módulos  v36-5-6       -->
+<!-- Orquestra eventos cruzados sem tocar no código existente     -->
+<!-- ============================================================ -->
+<script>
+(function() {
+'use strict';
+
+// ── Utilitário: adicionar entrada automática no Diário ──────────
+function _bridgeDiario(emoji, texto) {
+  try {
+    if (typeof getDiarioEntradas !== 'function' || typeof saveDiarioEntradas !== 'function') return;
+    const entradas = getDiarioEntradas();
+    // Evitar duplicados na mesma hora
+    const agora = Date.now();
+    if (entradas.some(e => e._bridge && e.texto === texto && agora - (e._ts||0) < 60000)) return;
+    entradas.push({
+      id: 'bridge_' + agora,
+      autor: (typeof getDiarioAutorAtual === 'function' ? getDiarioAutorAtual() : 'Sistema'),
+      tipo: 'conquista',
+      texto: emoji + ' ' + texto,
+      data: new Date().toLocaleString('pt-PT'),
+      reacoes: {},
+      _bridge: true,
+      _ts: agora
+    });
+    saveDiarioEntradas(entradas);
+  } catch(e) {}
+}
+
+// ── Utilitário: criar lembrete automático ──────────────────────
+function _bridgeLembrete(titulo, dias) {
+  try {
+    if (typeof lembretes === 'undefined' || typeof saveLembretes !== 'function') return;
+    const data = new Date();
+    data.setDate(data.getDate() + dias);
+    data.setHours(9, 0, 0, 0);
+    lembretes.push({
+      id: 'bridge_' + Date.now() + '_' + Math.random().toString(36).slice(2),
+      tipo: 'geral',
+      mensagem: titulo,
+      proximoDisparo: data.toISOString(),
+      repeticao: 'uma',
+      criado: new Date().toISOString(),
+      concluido: false,
+      disparadoCount: 0,
+      _bridge: true
+    });
+    saveLembretes();
+  } catch(e) {}
+}
+
+// ── Utilitário: toast não intrusivo ───────────────────────────
+function _bridgeToast(msg) {
+  if (typeof showToast === 'function') showToast(msg);
+}
+
+// ── Utilitário: badge numérico em elemento ────────────────────
+function _setBadge(id, n) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.textContent = n > 0 ? n : '';
+  el.style.display = n > 0 ? '' : 'none';
+}
+
+// ═══════════════════════════════════════════════════════════════
+// GATILHO 1: Lead → Cliente
+// Quando: executarAutomacoes() é chamada com novoEstado='cliente'
+// Dispara: adiciona à Retenção PC + entrada no Diário + lembrete check-in 7 dias
+// ═══════════════════════════════════════════════════════════════
+(function() {
+  const _orig = window.executarAutomacoes;
+  if (typeof _orig !== 'function') return;
+  window.executarAutomacoes = function(lead, estadoAnterior, novoEstado, ehNovoLead) {
+    _orig.apply(this, arguments);
+    if (!lead || novoEstado !== 'cliente' || estadoAnterior === 'cliente') return;
+    try {
+      // 1a. Retenção PC — adiciona cliente automaticamente se ainda não existir
+      if (typeof getRetencaoClientes === 'function' && typeof saveRetencaoClientes === 'function') {
+        const clientes = getRetencaoClientes();
+        const jaExiste = clientes.some(c => c.leadId === lead.id || c.nome === lead.nome);
+        if (!jaExiste) {
+          clientes.push({
+            id: 'ret_' + Date.now(),
+            leadId: lead.id,
+            nome: lead.nome,
+            tel: lead.telefone || lead.tel || '',
+            produto: lead.produto || '',
+            dataInicio: new Date().toISOString(),
+            proximaRenovacao: (() => { const d = new Date(); d.setDate(d.getDate() + 30); return d.toISOString(); })(),
+            estado: 'ativo',
+            notas: 'Adicionado automaticamente via funil',
+            _bridge: true
+          });
+          saveRetencaoClientes(clientes);
+          if (typeof renderRetencao === 'function' && document.getElementById('page-retencao')?.classList.contains('active')) renderRetencao();
+          _bridgeToast('🔄 ' + lead.nome + ' adicionado à Retenção PC automaticamente!');
+        }
+      }
+      // 1b. Diário — celebrar nova conversão
+      _bridgeDiario('🎉', 'Novo cliente: ' + lead.nome + ' convertido(a) com sucesso!');
+      // 1c. Lembrete check-in 7 dias
+      _bridgeLembrete('Check-in 7 dias: como está ' + lead.nome + ' com o produto?', 7);
+      // 1d. Atualizar dashboard e ações
+      setTimeout(function() {
+        if (typeof renderDashboard === 'function') renderDashboard();
+        if (typeof renderAcoes === 'function') renderAcoes();
+      }, 400);
+    } catch(e) {}
+  };
+})();
+
+// ═══════════════════════════════════════════════════════════════
+// GATILHO 2: Novo membro na Equipa → Onboarding automático
+// Quando: salvarMembro() cria membro novo (não edição)
+// Dispara: lembrete de onboarding + entrada no Diário
+// ═══════════════════════════════════════════════════════════════
+(function() {
+  const _orig = window.salvarMembro;
+  if (typeof _orig !== 'function') return;
+  window.salvarMembro = function() {
+    const eraNovoMembro = !window.editingMembroId;
+    const nomeAntes = eraNovoMembro ? (document.getElementById('mb-nome')?.value.trim() || '') : '';
+    _orig.apply(this, arguments);
+    if (!eraNovoMembro || !nomeAntes) return;
+    try {
+      // 2a. Diário
+      _bridgeDiario('🚀', 'Novo membro na equipa: ' + nomeAntes + ' — boas-vindas!');
+      // 2b. Lembrete onboarding dia 1
+      _bridgeLembrete('🚀 Onboarding dia 1: verificar se ' + nomeAntes + ' recebeu o kit de boas-vindas', 1);
+      _bridgeLembrete('🚀 Onboarding dia 3: fazer check-in com ' + nomeAntes, 3);
+      _bridgeLembrete('🚀 Onboarding dia 7: avaliar primeiras ações de ' + nomeAntes, 7);
+      _bridgeToast('🚀 Onboarding iniciado para ' + nomeAntes + ' — 3 lembretes criados!');
+      // 2c. Badge onboarding
+      const badgeOn = document.getElementById('bn-badge-onboarding');
+      if (badgeOn) {
+        const n = (parseInt(badgeOn.textContent) || 0) + 1;
+        badgeOn.textContent = n; badgeOn.style.display = '';
+      }
+    } catch(e) {}
+  };
+})();
+
+// ═══════════════════════════════════════════════════════════════
+// GATILHO 3: Meta atingida → Celebração no Diário + Percurso
+// Quando: renderDashboard() corre e deteta meta atingida
+// Dispara: entrada no Diário (1x por mês)
+// ═══════════════════════════════════════════════════════════════
+(function() {
+  const _orig = window.renderDashboard;
+  if (typeof _orig !== 'function') return;
+  let _lastMetaCheck = 0;
+  window.renderDashboard = function() {
+    _orig.apply(this, arguments);
+    try {
+      const agora = Date.now();
+      if (agora - _lastMetaCheck < 30000) return; // throttle 30s
+      _lastMetaCheck = agora;
+      if (typeof getMetas !== 'function' || typeof leads === 'undefined') return;
+      const metas = getMetas();
+      const totalClientes = leads.filter(l => l.estado === 'cliente').length;
+      const totalLeads = leads.length;
+      const mesKey = new Date().toISOString().slice(0, 7);
+      const celebKey = getUserStorageKey ? getUserStorageKey('lw_bridge_meta_celeb_' + mesKey) : 'lw_bridge_meta_celeb_' + mesKey;
+      const jaCelebrou = JSON.parse(localStorage.getItem(celebKey) || '{}');
+      if (metas.clientes > 0 && totalClientes >= metas.clientes && !jaCelebrou.clientes) {
+        _bridgeDiario('🏆', 'Meta de clientes atingida este mês! ' + totalClientes + '/' + metas.clientes + ' clientes.');
+        jaCelebrou.clientes = true;
+        localStorage.setItem(celebKey, JSON.stringify(jaCelebrou));
+        _bridgeToast('🏆 Meta de clientes atingida! Parabéns!');
+      }
+      if (metas.novosLeads > 0 && totalLeads >= metas.novosLeads && !jaCelebrou.leads) {
+        _bridgeDiario('🎯', 'Meta de leads atingida! ' + totalLeads + '/' + metas.novosLeads + ' leads este mês.');
+        jaCelebrou.leads = true;
+        localStorage.setItem(celebKey, JSON.stringify(jaCelebrou));
+      }
+    } catch(e) {}
+  };
+})();
+
+// ═══════════════════════════════════════════════════════════════
+// GATILHO 4: Lead frio → Destaque nas Ações + Badge Mapa
+// Quando: moverLeadsParaFrioAutomaticamente() é chamada
+// Dispara: badge no Mapa de Leads com contagem de frios
+// ═══════════════════════════════════════════════════════════════
+(function() {
+  const _orig = window.moverLeadsParaFrioAutomaticamente;
+  if (typeof _orig !== 'function') return;
+  window.moverLeadsParaFrioAutomaticamente = function() {
+    _orig.apply(this, arguments);
+    try {
+      if (typeof leads === 'undefined') return;
+      const nFrios = leads.filter(l => l.estado === 'frio').length;
+      _setBadge('bn-badge-mapa', nFrios > 0 ? nFrios : 0);
+      // Atualizar ações para reflectir novos frios
+      if (typeof renderAcoes === 'function') setTimeout(renderAcoes, 500);
+    } catch(e) {}
+  };
+})();
+
+// ═══════════════════════════════════════════════════════════════
+// GATILHO 5: Recomendador → abre Catálogo no produto certo
+// Quando: utilizador obtém recomendação de patch
+// Dispara: botão "Ver no Catálogo" injectado no resultado
+// ═══════════════════════════════════════════════════════════════
+(function() {
+  const _orig = window.recomInit || window.recomRender;
+  // Hook via MutationObserver — observa o resultado do recomendador
+  const observer = new MutationObserver(function(mutations) {
+    mutations.forEach(function(m) {
+      m.addedNodes.forEach(function(node) {
+        if (!node.querySelector) return;
+        const resultCard = node.querySelector ? node.querySelector('[id^="recom-resultado"]') || (node.id && node.id.startsWith('recom-resultado') ? node : null) : null;
+        if (!resultCard) return;
+        if (resultCard.querySelector('.bridge-catalogo-btn')) return;
+        const btn = document.createElement('button');
+        btn.className = 'btn btn-secondary btn-sm bridge-catalogo-btn';
+        btn.style.marginTop = '10px';
+        btn.innerHTML = '📦 Ver no Catálogo';
+        btn.onclick = function() { closeModal && closeModal('modal-recom-resultado'); goTo('catalogo'); };
+        resultCard.appendChild(btn);
+      });
+    });
+  });
+  const recomPage = document.getElementById('page-recomendador');
+  if (recomPage) observer.observe(recomPage, { childList: true, subtree: true });
+})();
+
+// ═══════════════════════════════════════════════════════════════
+// GATILHO 6: Análise de Conversa → botão "Pedir conselho ao Coach"
+// Injecta acção rápida no resultado da análise
+// ═══════════════════════════════════════════════════════════════
+(function() {
+  const observer = new MutationObserver(function(mutations) {
+    mutations.forEach(function(m) {
+      m.addedNodes.forEach(function(node) {
+        if (!node.querySelector) return;
+        const resultEl = document.getElementById('ac-resultado-wrap');
+        if (!resultEl || !resultEl.textContent.trim()) return;
+        if (resultEl.querySelector('.bridge-coach-btn')) return;
+        const btn = document.createElement('button');
+        btn.className = 'btn btn-ai bridge-coach-btn';
+        btn.style.cssText = 'margin-top:12px;width:100%;';
+        btn.innerHTML = '🤖 Pedir conselho ao Coach IA';
+        btn.onclick = function() {
+          const analiseTexto = resultEl.textContent.slice(0, 500);
+          goTo('coach');
+          setTimeout(function() {
+            const input = document.getElementById('coach-input') || document.querySelector('#page-coach textarea');
+            if (input) {
+              input.value = 'Com base nesta análise de conversa, o que devo fazer a seguir?\n\n' + analiseTexto;
+              input.dispatchEvent(new Event('input'));
+            }
+          }, 300);
+        };
+        resultEl.appendChild(btn);
+      });
+    });
+  });
+  const analisePage = document.getElementById('page-analise');
+  if (analisePage) observer.observe(analisePage, { childList: true, subtree: true });
+})();
+
+// ═══════════════════════════════════════════════════════════════
+// GATILHO 7: Qualificação semanal em risco → Ações de Hoje
+// Periódico: verifica se está a <80% e injecta aviso nas Ações
+// ═══════════════════════════════════════════════════════════════
+(function() {
+  const _orig = window.renderAcoes;
+  if (typeof _orig !== 'function') return;
+  window.renderAcoes = function() {
+    _orig.apply(this, arguments);
+    try {
+      // Verificar badge checklist
+      const badgeCheck = document.getElementById('bn-badge-checklist');
+      const temAlerta = badgeCheck && badgeCheck.style.display !== 'none';
+      if (!temAlerta) return;
+      // Injectar card de alerta no topo das Ações
+      const lista = document.getElementById('acoes-lista');
+      if (!lista || lista.querySelector('.bridge-qualif-card')) return;
+      const card = document.createElement('div');
+      card.className = 'bridge-qualif-card';
+      card.style.cssText = 'background:rgba(245,200,66,0.08);border:1.5px solid rgba(245,200,66,0.4);border-radius:14px;padding:14px 16px;margin-bottom:12px;cursor:pointer;display:flex;align-items:center;gap:12px;';
+      card.innerHTML = '<span style="font-size:22px;">✅</span>'
+        + '<div style="flex:1;">'
+        + '<div style="font-size:13px;font-weight:700;color:var(--gold);">Qualificação semanal em risco</div>'
+        + '<div style="font-size:12px;color:var(--text2);">Verifica o checklist e age antes de perder a categoria.</div>'
+        + '</div>'
+        + '<span style="color:var(--gold);font-size:18px;">→</span>';
+      card.onclick = function() { goTo('checklist'); };
+      lista.insertBefore(card, lista.firstChild);
+    } catch(e) {}
+  };
+})();
+
+// ═══════════════════════════════════════════════════════════════
+// GATILHO 8: Retenção PC — badge de risco no nav
+// Periódico: conta clientes com renovação em <7 dias
+// ═══════════════════════════════════════════════════════════════
+(function() {
+  function _checkRetencaoBadge() {
+    try {
+      if (typeof getRetencaoClientes !== 'function') return;
+      const clientes = getRetencaoClientes();
+      const agora = Date.now();
+      const emRisco = clientes.filter(function(c) {
+        if (!c.proximaRenovacao || c.estado === 'cancelado') return false;
+        const diff = (new Date(c.proximaRenovacao).getTime() - agora) / 86400000;
+        return diff >= 0 && diff <= 7;
+      }).length;
+      _setBadge('badge-retencao', emRisco);
+      _setBadge('bn-badge-retencao', emRisco);
+    } catch(e) {}
+  }
+  setTimeout(_checkRetencaoBadge, 5000);
+  setInterval(_checkRetencaoBadge, 120000);
+})();
+
+// ── Verificação inicial ao arrancar ───────────────────────────
+setTimeout(function() {
+  try {
+    if (typeof moverLeadsParaFrioAutomaticamente === 'function') moverLeadsParaFrioAutomaticamente();
+    if (typeof renderDashboard === 'function') renderDashboard();
+  } catch(e) {}
+}, 3000);
+
+})(); // fim lwBridge IIFE
+</script>
+
+<script>
+// ── Esconder botões flutuantes (🔍 pesquisa / 🗺️ guia) quando qualquer
+//    modal ou overlay estiver aberto, para não tapar botões de ações
+//    (Editar, Eliminar, Partilhar, Avançar Estado, etc.) ─────────────
+(function () {
+  var EXTRA_OVERLAY_IDS = ['ret-modal-ia', 'cat-modal-detalhe'];
+
+  function anyOverlayOpen() {
+    if (document.querySelector('.modal-overlay.open')) return true;
+    for (var i = 0; i < EXTRA_OVERLAY_IDS.length; i++) {
+      var el = document.getElementById(EXTRA_OVERLAY_IDS[i]);
+      if (el) {
+        var cs = window.getComputedStyle(el);
+        if (cs.display !== 'none') return true;
+      }
+    }
+    return false;
+  }
+
+  function syncFloatingButtons() {
+    var hide = anyOverlayOpen();
+    document.body.classList.toggle('lw-modal-active', hide);
+  }
+
+  var mo = new MutationObserver(syncFloatingButtons);
+  mo.observe(document.body, {
+    attributes: true,
+    attributeFilter: ['class', 'style'],
+    subtree: true
+  });
+
+  syncFloatingButtons();
+})();
 </script>
 
 </body>
