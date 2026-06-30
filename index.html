@@ -3415,6 +3415,40 @@
   .wai-empty { text-align:center; padding:30px 16px; color:var(--text3); font-size:13px; }
   .wai-sem-lead-btn { margin:0 16px 14px; padding:10px; text-align:center; background:var(--surface2); border:1px solid var(--border); border-radius:10px; cursor:pointer; font-size:12px; color:var(--text2); transition:border-color .15s; }
   .wai-sem-lead-btn:hover { border-color:var(--accent); }
+
+  /* ===== INDICADOR NEON DE SCROLL HORIZONTAL (v68.7) =====
+     Envolve qualquer faixa com scroll horizontal (tabs, históricos, linhas
+     de progresso) para sinalizar de forma visível que há mais conteúdo
+     para o lado direito. O fade + seta só aparecem quando a faixa tem
+     overflow real e desaparecem ao chegar ao fim (classe .scroll-end,
+     controlada por JS). Não interfere no scroll nem nos elementos internos. */
+  .scroll-fade-h, .table-wrap { position:relative; }
+  .scroll-fade-h::after, .table-wrap::after {
+    content:'';
+    position:absolute; top:0; right:0; bottom:0; width:34px;
+    background:linear-gradient(to right, transparent, var(--bg) 78%);
+    pointer-events:none; opacity:0; transition:opacity .25s ease; z-index:2;
+  }
+  .scroll-fade-h.tem-overflow::after, .table-wrap.tem-overflow::after { opacity:1; }
+  .scroll-fade-h.scroll-end::after, .table-wrap.scroll-end::after { opacity:0; }
+  .scroll-fade-h::before, .table-wrap::before {
+    content:'›';
+    position:absolute; top:50%; right:4px; transform:translateY(-50%);
+    width:20px; height:20px; border-radius:50%;
+    background:var(--accent); color:#000;
+    font-size:14px; font-weight:900; line-height:20px; text-align:center;
+    box-shadow:0 0 8px 1px var(--accent), 0 0 2px var(--accent);
+    pointer-events:none; opacity:0; transition:opacity .25s ease; z-index:3;
+    animation:scrollHintPulse 1.6s ease-in-out infinite;
+  }
+  .scroll-fade-h.tem-overflow::before, .table-wrap.tem-overflow::before { opacity:0.95; }
+  .scroll-fade-h.scroll-end::before, .table-wrap.scroll-end::before { opacity:0; }
+  @keyframes scrollHintPulse {
+    0%, 100% { box-shadow:0 0 6px 1px var(--accent), 0 0 1px var(--accent); }
+    50% { box-shadow:0 0 12px 3px var(--accent), 0 0 4px var(--accent); }
+  }
+  /* Em tab-bars o indicador fica mais discreto (mais pequeno, encostado à borda) */
+  .scroll-fade-h.scroll-fade-tabs::before { width:18px; height:18px; line-height:18px; font-size:12px; right:2px; }
 </style>
 </head>
 <body>
@@ -3917,6 +3951,18 @@
         </div>
       </div>
 
+      <!-- AVISO: dados encontrados noutra conta/sessão neste browser -->
+      <div id="multi-conta-aviso" style="display:none;margin-bottom:16px;background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.3);border-radius:14px;padding:14px 16px;">
+        <div style="display:flex;align-items:flex-start;gap:10px;">
+          <span style="font-size:20px;flex-shrink:0;">⚠️</span>
+          <div style="flex:1;min-width:0;">
+            <div style="font-size:13px;font-weight:700;color:var(--gold);margin-bottom:4px;">Encontrámos contactos noutra conta neste dispositivo</div>
+            <div id="multi-conta-aviso-texto" style="font-size:12px;color:var(--text2);line-height:1.5;margin-bottom:8px;"></div>
+            <button class="btn btn-secondary btn-sm" onclick="document.getElementById('multi-conta-aviso').style.display='none'">Entendi, ocultar</button>
+          </div>
+        </div>
+      </div>
+
       <!-- DIGEST DIÁRIO — resumo único do dia -->
       <div id="digest-diario-card" style="display:none;margin-bottom:16px;background:var(--surface2);border:1px solid var(--border);border-radius:14px;padding:16px 18px;">
         <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">
@@ -4095,6 +4141,12 @@
 
       <!-- TOP LEADS MAIS QUENTES -->
       <div id="dash-top-leads-widget" style="margin-bottom:16px;"></div>
+
+      <!-- ONBOARDING DE EQUIPA A PRECISAR DE ATENÇÃO -->
+      <div id="dash-onboarding-alerta-widget" style="margin-bottom:16px;"></div>
+
+      <!-- FUNIL DE CONVERSÃO — taxas reais por etapa -->
+      <div id="dash-funil-conversao-widget" style="margin-bottom:16px;"></div>
 
       <!-- PRÓXIMO RANK WIDGET -->
       <div id="dash-rank-widget" style="display:none;margin-bottom:16px;"></div>
@@ -4478,6 +4530,24 @@
         <span id="posts-ai-note-text">Gemini gera posts em <strong>Português de Portugal</strong>, adaptados ao estilo LifeWave X39 — autêntico, empático e sem pressão de vendas.</span>
       </div>
 
+      <div id="posts-sugestao-funil-wrap" style="display:none;margin-bottom:18px;"></div>
+
+      <div class="card" id="revista-widget" style="margin-bottom:18px;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
+        <div style="display:flex;align-items:center;gap:10px;">
+          <span style="font-size:20px;">📖</span>
+          <div>
+            <div style="font-size:13px;font-weight:600;color:var(--text);">Revista LifeWave</div>
+            <div style="font-size:11px;color:var(--text2);" id="revista-status">Nenhuma revista carregada — a IA usa só o conhecimento geral.</div>
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <button class="btn btn-secondary btn-sm" id="revista-btn-upload" onclick="document.getElementById('revista-file').click()">📤 Carregar PDF</button>
+          <button class="btn btn-secondary btn-sm" id="revista-btn-ver" style="display:none;" onclick="verRevistaResumo()">👁️ Ver resumo</button>
+          <button class="btn btn-danger btn-sm" id="revista-btn-remover" style="display:none;" onclick="removerRevista()">🗑️</button>
+        </div>
+        <input type="file" id="revista-file" accept="application/pdf" style="display:none;" onchange="handleRevistaUpload(this)">
+      </div>
+
       <div class="posts-grid">
         <div class="post-generator">
           <div class="section-title">⚙️ Configurar Post</div>
@@ -4783,6 +4853,13 @@
         <div class="card">
           <div class="section-title" style="margin-bottom:16px;">🔍 Origem dos Leads</div>
           <div id="stats-fontes-chart"></div>
+          <div id="stats-fontes-insight" style="display:none;align-items:flex-start;gap:8px;margin-top:14px;padding-top:14px;border-top:1px solid var(--border);font-size:11.5px;color:var(--text2);line-height:1.5;"></div>
+        </div>
+
+        <!-- Top Indicadores (Programa de Referência) -->
+        <div class="card" id="stats-indicadores-card">
+          <div class="section-title" style="margin-bottom:16px;">🎁 Top Indicadores</div>
+          <div id="stats-indicadores-lista"></div>
         </div>
 
       </div>
@@ -4873,7 +4950,7 @@
       </div>
 
       <!-- TABS EQUIPA -->
-      <div style="display:flex;gap:0;margin-bottom:24px;border-bottom:2px solid var(--border);overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;">
+      <div class="scroll-fade-h scroll-fade-tabs" style="display:flex;gap:0;margin-bottom:24px;border-bottom:2px solid var(--border);overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;">
         <button id="etab-btn-ranking" onclick="equipaTab('ranking')" style="padding:10px 14px;border:none;background:none;color:var(--accent);font-family:'DM Sans',sans-serif;font-size:12px;font-weight:700;cursor:pointer;border-bottom:2px solid var(--accent);margin-bottom:-2px;white-space:nowrap;flex-shrink:0;">🏆 Ranking</button>
         <button id="etab-btn-minicrm" onclick="equipaTab('minicrm')" style="padding:10px 14px;border:none;background:none;color:var(--text2);font-family:'DM Sans',sans-serif;font-size:12px;font-weight:600;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;white-space:nowrap;flex-shrink:0;">👁️ Visão do Líder <span style="background:var(--accent2);color:#fff;font-size:9px;font-weight:700;padding:2px 6px;border-radius:20px;margin-left:4px;">Novo</span></button>
         <button id="etab-btn-arvore" onclick="equipaTab('arvore')" style="padding:10px 14px;border:none;background:none;color:var(--text2);font-family:'DM Sans',sans-serif;font-size:12px;font-weight:600;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;white-space:nowrap;flex-shrink:0;">🌳 Árvore</button>
@@ -5041,7 +5118,7 @@
         </div>
 
         <!-- Árvore -->
-        <div id="arvore-wrap" style="overflow-x:auto;padding-bottom:16px;">
+        <div id="arvore-wrap" class="scroll-fade-h" style="overflow-x:auto;padding-bottom:16px;">
           <div id="arvore-root" style="min-width:300px;"></div>
         </div>
 
@@ -5584,7 +5661,7 @@
       <!-- TABELA COMPLETA GANHOS POR NÍVEL -->
       <div class="card" style="margin-bottom:20px;">
         <div class="section-title" style="margin-bottom:12px;">📊 Bónus de Ganhos por Nível — Percentagens por Categoria</div>
-        <div style="overflow-x:auto;">
+        <div class="scroll-fade-h" style="overflow-x:auto;">
           <table style="width:100%;border-collapse:collapse;font-size:11px;min-width:600px;">
             <tr style="background:rgba(0,212,170,0.08);color:var(--text2);font-size:10px;text-transform:uppercase;">
               <th style="padding:8px 6px;text-align:left;border-bottom:1px solid var(--border);">Nível</th>
@@ -5729,7 +5806,7 @@
         <div class="card" style="margin-bottom:20px;">
           <div class="section-title" style="margin-bottom:4px;">📊 Tabela Rápida — Lucro por Produto (1 embalagem · Cliente Direto)</div>
           <div style="font-size:11px;color:var(--text2);margin-bottom:14px;">Referência rápida para saber qual produto rende mais por venda.</div>
-          <div style="overflow-x:auto;">
+          <div class="scroll-fade-h" style="overflow-x:auto;">
             <table style="width:100%;border-collapse:collapse;font-size:12px;min-width:420px;">
               <thead>
                 <tr style="background:rgba(0,212,170,0.08);color:var(--text2);font-size:11px;">
@@ -6279,7 +6356,7 @@
       <!-- LINHA VISUAL HORIZONTAL -->
       <div class="card" style="margin-bottom:20px;padding:18px 20px;">
         <div class="section-title" style="margin-bottom:14px;">📍 Onde estás no caminho</div>
-        <div style="overflow-x:auto;padding-bottom:4px;">
+        <div class="scroll-fade-h" style="overflow-x:auto;padding-bottom:4px;">
           <div id="perc-linha" style="min-width:820px;"></div>
         </div>
       </div>
@@ -6597,6 +6674,26 @@
     </div><!-- end page-metas -->
 
     <!-- ============================================================ -->
+    <!-- PAGE: DESPESAS DO NEGÓCIO -->
+    <!-- ============================================================ -->
+    <div id="page-despesas" class="page">
+      <div class="page-header">
+        <div>
+          <div class="page-title">💸 Despesas do Negócio</div>
+          <div class="page-sub">Regista os teus custos e acompanha o lucro líquido real</div>
+        </div>
+        <button class="btn btn-primary btn-sm" onclick="abrirNovaDespesa()">＋ Registar Despesa</button>
+      </div>
+
+      <div id="despesas-resumo" class="card" style="margin-bottom:18px;"></div>
+
+      <div class="card">
+        <div class="section-title" style="margin-bottom:14px;">📋 Despesas deste Mês</div>
+        <div id="despesas-lista" style="display:flex;flex-direction:column;gap:8px;"></div>
+      </div>
+    </div><!-- end page-despesas -->
+
+    <!-- ============================================================ -->
     <!-- PAGE: TUTORIAL PASSO A PASSO                                 -->
     <!-- ============================================================ -->
 
@@ -6862,6 +6959,7 @@
             <option value="lead_criado">Um novo lead é adicionado</option>
             <option value="sem_contacto_dias">Lead fica X dias sem contacto</option>
             <option value="aniversario">É o aniversário do lead</option>
+            <option value="venda_registada">Uma venda é registada</option>
           </select>
           <div id="regra-trigger-extra" style="margin-top:10px;"></div>
         </div>
@@ -6882,6 +6980,22 @@
         </div>
       </div>
     </div>
+
+    <!-- Modal Celebração de Conquista -->
+    <div class="modal-overlay" id="modal-celebracao-conquista">
+      <div class="modal" style="max-width:420px;text-align:center;">
+        <div class="modal-title" style="justify-content:flex-end;"><button class="modal-close" onclick="closeModal('modal-celebracao-conquista')">✕</button></div>
+        <div id="celebracao-icon" style="font-size:56px;margin-bottom:8px;">🏅</div>
+        <div id="celebracao-nome" style="font-size:19px;font-weight:800;color:var(--text);margin-bottom:4px;">Conquista desbloqueada!</div>
+        <div id="celebracao-desc" style="font-size:13px;color:var(--text2);margin-bottom:22px;"></div>
+        <div style="font-size:12px;color:var(--text3);margin-bottom:16px;">Este é um bom momento para partilhar este marco com a tua audiência — autêntico e sem pressão de vendas.</div>
+        <div class="modal-actions" style="flex-direction:column;gap:10px;">
+          <button class="btn btn-primary" style="width:100%;" onclick="celebrarConquistaCriarPost()">✨ Criar Post Sobre Isto</button>
+          <button class="btn btn-secondary" style="width:100%;" onclick="closeModal('modal-celebracao-conquista')">Agora não</button>
+        </div>
+      </div>
+    </div>
+
 
     <!-- ==================== MAPA DE LEADS (TEMPERATURA) ==================== -->
     <div id="page-mapa" class="page">
@@ -7603,6 +7717,10 @@
       <div class="bn-icon-wrap"><span class="bn-icon">💰</span></div>
       <span>Comissões</span>
     </div>
+    <div class="bn-item" id="bn-despesas" onclick="goTo('despesas')">
+      <div class="bn-icon-wrap"><span class="bn-icon">💸</span></div>
+      <span>Despesas</span>
+    </div>
     <div class="bn-item" id="bn-retencao" onclick="goTo('retencao')">
       <div class="bn-icon-wrap">
         <span class="bn-icon">🔄</span>
@@ -8007,6 +8125,14 @@
           <option>Outro</option>
         </select>
       </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">🎁 Indicado por (opcional)</label>
+        <input class="form-input" id="f-indicado-por" placeholder="Nome de quem indicou" list="f-indicado-por-list">
+        <datalist id="f-indicado-por-list"></datalist>
+      </div>
+      <div class="form-group"></div>
     </div>
     <div class="form-group">
       <label class="form-label" style="display:flex;align-items:center;gap:8px;">
@@ -8581,7 +8707,7 @@ function abrirMenuMais() {
     },
     {
       label: '💰 Negócio & Finanças',
-      itens: ['comissoes','plano-comp','calculadora','simulador-pib','retencao']
+      itens: ['comissoes','despesas','plano-comp','calculadora','simulador-pib','retencao']
     },
     {
       label: '📦 Produtos & Formação',
@@ -8606,7 +8732,7 @@ function abrirMenuMais() {
     { idx: 0, keys: ['lead','venda','prospect','funil','contacto','mensagem','analise','obje','promo','meta','mapa','acao'] },
     { idx: 1, keys: ['post','storie','template','apresenta','conteudo','comunic','publicar','reel'] },
     { idx: 2, keys: ['equipa','recrut','onboard','automa','parceiro','membro','downline'] },
-    { idx: 3, keys: ['comiss','plano','calcula','simulad','retencao','finan','pagamento','bonus','pib'] },
+    { idx: 3, keys: ['comiss','plano','calcula','simulad','retencao','finan','pagamento','bonus','pib','despes'] },
     { idx: 4, keys: ['catalogo','produto','patch','forma','treino','aprender','recomend'] },
     { idx: 5, keys: ['stat','relator','checklist','qualif','analise','crescimento','kpi'] },
     { idx: 6, keys: ['percurso','diario','coach','roleplay','motiv','rank','conquist'] },
@@ -8716,13 +8842,15 @@ function goTo(page, opts) {
   if (page === 'acoes') renderAcoes();
   if (page === 'funil') { _funilPaginaPorColuna = {}; renderFunil(); }
   if (page === 'lista') renderLista();
+  if (page === 'posts') { renderSugestaoFunilPosts(); atualizarRevistaUI(); }
   if (page === 'dashboard') renderDashboard();
   if (page === 'calendario') renderCalendario();
   if (page === 'agenda') renderAgenda();
   if (page === 'coach') coachInit();
-  if (page === 'stats') renderStats();
+  if (page === 'stats') { renderStats(); renderTopIndicadores(); }
   if (page === 'equipa') { renderEquipa(); renderMiniCRM(); }
   if (page === 'comissoes') renderComissoes();
+  if (page === 'despesas') renderDespesas();
   if (page === 'retencao') renderRetencao();
   if (page === 'luminate') { renderLuminate(); viagemSetAI(viagemAI); }
   if (page === 'calculadora') renderCalculadora();
@@ -8887,6 +9015,7 @@ function salvarLead() {
     estado: document.getElementById('f-estado').value,
     objetivo: document.getElementById('f-objetivo')?.value || 'cliente',
     fonte: document.getElementById('f-fonte').value,
+    indicadoPor: document.getElementById('f-indicado-por')?.value.trim() || '',
     notas: document.getElementById('f-notas').value.trim(),
     aniversario: document.getElementById('f-aniversario').value || '',
     data: new Date().toLocaleDateString('pt-PT'),
@@ -8939,6 +9068,7 @@ function editarLead(id) {
   document.getElementById('f-estado').value = l.estado;
   const fObjEl = document.getElementById('f-objetivo'); if (fObjEl) fObjEl.value = l.objetivo || 'cliente';
   document.getElementById('f-fonte').value = l.fonte;
+  const fIndEl = document.getElementById('f-indicado-por'); if (fIndEl) fIndEl.value = l.indicadoPor || '';
   document.getElementById('f-notas').value = l.notas;
   document.getElementById('f-aniversario').value = l.aniversario || '';
   closeModal('modal-ver-lead');
@@ -9195,6 +9325,7 @@ function verLead(id) {
     <div class="detail-row"><div class="detail-label">🎯 Mercado</div><div class="detail-val">${l.mercado}</div></div>
     <div class="detail-row"><div class="detail-label">📌 Estado</div><div class="detail-val"><span class="lead-badge b-${l.estado}">${estadoLabel(l.estado)}</span></div></div>
     <div class="detail-row"><div class="detail-label">🔍 Fonte</div><div class="detail-val">${l.fonte}</div></div>
+    ${l.indicadoPor ? `<div class="detail-row"><div class="detail-label">🎁 Indicado por</div><div class="detail-val">${escapeHtml(l.indicadoPor)}</div></div>` : ''}
     <div class="detail-row"><div class="detail-label">📅 Adicionado</div><div class="detail-val">${l.data}</div></div>
     ${l.aniversario ? `<div class="detail-row"><div class="detail-label">🎂 Aniversário</div><div class="detail-val">${formatarAniversario(l.aniversario)}</div></div>` : ''}
 
@@ -9908,6 +10039,75 @@ function snoozeEsfriar(leadId, days) {
   showToast(`⏸ Adiado ${days} dias`);
 }
 
+// ===================================================
+// FUNIL DE CONVERSÃO — taxas reais entre etapas
+// Mostra, com base no estado ATUAL de cada lead, quantos chegaram a cada
+// etapa do funil "ou mais longe" e a % face ao topo. Não usa o histórico
+// porque o texto das mudanças de estado não é estruturado de forma fiável
+// o suficiente para reconstruir o caminho exato de cada lead — o estado
+// atual é a mesma fonte de verdade já usada no resto da app (Kanban, score).
+// Leads "Frio"/"Perdido" não entram no cálculo: saíram do funil ativo.
+// ===================================================
+function renderFunilConversao() {
+  const el = document.getElementById('dash-funil-conversao-widget');
+  if (!el) return;
+
+  const ETAPAS = [
+    { key: 'novo',        label: 'Novo',        icon: '🆕' },
+    { key: 'contactado',  label: 'Contactado',  icon: '📞' },
+    { key: 'interessado', label: 'Interessado', icon: '⭐' },
+    { key: 'negociacao',  label: 'Negociação',  icon: '🤝' },
+    { key: 'cliente',     label: 'Cliente',     icon: '✅' },
+  ];
+  const ordemKeys = ETAPAS.map(e => e.key);
+
+  // Considera apenas leads que entraram no funil (exclui frio/perdido,
+  // que representa leads que saíram, não uma etapa de progresso).
+  const ativos = leads.filter(l => ordemKeys.includes(l.estado));
+  if (ativos.length < 3) { el.innerHTML = ''; return; } // poucos dados para um funil ter sentido
+
+  const topo = ativos.length;
+  const linhas = ETAPAS.map(etapa => {
+    const idx = ordemKeys.indexOf(etapa.key);
+    // "Chegou a esta etapa ou mais longe" = está numa etapa de índice >= idx
+    const chegaram = ativos.filter(l => ordemKeys.indexOf(l.estado) >= idx).length;
+    const pct = topo > 0 ? Math.round((chegaram / topo) * 100) : 0;
+    return { ...etapa, chegaram, pct };
+  });
+
+  // Identifica a maior queda percentual entre etapas consecutivas — é o
+  // ponto mais útil de destacar, porque é onde mais leads se perdem.
+  let maiorQuedaIdx = -1, maiorQueda = 0;
+  for (let i = 1; i < linhas.length; i++) {
+    const queda = linhas[i - 1].pct - linhas[i].pct;
+    if (queda > maiorQueda) { maiorQueda = queda; maiorQuedaIdx = i; }
+  }
+
+  el.innerHTML = `
+    <div style="background:var(--surface2);border:1px solid var(--border);border-radius:14px;padding:16px 18px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+        <div style="font-size:14px;font-weight:700;color:var(--text);">📊 Funil de Conversão</div>
+        <div style="font-size:11px;color:var(--text2);">${topo} leads ativos no funil</div>
+      </div>
+      ${linhas.map((l, i) => `
+        <div style="margin-bottom:${i === linhas.length - 1 ? 0 : 12}px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+            <span style="font-size:12.5px;color:var(--text);">${l.icon} ${l.label}</span>
+            <span style="font-size:12px;color:var(--text2);">${l.chegaram} leads · <strong style="color:var(--text);">${l.pct}%</strong></span>
+          </div>
+          <div style="background:var(--surface3);border-radius:20px;height:7px;overflow:hidden;">
+            <div style="width:${l.pct}%;height:100%;background:${i === maiorQuedaIdx ? '#ff6b6b' : 'var(--accent)'};border-radius:20px;transition:width .5s;"></div>
+          </div>
+        </div>
+      `).join('')}
+      ${maiorQuedaIdx > 0 ? `
+        <div style="margin-top:14px;padding:10px 12px;background:rgba(255,107,107,0.08);border:1px solid rgba(255,107,107,0.2);border-radius:8px;font-size:12px;color:var(--text2);">
+          🔻 Maior perda: de <strong style="color:var(--text);">${linhas[maiorQuedaIdx-1].label}</strong> para <strong style="color:var(--text);">${linhas[maiorQuedaIdx].label}</strong> (−${maiorQueda} pontos percentuais). É aí que vale mais a pena focar o follow-up.
+        </div>
+      ` : ''}
+    </div>`;
+}
+
 function renderDashboard() {
   document.getElementById('stat-total').textContent = leads.length;
   document.getElementById('stat-prog').textContent = leads.filter(l => ['contactado','interessado'].includes(l.estado)).length;
@@ -9938,6 +10138,10 @@ function renderDashboard() {
   if (typeof renderDashRankWidget === 'function') renderDashRankWidget();
   // Refresh top leads mais quentes
   if (typeof renderTopLeadsWidget === 'function') renderTopLeadsWidget();
+  // Refresh onboarding de equipa parado/atrasado
+  if (typeof renderOnboardingAlertaDash === 'function') renderOnboardingAlertaDash();
+  // Refresh funil de conversão (taxas reais por etapa)
+  if (typeof renderFunilConversao === 'function') renderFunilConversao();
   // Refresh widget de vendas
   if (typeof renderDashVendas === 'function') renderDashVendas();
   if (typeof renderSparkline === 'function') renderSparkline();
@@ -10018,13 +10222,9 @@ function updateBadge() {
   if (bn) bn.textContent = leads.length;
 }
 
-// ===== FUNIL KANBAN (drag & drop — mouse + touch) =====
-let _dragLeadId   = null;  // lead a ser arrastado
-let _dragColKey   = null;  // coluna de origem
-let _touchStartX  = 0;
-let _touchStartY  = 0;
-let _touchCard    = null;  // clone flutuante no touch
-let _touchOriginId = null;
+// ===== FUNIL KANBAN (drag & drop) =====
+// Nota: o estado de arrasto (lead/coluna de origem) deixou de ser global —
+// agora vive dentro de cada instância criada por criarKanbanDragDrop().
 
 function renderFunil() {
   const cols = [
@@ -10094,109 +10294,78 @@ function verMaisFunilColuna(colKey) {
   renderFunil();
 }
 
-/* ── Mouse drag ── */
-function kbDragStart(e, id, colKey) {
-  _dragLeadId = id;
-  _dragColKey = colKey;
-  e.dataTransfer.effectAllowed = 'move';
-  setTimeout(() => {
-    const el = document.getElementById('kbc-' + id);
-    if (el) el.style.opacity = '0.35';
-  }, 0);
-}
-function kbDragEnd(e) {
-  if (_dragLeadId) {
-    const el = document.getElementById('kbc-' + _dragLeadId);
-    if (el) el.style.opacity = '1';
-  }
-  _dragLeadId = null;
-  document.querySelectorAll('.funnel-col').forEach(c => c.classList.remove('kb-over'));
-}
-function kbDragOver(e, col) {
-  e.preventDefault();
-  e.dataTransfer.dropEffect = 'move';
-  document.querySelectorAll('.funnel-col').forEach(c => c.classList.remove('kb-over'));
-  col.classList.add('kb-over');
-}
-function kbDragLeave(col) {
-  col.classList.remove('kb-over');
-}
-function kbDrop(e, targetCol) {
-  e.preventDefault();
-  document.querySelectorAll('.funnel-col').forEach(c => c.classList.remove('kb-over'));
-  if (!_dragLeadId || _dragColKey === targetCol) return;
-  const lead = leads.find(l => l.id === _dragLeadId);
-  if (!lead) return;
-  const estadoAnterior = lead.estado;
-  lead.estado = targetCol;
-  saveleads();
-  renderFunil();
-  if (targetCol === 'cliente') vibrarConfirmacao();
-  showToast('✅ ' + lead.nome + ' → ' + targetCol);
-  executarAutomacoes(lead, estadoAnterior, targetCol);
-  mostrarMsgFunil(lead, targetCol);
+// =====================================================
+// criarKanbanDragDrop — fábrica genérica de drag & drop para colunas
+// "funnel-col" / cards "kb-card". Antes disto, o Funil de Vendas
+// (kbDrag*) e o Funil de Recrutamento (recrutDrag*) tinham cada um a
+// sua cópia quase idêntica desta lógica (5 funções cada). Esta fábrica
+// gera as mesmas 5 funções a partir de uma configuração, mantendo
+// exatamente os mesmos nomes globais (kbDragStart, recrutDragStart,
+// etc.) para que o HTML gerado por renderFunil/renderFunilRecrutamento
+// continue a funcionar sem alterações.
+// =====================================================
+function criarKanbanDragDrop({ cardPrefix, containerSelector, onDrop }) {
+  let dragId = null;
+  let dragCol = null;
+  const colSelector = containerSelector ? `${containerSelector} .funnel-col` : '.funnel-col';
+  return {
+    dragStart(e, id, colKey) {
+      dragId = id;
+      dragCol = colKey;
+      e.dataTransfer.effectAllowed = 'move';
+      setTimeout(() => {
+        const el = document.getElementById(cardPrefix + id);
+        if (el) el.style.opacity = '0.35';
+      }, 0);
+    },
+    dragEnd() {
+      if (dragId) {
+        const el = document.getElementById(cardPrefix + dragId);
+        if (el) el.style.opacity = '1';
+      }
+      dragId = null;
+      dragCol = null;
+      document.querySelectorAll(colSelector).forEach(c => c.classList.remove('kb-over'));
+    },
+    dragOver(e, col) {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      document.querySelectorAll(colSelector).forEach(c => c.classList.remove('kb-over'));
+      col.classList.add('kb-over');
+    },
+    dragLeave(col) {
+      col.classList.remove('kb-over');
+    },
+    drop(e, targetCol) {
+      e.preventDefault();
+      document.querySelectorAll(colSelector).forEach(c => c.classList.remove('kb-over'));
+      if (!dragId || dragCol === targetCol) return;
+      onDrop(dragId, targetCol);
+    }
+  };
 }
 
-/* ── Touch drag ── */
-function kbTouchStart(e, id) {
-  _touchOriginId = id;
-  const t = e.touches[0];
-  _touchStartX = t.clientX;
-  _touchStartY = t.clientY;
-  // clone flutuante
-  const el = document.getElementById('kbc-' + id);
-  if (!el) return;
-  _touchCard = el.cloneNode(true);
-  _touchCard.style.cssText = `
-    position:fixed;z-index:9999;pointer-events:none;opacity:0.85;
-    width:${el.offsetWidth}px;box-shadow:0 8px 32px rgba(0,0,0,0.5);
-    left:${t.clientX - el.offsetWidth/2}px;top:${t.clientY - el.offsetHeight/2}px;
-    border-radius:var(--radius-sm);transition:none;transform:rotate(2deg);
-  `;
-  document.body.appendChild(_touchCard);
-  el.style.opacity = '0.3';
-}
-function kbTouchMove(e) {
-  if (!_touchCard) return;
-  e.preventDefault();
-  const t = e.touches[0];
-  _touchCard.style.left = (t.clientX - parseInt(_touchCard.style.width)/2) + 'px';
-  _touchCard.style.top  = (t.clientY - parseInt(_touchCard.style.height || 80)/2) + 'px';
-  // highlight coluna sob o dedo
-  _touchCard.style.display = 'none';
-  const under = document.elementFromPoint(t.clientX, t.clientY);
-  _touchCard.style.display = '';
-  document.querySelectorAll('.funnel-col').forEach(c => c.classList.remove('kb-over'));
-  const col = under ? under.closest('.funnel-col') : null;
-  if (col) col.classList.add('kb-over');
-}
-function kbTouchEnd(e, originCol) {
-  if (_touchCard) { _touchCard.remove(); _touchCard = null; }
-  document.querySelectorAll('.funnel-col').forEach(c => c.classList.remove('kb-over'));
-  const el = document.getElementById('kbc-' + _touchOriginId);
-  if (el) el.style.opacity = '1';
-  const t = e.changedTouches[0];
-  const dx = Math.abs(t.clientX - _touchStartX);
-  const dy = Math.abs(t.clientY - _touchStartY);
-  if (dx < 8 && dy < 8) { _touchOriginId = null; return; } // foi tap → onclick trata
-  // descobre coluna destino
-  const under = document.elementFromPoint(t.clientX, t.clientY);
-  const colEl = under ? under.closest('[data-col]') : null;
-  const targetCol = colEl ? colEl.dataset.col : null;
-  if (targetCol && targetCol !== originCol && _touchOriginId) {
-    const lead = leads.find(l => l.id === _touchOriginId);
-    if (lead) {
-      const estadoAnterior = lead.estado;
-      lead.estado = targetCol;
-      saveleads();
-      renderFunil();
-      showToast('✅ ' + lead.nome + ' → ' + targetCol);
-      executarAutomacoes(lead, estadoAnterior, targetCol);
-      mostrarMsgFunil(lead, targetCol);
-    }
+const _kbDnd = criarKanbanDragDrop({
+  cardPrefix: 'kbc-',
+  containerSelector: '',
+  onDrop(leadId, targetCol) {
+    const lead = leads.find(l => l.id === leadId);
+    if (!lead) return;
+    const estadoAnterior = lead.estado;
+    lead.estado = targetCol;
+    saveleads();
+    renderFunil();
+    if (targetCol === 'cliente') vibrarConfirmacao();
+    showToast('✅ ' + lead.nome + ' → ' + targetCol);
+    executarAutomacoes(lead, estadoAnterior, targetCol);
+    mostrarMsgFunil(lead, targetCol);
   }
-  _touchOriginId = null;
-}
+});
+function kbDragStart(e, id, colKey) { _kbDnd.dragStart(e, id, colKey); }
+function kbDragEnd(e) { _kbDnd.dragEnd(); }
+function kbDragOver(e, col) { _kbDnd.dragOver(e, col); }
+function kbDragLeave(col) { _kbDnd.dragLeave(col); }
+function kbDrop(e, targetCol) { _kbDnd.drop(e, targetCol); }
 
 
 // =====================================================================
@@ -10219,8 +10388,6 @@ const RECRUT_ETAPAS = [
 
 const RECRUT_PAGE_SIZE = 30;
 let _recrutPaginaPorColuna = {};
-let _recrutDragLeadId = null;
-let _recrutDragColKey = null;
 
 function getLeadsRecrutamento() {
   if (typeof leads === 'undefined') return [];
@@ -10370,38 +10537,18 @@ function abrirMenuMoverRecrutamento(leadId, etapaAtual) {
 }
 
 /* ── Drag & drop (mouse) — próprio do funil de recrutamento ── */
-function recrutDragStart(e, id, colKey) {
-  _recrutDragLeadId = id;
-  _recrutDragColKey = colKey;
-  e.dataTransfer.effectAllowed = 'move';
-  setTimeout(() => {
-    const el = document.getElementById('rkbc-' + id);
-    if (el) el.style.opacity = '0.35';
-  }, 0);
-}
-function recrutDragEnd(e) {
-  if (_recrutDragLeadId) {
-    const el = document.getElementById('rkbc-' + _recrutDragLeadId);
-    if (el) el.style.opacity = '1';
+const _recrutDnd = criarKanbanDragDrop({
+  cardPrefix: 'rkbc-',
+  containerSelector: '#recrutamento-container',
+  onDrop(leadId, targetCol) {
+    moverLeadParaEtapaRecrutamento(leadId, targetCol);
   }
-  _recrutDragLeadId = null;
-  _recrutDragColKey = null;
-}
-function recrutDragOver(e, col) {
-  e.preventDefault();
-  e.dataTransfer.dropEffect = 'move';
-  document.querySelectorAll('#recrutamento-container .funnel-col').forEach(c => c.classList.remove('kb-over'));
-  col.classList.add('kb-over');
-}
-function recrutDragLeave(col) {
-  col.classList.remove('kb-over');
-}
-function recrutDrop(e, targetCol) {
-  e.preventDefault();
-  document.querySelectorAll('#recrutamento-container .funnel-col').forEach(c => c.classList.remove('kb-over'));
-  if (!_recrutDragLeadId || _recrutDragColKey === targetCol) return;
-  moverLeadParaEtapaRecrutamento(_recrutDragLeadId, targetCol);
-}
+});
+function recrutDragStart(e, id, colKey) { _recrutDnd.dragStart(e, id, colKey); }
+function recrutDragEnd(e) { _recrutDnd.dragEnd(); }
+function recrutDragOver(e, col) { _recrutDnd.dragOver(e, col); }
+function recrutDragLeave(col) { _recrutDnd.dragLeave(col); }
+function recrutDrop(e, targetCol) { _recrutDnd.drop(e, targetCol); }
 
 // Atalho "Novo Prospeto": abre o modal de lead normal, mas pré-define o
 // objetivo como "parceiro" para já cair direto no funil de recrutamento.
@@ -11188,6 +11335,162 @@ When the distributor asks about their progress, what to focus on, or who to cont
   } catch(e) { return ''; }
 }
 
+// ===================================================
+// REVISTA LIFEWAVE — contexto extra para a IA (posts, mensagens, stories, coach)
+// Aditivo: não altera nenhuma função existente. O PDF nunca é guardado (só o
+// resumo de texto extraído pela IA), para não sobrecarregar o localStorage.
+// ===================================================
+function getRevistaKey() { return getUserStorageKey('lw_revista'); }
+
+function getRevista() {
+  try { return JSON.parse(localStorage.getItem(getRevistaKey()) || 'null'); }
+  catch(e) { return null; }
+}
+
+function saveRevista(obj) {
+  localStorage.setItem(getRevistaKey(), JSON.stringify(obj));
+  driveAutoSave();
+}
+
+function removerRevista() {
+  if (!confirm('Remover a revista carregada? A IA deixa de usar este contexto extra.')) return;
+  localStorage.removeItem(getRevistaKey());
+  driveAutoSave();
+  atualizarRevistaUI();
+  showToast('🗑️ Revista removida');
+}
+
+function atualizarRevistaUI() {
+  const r = getRevista();
+  const statusEl = document.getElementById('revista-status');
+  const btnVer = document.getElementById('revista-btn-ver');
+  const btnRemover = document.getElementById('revista-btn-remover');
+  if (!statusEl) return;
+  if (r && r.resumo) {
+    const dataStr = r.dataUpload ? new Date(r.dataUpload).toLocaleDateString('pt-PT') : '';
+    statusEl.innerHTML = `✅ <strong>${escapeHtml(r.nomeFicheiro || 'revista.pdf')}</strong> · carregada em ${dataStr}`;
+    if (btnVer) btnVer.style.display = '';
+    if (btnRemover) btnRemover.style.display = '';
+  } else {
+    statusEl.textContent = 'Nenhuma revista carregada — a IA usa só o conhecimento geral.';
+    if (btnVer) btnVer.style.display = 'none';
+    if (btnRemover) btnRemover.style.display = 'none';
+  }
+}
+
+function verRevistaResumo() {
+  const r = getRevista();
+  if (!r || !r.resumo) { showToast('Ainda não há nenhuma revista carregada'); return; }
+  const dataStr = r.dataUpload ? new Date(r.dataUpload).toLocaleString('pt-PT') : '';
+  document.getElementById('revista-resumo-meta').textContent = `${r.nomeFicheiro || 'revista.pdf'} · carregada em ${dataStr}`;
+  document.getElementById('revista-resumo-texto').value = r.resumo;
+  openModal('modal-revista-resumo');
+}
+
+async function handleRevistaUpload(input) {
+  const file = input.files && input.files[0];
+  if (!file) return;
+  if (file.type !== 'application/pdf') { showToast('⚠️ Por favor carrega um ficheiro PDF'); input.value = ''; return; }
+  if (file.size > 18 * 1024 * 1024) { showToast('⚠️ PDF demasiado grande (máx. ~18MB)'); input.value = ''; return; }
+
+  const statusEl = document.getElementById('revista-status');
+  if (statusEl) statusEl.innerHTML = '⏳ A ler e a analisar o PDF com IA… (pode demorar até 1 min)';
+
+  let base64 = '';
+  try {
+    base64 = await new Promise((res, rej) => {
+      const r = new FileReader();
+      r.onload = () => res(r.result.split(',')[1]);
+      r.onerror = () => rej(new Error('Erro ao ler ficheiro'));
+      r.readAsDataURL(file);
+    });
+  } catch(e) {
+    if (statusEl) statusEl.textContent = '❌ Erro ao ler o ficheiro.';
+    input.value = '';
+    return;
+  }
+
+  const prompt = `Isto é uma revista/newsletter da LifeWave (em PDF). Lê o documento todo e extrai, em formato de lista de tópicos compacta e em português de Portugal, a informação mais útil para criar posts de redes sociais e mensagens a leads/clientes:
+- Novos produtos ou novidades de produtos existentes
+- Promoções, descontos, datas-limite ou campanhas ativas
+- Novidades científicas/tecnológicas relevantes (sem termos médicos proibidos)
+- Eventos, datas importantes, viagens de incentivo
+- Frases ou dados que sirvam de inspiração para conteúdo (estatísticas, testemunhos genéricos, factos)
+Sê factual e conciso (máximo ~500 palavras). Não inventes nada que não esteja no documento. Responde APENAS com a lista de tópicos, sem introdução.`;
+
+  try {
+    const ai = (typeof geminiKey !== 'undefined' && geminiKey && geminiKey.length > 10) ? 'gemini'
+             : (typeof claudeKey !== 'undefined' && claudeKey && claudeKey.length > 10) ? 'claude'
+             : 'gemini';
+    const resumo = await chamarIADocumento({ ai, prompt, base64, isPdf: true, mediaType: 'application/pdf', maxTokens: 1400, fallback: true });
+
+    saveRevista({
+      resumo: (resumo || '').trim(),
+      nomeFicheiro: file.name,
+      dataUpload: new Date().toISOString()
+    });
+    atualizarRevistaUI();
+    showToast('✅ Revista analisada! A IA já vai usar esta informação.');
+  } catch(e) {
+    if (statusEl) statusEl.textContent = '❌ Não foi possível analisar o PDF. ' + mensagemErroIA(e);
+    showToast('❌ Erro ao analisar a revista');
+  } finally {
+    input.value = '';
+  }
+}
+
+// Bloco de texto a injetar nos prompts de geração de conteúdo (posts, mensagens, stories, coach).
+// Devolve string vazia se não houver revista carregada — não altera o comportamento existente.
+function getRevistaContextoIA() {
+  try {
+    const r = getRevista();
+    if (!r || !r.resumo) return '';
+    const dataStr = r.dataUpload ? new Date(r.dataUpload).toLocaleDateString('pt-PT') : '';
+    return `\nINFORMAÇÃO EXTRA DA REVISTA LIFEWAVE (carregada pelo utilizador em ${dataStr} — usa quando for relevante para tornar o conteúdo mais atual e específico, mas não cites "a revista" como fonte):\n${r.resumo}\n`;
+  } catch(e) { return ''; }
+}
+
+// ===================================================
+// PROGRAMA DE REFERÊNCIA — "Top Indicadores"
+// Aditivo: usa o campo opcional lead.indicadoPor já guardado no lead.
+// Não altera nenhum cálculo ou função existente.
+// ===================================================
+function renderTopIndicadores() {
+  const el = document.getElementById('stats-indicadores-lista');
+  if (!el) return;
+
+  const contagem = {}; // nome do indicador -> { total, clientes }
+  leads.forEach(l => {
+    const ind = (l.indicadoPor || '').trim();
+    if (!ind) return;
+    if (!contagem[ind]) contagem[ind] = { total: 0, clientes: 0 };
+    contagem[ind].total++;
+    if (l.estado === 'cliente') contagem[ind].clientes++;
+  });
+
+  const ranking = Object.entries(contagem)
+    .sort((a, b) => b[1].total - a[1].total)
+    .slice(0, 8);
+
+  if (!ranking.length) {
+    el.innerHTML = '<div style="text-align:center;padding:18px;color:var(--text2);font-size:12.5px;">Ainda sem indicações registadas.<br>Preenche "🎁 Indicado por" ao criar um lead para começares a ver aqui quem te traz mais referências.</div>';
+    return;
+  }
+
+  el.innerHTML = ranking.map(([nome, d], i) => {
+    const pct = d.total > 0 ? Math.round((d.clientes / d.total) * 100) : 0;
+    const medalha = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : '🎁';
+    return `
+      <div style="display:flex;align-items:center;gap:10px;padding:8px 0;${i < ranking.length - 1 ? 'border-bottom:1px solid var(--border);' : ''}">
+        <span style="font-size:16px;width:22px;text-align:center;">${medalha}</span>
+        <div style="flex:1;">
+          <div style="font-size:13px;font-weight:600;color:var(--text);">${escapeHtml(nome)}</div>
+          <div style="font-size:11px;color:var(--text2);">${d.total} indicação${d.total !== 1 ? 'ões' : ''} · ${d.clientes} converteu${d.clientes !== 1 ? 'ram' : ''} em cliente (${pct}%)</div>
+        </div>
+      </div>`;
+  }).join('');
+}
+
 // ===== COMPLIANCE LifeWave — Fonte: Social Product Claims v1.0 =====
 const LW_COMPLIANCE = `
 REGRAS DE COMPLIANCE LIFEWAVE — OBRIGATÓRIAS EM TODO O CONTEÚDO:
@@ -11226,43 +11529,21 @@ REGRAS DE COMPLIANCE LIFEWAVE — OBRIGATÓRIAS EM TODO O CONTEÚDO:
 - Isenções/disclaimers NÃO tornam um claim proibido em permitido — o conteúdo principal tem de ser conforme.
 - Para Cellergize Morning: adicionar sempre "*Estas afirmações não foram avaliadas pela FDA. Este produto não se destina a diagnosticar, tratar, curar ou prevenir qualquer doença."
 
-📌 HASHTAGS SEGUROS — usa SEMPRE no idioma do post:
+📌 HASHTAGS — REGRAS:
+- Usa NO MÁXIMO 5 hashtags por post, escolhidas pelo TEMA/conteúdo do post (ex: energia, sono, rotina matinal, bem-estar, recuperação) — NUNCA hashtags de marca ou produto (nada de #LifeWave, #X39, #BrandPartner, #ParceiroIndependente ou similares)
+- Hashtags SEMPRE no mesmo idioma do post — nunca mistures idiomas
 
-🇵🇹 PORTUGUÊS:
-#JornadaBemEstar #VidaConsciênte #CuidadoPessoal #PatchBemEstar #Fototerapia
-#RotinaWellnessDiária #LifeWaveParceiroIndependente #ApoioEnergia #HábitosSaudáveis
-#VidaNatural #SaúdeHolística #EstiloDeVidaAtivo #HábitosDiários #MinhaRotina
-#parceiroindependente #naotransdermico #LifeWave
+Exemplos de hashtags de tema (escolhe as 5 mais relevantes ao conteúdo, adapta ao idioma do post):
 
-🇬🇧 INGLÊS (se o post for em inglês):
-#WellnessJourney #MindfulLiving #SelfCareEssentials #WellnessPatch #Phototherapy
-#DailyWellnessRoutine #LifeWaveIndependentBrandPartner #EnergySupport #HealthyHabits
-#NaturalLiving #HolisticHealth #ActiveLifestyle #DailyHabits #MyRoutine
-#independentbrandpartner #nontransdermal #LifeWave
+🇵🇹 PORTUGUÊS: #JornadaBemEstar #VidaConsciente #CuidadoPessoal #RotinaWellnessDiária #ApoioEnergia #HábitosSaudáveis #VidaNatural #SaúdeHolística #EstiloDeVidaAtivo #HábitosDiários #MinhaRotina
 
-🇫🇷 FRANCÊS (se o post for em francês):
-#VoyageBienEtre #VivreConscient #PrendresSoinDeSoi #PatchBienEtre #Photothérapie
-#RoutineQuotidienneBienEtre #LifeWavePartenaire #SoutienEnergie #HabitudesSaines
-#VieNaturelle #SantéHolistique #StyleDeVieActif #HabitudesQuotidiennes #MaRoutine
-#partenaireindépendant #nontransdermique #LifeWave
+🇬🇧 INGLÊS (se o post for em inglês): #WellnessJourney #MindfulLiving #SelfCareEssentials #DailyWellnessRoutine #EnergySupport #HealthyHabits #NaturalLiving #HolisticHealth #ActiveLifestyle #DailyHabits
 
-🇪🇸 ESPANHOL (se o post for em espanhol):
-#ViajeDeBienestar #VidaConsciente #CuidadoPersonal #ParcheBienestar #Fototerapia
-#RutinaDiariaBienestar #LifeWaveSocioIndependiente #ApoyoEnergia #HábitosSaludables
-#VidaNatural #SaludHolística #EstiloDeVidaActivo #HábitosDiarios #MiRutina
-#socioindependiente #notransdérmico #LifeWave
+🇫🇷 FRANCÊS (se o post for em francês): #VoyageBienEtre #VivreConscient #PrendresSoinDeSoi #RoutineQuotidienneBienEtre #SoutienEnergie #HabitudesSaines #VieNaturelle #SantéHolistique #StyleDeVieActif
 
-🇩🇪 ALEMÃO (se o post for em alemão):
-#WohlbefindenReise #AchtsamLeben #SelbstfürsorgePflege #WohlbefindenPflaster #Phototherapie
-#TäglicheWohlbefindenRoutine #LifeWaveUnabhängigPartner #EnergieUnterstützung #GesundeGewohnheiten
-#NatürlichesLeben #HolistischeGesundheit #AktiverLebensstil #TäglicheGewohnheiten #MeineRoutine
-#unabhängigpartner #nichttransdermal #LifeWave
+🇪🇸 ESPANHOL (se o post for em espanhol): #ViajeDeBienestar #VidaConsciente #CuidadoPersonal #RutinaDiariaBienestar #ApoyoEnergia #HábitosSaludables #VidaNatural #SaludHolística #EstiloDeVidaActivo
 
-⚠️ REGRA CRÍTICA DE HASHTAGS:
-- As hashtags DEVEM estar no MESMO IDIOMA do post
-- Nunca mistures hashtags em inglês num post em português (ou outro idioma)
-- As hashtags #LifeWave e #nontransdermal / #naotransdermico são exceção — podem ficar como estão
-- Mantém sempre #LifeWaveParceiroIndependente / #LifeWaveIndependentBrandPartner (adaptado ao idioma)
+🇩🇪 ALEMÃO (se o post for em alemão): #WohlbefindenReise #AchtsamLeben #SelbstfürsorgePflege #TäglicheWohlbefindenRoutine #EnergieUnterstützung #GesundeGewohnheiten #NatürlichesLeben #HolistischeGesundheit #AktiverLebensstil
 `;
 
 // Versão do compliance SEM a secção de hashtags — para usar em prompts de mensagens WhatsApp/SMS
@@ -11352,7 +11633,7 @@ HOW TO RESPOND:
 - Prefer lists and examples over long paragraphs
 - Always use ${nome}'s personal links when sharing distributor links
 ${getResumoNegocioParaIA()}
-
+${getRevistaContextoIA()}
 ${LW_COMPLIANCE}`;
 }
 
@@ -11460,71 +11741,39 @@ if (!geminiKey) {
   if (old) { geminiKey = old; localStorage.setItem('lw_geminiKey', geminiKey); }
 }
 
-function saveClaudeKey(val) {
-  claudeKey = val.trim();
-  localStorage.setItem('lw_claudeKey', claudeKey);
-  ['posts','viagem','plano','promo','massa','msg'].forEach(p => {
-    const st = document.getElementById(p + '-claude-status');
-    if (st) st.textContent = claudeKey.length > 10 ? '✅ Guardada' : '';
-    const inp = document.getElementById(p + '-claude-key');
-    if (inp && inp !== document.activeElement) inp.value = claudeKey;
-  });
+// =====================================================
+// criarSaveKeyHandler — fábrica para as funções "guardar chave de API
+// de IA". Antes disto, saveClaudeKey/saveGeminiKey/saveGrokKey/
+// saveGroqKey/saveMistralKey/saveOpenrouterKey eram 6 cópias quase
+// idênticas (trim → localStorage.setItem → atualizar inputs/status nos
+// painéis onde a chave aparece). A única coisa que varia de facto é o
+// nome do provedor, a chave de localStorage e em que painéis existe
+// um campo para essa IA — tudo o resto fica aqui uma única vez.
+// `setter` recebe o valor já tratado (trim) e fica responsável por
+// atribuir a variável global respetiva (claudeKey, geminiKey, etc.),
+// que continuam a existir como estavam — só o corpo repetido é que
+// deixou de estar duplicado.
+// =====================================================
+function criarSaveKeyHandler(provider, paineis, setter) {
+  return function (val) {
+    const limpo = val.trim();
+    setter(limpo);
+    localStorage.setItem('lw_' + provider + 'Key', limpo);
+    paineis.forEach(p => {
+      const st = document.getElementById(p + '-' + provider + '-status');
+      if (st) st.textContent = limpo.length > 10 ? '✅ Guardada' : '';
+      const inp = document.getElementById(p + '-' + provider + '-key');
+      if (inp && inp !== document.activeElement) inp.value = limpo;
+    });
+  };
 }
 
-function saveGeminiKey(val) {
-  geminiKey = val.trim();
-  localStorage.setItem('lw_geminiKey', geminiKey);
-  ['posts','viagem','plano','promo','massa','msg'].forEach(p => {
-    const st = document.getElementById(p + '-gemini-status');
-    if (st) st.textContent = geminiKey.length > 10 ? '✅ Guardada' : '';
-    const inp = document.getElementById(p + '-gemini-key');
-    if (inp && inp !== document.activeElement) inp.value = geminiKey;
-  });
-}
-
-function saveGrokKey(val) {
-  grokKey = val.trim();
-  localStorage.setItem('lw_grokKey', grokKey);
-  ['posts'].forEach(p => {
-    const st  = document.getElementById(p + '-grok-status');
-    const inp = document.getElementById(p + '-grok-key');
-    if (st)  st.textContent = grokKey.length > 10 ? '✅ Guardada' : '';
-    if (inp && inp !== document.activeElement) inp.value = grokKey;
-  });
-}
-
-function saveGroqKey(val) {
-  groqKey = val.trim();
-  localStorage.setItem('lw_groqKey', groqKey);
-  ['perfil'].forEach(p => {
-    const st  = document.getElementById(p + '-groq-status');
-    const inp = document.getElementById(p + '-groq-key');
-    if (st)  st.textContent  = groqKey.length > 10 ? '✅ Guardada' : '';
-    if (inp && inp !== document.activeElement) inp.value = groqKey;
-  });
-}
-
-function saveMistralKey(val) {
-  mistralKey = val.trim();
-  localStorage.setItem('lw_mistralKey', mistralKey);
-  ['perfil'].forEach(p => {
-    const st  = document.getElementById(p + '-mistral-status');
-    const inp = document.getElementById(p + '-mistral-key');
-    if (st)  st.textContent  = mistralKey.length > 10 ? '✅ Guardada' : '';
-    if (inp && inp !== document.activeElement) inp.value = mistralKey;
-  });
-}
-
-function saveOpenrouterKey(val) {
-  openrouterKey = val.trim();
-  localStorage.setItem('lw_openrouterKey', openrouterKey);
-  ['perfil'].forEach(p => {
-    const st  = document.getElementById(p + '-openrouter-status');
-    const inp = document.getElementById(p + '-openrouter-key');
-    if (st)  st.textContent  = openrouterKey.length > 10 ? '✅ Guardada' : '';
-    if (inp && inp !== document.activeElement) inp.value = openrouterKey;
-  });
-}
+const saveClaudeKey = criarSaveKeyHandler('claude', ['posts','viagem','plano','promo','massa','msg'], v => claudeKey = v);
+const saveGeminiKey = criarSaveKeyHandler('gemini', ['posts','viagem','plano','promo','massa','msg'], v => geminiKey = v);
+const saveGrokKey = criarSaveKeyHandler('grok', ['posts'], v => grokKey = v);
+const saveGroqKey = criarSaveKeyHandler('groq', ['perfil'], v => groqKey = v);
+const saveMistralKey = criarSaveKeyHandler('mistral', ['perfil'], v => mistralKey = v);
+const saveOpenrouterKey = criarSaveKeyHandler('openrouter', ['perfil'], v => openrouterKey = v);
 
 function syncGrokKeyInputs() {
   ['posts','ac','perfil'].forEach(p => {
@@ -11876,6 +12125,100 @@ async function callClaude(prompt, imageBase64, imageMediaType) {
   throw ultimoErro || new Error('Erro Claude');
 }
 
+// Variante de callClaude para conversas com histórico (várias mensagens)
+// e/ou system prompt — usada pelo Coach IA e pelo Role-play de objeções,
+// que antes duplicavam este fetch cada um com a sua cópia.
+async function callClaudeComMensagens(messages, system, maxTokens = 2048, model = 'claude-sonnet-4-6') {
+  const isLocal = location.protocol === 'file:' || location.protocol === 'content:';
+  if (isLocal) throw new Error('LOCAL_FILE');
+  if (!claudeKey) throw new Error('CLAUDE_NO_KEY');
+  const body = { model, max_tokens: maxTokens, messages };
+  if (system) body.system = system;
+  const res = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': claudeKey,
+      'anthropic-version': '2023-06-01',
+      'anthropic-dangerous-direct-browser-access': 'true'
+    },
+    body: JSON.stringify(body)
+  });
+  if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(e?.error?.message || `Erro HTTP ${res.status}`); }
+  const data = await res.json();
+  return data.content?.[0]?.text || '';
+}
+
+// Variante "rápida e barata" — usa claude-haiku-4-5 com prompt único, sem
+// cache nem retry de sobrecarga (estas chamadas são tipicamente para
+// sugestões curtas onde uma falha pontual não justifica nova tentativa
+// automática). Substitui ~9 blocos de fetch idênticos que só variavam
+// no max_tokens.
+async function callClaudeRapido(prompt, maxTokens = 400) {
+  return callClaudeComMensagens([{ role: 'user', content: prompt }], null, maxTokens, 'claude-haiku-4-5-20251001');
+}
+
+// Variante de callGemini para conversas com histórico — ver nota acima.
+async function callGeminiComMensagens(geminiMsgs, maxTokens = 2048) {
+  if (!geminiKey) throw new Error('GEMINI_NO_KEY');
+  const body = { contents: geminiMsgs, generationConfig: { maxOutputTokens: maxTokens, temperature: 0.7, thinkingConfig: { thinkingBudget: 0 } } };
+  let lastErr;
+  for (const model of GEMINI_MODELS) {
+    try {
+      const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiKey}`,
+        { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+      const data = await res.json();
+      if (data.error) throw new Error(data.error.message);
+      return data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    } catch (e) {
+      lastErr = e;
+      if (e.message?.includes('quota') || e.message?.includes('RESOURCE_EXHAUSTED')) continue;
+      throw e;
+    }
+  }
+  throw lastErr || new Error('Sem resposta do Gemini');
+}
+
+// =====================================================
+// chamarTextoIA — wrapper genérico para "pede texto à IA configurada,
+// com fallback automático para a outra IA se a preferida não tiver
+// chave". Substitui os ~17 blocos de fetch() manuais e repetidos que
+// existiam espalhados pelo código (coach, templates, role-play,
+// auto-mensagens, simuladores, etc.). Usa sempre callClaude/callGemini
+// por baixo, que já tratam retry, cache e modelos em fallback.
+//
+// Parâmetros:
+//   prompt      — texto do pedido (obrigatório)
+//   preferGemini— se true, tenta Gemini primeiro quando ambas as chaves
+//                 existem (mantém o comportamento de cada chamador
+//                 original, que normalmente preferia Claude)
+//   exigirChave — se true (default), lança erro claro quando não há
+//                 nenhuma chave configurada; se false, devolve ''
+// Devolve sempre o texto cru da resposta (string).
+// =====================================================
+async function chamarTextoIA({ prompt, preferGemini = false, exigirChave = true } = {}) {
+  const temClaude = !!(claudeKey && claudeKey.length > 10);
+  const temGemini = !!(geminiKey && geminiKey.length > 10);
+  if (!temClaude && !temGemini) {
+    if (exigirChave) throw new Error('Precisas de configurar uma chave Claude ou Gemini.');
+    return '';
+  }
+  const ordem = preferGemini
+    ? [temGemini && 'gemini', temClaude && 'claude']
+    : [temClaude && 'claude', temGemini && 'gemini'];
+  let ultimoErro;
+  for (const motor of ordem) {
+    if (!motor) continue;
+    try {
+      if (motor === 'claude') return await callClaude(prompt);
+      return await callGemini(prompt);
+    } catch (e) {
+      ultimoErro = e;
+    }
+  }
+  throw ultimoErro || new Error('Erro ao contactar a IA.');
+}
+
 async function callAI(page, prompt, imageBase64, imageMediaType, cacheContext) {
   const ai = page === 'posts' ? postsAI : respAI;
   const loaderLabel = document.getElementById(page === 'posts' ? 'posts-loader-label' : 'resp-loader-label');
@@ -12005,6 +12348,127 @@ function removerImagemPost() {
   showToast('🗑 Imagem removida');
 }
 
+// ===== SUGESTÃO DE POST BASEADA NO FUNIL =====
+// Analisa o estado real do funil de leads e sugere um tema de post com contexto
+// já pronto, ligando a criação de conteúdo a uma necessidade concreta do negócio
+// (em vez de o distribuidor ter de adivinhar o que vale a pena publicar).
+function analisarFunilParaSugestaoPost() {
+  if (typeof leads === 'undefined' || !leads.length) return null;
+
+  const agora = Date.now();
+  const diasDe = (l) => { const d = diasSemContacto(l); return d === null ? 999 : d; };
+
+  // Sinal 1: leads "mornos" parados há 7+ dias numa fase intermédia (interessado/negociação)
+  const parados = leads.filter(l =>
+    ['interessado', 'negociacao'].includes(l.estado) && diasDe(l) >= 7
+  );
+
+  // Sinal 2: leads novos na última semana (oportunidade de conteúdo de boas-vindas/educação)
+  const seteDiasAtras = agora - 7 * 86400000;
+  const novosRecentes = leads.filter(l => {
+    const d = parseDataPtPT ? parseDataPtPT(l.data) : null;
+    return d && d.getTime() >= seteDiasAtras;
+  });
+
+  // Sinal 3: nenhum lead novo nos últimos 10 dias — funil a esfriar, falta de captação
+  const dezDiasAtras = agora - 10 * 86400000;
+  const semLeadsRecentes = leads.every(l => {
+    const d = parseDataPtPT ? parseDataPtPT(l.data) : null;
+    return !d || d.getTime() < dezDiasAtras;
+  });
+
+  // Sinal 4: clientes recentes (últimos 30 dias) — oportunidade de testemunho/prova social
+  const trintaDiasAtras = agora - 30 * 86400000;
+  const clientesRecentes = leads.filter(l => {
+    if (l.estado !== 'cliente') return false;
+    const d = parseDataPtPT ? parseDataPtPT(l.data) : null;
+    return d && d.getTime() >= trintaDiasAtras;
+  });
+
+  // Prioridade: leads parados (ação mais urgente) > clientes recentes (prova social) > funil frio > leads novos
+  if (parados.length >= 2) {
+    return {
+      tipo: 'parados',
+      icon: '🌡️',
+      titulo: `${parados.length} leads parados há mais de 7 dias`,
+      texto: `Tens leads nas fases de Interessado/Negociação sem movimento recente. Um post pensado para reaquecer interesse (sem ser dirigido a ninguém em particular) pode reabrir a conversa.`,
+      tema: 'Convite para saber mais',
+      contexto: 'Quero um post para reaquecer pessoas que já mostraram interesse mas ainda não avançaram — tom acolhedor, sem pressão, que as faça lembrar-se do assunto e sentir-se confortáveis a voltar a falar comigo.'
+    };
+  }
+  if (clientesRecentes.length >= 1) {
+    return {
+      tipo: 'clientes',
+      icon: '⭐',
+      titulo: `${clientesRecentes.length} novo(s) cliente(s) este mês`,
+      texto: `Tiveste conversões recentes — é uma boa altura para um post de resultados/testemunho que sirva de prova social genuína.`,
+      tema: 'Resultados de clientes',
+      contexto: 'Quero um post inspirado em resultados reais e recentes de clientes, mantendo tudo genérico e sem identificar ninguém, focado no valor que as pessoas têm sentido.'
+    };
+  }
+  if (semLeadsRecentes && leads.length > 0) {
+    return {
+      tipo: 'frio',
+      icon: '📉',
+      titulo: 'Sem leads novos nos últimos 10 dias',
+      texto: `O teu funil está sem entradas recentes. Um post de captação (convite aberto, sem mencionar produto em detalhe) pode trazer novas conversas.`,
+      tema: 'Convite para saber mais',
+      contexto: 'Quero um post de captação para atrair pessoas novas e curiosas — aberto, convidativo, sem detalhar produto, focado em gerar curiosidade e abrir conversa.'
+    };
+  }
+  if (novosRecentes.length >= 3) {
+    return {
+      tipo: 'novos',
+      icon: '🌱',
+      titulo: `${novosRecentes.length} leads novos esta semana`,
+      texto: `Tens vários contactos recentes — um post educativo sobre o X39 pode ajudar a aquecer o interesse deles antes do próximo contacto direto.`,
+      tema: 'Apresentação do produto X39',
+      contexto: 'Quero um post educativo e acessível sobre o que é o X39 e como funciona, pensado para pessoas que ainda estão a conhecer o produto.'
+    };
+  }
+  return null;
+}
+
+function renderSugestaoFunilPosts() {
+  const wrap = document.getElementById('posts-sugestao-funil-wrap');
+  if (!wrap) return;
+  const sug = analisarFunilParaSugestaoPost();
+  if (!sug) { wrap.style.display = 'none'; wrap.innerHTML = ''; return; }
+  wrap.style.display = 'block';
+  wrap.innerHTML = `
+    <div class="card" style="border:1px solid rgba(0,212,170,0.25);background:rgba(0,212,170,0.05);">
+      <div style="display:flex;gap:12px;align-items:flex-start;">
+        <div style="font-size:26px;line-height:1;">${sug.icon}</div>
+        <div style="flex:1;">
+          <div style="font-size:13px;font-weight:800;color:var(--text);margin-bottom:3px;">${sug.titulo}</div>
+          <div style="font-size:12px;color:var(--text2);margin-bottom:10px;line-height:1.5;">${sug.texto}</div>
+          <button class="btn btn-sm btn-primary" onclick="aplicarSugestaoFunilPost()">✨ Usar Esta Sugestão</button>
+          <button class="btn btn-sm btn-secondary" onclick="dispensarSugestaoFunilPost()">Dispensar</button>
+        </div>
+      </div>
+    </div>`;
+  window._sugestaoFunilPostAtual = sug;
+}
+
+function aplicarSugestaoFunilPost() {
+  const sug = window._sugestaoFunilPostAtual;
+  if (!sug) return;
+  const temaEl = document.getElementById('tema-select');
+  const ctxEl = document.getElementById('contexto-input');
+  if (temaEl) {
+    const opt = Array.from(temaEl.options).find(o => o.value === sug.tema || o.textContent === sug.tema);
+    if (opt) temaEl.value = opt.value;
+  }
+  if (ctxEl) ctxEl.value = sug.contexto;
+  showToast('✨ Tema e contexto preenchidos — ajusta se quiseres e gera o post!');
+  document.getElementById('posts-sugestao-funil-wrap').style.display = 'none';
+}
+
+function dispensarSugestaoFunilPost() {
+  const wrap = document.getElementById('posts-sugestao-funil-wrap');
+  if (wrap) wrap.style.display = 'none';
+}
+
 let _postGenAttempt = 0;
 async function gerarPost() {
   // Cada chamada (incl. "Gerar outra versão") usa um contexto de cache único,
@@ -12031,10 +12495,14 @@ async function gerarPost() {
   const limite = limites[currentPlatform] || 900;
 
   const instrucao = postImageBase64
-    ? `Analisa esta imagem e cria um post para ${currentPlatform} sobre LifeWave X39. O post deve ser inspirado no que vês na imagem e relacionar-se com os benefícios do X39.`
+    ? `Analisa cuidadosamente esta imagem (o que mostra, contexto, texto visível, datas, local, pessoas, ambiente) e cria um post para ${currentPlatform} que reflita ESPECIFICAMENTE o que está na imagem. O post deve mencionar elementos concretos da imagem (não pode ser um texto genérico que servisse para qualquer imagem). Só liga a imagem a LifeWave X39 ou aos seus benefícios SE isso fizer sentido genuíno com o conteúdo da imagem (ex: imagem de um produto, de alguém a usar o patch, de um resultado pessoal). Se a imagem for sobre outro assunto — um evento, conferência, equipa, viagem, certificado, reconhecimento — escreve sobre ESSE assunto, no espírito do negócio LifeWave, sem forçar uma ligação a benefícios de produto que não existe na imagem.`
     : videoInfo
-    ? `Cria um post para ${currentPlatform} sobre LifeWave X39, inspirado neste vídeo de ${videoInfo.source}:\nTítulo: ${videoInfo.title}\nContexto: ${videoInfo.description}\nRelaciona o tema do vídeo com os benefícios do X39.`
+    ? `Cria um post para ${currentPlatform} inspirado neste vídeo de ${videoInfo.source}:\nTítulo: ${videoInfo.title}\nContexto: ${videoInfo.description}\nReflete ESPECIFICAMENTE o tema deste vídeo no post. Só relaciona com LifeWave X39 e os seus benefícios SE o tema do vídeo for sobre o produto/bem-estar — caso contrário (ex: evento, motivação, liderança, equipa), mantém o post fiel ao tema real do vídeo, no espírito do negócio LifeWave.`
     : `Cria um post para ${currentPlatform} sobre LifeWave X39 patches.`;
+
+  const regraBeneficios = (postImageBase64 || videoInfo)
+    ? '9. Se o tema central (da imagem ou do vídeo) for sobre o produto/bem-estar, podes basear-te em benefícios reais: energia, bem-estar, recuperação, sono, fotomodulação. Se o tema central for outro (evento, equipa, conquista, viagem), não forces estes benefícios — mantém o post fiel ao que realmente está a ser mostrado, e foca-o no espírito de crescimento pessoal/negócio em vez de benefícios de produto.'
+    : '9. Baseia-te em benefícios reais: energia, bem-estar, recuperação, sono, fotomodulação.';
 
   const textoPrompt = `${instrucao}
 
@@ -12049,14 +12517,14 @@ Regras CRÍTICAS — segue-as todas:
 3. Escreve em Português de Portugal (não Brasil).
 4. Tom autêntico, empático, sem pressão de vendas.
 5. Não uses palavras "compra", "urgente", "oportunidade imperdível".
-6. Para Instagram, termina com hashtags relevantes SEMPRE NO MESMO IDIOMA do post (português → hashtags em português, inglês → hashtags em inglês, etc). Consulta a lista de HASHTAGS SEGUROS acima.
+6. Para Instagram, termina com NO MÁXIMO 5 hashtags, escolhidas pelo TEMA/conteúdo do post (não pela marca ou produto) — ex: se o post fala de energia matinal, usa hashtags sobre energia/rotina/manhãs, não sobre LifeWave ou X39. Hashtags SEMPRE no mesmo idioma do post.
 7. Para WhatsApp, tom mais pessoal e direto.
 8. Para Facebook, pode ser ligeiramente mais longo e informativo.
-9. Baseia-te em benefícios reais: energia, bem-estar, recuperação, sono, fotomodulação.
+${regraBeneficios}
 10. NÃO faças promessas médicas ou de cura.
 11. Para TikTok, cria um GUIÃO de vídeo curto (30-60 seg): começa com um gancho de impacto nos primeiros 3 segundos, usa frases muito curtas, linguagem jovem e dinâmica, termina com call-to-action claro. Estrutura: [GANCHO] → [PROBLEMA] → [SOLUÇÃO X39] → [PROVA] → [CTA]. Indica as secções entre parênteses retos.
 12. Para LinkedIn, tom profissional e sério: partilha dados, faz referência à tecnologia de fotobiomodulação, foca no potencial de negócio e qualidade de vida executiva. Sem emojis excessivos. Usa parágrafo de abertura forte, 2-3 parágrafos de corpo, encerra com pergunta de engagement.
-
+${getRevistaContextoIA()}
 ${LW_COMPLIANCE}
 
 IMPORTANTE: Responde APENAS com o texto do post, sem introdução, título ou explicação. O post deve ser auto-suficiente e terminar de forma natural e completa.`;
@@ -12503,8 +12971,6 @@ REGRAS:
 - Usa emojis com moderação (2-4 no máximo)
 - Comprimento ideal: 4-10 linhas — escreve SEMPRE a mensagem COMPLETA, nunca cortes a meio de uma frase
 
-${LW_COMPLIANCE}
-
 Responde APENAS com o texto da mensagem, pronto a copiar e enviar. Sem introdução nem explicação.`;
   } else {
     promptTexto = `És o ${nomeDistribuidor}, distribuidor LifeWave X39 em Portugal. Vais responder a uma mensagem recebida via ${currentMsgPlatform}.
@@ -12536,8 +13002,6 @@ REGRAS IMPORTANTES:
 - Usa emojis com moderação (2-4 no máximo)
 - Comprimento ideal: 4-10 linhas para WhatsApp/Instagram, pode ser mais para Messenger — escreve SEMPRE a mensagem COMPLETA, nunca cortes a meio de uma frase
 - No final, se fizer sentido, inclui um convite suave para continuar a conversa ou próximo passo
-
-${LW_COMPLIANCE}
 
 Responde APENAS com o texto da mensagem, pronto a copiar e enviar. Sem introdução nem explicação.`;
   }
@@ -13355,19 +13819,15 @@ ${perfilDetectado.includes('DISTRIBUIDOR') ? '→ Adapta a mensagem para alguém
 ${perfilDetectado.includes('CLIENTE') ? '→ Adapta a mensagem para alguém que mostrou interesse em bem-estar, saúde ou o produto em si.' : ''}
 ${perfilDetectado.includes('AMBOS') ? '→ A pessoa tem interesse tanto no produto como no negócio. Mantém a mensagem equilibrada ou pergunta o que a motiva mais.' : ''}
 ${perfilDetectado.includes('INDEFINIDO') ? '→ Não há sinais claros ainda. Usa uma abordagem aberta e tenta perceber o interesse com uma pergunta suave.' : ''}
-
+${getRevistaContextoIA()}
 Regras:
 - Escreve em Português de Portugal
 - Tom pessoal, caloroso e sem pressão de vendas
 - Máximo ${limite}
 - ${canal === 'SMS' ? 'Sem emojis, texto simples' : 'Podes usar alguns emojis (máximo 3)'}
-- NUNCA uses: "cura", "trata", "alivia dor", "stem cell activation", "ativa células estaminais", "clinicamente provado", "detox", "milagre", "resultado garantido", "sem dor"
-- Usa APENAS linguagem aprovada: "suporta", "promove", "pode ajudar a manter", "fotomodulação", "bem-estar geral"
 - Evita frases que pareçam um script copiado (ex: "pergunta aleatória", "espero que estejas bem!! 😊" genérico)
 - Termina com uma pergunta aberta ou convite suave
 - Não repitas factos óbvios do histórico de forma mecânica — usa-os com naturalidade
-
-${LW_COMPLIANCE_MSG}
 
 Responde APENAS com o texto da mensagem, sem título nem explicação.`;
 
@@ -13627,7 +14087,7 @@ async function gerarMsgIAMassa() {
   const prompt = `Cria uma mensagem de ${canal} para enviar a vários contactos, ${foco}.
 ${objetivoInstrucao}
 Tipo de mercado: ${tipoMercado}
-
+${getRevistaContextoIA()}
 Regras:
 - Escreve em Português de Portugal
 - Tom pessoal, caloroso e sem pressão de vendas
@@ -13635,12 +14095,8 @@ Regras:
 - Começa com "Olá {nome}!" ou similar para personalização
 - Máximo ${limite}
 - ${canal === 'SMS' ? 'Sem emojis, texto simples' : 'Podes usar alguns emojis (máximo 3)'}
-- NUNCA uses: "cura", "trata", "alivia dor", "stem cell activation", "ativa células estaminais", "clinicamente provado", "detox", "milagre", "resultado garantido", "sem dor"
-- Usa APENAS linguagem aprovada: "suporta", "promove", "pode ajudar a manter", "fotomodulação", "bem-estar geral"
 - Termina com uma pergunta aberta ou convite suave
 - Usa {nome} como placeholder para o nome da pessoa
-
-${LW_COMPLIANCE_MSG}
 
 Responde APENAS com o texto da mensagem, sem título nem explicação.`;
 
@@ -13883,6 +14339,51 @@ window.addEventListener('appinstalled', () => {
   pwaDeferredPrompt = null;
 });
 
+// ===== INDICADOR NEON DE SCROLL HORIZONTAL (v68.7) =====
+// Deteta automaticamente qualquer faixa com scroll horizontal (tabs da Equipa,
+// histórico PV/BV, linha do Percurso de Sucesso, timeline do lead, etc.) e
+// acende uma seta néon + fade no bordo direito sempre que há mais conteúdo
+// para ver. Atualiza ao fazer scroll (chega ao fim → apaga) e observa
+// mudanças no DOM, já que muitas destas faixas só são preenchidas depois de
+// o utilizador navegar para a página (conteúdo gerado via innerHTML).
+// 100% aditivo — não toca em nenhum scroll, clique ou dado existente.
+function atualizarScrollHints(root) {
+  const containers = (root || document).querySelectorAll('.scroll-fade-h, .table-wrap');
+  containers.forEach(el => {
+    const temOverflow = el.scrollWidth > el.clientWidth + 4;
+    if (!temOverflow) { el.classList.remove('tem-overflow', 'scroll-end'); return; }
+    el.classList.add('tem-overflow');
+    const noFim = el.scrollLeft + el.clientWidth >= el.scrollWidth - 4;
+    el.classList.toggle('scroll-end', noFim);
+    if (!el._scrollHintBound) {
+      el._scrollHintBound = true;
+      el.addEventListener('scroll', () => {
+        const fim = el.scrollLeft + el.clientWidth >= el.scrollWidth - 4;
+        el.classList.toggle('scroll-end', fim);
+      }, { passive: true });
+    }
+  });
+}
+
+(function initScrollHints() {
+  const agendado = () => requestAnimationFrame(() => atualizarScrollHints());
+  document.addEventListener('DOMContentLoaded', agendado);
+  window.addEventListener('resize', agendado);
+  window.addEventListener('orientationchange', agendado);
+  // Observa alterações no conteúdo da app (páginas renderizadas via innerHTML
+  // depois de navegar) com um debounce leve para não pesar no scroll/digitação.
+  let _scrollHintTimer = null;
+  const mo = new MutationObserver(() => {
+    clearTimeout(_scrollHintTimer);
+    _scrollHintTimer = setTimeout(agendado, 250);
+  });
+  document.addEventListener('DOMContentLoaded', () => {
+    const alvo = document.querySelector('.app') || document.body;
+    mo.observe(alvo, { childList: true, subtree: true });
+    agendado();
+  });
+})();
+
 // ===== INIT =====
 // openModal handles modal pre-filling and opening
 function openModal(id) {
@@ -13898,13 +14399,15 @@ function openModal(id) {
   }
   if (id === 'modal-lead' && !editingLeadId) {
     document.getElementById('modal-lead-title').textContent = '➕ Novo Lead';
-    ['f-nome','f-tel','f-email','f-notas','f-aniversario'].forEach(f => document.getElementById(f).value = '');
+    ['f-nome','f-tel','f-email','f-notas','f-aniversario','f-indicado-por'].forEach(f => document.getElementById(f).value = '');
     document.getElementById('f-estado').value = 'novo';
     const fObjNovoEl = document.getElementById('f-objetivo'); if (fObjNovoEl) fObjNovoEl.value = 'cliente';
   }
   if (id === 'modal-lead') {
     const av = document.getElementById('f-duplicado-aviso');
     if (av) av.style.display = 'none';
+    const dlInd = document.getElementById('f-indicado-por-list');
+    if (dlInd) dlInd.innerHTML = leads.filter(l => l.estado === 'cliente').map(l => `<option value="${l.nome}">`).join('');
   }
   if (id === 'modal-nova-venda' && !editingVendaId) {
     // Reset fields inline (avoid calling abrirNovaVenda which would recurse)
@@ -14031,7 +14534,7 @@ function abrirLixeira() {
         lead: '👤 Lead', membro: '🐺 Membro da Equipa', evento: '📅 Evento',
         venda: '💰 Venda', recurso: '🎓 Recurso de Formação', script: '🎬 Script Stories/Reels',
         template: '📝 Template', promocao: '📢 Promoção', regra: '⚙️ Regra de Automação',
-        diario: '📔 Registo do Diário',
+        diario: '📔 Registo do Diário', despesa: '💸 Despesa',
       };
       const tipoLabel = tipoLabels[entry.tipo] || entry.tipo;
       return `
@@ -14091,6 +14594,9 @@ function restaurarDaLixeira(index) {
     const entradas = getDiarioEntradas();
     entradas.push(entry.item);
     saveDiarioEntradas(entradas);
+  } else if (entry.tipo === 'despesa') {
+    despesas.unshift(entry.item);
+    saveDespesas();
   }
 
   lixeira.splice(index, 1);
@@ -14106,6 +14612,7 @@ function restaurarDaLixeira(index) {
   if (typeof renderAutomacaoGrid === 'function') renderAutomacaoGrid();
   if (typeof renderAutomacao === 'function') renderAutomacao();
   if (typeof renderDiario === 'function') renderDiario();
+  if (typeof renderDespesas === 'function') renderDespesas();
   const nomeItem = entry.item.nome || entry.item.titulo || entry.item.texto?.substring(0,30) || 'Item';
   showToast(`✅ "${nomeItem}" restaurado`);
 }
@@ -14136,6 +14643,7 @@ function loadUserData() {
   viagemSelecionadaId = localStorage.getItem(getUserStorageKey('lw_viagem_selecionada')) || (viagens[0]?.id || null);
   loadEventos();
   loadVendas();
+  loadDespesas();
   updateBadgeLuminate();
   if (typeof migrarSrBibliotecaParaUtilizador === 'function') migrarSrBibliotecaParaUtilizador();
 }
@@ -14323,6 +14831,12 @@ function entrarNaApp(user) {
   // Load this user's data
   loadUserData();
 
+  // Deteta se existem leads guardados sob OUTRA conta/sessão neste mesmo
+  // browser (ex: entrou ontem com Google, hoje caiu em "modo local", ou
+  // trocou de conta Google sem reparar). Evita o susto de "desapareceram
+  // os meus contactos" quando na verdade estão só presos noutra chave.
+  setTimeout(detetarOutrasContasComLeads, 800);
+
   // Mover automaticamente leads inativos há muito tempo para "Frio"
   moverLeadsParaFrioAutomaticamente();
 
@@ -14373,6 +14887,37 @@ function entrarNaApp(user) {
   // Show welcome popup for first-time users (or if they haven't dismissed it for this version)
   setTimeout(welcomeCheckAndShow, 900);
   setTimeout(verificarRelatorioSemanalPendente, 2500);
+}
+
+// Verifica se este browser tem leads guardados sob OUTRAS chaves de conta
+// (ex: entrou ontem com uma conta Google, hoje entrou com outra, ou caiu
+// em "modo local" sem reparar). Mostra um aviso não-bloqueante no dashboard
+// em vez de deixar o utilizador a pensar que perdeu os contactos.
+function detetarOutrasContasComLeads() {
+  if (!currentUser) return;
+  const minhaChave = getUserStorageKey('lw_leads');
+  const outras = [];
+  try {
+    Object.keys(localStorage).forEach(k => {
+      if (!k.startsWith('lw_leads_') || k === minhaChave) return;
+      try {
+        const arr = JSON.parse(localStorage.getItem(k) || '[]');
+        if (Array.isArray(arr) && arr.length > 0) {
+          // Extrai o email a partir do sufixo da chave (lw_leads_email_em_underscores)
+          const sufixo = k.replace('lw_leads_', '');
+          outras.push({ chave: k, total: arr.length, sufixo });
+        }
+      } catch(e) {}
+    });
+  } catch(e) { return; }
+
+  const banner = document.getElementById('multi-conta-aviso');
+  const texto = document.getElementById('multi-conta-aviso-texto');
+  if (!banner || !texto || !outras.length) return;
+
+  const lista = outras.map(o => `${o.total} contacto(s) (conta: ${o.sufixo.replace(/_/g, '.')})`).join(' · ');
+  texto.textContent = `Este dispositivo tem ${lista}. Se esperavas vê-los aqui, faz logout e entra novamente com essa conta/email.`;
+  banner.style.display = 'block';
 }
 
 // ===== WELCOME POPUP LOGIC (simplificado) =====
@@ -14482,15 +15027,18 @@ function fecharComoNavegar() {
 
 const TUTORIAL_STEPS = [
   { id:'navegacao',emoji:'🧭', titulo:'Como Navegar na App',                  desc:'Antes de começar, aprende onde fica tudo: o menu, o botão de pesquisa 🔍 e este guia 🗺️. Leva 1 minuto.', tag:'Essencial', action:() => abrirComoNavegar() },
-  { id:'perfil',   emoji:'⚙️', titulo:'Configura o teu Perfil',              desc:'Define o teu slug LifeWave, nome e país. Gera automaticamente os teus links de partilha.', tag:'Essencial', action:() => abrirPerfilModal(false) },
+  { id:'perfil',   emoji:'⚙️', titulo:'Configura o teu Perfil',              desc:'Define já o teu slug LifeWave, nome e país — os teus dados vão aparecer personalizados em todos os passos seguintes. Gera automaticamente os teus links de partilha.', tag:'Essencial', action:() => abrirPerfilModal(false) },
+  { id:'plano30',  emoji:'📅', titulo:'Conhece o Plano de 30 Dias',           desc:'Agora vê o teu roteiro completo: o caminho passo-a-passo para arrancar com o negócio LifeWave nos primeiros 30 dias.', tag:'Essencial', action:() => { goTo('formacao'); } },
   { id:'funil',    emoji:'👤', titulo:'Adiciona o teu primeiro Lead',         desc:'Um "lead" é um contacto teu — alguém que pode interessar-se pelo produto ou negócio. Vai ao Funil e clica em "+ Novo Lead".', tag:'Essencial', page:'funil' },
   { id:'acoes',    emoji:'🔔', titulo:'Vê as tuas Ações de Hoje',             desc:'A app analisa os teus leads e mostra quem contactar hoje — urgente, esta semana e novos.', tag:'Essencial', page:'acoes' },
   { id:'gcontacts',emoji:'🔗', titulo:'Sincroniza os teus Contactos Google',  desc:'Agora que já sabes o que é um lead, importa os teus contactos diretamente do Google em 1 clique. Evita duplicados e poupa tempo.', tag:'Essencial', action:() => { goTo('lista'); setTimeout(() => syncGoogleContacts(), 400); } },
-  { id:'metas',    emoji:'🎯', titulo:'Define as tuas Metas mensais',         desc:'Configura objetivos de vendas, recrutamento e rendimento. A app acompanha o progresso.', tag:'Recomendado', page:'metas' },
   { id:'posts',    emoji:'✨', titulo:'Cria o teu primeiro Post com IA',      desc:'Escolhe plataforma, tom e tema. A IA gera posts autênticos em Português para as tuas redes.', tag:'Recomendado', page:'posts' },
-  { id:'coach',    emoji:'🤖', titulo:'Experimenta o Coach IA',               desc:'Faz perguntas sobre scripts, objeções, recrutamento. O coach conhece o teu perfil LifeWave.', tag:'Extra', page:'coach' },
+  { id:'automacao',emoji:'🧵', titulo:'Ativa as tuas primeiras Automações',  desc:'Liga sequências prontas de follow-up — para novos leads e para acompanhar clientes nos dias seguintes à venda — sem teres de te lembrar de nada.', tag:'Recomendado', page:'automacao' },
+  { id:'metas',    emoji:'🎯', titulo:'Define as tuas Metas mensais',         desc:'Configura objetivos de vendas, recrutamento e rendimento. A app acompanha o progresso.', tag:'Recomendado', page:'metas' },
   { id:'equipa',   emoji:'👥', titulo:'Regista a tua Equipa',                 desc:'Adiciona os teus distribuidores para acompanhar atividade, ranking e vendas da equipa.', tag:'Extra', page:'equipa' },
-  { id:'plano30',  emoji:'📅', titulo:'Segue o Plano de 30 Dias',             desc:'Já conheces a app! Agora segue o caminho passo-a-passo para arrancar com o teu negócio LifeWave nos primeiros 30 dias.', tag:'Recomendado', action:() => { goTo('formacao'); } },
+  { id:'onboardingeq', emoji:'🚀', titulo:'Acompanha o Onboarding da Equipa', desc:'Quando entrar alguém novo na tua equipa, regista aqui para acompanhares o checklist crítico dos primeiros 7 dias — a fase que mais pesa na retenção.', tag:'Recomendado', page:'onboarding' },
+  { id:'qualifrt', emoji:'🎯', titulo:'Vê a tua Qualificação em Tempo Real',  desc:'Atualiza o teu PV/QDV no Perfil para veres, no Dashboard, quanto falta para o próximo rank e quantos dias tens até ao fim do mês.', tag:'Recomendado', action:() => abrirPerfilModal(false) },
+  { id:'coach',    emoji:'🤖', titulo:'Experimenta o Coach IA',               desc:'Faz perguntas sobre scripts, objeções, recrutamento. O coach conhece o teu perfil LifeWave.', tag:'Extra', page:'coach' },
 ];
 const TUT_PROGRESS_KEY_BASE = 'lw_tutorial_steps_v2';
 function getTutProgressKey() {
@@ -14718,6 +15266,8 @@ function getDrivePayload() {
     membros:           JSON.parse(localStorage.getItem(uk('lw_membros'))          || '[]'),
     eventos:           JSON.parse(localStorage.getItem(uk('lw_eventos'))          || '[]'),
     vendas:            JSON.parse(localStorage.getItem(uk('lw_vendas'))           || '[]'),
+    despesas:          JSON.parse(localStorage.getItem(uk('lw_despesas'))         || '[]'),
+    revista:           JSON.parse(localStorage.getItem(uk('lw_revista'))          || 'null'),
     viagens:           JSON.parse(localStorage.getItem(uk('lw_viagens'))          || 'null'),
     viagemAtividades:  JSON.parse(localStorage.getItem(uk('lw_viagem_atividades'))|| '[]'),
     viagemSelecionada: localStorage.getItem(uk('lw_viagem_selecionada')) || null,
@@ -14734,6 +15284,8 @@ function applyDrivePayload(data) {
   if (data.membros)          { localStorage.setItem(uk('lw_membros'),          JSON.stringify(data.membros));          membros  = data.membros; }
   if (data.eventos)          { localStorage.setItem(uk('lw_eventos'),          JSON.stringify(data.eventos));          eventos  = data.eventos; }
   if (data.vendas)           { localStorage.setItem(uk('lw_vendas'),           JSON.stringify(data.vendas));           vendas   = data.vendas; }
+  if (data.despesas)         { localStorage.setItem(uk('lw_despesas'),         JSON.stringify(data.despesas));         despesas = data.despesas; }
+  if (data.revista)          { localStorage.setItem(uk('lw_revista'),          JSON.stringify(data.revista)); }
   if (data.viagens)          { localStorage.setItem(uk('lw_viagens'),          JSON.stringify(data.viagens));          viagens  = data.viagens; }
   if (data.viagemAtividades) { localStorage.setItem(uk('lw_viagem_atividades'),JSON.stringify(data.viagemAtividades)); viagemAtividades = data.viagemAtividades; }
   if (data.viagemSelecionada){ localStorage.setItem(uk('lw_viagem_selecionada'), data.viagemSelecionada); viagemSelecionadaId = data.viagemSelecionada; }
@@ -15063,7 +15615,7 @@ Regras:
              : (typeof claudeKey !== 'undefined' && claudeKey && claudeKey.length > 10) ? 'claude'
              : 'gemini';
 
-    const resposta = await chamarIADocumento({ ai, prompt, base64, isPdf, mediaType, maxTokens: 600 });
+    const resposta = await chamarIADocumento({ ai, prompt, base64, isPdf, mediaType, maxTokens: 600, fallback: true });
 
     let dados = null;
     try {
@@ -15576,10 +16128,15 @@ function diasAteData(dataStr) {
   return Math.round((dt.getTime() - hoje.getTime()) / 86400000);
 }
 
-function formatarDataPT(dataStr) {
-  if (!dataStr) return '';
-  const dt = new Date(dataStr + 'T00:00:00');
-  if (isNaN(dt.getTime())) return '';
+// Formata uma data em pt-PT ("3 jan. 2026"). Aceita tanto uma string
+// "YYYY-MM-DD" (caso em que assume meia-noite local, para evitar que o
+// fuso horário empurre a data para o dia anterior/seguinte) como um
+// objeto Date já construído. `fallback` é o que devolver quando não há
+// data válida — usa-se '' em formulários e '—' em vitrines/listagens.
+function formatarDataPT(data, fallback = '') {
+  if (!data) return fallback;
+  const dt = data instanceof Date ? data : new Date(data + 'T00:00:00');
+  if (isNaN(dt.getTime())) return fallback;
   return dt.toLocaleDateString('pt-PT', { day: '2-digit', month: 'short', year: 'numeric' });
 }
 
@@ -16223,9 +16780,6 @@ INSTRUÇÕES:
 6. IMPORTANTE: NO MÁXIMO 5 frases curtas. Mensagem de ${guiaoCanal}, não email. Escreve COMPLETA, sem cortar.
 7. No final, numa linha separada, escreve exatamente: "💡 PRÓXIMO PASSO:" seguido da sugestão de ação concreta
 
-COMPLIANCE OBRIGATÓRIO — NUNCA VIOLES ESTAS REGRAS:
-${LW_COMPLIANCE}
-
 Escreve APENAS a mensagem + próximo passo. Sem explicações nem introduções. A mensagem tem de estar SEMPRE completa.`;
 
   const btn = document.getElementById('btn-gerar-guiao');
@@ -16237,41 +16791,10 @@ Escreve APENAS a mensagem + próximo passo. Sem explicações nem introduções.
   try {
     let texto = '';
     if (ai === 'gemini') {
-      const body = {
-        contents: [{ role: 'user', parts: [{ text: prompt }] }],
-        generationConfig: { maxOutputTokens: 3000, temperature: 0.75, thinkingConfig: { thinkingBudget: 0 } }
-      };
-      let lastErr;
-      for (const model of GEMINI_MODELS) {
-        try {
-          const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiKey}`,
-            { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
-          const data = await res.json();
-          if (data.error) throw new Error(data.error.message);
-          texto = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
-          break;
-        } catch(e) { lastErr = e; if (e.message?.includes('quota')) continue; throw e; }
-      }
-      if (!texto) throw lastErr || new Error('Sem resposta Gemini');
+      texto = await callGemini(prompt);
     } else {
       if (location.protocol === 'file:' || location.protocol === 'content:') throw new Error('LOCAL_FILE');
-      const res = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': claudeKey,
-          'anthropic-version': '2023-06-01',
-          'anthropic-dangerous-direct-browser-access': 'true'
-        },
-        body: JSON.stringify({
-          model: 'claude-sonnet-4-6',
-          max_tokens: 3000,
-          messages: [{ role: 'user', content: prompt }]
-        })
-      });
-      if (!res.ok) { const e = await res.json().catch(()=>({})); throw new Error(e?.error?.message || `HTTP ${res.status}`); }
-      const data = await res.json();
-      texto = data.content?.[0]?.text || '';
+      texto = await callClaude(prompt);
     }
 
     // Separar a mensagem do próximo passo
@@ -16471,54 +16994,13 @@ async function coachEnviar() {
           }
         });
       }
-      const body = { contents: msgs, generationConfig: { maxOutputTokens: 2048, temperature: 0.7, thinkingConfig: { thinkingBudget: 0 } } };
-      let lastErr;
-      for (const model of GEMINI_MODELS) {
-        try {
-          const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiKey}`,
-            { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
-          const data = await res.json();
-          if (data.error) throw new Error(data.error.message);
-          resposta = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
-          break;
-        } catch(e) {
-          lastErr = e;
-          if (e.message?.includes('quota') || e.message?.includes('RESOURCE_EXHAUSTED')) continue;
-          throw e;
-        }
-      }
-      if (!resposta) throw lastErr || new Error('Sem resposta do Gemini');
+      resposta = await callGeminiComMensagens(msgs, 2048);
 
     } else {
       // Claude: usa messages array com system
-      const isLocal = location.protocol === 'file:' || location.protocol === 'content:';
-      if (isLocal) throw new Error('LOCAL_FILE');
-
-      // Últimas 10 trocas para contexto
       const histRecente = coachHistory.slice(-10);
       const messages = histRecente.map(m => ({ role: m.role, content: m.content }));
-
-      const res = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': claudeKey,
-          'anthropic-version': '2023-06-01',
-          'anthropic-dangerous-direct-browser-access': 'true'
-        },
-        body: JSON.stringify({
-          model: 'claude-sonnet-4-6',
-          max_tokens: 2048,
-          system: getCoachSystem(),
-          messages
-        })
-      });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err?.error?.message || `Erro HTTP ${res.status}`);
-      }
-      const data = await res.json();
-      resposta = data.content?.[0]?.text || '';
+      resposta = await callClaudeComMensagens(messages, getCoachSystem(), 2048);
     }
 
     // Remover typing bubble e mostrar resposta
@@ -17236,29 +17718,14 @@ async function gerarMensagemAcaoIA(leadId) {
   const prompt = `Sou Brand Partner LifeWave (produto X39, patches de luz). Preciso de uma mensagem curta de follow-up em WhatsApp para este lead:
 ${contexto}
 
-${LW_COMPLIANCE}
-
 Regras: Português de Portugal. Tom pessoal e caloroso, nunca robótico. Máximo 3 frases curtas. Sem saudação genérica tipo "Espero que estejas bem" repetida — vai direto ao ponto com naturalidade. Termina com uma pergunta aberta que convide a resposta. Responde APENAS com o texto da mensagem, sem aspas, sem explicações.`;
 
   try {
     let texto = '';
     if (claudeKey && claudeKey.length > 10) {
-      const r = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-api-key': claudeKey, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
-        body: JSON.stringify({ model: 'claude-haiku-4-5-20251001', max_tokens: 200, messages: [{ role: 'user', content: prompt }] })
-      });
-      if (!r.ok) { const e = await r.json().catch(()=>({})); throw new Error(e?.error?.message || `HTTP ${r.status}`); }
-      const d = await r.json();
-      texto = d?.content?.[0]?.text || '';
+      texto = await callClaudeRapido(prompt, 200);
     } else {
-      const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiKey}`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }], generationConfig: { maxOutputTokens: 300, thinkingConfig: { thinkingBudget: 0 } } })
-      });
-      if (!r.ok) { const e = await r.json().catch(()=>({})); throw new Error(e?.error?.message || `HTTP ${r.status}`); }
-      const d = await r.json();
-      texto = d?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+      texto = await callGemini(prompt);
     }
     texto = texto.trim();
     if (!texto) throw new Error('Resposta vazia da IA');
@@ -17655,21 +18122,9 @@ Escreve UMA mensagem de retenção ${urgencia}, curta (máximo 3 frases), natura
   const el = document.getElementById('ret-modal-ia-texto');
   if (el) el.textContent = '⏳ A gerar...';
   try {
-    const aiKey = (typeof getGeminiKey === 'function' && getGeminiKey()) ? null : null;
-    // Usa a função IA já existente na app se disponível
-    if (typeof callGeminiAPI === 'function') {
-      const resposta = await callGeminiAPI(prompt, 'retencao_msg');
-      if (el) el.textContent = (resposta || '').trim();
-    } else {
-      // Fallback: templates por estado
-      const templates = {
-        ativo:   `Olá ${primeiroNome}! 👋 Espero que estejas a sentir os benefícios do teu pack. Já está quase na altura de repor — queres que te prepare o pedido esta semana? 😊`,
-        risco:   `Olá ${primeiroNome}! 👋 Há algum tempo que não falamos — como tens estado? Queria saber se ainda tens stock do teu pack ou se já é altura de renovar. 😊`,
-        critico: `Olá ${primeiroNome}! 👋 Estava a pensar em ti e queria saber como estás. Tens estado bem? Se precisares de ajuda para retomar o teu pack, estou aqui para ajudar. 💚`,
-        perdido: `Olá ${primeiroNome}! 👋 Há muito que não falamos e queria só saber se estás bem. Sabes que podes sempre contar comigo se quiseres retomar ou tirar alguma dúvida. 😊`
-      };
-      if (el) el.textContent = templates[estado] || templates.risco;
-    }
+    const resposta = await callAI('posts', prompt, null, null, 'retencao_msg');
+    if (!resposta || !resposta.trim()) throw new Error('Resposta vazia da IA');
+    if (el) el.textContent = resposta.trim();
   } catch(e) {
     const templates = {
       ativo:   `Olá ${primeiroNome}! 👋 Espero que estejas a adorar o teu pack! Está quase na hora de repor — queres que trate do pedido? 😊`,
@@ -18330,6 +18785,17 @@ function renderStats() {
     const f = l.fonte || 'Desconhecida';
     fonteMap[f] = (fonteMap[f] || 0) + 1;
   });
+  // Conversão por fonte (v68.6): além do volume, mede quantos leads de cada
+  // fonte realmente converteram — em cliente (venda) ou em parceiro recrutado
+  // para a equipa. Não altera nenhum dado, é 100% derivado de `leads` já existente.
+  const fonteConvMap = {};
+  leadsNoPeriodo.forEach(l => {
+    const f = l.fonte || 'Desconhecida';
+    if (!fonteConvMap[f]) fonteConvMap[f] = { total: 0, clientes: 0, parceiros: 0 };
+    fonteConvMap[f].total++;
+    if (l.estado === 'cliente') fonteConvMap[f].clientes++;
+    if (l.objetivo === 'parceiro' && l.estado === 'cliente') fonteConvMap[f].parceiros++;
+  });
   const fonteEmojis = { Instagram:'📸', Facebook:'📘', WhatsApp:'💬', Pessoal:'🤝', Referência:'⭐', Google:'🇬', Importação:'📂', Desconhecida:'❓' };
   const fontesSorted = Object.entries(fonteMap).sort((a,b) => b[1]-a[1]);
   const maxFonte = Math.max(1, ...fontesSorted.map(f => f[1]));
@@ -18339,6 +18805,12 @@ function renderStats() {
     const pctTotal = total > 0 ? Math.round((count / total) * 100) : 0;
     const color = fonteColors[i % fonteColors.length];
     const emoji = fonteEmojis[nome] || '📌';
+    const conv = fonteConvMap[nome] || { total: count, clientes: 0, parceiros: 0 };
+    const pctConv = conv.total > 0 ? Math.round((conv.clientes / conv.total) * 100) : 0;
+    const corConv = pctConv >= 30 ? '#00d4aa' : pctConv >= 15 ? '#f5c842' : 'var(--text3)';
+    const convLabel = conv.parceiros > 0
+      ? `${pctConv}% conversão · ${conv.clientes} cliente${conv.clientes!==1?'s':''} (${conv.parceiros} parceiro${conv.parceiros!==1?'s':''})`
+      : `${pctConv}% conversão · ${conv.clientes} cliente${conv.clientes!==1?'s':''}`;
     return `
       <div style="margin-bottom:10px;">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
@@ -18348,9 +18820,34 @@ function renderStats() {
         <div style="height:6px;background:var(--surface3);border-radius:3px;overflow:hidden;">
           <div style="height:100%;width:${pct}%;background:${color};border-radius:3px;transition:width 0.6s ease;"></div>
         </div>
+        <div style="margin-top:3px;font-size:10.5px;color:${corConv};font-weight:600;">${convLabel}</div>
       </div>
     `;
   }).join('') : '<div style="color:var(--text2);font-size:13px;text-align:center;padding:20px 0;">Sem dados ainda</div>';
+
+  // Insight automático: melhor fonte por conversão vs. fonte com mais volume
+  // (só aparece se houver pelo menos 2 fontes com volume mínimo para comparar)
+  const fonteInsightEl = document.getElementById('stats-fontes-insight');
+  if (fonteInsightEl) {
+    const candidatas = Object.entries(fonteConvMap).filter(([,c]) => c.total >= 3);
+    if (candidatas.length >= 2) {
+      const porConversao = [...candidatas].sort((a,b) => (b[1].clientes/b[1].total) - (a[1].clientes/a[1].total))[0];
+      const porVolume = fontesSorted[0];
+      const pctMelhorConv = Math.round((porConversao[1].clientes / porConversao[1].total) * 100);
+      if (porConversao[0] !== porVolume[0] && pctMelhorConv > 0) {
+        fonteInsightEl.style.display = 'flex';
+        fonteInsightEl.innerHTML = `
+          <span style="font-size:15px;">💡</span>
+          <span><strong style="color:var(--text);">${fonteEmojis[porConversao[0]]||'📌'} ${porConversao[0]}</strong> converte melhor (${pctMelhorConv}%), apesar de <strong style="color:var(--text);">${fonteEmojis[porVolume[0]]||'📌'} ${porVolume[0]}</strong> trazer mais leads.</span>`;
+      } else {
+        fonteInsightEl.style.display = 'none';
+        fonteInsightEl.innerHTML = '';
+      }
+    } else {
+      fonteInsightEl.style.display = 'none';
+      fonteInsightEl.innerHTML = '';
+    }
+  }
 
   // --- Evolução por mês — gráfico de linha SVG ---
   // Guarda o modo atual (leads / clientes / ambos) como variável global para re-render ao trocar tab
@@ -19526,16 +20023,10 @@ function syncViagemKeyInputs() {
   if (inpG) inpG.value = geminiKey;
   if (stG)  stG.textContent = geminiKey.length > 10 ? '✅ Guardada' : '';
 }
-function saveViagemClaudeKey(v) {
-  saveClaudeKey(v);
-  const st = document.getElementById('viagem-claude-status');
-  if (st) st.textContent = claudeKey.length > 10 ? '✅ Guardada' : '';
-}
-function saveViagemGeminiKey(v) {
-  saveGeminiKey(v);
-  const st = document.getElementById('viagem-gemini-status');
-  if (st) st.textContent = geminiKey.length > 10 ? '✅ Guardada' : '';
-}
+// Nota: saveClaudeKey/saveGeminiKey já cobrem o painel 'viagem' (ver lista
+// de painéis na definição da fábrica criarSaveKeyHandler), por isso não
+// precisam de wrappers próprios aqui — syncViagemKeyInputs() trata da
+// sincronização inicial dos campos quando a página abre.
 
 function viagemHandleDrop(e) {
   e.preventDefault();
@@ -19635,7 +20126,7 @@ async function viagemAnalisarIA() {
   try {
     const rawText = await chamarIADocumento({
       ai: viagemAI, prompt: VIAGEM_PROMPT, base64: viagemUploadBase64,
-      isPdf: viagemUploadIsPdf, mediaType: viagemUploadMediaType, maxTokens: 3000
+      isPdf: viagemUploadIsPdf, mediaType: viagemUploadMediaType, maxTokens: 3000, fallback: true
     });
 
     // Parse JSON
@@ -20373,7 +20864,7 @@ async function mbFaturaAnalisarIA() {
     const aiEscolhida = (claudeKey && claudeKey.length > 10) ? 'claude' : 'gemini';
     const rawText = await chamarIADocumento({
       ai: aiEscolhida, prompt: faturaPrompt, base64: _mbFaturaBase64,
-      isPdf: _mbFaturaIsPdf, mediaType: _mbFaturaMediaType, maxTokens: 1000
+      isPdf: _mbFaturaIsPdf, mediaType: _mbFaturaMediaType, maxTokens: 1000, fallback: true
     });
 
     let dados;
@@ -20824,6 +21315,160 @@ function saveVendas() {
   driveAutoSave();
 }
 
+// ===================================================
+// DESPESAS DO NEGÓCIO (módulo aditivo — não altera vendas/comissões)
+// ===================================================
+let despesas = [];
+let editingDespesaId = null;
+
+function loadDespesas() {
+  try { despesas = JSON.parse(localStorage.getItem(getUserStorageKey('lw_despesas')) || '[]'); }
+  catch(e) { despesas = []; }
+}
+
+function saveDespesas() {
+  localStorage.setItem(getUserStorageKey('lw_despesas'), JSON.stringify(despesas));
+  driveAutoSave();
+}
+
+const DESPESA_CATEGORIAS = {
+  amostras: '🧪 Amostras/Produtos demo',
+  deslocacao: '🚗 Deslocações',
+  eventos: '🎤 Eventos/Formações',
+  marketing: '📣 Marketing/Anúncios',
+  ferramentas: '🛠️ Ferramentas/Apps',
+  encomenda: '📦 Encomenda pessoal (PV)',
+  outro: '📋 Outro'
+};
+
+function despesaMesAtual() { return new Date().toISOString().slice(0,7); }
+
+function despesasDoMes(ym) {
+  ym = ym || despesaMesAtual();
+  return despesas.filter(d => (d.data || '').slice(0,7) === ym);
+}
+
+function totalDespesasMes(ym) {
+  return despesasDoMes(ym).reduce((s, d) => s + (parseFloat(d.valor) || 0), 0);
+}
+
+function totalComissoesMes(ym) {
+  ym = ym || despesaMesAtual();
+  return (typeof vendas !== 'undefined' ? vendas : [])
+    .filter(v => (v.data || '').slice(0,7) === ym && v.estado === 'confirmada')
+    .reduce((s, v) => s + (parseFloat(v.comissao) || 0), 0);
+}
+
+function abrirNovaDespesa() {
+  editingDespesaId = null;
+  document.getElementById('despesa-modal-title').textContent = '💸 Registar Despesa';
+  document.getElementById('d-descricao').value = '';
+  document.getElementById('d-categoria').value = 'amostras';
+  document.getElementById('d-valor').value = '';
+  document.getElementById('d-data').value = new Date().toISOString().slice(0,10);
+  document.getElementById('d-notas').value = '';
+  openModal('modal-nova-despesa');
+}
+
+function editarDespesa(id) {
+  const d = despesas.find(x => x.id === id);
+  if (!d) return;
+  editingDespesaId = id;
+  document.getElementById('despesa-modal-title').textContent = '✏️ Editar Despesa';
+  document.getElementById('d-descricao').value = d.descricao || '';
+  document.getElementById('d-categoria').value = d.categoria || 'outro';
+  document.getElementById('d-valor').value = d.valor;
+  document.getElementById('d-data').value = d.data;
+  document.getElementById('d-notas').value = d.notas || '';
+  openModal('modal-nova-despesa');
+}
+
+function salvarDespesa() {
+  const descricao = document.getElementById('d-descricao').value.trim();
+  const valor = parseFloat(document.getElementById('d-valor').value) || 0;
+  if (!descricao) { showToast('❌ Descrição obrigatória'); return; }
+  if (valor <= 0) { showToast('❌ Valor inválido'); return; }
+
+  const despesa = {
+    id: editingDespesaId || gerarId(),
+    descricao,
+    categoria: document.getElementById('d-categoria').value,
+    valor,
+    data: document.getElementById('d-data').value || new Date().toISOString().slice(0,10),
+    notas: document.getElementById('d-notas').value.trim(),
+    criadoEm: new Date().toISOString()
+  };
+
+  if (editingDespesaId) {
+    const idx = despesas.findIndex(d => d.id === editingDespesaId);
+    if (idx !== -1) despesas[idx] = despesa;
+  } else {
+    despesas.unshift(despesa);
+  }
+
+  saveDespesas();
+  closeModal('modal-nova-despesa');
+  const foiEdicao = !!editingDespesaId;
+  editingDespesaId = null;
+  showToast(foiEdicao ? '✓ Despesa atualizada' : '✓ Despesa registada!');
+  renderDespesas();
+  vibrarConfirmacao();
+}
+
+function eliminarDespesa(id) {
+  if (!confirm('Eliminar esta despesa?')) return;
+  const d = despesas.find(x => x.id === id);
+  if (d) moverParaLixeira('despesa', d);
+  despesas = despesas.filter(x => x.id !== id);
+  saveDespesas();
+  renderDespesas();
+  showToast('🗑 Despesa movida para a lixeira (recuperável por 7 dias)');
+}
+
+function renderDespesas() {
+  const ym = despesaMesAtual();
+  const lista = despesasDoMes(ym).sort((a,b) => (b.data||'').localeCompare(a.data||''));
+  const totalDesp = totalDespesasMes(ym);
+  const totalCom = totalComissoesMes(ym);
+  const lucro = totalCom - totalDesp;
+
+  const resumoEl = document.getElementById('despesas-resumo');
+  if (resumoEl) {
+    resumoEl.innerHTML = `
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;">
+        <div style="padding:12px;background:rgba(255,107,53,0.08);border:1px solid rgba(255,107,53,0.2);border-radius:10px;">
+          <div style="font-size:11px;color:var(--text2);">Despesas (mês)</div>
+          <div style="font-size:18px;font-weight:700;color:var(--accent3);">${fmtMoeda(totalDesp)}</div>
+        </div>
+        <div style="padding:12px;background:rgba(0,212,170,0.08);border:1px solid rgba(0,212,170,0.2);border-radius:10px;">
+          <div style="font-size:11px;color:var(--text2);">Comissões confirmadas (mês)</div>
+          <div style="font-size:18px;font-weight:700;color:var(--accent);">${fmtMoeda(totalCom)}</div>
+        </div>
+        <div style="padding:12px;background:${lucro >= 0 ? 'rgba(0,132,255,0.08)' : 'rgba(255,107,53,0.08)'};border:1px solid ${lucro >= 0 ? 'rgba(0,132,255,0.2)' : 'rgba(255,107,53,0.2)'};border-radius:10px;">
+          <div style="font-size:11px;color:var(--text2);">Lucro líquido estimado</div>
+          <div style="font-size:18px;font-weight:700;color:${lucro >= 0 ? 'var(--accent2)' : 'var(--accent3)'};">${fmtMoeda(lucro)}</div>
+        </div>
+      </div>`;
+  }
+
+  const listaEl = document.getElementById('despesas-lista');
+  if (!listaEl) return;
+  if (!lista.length) {
+    listaEl.innerHTML = '<div style="text-align:center;padding:24px;color:var(--text2);font-size:13px;">Ainda sem despesas registadas este mês.</div>';
+    return;
+  }
+  listaEl.innerHTML = lista.map(d => `
+    <div style="display:flex;align-items:center;gap:10px;padding:10px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;">
+      <div style="flex:1;">
+        <div style="font-size:13px;font-weight:600;color:var(--text);">${escapeHtml(d.descricao)}</div>
+        <div style="font-size:11px;color:var(--text2);">${DESPESA_CATEGORIAS[d.categoria] || d.categoria} · ${formatarDataPT ? formatarDataPT(d.data) : d.data}</div>
+      </div>
+      <div style="font-size:14px;font-weight:700;color:var(--accent3);">${fmtMoeda(d.valor)}</div>
+      <button class="btn btn-secondary btn-sm" onclick="editarDespesa('${d.id}')">✏️</button>
+      <button class="btn btn-danger btn-sm" onclick="eliminarDespesa('${d.id}')">🗑️</button>
+    </div>`).join('');
+}
+
 function getMetaMensal() {
   const raw = localStorage.getItem(getUserStorageKey('lw_meta_mensal'));
   return raw ? JSON.parse(raw) : { receita: 0, comissao: 0, clientes: 0 };
@@ -20891,8 +21536,17 @@ function salvarVenda() {
       leads[leadIdx].historico.unshift({ data: new Date().toISOString(), msg: `✅ Convertido para cliente (venda: ${venda.produto} · €${venda.valor})`, tipo: 'sistema' });
       saveleads();
       renderDashboard();
+      if (typeof executarAutomacoes === 'function') {
+        executarAutomacoes(leads[leadIdx], estadoAnterior, 'cliente', false);
+        executarAutomacoes(leads[leadIdx], 'cliente', 'cliente', false, { tipoEvento: 'venda_registada', vendaInfo: venda });
+      }
       showToast(`⭐ ${leads[leadIdx].nome} promovido a cliente!`);
     } else {
+      // Lead já era cliente (ou não existe no funil) — dispara mesmo assim a automação de venda, se aplicável
+      const leadExistenteIdx = leads.findIndex(l => (l.nome || '').trim().toLowerCase() === nomeNorm);
+      if (leadExistenteIdx !== -1 && typeof executarAutomacoes === 'function') {
+        executarAutomacoes(leads[leadExistenteIdx], 'cliente', 'cliente', false, { tipoEvento: 'venda_registada', vendaInfo: venda });
+      }
       showToast(foiEdicao ? '✓ Venda atualizada' : '✓ Venda registada!');
     }
   } else {
@@ -22382,7 +23036,7 @@ let catGenProdutoAtual = null;
 let catGenTipoAtual = null;
 
 const CAT_GEN_TIPOS = {
-  instagram: { label: '📸 Post Instagram', instrucao: 'Cria um post para Instagram sobre este produto LifeWave. Tom: inspirador e autêntico. Inclui emojis, uma história curta de resultado possível, os principais benefícios aprovados e um CTA. Máximo 5 frases. Termina com 5-8 hashtags SEGUROS no mesmo idioma do post. NUNCA uses termos como "cura", "trata", "sem dor", "stem cell activation", "detox", "clinicamente provado". Segue ESTRITAMENTE as regras de compliance LifeWave abaixo.' },
+  instagram: { label: '📸 Post Instagram', instrucao: 'Cria um post para Instagram sobre este produto LifeWave. Tom: inspirador e autêntico. Inclui emojis, uma história curta de resultado possível, os principais benefícios aprovados e um CTA. Máximo 5 frases. Termina com NO MÁXIMO 5 hashtags, escolhidas pelo tema/conteúdo do post (não pela marca ou produto), no mesmo idioma do post. NUNCA uses termos como "cura", "trata", "sem dor", "stem cell activation", "detox", "clinicamente provado". Segue ESTRITAMENTE as regras de compliance LifeWave abaixo.' },
   story:     { label: '🎬 Script de Story', instrucao: 'Cria um script de story para Instagram/TikTok sobre este produto LifeWave. Formato: 3 slides curtos. Slide 1: gancho (pergunta ou afirmação impactante, SEM claims médicos). Slide 2: o produto e benefício principal APROVADO. Slide 3: CTA claro. Máximo 2 frases por slide. Tom: energético e direto. NUNCA uses: "cura", "trata", "elimina dor", "ativa células estaminais", "detox". Segue ESTRITAMENTE as regras de compliance LifeWave abaixo.' },
   whatsapp:  { label: '💬 Mensagem WhatsApp', instrucao: 'Cria uma mensagem de WhatsApp para partilhar este produto LifeWave com um contacto. Tom: pessoal, amigável, não agressivo. Deve parecer uma recomendação genuína de amigo. Inclui o benefício principal APROVADO e pergunta se quer saber mais. Máximo 4 frases. NUNCA uses: "cura", "trata", "alivia dor", "stem cell", "clinicamente provado", "milagre". Segue ESTRITAMENTE as regras de compliance LifeWave abaixo.' },
   email:     { label: '📧 Email de Apresentação', instrucao: 'Cria um email de apresentação deste produto LifeWave. Estrutura: assunto impactante (sem claims médicos), saudação, 1 frase de contexto, 3 benefícios APROVADOS em bullets, CTA claro. Tom: profissional mas caloroso. Português de Portugal. NUNCA uses: "cura", "trata", "elimina", "stem cell activation", "detox", "clinicamente provado". Segue ESTRITAMENTE as regras de compliance LifeWave abaixo.' }
@@ -22433,35 +23087,9 @@ async function catGerarConteudo(produtoId, tipo, forcar) {
     let texto = '';
 
     if (claudeKey && claudeKey.length > 10) {
-      const r = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': claudeKey,
-          'anthropic-version': '2023-06-01',
-          'anthropic-dangerous-direct-browser-access': 'true'
-        },
-        body: JSON.stringify({
-          model: 'claude-haiku-4-5-20251001',
-          max_tokens: 600,
-          messages: [{ role: 'user', content: prompt }]
-        })
-      });
-      if (!r.ok) {
-        const eJson = await r.json().catch(() => ({}));
-        const eMsg = (eJson && eJson.error && eJson.error.message) ? eJson.error.message : ('Erro HTTP ' + r.status);
-        throw new Error(eMsg);
-      }
-      const d = await r.json();
-      texto = (d.content && d.content[0] && d.content[0].text) ? d.content[0].text.trim() : '';
+      texto = (await callClaudeRapido(prompt, 600)).trim();
     } else if (geminiKey && geminiKey.length > 10) {
-      const r = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=' + geminiKey, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }], generationConfig: { maxOutputTokens: 1500, thinkingConfig: { thinkingBudget: 0 } } })
-      });
-      const d = await r.json();
-      texto = (d.candidates && d.candidates[0]) ? d.candidates[0].content.parts[0].text.trim() : '';
+      texto = (await callGemini(prompt)).trim();
     }
 
     if (!texto) throw new Error('Resposta vazia');
@@ -22518,20 +23146,9 @@ async function catGerarKeywordsIA(produto) {
   try {
     let texto = '';
     if (claudeKey && claudeKey.length > 10) {
-      const r = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-api-key': claudeKey, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
-        body: JSON.stringify({ model: 'claude-haiku-4-5-20251001', max_tokens: 80, messages: [{ role: 'user', content: prompt }] })
-      });
-      const d = await r.json();
-      texto = (d.content && d.content[0]) ? d.content[0].text.trim() : '';
+      texto = (await callClaudeRapido(prompt, 80)).trim();
     } else if (geminiKey && geminiKey.length > 10) {
-      const r = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=' + geminiKey, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }], generationConfig: { maxOutputTokens: 200, thinkingConfig: { thinkingBudget: 0 } } })
-      });
-      const d = await r.json();
-      texto = (d.candidates && d.candidates[0]) ? d.candidates[0].content.parts[0].text.trim() : '';
+      texto = (await callGemini(prompt)).trim();
     }
     if (texto) {
       return texto.split(',').map(k => k.trim().replace(/^["']|["']$/g, '')).filter(k => k.length > 2).slice(0, 4);
@@ -23202,8 +23819,15 @@ function renderPrevisaoComissao() {
       👋 <strong>Bem-vindo/a!</strong> Configura o teu slug LifeWave para personalizar todos os teus links e o Coach IA. Só precisas de fazer isto uma vez.
     </div>
 
+    <!-- Legenda obrigatório / recomendado / opcional -->
+    <div style="display:flex;flex-wrap:wrap;gap:12px;font-size:10.5px;color:var(--text2);margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid var(--border);">
+      <span><span style="color:var(--danger);">●</span> Obrigatório — sem isto, partes da app não funcionam</span>
+      <span><span style="color:var(--gold);">●</span> Recomendado — melhora a tua experiência</span>
+      <span><span style="color:var(--text3);">●</span> Opcional — preenche quando quiseres</span>
+    </div>
+
     <div class="form-group">
-      <label class="form-label">👤 Nome Próprio</label>
+      <label class="form-label">👤 Nome Próprio <span style="color:var(--danger);font-size:10px;margin-left:4px;">● Obrigatório</span></label>
       <input class="form-input" id="perfil-nome" placeholder="Ex: Miguel Lobato">
       <div style="font-size:11px;color:var(--text2);margin-top:4px;">O teu nome real (não username) — usado nos guiões e mensagens IA</div>
     </div>
@@ -23216,7 +23840,7 @@ function renderPrevisaoComissao() {
     </div>
 
     <div class="form-group">
-      <label class="form-label" style="display:flex;align-items:center;gap:6px;">💬 Telemóvel / WhatsApp</label>
+      <label class="form-label" style="display:flex;align-items:center;gap:6px;">💬 Telemóvel / WhatsApp <span style="color:var(--danger);font-size:10px;">● Obrigatório</span></label>
       <div style="display:flex;gap:8px;align-items:center;">
         <input class="form-input" id="perfil-telemovel" type="tel" placeholder="Ex: 351912345678" oninput="perfilAtualizarWhatsApp(this.value)" style="flex:1;">
       </div>
@@ -23232,12 +23856,12 @@ function renderPrevisaoComissao() {
         <input class="form-input" id="perfil-upline" placeholder="Ex: MiguelLobato" style="flex:1;">
       </div>
       <div style="font-size:11px;color:var(--text2);margin-top:4px;">
-        Slug LifeWave do teu upline. Preenchido automaticamente se abriste o link de convite.
+        Preenchido automaticamente quando abres o link de convite do teu patrocinador — normalmente não precisas de mexer aqui. Só preenche manualmente se te inscreveste sem usar um link de convite.
       </div>
     </div>
 
     <div style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px;margin:14px 0;">
-      <div style="font-size:11px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:0.7px;margin-bottom:8px;">🔄 Equipa Partilhada (Google Drive)</div>
+      <div style="font-size:11px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:0.7px;margin-bottom:8px;">🔄 Equipa Partilhada (Google Drive) <span style="color:var(--text3);text-transform:none;letter-spacing:normal;font-weight:600;">· Opcional</span></div>
       <div style="font-size:11.5px;color:var(--text2);line-height:1.5;margin-bottom:10px;">
         <strong>Se és líder:</strong> cola aqui o ID de uma pasta do teu Google Drive partilhada com a equipa. As compras, leads e atividade que cada membro registar na app dele ficam automaticamente visíveis para ti (incluindo a equipa dos teus diretos, em cadeia).<br>
         <strong>Se és membro:</strong> cola o ID da pasta que o teu líder partilhou contigo — as tuas compras, leads e atividade passam a ser enviados para lá automaticamente.
@@ -23282,7 +23906,7 @@ function renderPrevisaoComissao() {
     </div>
 
     <div class="form-group">
-      <label class="form-label">🔗 Slug LifeWave <span style="color:#ff6b6b;">*</span></label>
+      <label class="form-label">🔗 Slug LifeWave <span style="color:var(--danger);font-size:10px;margin-left:4px;">● Obrigatório</span></label>
       <div style="display:flex;gap:8px;align-items:center;">
         <span style="font-size:12px;color:var(--text2);white-space:nowrap;">lifewave.com/</span>
         <input class="form-input" id="perfil-slug" placeholder="Ex: MiguelLobato" style="flex:1;" oninput="previewPerfilLinks()">
@@ -23294,11 +23918,11 @@ function renderPrevisaoComissao() {
 
     <div class="form-row">
       <div class="form-group">
-        <label class="form-label">🌍 País / Mercado Principal</label>
+        <label class="form-label">🌍 País / Mercado Principal <span style="color:var(--danger);font-size:10px;">● Obrigatório</span></label>
         <input class="form-input" id="perfil-pais" placeholder="Ex: Portugal, Brasil, España...">
       </div>
       <div class="form-group">
-        <label class="form-label">🗣️ Idioma do Coach IA</label>
+        <label class="form-label">🗣️ Idioma do Coach IA <span style="color:var(--danger);font-size:10px;">● Obrigatório</span></label>
         <select class="form-select" id="perfil-idioma" onchange="previewPerfilLinks()">
           <option value="pt">🇵🇹 Português (Portugal)</option>
           <option value="en">🇬🇧 English</option>
@@ -23312,7 +23936,7 @@ function renderPrevisaoComissao() {
     </div>
 
     <div style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px;margin:14px 0;">
-      <div style="font-size:11px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:0.7px;margin-bottom:10px;">📅 Datas de Inscrição e Encomendas</div>
+      <div style="font-size:11px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:0.7px;margin-bottom:10px;">📅 Datas de Inscrição e Encomendas <span style="color:var(--text3);text-transform:none;letter-spacing:normal;font-weight:600;">· Opcional</span></div>
       <div class="form-row">
         <div class="form-group">
           <label class="form-label">📝 Data de Inscrição</label>
@@ -23350,7 +23974,7 @@ function renderPrevisaoComissao() {
     </div>
 
     <div style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px;margin-bottom:4px;">
-      <div style="font-size:11px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:0.7px;margin-bottom:10px;">📊 Os Teus Volumes — Compensação 2.0 (período móvel de 31 dias)</div>
+      <div style="font-size:11px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:0.7px;margin-bottom:10px;">📊 Os Teus Volumes — Compensação 2.0 (período móvel de 31 dias) <span style="color:var(--text3);text-transform:none;letter-spacing:normal;font-weight:600;">· Opcional</span></div>
       <div class="form-row">
         <div class="form-group">
           <label class="form-label">Volume Pessoal (PV)</label>
@@ -23388,7 +24012,7 @@ function renderPrevisaoComissao() {
 
 
     <div style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px;margin-bottom:14px;">
-      <div style="font-size:11px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:0.7px;margin-bottom:12px;">🔑 Chaves API de Inteligência Artificial</div>
+      <div style="font-size:11px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:0.7px;margin-bottom:12px;">🔑 Chaves API de Inteligência Artificial <span style="color:var(--text3);text-transform:none;letter-spacing:normal;font-weight:600;">· Opcional</span></div>
       <div style="font-size:11.5px;color:var(--text2);margin-bottom:12px;line-height:1.5;">Guardadas localmente no teu dispositivo. Usadas em toda a app (posts, analisador, respostas, etc).</div>
 
       <div class="form-group" style="margin-bottom:10px;">
@@ -23460,7 +24084,7 @@ function renderPrevisaoComissao() {
 
     <!-- Links pessoais / redes sociais -->
     <div style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px;margin-bottom:14px;">
-      <div style="font-size:11px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:0.7px;margin-bottom:4px;">📱 Os Teus Links Pessoais</div>
+      <div style="font-size:11px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:0.7px;margin-bottom:4px;">📱 Os Teus Links Pessoais <span style="color:var(--text3);text-transform:none;letter-spacing:normal;font-weight:600;">· Opcional</span></div>
       <div style="font-size:11.5px;color:var(--text2);margin-bottom:12px;line-height:1.5;">Guardados no teu perfil e disponíveis em toda a app (Analisador, Coach IA, Quick Replies, etc).</div>
 
       <div class="form-group" style="margin-bottom:10px;">
@@ -23499,7 +24123,7 @@ function renderPrevisaoComissao() {
 
     <!-- Links extra personalizados (mercados / idiomas adicionais, etc.) -->
     <div style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px;margin-bottom:14px;">
-      <div style="font-size:11px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:0.7px;margin-bottom:4px;">➕ Links Extra Personalizados</div>
+      <div style="font-size:11px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:0.7px;margin-bottom:4px;">➕ Links Extra Personalizados <span style="color:var(--text3);text-transform:none;letter-spacing:normal;font-weight:600;">· Opcional</span></div>
       <div style="font-size:11.5px;color:var(--text2);margin-bottom:12px;line-height:1.5;">Adiciona links extra com nome próprio — por exemplo, funis para outros mercados ou idiomas, páginas de eventos, etc. Aparecem na pré-visualização e na partilha rápida.</div>
       <div id="perfil-links-extra-list"></div>
       <button type="button" class="btn btn-secondary btn-sm" onclick="adicionarLinkExtraPerfil()" style="margin-top:6px;">➕ Adicionar Link</button>
@@ -23746,6 +24370,66 @@ function renderPrevisaoComissao() {
     <div class="modal-actions">
       <button class="btn btn-secondary" onclick="closeModal('modal-nova-venda'); editingVendaId=null;">Cancelar</button>
       <button class="btn btn-primary" onclick="salvarVenda()">✅ Guardar Venda</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: NOVA DESPESA -->
+<div class="modal-overlay" id="modal-nova-despesa">
+  <div class="modal" style="max-width:460px;">
+    <div class="modal-title">
+      <span id="despesa-modal-title">💸 Registar Despesa</span>
+      <button class="modal-close" onclick="closeModal('modal-nova-despesa'); editingDespesaId=null;">✕</button>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Descrição *</label>
+      <input class="form-input" id="d-descricao" placeholder="Ex: Amostras X39 para evento">
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Categoria</label>
+        <select class="form-select" id="d-categoria">
+          <option value="amostras">🧪 Amostras/Produtos demo</option>
+          <option value="deslocacao">🚗 Deslocações</option>
+          <option value="eventos">🎤 Eventos/Formações</option>
+          <option value="marketing">📣 Marketing/Anúncios</option>
+          <option value="ferramentas">🛠️ Ferramentas/Apps</option>
+          <option value="encomenda">📦 Encomenda pessoal (PV)</option>
+          <option value="outro">📋 Outro</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Valor (€)</label>
+        <input class="form-input" type="number" id="d-valor" placeholder="0.00" min="0" step="0.01">
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Data</label>
+      <input class="form-input" type="date" id="d-data">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Notas</label>
+      <textarea class="form-textarea" id="d-notas" placeholder="Observações..." style="min-height:60px;"></textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="closeModal('modal-nova-despesa'); editingDespesaId=null;">Cancelar</button>
+      <button class="btn btn-primary" onclick="salvarDespesa()">✅ Guardar Despesa</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: VER RESUMO DA REVISTA LIFEWAVE -->
+<div class="modal-overlay" id="modal-revista-resumo">
+  <div class="modal" style="max-width:560px;">
+    <div class="modal-title">
+      <span>📖 Resumo da Revista LifeWave</span>
+      <button class="modal-close" onclick="closeModal('modal-revista-resumo')">✕</button>
+    </div>
+    <div style="font-size:11px;color:var(--text2);margin-bottom:10px;" id="revista-resumo-meta"></div>
+    <textarea class="form-textarea" id="revista-resumo-texto" readonly style="min-height:280px;font-size:12px;line-height:1.5;"></textarea>
+    <div style="font-size:11px;color:var(--text2);margin-top:8px;">Este resumo é gerado automaticamente pela IA a partir do PDF carregado e é usado como contexto extra ao criar posts, mensagens e stories.</div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="closeModal('modal-revista-resumo')">Fechar</button>
     </div>
   </div>
 </div>
@@ -24177,7 +24861,7 @@ Responde em português europeu, tom motivador mas realista.`;
   try {
     const rawText = await chamarIADocumento({
       ai: promoAI, prompt: promptExtracao, base64: promoUploadBase64,
-      isPdf: promoUploadIsPdf, mediaType: promoUploadMediaType, maxTokens: 2000
+      isPdf: promoUploadIsPdf, mediaType: promoUploadMediaType, maxTokens: 2000, fallback: true
     });
 
     // Parse JSON
@@ -24196,19 +24880,7 @@ Responde em português europeu, tom motivador mas realista.`;
     if (promoAI === 'gemini') {
       estrategia = await callGemini(promptEstrategia(promoData));
     } else {
-      const res2 = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': claudeKey,
-          'anthropic-version': '2023-06-01',
-          'anthropic-dangerous-direct-browser-access': 'true'
-        },
-        body: JSON.stringify({ model: 'claude-sonnet-4-6', max_tokens: 1500, messages: [{ role: 'user', content: promptEstrategia(promoData) }] })
-      });
-      if (!res2.ok) { const e = await res2.json().catch(()=>({})); throw new Error(e?.error?.message||`HTTP ${res2.status}`); }
-      const data2 = await res2.json();
-      estrategia = data2.content?.[0]?.text || '';
+      estrategia = await callClaude(promptEstrategia(promoData));
     }
 
     // Montar objecto promoção
@@ -24306,7 +24978,7 @@ Gera uma estratégia PRÁTICA e CONCRETA em português europeu:
 (1-2 lembretes críticos sobre prazos)`;
 
   try {
-    const estrategia = await chamarIADocumento({ ai: aiAtual, prompt, maxTokens: 1200 });
+    const estrategia = await chamarIADocumento({ ai: aiAtual, prompt, maxTokens: 1200, fallback: true });
 
     // Guardar estratégia
     if (p.isCustom) {
@@ -24407,10 +25079,11 @@ function iniciarCountdownTick() {
   }, 1000);
 }
 
+// Wrapper fino: mesma formatação de formatarDataPT, mas com '—' como
+// fallback em vez de '' (mais adequado em vitrines/listagens de promoções
+// do que deixar o espaço em branco).
 function formatDataPromo(d) {
-  if (!d) return '—';
-  const dt = d instanceof Date ? d : new Date(d);
-  return dt.toLocaleDateString('pt-PT', { day:'2-digit', month:'short', year:'numeric' });
+  return formatarDataPT(d, '—');
 }
 
 // --- INICIALIZAÇÃO ---
@@ -24475,16 +25148,9 @@ function planoSetAI(ai) {
   if (rC) rC.classList.toggle('show', ai === 'claude');
   if (rG) rG.classList.toggle('show', ai === 'gemini');
 }
-function savePlanoClaudeKey(v) {
-  saveClaudeKey(v);
-  const st = document.getElementById('plano-claude-status');
-  if (st) st.textContent = claudeKey.length > 10 ? '✅ Guardada' : '';
-}
-function savePlanoGeminiKey(v) {
-  saveGeminiKey(v);
-  const st = document.getElementById('plano-gemini-status');
-  if (st) st.textContent = geminiKey.length > 10 ? '✅ Guardada' : '';
-}
+// Nota: saveClaudeKey/saveGeminiKey já cobrem o painel 'plano' (ver lista
+// de painéis na definição da fábrica criarSaveKeyHandler), por isso não
+// precisam de wrappers próprios aqui.
 
 // ---- UPLOAD ----
 function planoHandleDrop(e) {
@@ -24623,7 +25289,7 @@ async function planoAnalisarIA() {
   try {
     const rawText = await chamarIADocumento({
       ai: planoAI, prompt: PLANO_PROMPT, base64: planoUploadBase64,
-      isPdf: planoUploadIsPdf, mediaType: planoUploadMediaType, maxTokens: 4000
+      isPdf: planoUploadIsPdf, mediaType: planoUploadMediaType, maxTokens: 4000, fallback: true
     });
 
     // Parse JSON
@@ -25441,20 +26107,9 @@ Adapta o plano ao perfil e objetivo. Sê específico, prático e motivador. Resp
 
     let resposta = '';
     if (claudeKey && claudeKey.length > 10) {
-      const resp = await fetch('https://api.anthropic.com/v1/messages', {
-        method:'POST',
-        headers:{ 'Content-Type':'application/json', 'x-api-key': claudeKey, 'anthropic-version':'2023-06-01', 'anthropic-dangerous-direct-browser-access':'true' },
-        body: JSON.stringify({ model:'claude-haiku-4-5-20251001', max_tokens:1500, messages:[{ role:'user', content: prompt }] })
-      });
-      const data = await resp.json();
-      resposta = data?.content?.[0]?.text || 'Erro na resposta.';
+      resposta = (await callClaudeRapido(prompt, 1500)) || 'Erro na resposta.';
     } else if (geminiKey && geminiKey.length > 10) {
-      const resp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiKey}`, {
-        method:'POST', headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({ contents:[{ parts:[{ text: prompt }] }], generationConfig:{maxOutputTokens:3000, thinkingConfig:{thinkingBudget:0}} })
-      });
-      const data = await resp.json();
-      resposta = data?.candidates?.[0]?.content?.parts?.[0]?.text || 'Erro na resposta.';
+      resposta = (await callGemini(prompt)) || 'Erro na resposta.';
     }
 
     if (loader) loader.style.display = 'none';
@@ -25866,20 +26521,9 @@ Responde APENAS com o texto da mensagem, em Português de Portugal.`;
   try {
     let resposta = '';
     if (claudeKey && claudeKey.length > 10) {
-      const resp = await fetch('https://api.anthropic.com/v1/messages', {
-        method:'POST',
-        headers:{ 'Content-Type':'application/json', 'x-api-key': claudeKey, 'anthropic-version':'2023-06-01', 'anthropic-dangerous-direct-browser-access':'true' },
-        body: JSON.stringify({ model:'claude-haiku-4-5-20251001', max_tokens:400, messages:[{ role:'user', content: prompt }] })
-      });
-      const data = await resp.json();
-      resposta = data?.content?.[0]?.text || '';
+      resposta = await callClaudeRapido(prompt, 400);
     } else if (geminiKey && geminiKey.length > 10) {
-      const resp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiKey}`, {
-        method:'POST', headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({ contents:[{ parts:[{ text: prompt }] }], generationConfig:{maxOutputTokens:600, thinkingConfig:{thinkingBudget:0}} })
-      });
-      const data = await resp.json();
-      resposta = data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+      resposta = await callGemini(prompt);
     }
     if (resposta) {
       copiarTextoSeguro(resposta, '');
@@ -26851,11 +27495,9 @@ async function alertasIAAnalisar() {
     if (key && key.length > 10 && alertasLocais.length > 0) {
       const prompt = `Sou distribuidor LifeWave X39. CRM: ${leads.length} leads, ${membros.length} membros equipa. Alertas: ${alertasLocais.map(a=>a.titulo).join('; ')}. Dá-me 2-3 ações concretas para fazer HOJE. Português Portugal. Tom positivo e direto. Máx 80 palavras.`;
       if (claudeKey && claudeKey.length > 10) {
-        const r = await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':claudeKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:'claude-haiku-4-5-20251001',max_tokens:250,messages:[{role:'user',content:prompt}]})});
-        const d = await r.json(); iaInsight = d?.content?.[0]?.text||'';
+        iaInsight = await callClaudeRapido(prompt, 250);
       } else {
-        const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiKey}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({contents:[{parts:[{text:prompt}]}],generationConfig:{maxOutputTokens:400,thinkingConfig:{thinkingBudget:0}}})});
-        const d = await r.json(); iaInsight = d?.candidates?.[0]?.content?.parts?.[0]?.text||'';
+        iaInsight = await callGemini(prompt);
       }
     }
   } catch(e) {}
@@ -27015,11 +27657,11 @@ Tema: ${tema.replace(/-/g,' ')}
 Estilo: ${estiloDesc[estilo]||estilo}
 ${contexto ? 'Contexto pessoal (usa isto!): ' + contexto : ''}
 CTA: ${ctaDesc[cta]||cta}
-${hashtags==='sim' ? `Adiciona 10-12 hashtags relevantes para LifeWave/saúde/bem-estar no final, SEMPRE NO IDIOMA DO POST (${idiomaDesc[idioma]||idioma} → hashtags em ${idiomaDesc[idioma]||idioma}). Nunca uses hashtags em inglês se o post for em português.` : ''}
+${hashtags==='sim' ? `Adiciona NO MÁXIMO 5 hashtags, escolhidas pelo TEMA do post (${tema.replace(/-/g,' ')}) e não pela marca ou produto, SEMPRE NO IDIOMA DO POST (${idiomaDesc[idioma]||idioma} → hashtags em ${idiomaDesc[idioma]||idioma}). Nunca uses hashtags em inglês se o post for em português.` : ''}
 Idioma: ${idiomaDesc[idioma]||idioma}
 
 Produto: LifeWave X39 — patches de fotobiomodulação que suportam a atividade saudável das células estaminais e a produção de GHK-Cu, de forma natural e não-invasiva.
-
+${getRevistaContextoIA()}
 REGRAS OBRIGATÓRIAS:
 - NÃO uses linguagem de pirâmide, esquema ou vendas agressivas
 - Foca em histórias reais e transformações genuínas
@@ -27030,28 +27672,22 @@ REGRAS OBRIGATÓRIAS:
 
   try {
     const key = srAI==='claude' ? claudeKey : geminiKey;
+    const temAlgumaChave = !!(claudeKey && claudeKey.length > 10) || !!(geminiKey && geminiKey.length > 10);
     if (!key || key.length < 10) {
-      if (loader) loader.style.display = 'none';
-      if (textEl) { textEl.style.display=''; textEl.style.color='#ff6b6b'; textEl.style.fontStyle='normal'; textEl.textContent='⚠️ Configura a chave API acima para usar a IA.'; }
-      return;
+      if (!temAlgumaChave) {
+        if (loader) loader.style.display = 'none';
+        if (textEl) { textEl.style.display=''; textEl.style.color='#ff6b6b'; textEl.style.fontStyle='normal'; textEl.textContent='⚠️ Configura a chave API acima para usar a IA.'; }
+        return;
+      }
+      // Não tem a chave da IA preferida mas tem a outra — chamarTextoIA trata do fallback automaticamente.
     }
 
     let resposta = '';
-    if (srAI === 'claude') {
-      const resp = await fetch('https://api.anthropic.com/v1/messages', {
-        method:'POST',
-        headers:{'Content-Type':'application/json','x-api-key':claudeKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
-        body:JSON.stringify({model:'claude-haiku-4-5-20251001',max_tokens:1200,messages:[{role:'user',content:prompt}]})
-      });
-      const data = await resp.json();
-      resposta = data?.content?.[0]?.text || 'Erro na resposta da IA.';
-    } else {
-      const resp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiKey}`, {
-        method:'POST',headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({contents:[{parts:[{text:prompt}]}],generationConfig:{maxOutputTokens:1800,thinkingConfig:{thinkingBudget:0}}})
-      });
-      const data = await resp.json();
-      resposta = data?.candidates?.[0]?.content?.parts?.[0]?.text || 'Erro na resposta da IA.';
+    try {
+      resposta = await chamarTextoIA({ prompt, preferGemini: srAI !== 'claude' });
+      if (!resposta) resposta = 'Erro na resposta da IA.';
+    } catch (e) {
+      resposta = '❌ ' + mensagemErroIA(e);
     }
 
     srUltimoTexto = resposta;
@@ -27983,7 +28619,7 @@ function pvRenderModulo() {
   const histHTML = ultimos.length > 1 ? `
     <div style="margin-top:14px;border-top:1px solid var(--border);padding-top:14px;">
       <div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:9px;">📅 Histórico PV/BV</div>
-      <div style="display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;">
+      <div class="scroll-fade-h" style="display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;">
         ${ultimos.map(h => {
           const r = pvGetRank(h.pv||0);
           const isAtual = h.mes === mes;
@@ -28124,7 +28760,7 @@ Regras:
              : (typeof claudeKey !== 'undefined' && claudeKey && claudeKey.length > 10) ? 'claude'
              : 'gemini';
 
-    const resposta = await chamarIADocumento({ ai, prompt, base64, isPdf, mediaType, maxTokens: 500 });
+    const resposta = await chamarIADocumento({ ai, prompt, base64, isPdf, mediaType, maxTokens: 500, fallback: true });
 
     // Parse JSON
     let dados = null;
@@ -28429,10 +29065,6 @@ O template deve:
 - Usar variáveis entre chavetas: {nome}, {data}, {link} quando relevante
 - Ser curto e direto ao ponto (máx 5-6 linhas)
 - Terminar com uma pergunta aberta ou call-to-action suave
-- NUNCA usar: "cura", "trata", "alivia dor", "stem cell activation", "ativa células estaminais", "clinicamente provado", "detox", "milagre", "resultado garantido"
-- Usar APENAS linguagem aprovada: "suporta", "promove", "pode ajudar a manter", "fotomodulação", "bem-estar geral"
-
-${LW_COMPLIANCE}
 
 Responde APENAS com o texto do template, em Português de Portugal. Sem explicações.`;
   document.getElementById('tmpl-ia-loader').style.display = 'block';
@@ -28441,11 +29073,9 @@ Responde APENAS com o texto do template, em Português de Portugal. Sem explica�
   try {
     let resp = '';
     if (claudeKey && claudeKey.length > 10) {
-      const r = await fetch('https://api.anthropic.com/v1/messages', { method:'POST', headers:{'Content-Type':'application/json','x-api-key':claudeKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'}, body:JSON.stringify({model:'claude-haiku-4-5-20251001',max_tokens:600,messages:[{role:'user',content:prompt}]}) });
-      const d = await r.json(); resp = d?.content?.[0]?.text || '';
+      resp = await callClaudeRapido(prompt, 600);
     } else if (geminiKey && geminiKey.length > 10) {
-      const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiKey}`,{ method:'POST',headers:{'Content-Type':'application/json'}, body:JSON.stringify({contents:[{parts:[{text:prompt}]}],generationConfig:{maxOutputTokens:900,thinkingConfig:{thinkingBudget:0}}}) });
-      const d = await r.json(); resp = d?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+      resp = await callGemini(prompt);
     }
     _tmplIATexto = resp;
     document.getElementById('tmpl-ia-texto').textContent = resp;
@@ -28644,10 +29274,7 @@ A mensagem deve:
 - Mencionar a urgência se aplicável
 - Incluir uma pergunta final suave para continuar a conversa
 - Máximo 6 linhas
-- NUNCA usar: "cura", "trata", "alivia dor", "stem cell activation", "clinicamente provado", "detox", "milagre", "resultado garantido", "sem dor"
 - Focar no valor da oportunidade (poupança, acesso ao produto) — NÃO em claims de saúde
-
-${LW_COMPLIANCE}
 
 Em Português de Portugal. Responde APENAS com o texto da mensagem.`;
   document.getElementById('promo-ia-loader').style.display = 'block';
@@ -28656,11 +29283,9 @@ Em Português de Portugal. Responde APENAS com o texto da mensagem.`;
   try {
     let resp = '';
     if (claudeKey && claudeKey.length > 10) {
-      const r = await fetch('https://api.anthropic.com/v1/messages', { method:'POST', headers:{'Content-Type':'application/json','x-api-key':claudeKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'}, body:JSON.stringify({model:'claude-haiku-4-5-20251001',max_tokens:500,messages:[{role:'user',content:prompt}]}) });
-      const d = await r.json(); resp = d?.content?.[0]?.text || '';
+      resp = await callClaudeRapido(prompt, 500);
     } else if (geminiKey && geminiKey.length > 10) {
-      const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiKey}`,{ method:'POST',headers:{'Content-Type':'application/json'}, body:JSON.stringify({contents:[{parts:[{text:prompt}]}],generationConfig:{maxOutputTokens:800,thinkingConfig:{thinkingBudget:0}}}) });
-      const d = await r.json(); resp = d?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+      resp = await callGemini(prompt);
     }
     _promoIATexto = resp;
     document.getElementById('promo-ia-texto').textContent = resp;
@@ -29013,6 +29638,85 @@ function obBadge() {
     const el = document.getElementById(id);
     if (el) { el.style.display = ativos?'inline':'none'; el.textContent = ativos; }
   });
+}
+
+// ────────────────────────────────────────────────────────
+// ALERTA DASHBOARD — Onboarding de equipa parado/atrasado (v68.7)
+// 80% dos distribuidores que abandonam fazem-no nos primeiros 30 dias —
+// este alerta sinaliza, de forma proativa no Dashboard, quem está com o
+// checklist de 7 dias muito atrás do esperado para o dia em que está,
+// para o patrocinador poder agir antes do membro desistir em silêncio.
+// 100% read-only sobre `_obDist` (mesmos dados da página Onboarding) —
+// não cria nem altera nenhum dado.
+// ────────────────────────────────────────────────────────
+function calcularOnboardingAtrasado() {
+  obLoad();
+  const agora = Date.now();
+  return _obDist
+    .map(d => {
+      const dias = Math.floor((agora - new Date(d.data).getTime()) / 864e5);
+      if (dias >= 7 || dias < 0) return null; // já fora da janela de 7 dias ou data inválida
+      const diaN = Math.min(dias + 1, 7);
+      const feito = Object.values(d.check || {}).filter(Boolean).length;
+      const pctReal = feito / OB_TOTAL;
+      const pctEsperado = diaN / 7;
+      // Atraso relativo: quanto o progresso real fica abaixo do esperado para o dia atual.
+      // Só sinaliza a partir do dia 3 (dá margem nos primeiros dias) e com gap relevante.
+      if (diaN < 3) return null;
+      const gap = pctEsperado - pctReal;
+      if (gap < 0.35) return null;
+      const nivel = gap >= 0.6 ? 'critico' : 'alerta';
+      return { d, diaN, pct: Math.round(pctReal * 100), gap, nivel };
+    })
+    .filter(Boolean)
+    .sort((a, b) => b.gap - a.gap);
+}
+
+function renderOnboardingAlertaDash() {
+  const el = document.getElementById('dash-onboarding-alerta-widget');
+  if (!el) return;
+  if (typeof _obDist === 'undefined') { el.innerHTML = ''; return; }
+
+  const atrasados = calcularOnboardingAtrasado();
+  if (!atrasados.length) { el.innerHTML = ''; return; }
+
+  const corNivel = n => n === 'critico' ? '#ff5555' : '#f5c842';
+
+  el.innerHTML = `
+    <div style="background:rgba(255,147,0,0.05);border:1px solid rgba(255,147,0,0.25);border-radius:14px;padding:16px 18px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px;">
+        <div style="font-size:13px;font-weight:700;color:var(--text);display:flex;align-items:center;gap:6px;">
+          🚀 Onboarding a precisar de atenção
+          <span style="font-size:10px;background:rgba(255,147,0,0.15);color:#ff9300;padding:2px 8px;border-radius:20px;font-weight:700;">${atrasados.length}</span>
+        </div>
+        <button onclick="goTo('onboarding')" style="background:none;border:none;color:var(--accent);font-size:11px;cursor:pointer;font-weight:600;white-space:nowrap;">Ver onboarding →</button>
+      </div>
+      ${atrasados.slice(0, 3).map(({ d, diaN, pct, nivel }) => `
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;padding:10px 12px;background:var(--surface3);border-radius:10px;cursor:pointer;" onclick="goTo('onboarding')">
+          <div style="flex:1;min-width:0;">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px;">
+              <div style="font-size:13px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${d.nome}</div>
+              <div style="font-size:11px;font-weight:800;color:${corNivel(nivel)};white-space:nowrap;margin-left:8px;">${pct}% feito</div>
+            </div>
+            <div style="background:var(--surface2);border-radius:20px;height:5px;overflow:hidden;margin-bottom:5px;">
+              <div style="height:100%;width:${pct}%;background:${corNivel(nivel)};border-radius:20px;transition:width .5s;"></div>
+            </div>
+            <div style="font-size:10px;color:var(--text2);">Dia ${diaN} de 7 · ${nivel === 'critico' ? 'muito atrás do esperado' : 'a ficar para trás'}</div>
+          </div>
+          ${d.tel ? `<button onclick="event.stopPropagation();obMensagemWADash('${d.id||''}','${(d.tel||'').replace(/'/g,"\\'")}','${(d.nome||'').replace(/'/g,"\\'")}')" style="background:rgba(0,212,170,0.12);border:1px solid rgba(0,212,170,0.25);border-radius:8px;color:var(--accent);font-size:15px;padding:5px 7px;cursor:pointer;flex-shrink:0;" title="WhatsApp">💬</button>` : ''}
+        </div>`).join('')}
+    </div>`;
+}
+
+// Wrapper simples para disparar a mensagem WA de onboarding direto do Dashboard,
+// sem precisar de navegar para a página Onboarding primeiro.
+function obMensagemWADash(id, tel, nome) {
+  if (!tel) return;
+  const telLimpo = (typeof telParaWaMe === 'function') ? telParaWaMe(tel) : tel.replace(/\D/g, '');
+  if (!telLimpo) { if (typeof showToast === 'function') showToast('❌ Telefone inválido para WhatsApp'); return; }
+  const primeiroNome = (nome || '').split(' ')[0] || nome;
+  const texto = `Olá ${primeiroNome}! 👋 Como estás a correr com os primeiros passos na LifeWave? Vi que ainda faltam algumas tarefas no teu plano de arranque — estou aqui para te ajudar no que precisares! 💚`;
+  window.location.href = `https://wa.me/${telLimpo}?text=${encodeURIComponent(texto)}`;
 }
 
 // ── Hook goTo ─────────────────────────────────────────────
@@ -30076,26 +30780,9 @@ async function relatorioGerar() {
     statusTxt.textContent = '🤖 IA a analisar...';
     let respText = '';
     if (claudeKey && claudeKey.length > 10) {
-      const r = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: { 'Content-Type':'application/json','x-api-key':claudeKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true' },
-        body: JSON.stringify({ model:'claude-sonnet-4-6', max_tokens:2000, messages:[{role:'user',content:prompt}] })
-      });
-      const rd = await r.json();
-      if (!r.ok) throw new Error(rd.error?.message || `Erro Claude (${r.status})`);
-      respText = (rd.content && rd.content[0]) ? rd.content[0].text : '';
+      respText = await callClaude(prompt);
     } else {
-      const r = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=' + geminiKey, {
-        method:'POST', headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({ contents:[{parts:[{text:prompt}]}], generationConfig:{maxOutputTokens:3000, thinkingConfig:{thinkingBudget:0}} })
-      });
-      const rd = await r.json();
-      if (!r.ok) throw new Error(rd.error?.message || `Erro Gemini (${r.status})`);
-      const cand = rd.candidates && rd.candidates[0];
-      if (cand && cand.finishReason === 'MAX_TOKENS' && (!cand.content || !cand.content.parts)) {
-        throw new Error('A IA usou todos os tokens a "pensar" e não sobrou texto. Tenta novamente.');
-      }
-      respText = (cand && cand.content && cand.content.parts && cand.content.parts[0]) ? cand.content.parts[0].text : '';
+      respText = await callGemini(prompt);
     }
     if (!respText.trim()) throw new Error('A IA não devolveu resposta. Tenta novamente.');
     let ia;
@@ -30293,20 +30980,11 @@ async function rpLeadResponde() {
     const msgs = rpHistorico.slice(1).map(m => ({role: m.role === 'lead' ? 'assistant' : m.role, content: m.content}));
     let resp = '';
     if (claudeKey && claudeKey.length > 10) {
-      const r = await fetch('https://api.anthropic.com/v1/messages', {
-        method:'POST',
-        headers:{'Content-Type':'application/json','x-api-key':claudeKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
-        body: JSON.stringify({model:'claude-haiku-4-5-20251001',max_tokens:250,system:sys,messages:msgs})
-      });
-      const rd = await r.json(); resp = (rd.content && rd.content[0]) ? rd.content[0].text : '...';
+      resp = await callClaudeComMensagens(msgs, sys, 250, 'claude-haiku-4-5-20251001') || '...';
     } else {
       const lines = rpHistorico.slice(1).map(m => ((m.role === 'assistant' || m.role === 'lead') ? rpCfg.nome : 'Distribuidor') + ': ' + m.content);
       const fullP = sys + '\n\n' + lines.join('\n') + '\n' + rpCfg.nome + ':';
-      const r = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=' + geminiKey, {
-        method:'POST', headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({contents:[{parts:[{text:fullP}]}],generationConfig:{maxOutputTokens:400,thinkingConfig:{thinkingBudget:0}}})
-      });
-      const rd = await r.json(); resp = (rd.candidates && rd.candidates[0]) ? rd.candidates[0].content.parts[0].text.trim() : '...';
+      resp = (await callGemini(fullP) || '...').trim();
     }
     rpHistorico.push({role:'lead', content:resp});
     rpAddMsg('lead', resp);
@@ -30347,17 +31025,9 @@ async function roleplayTerminar() {
   try {
     let respText = '';
     if (claudeKey && claudeKey.length > 10) {
-      const r = await fetch('https://api.anthropic.com/v1/messages', {
-        method:'POST', headers:{'Content-Type':'application/json','x-api-key':claudeKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
-        body: JSON.stringify({model:'claude-sonnet-4-6',max_tokens:700,messages:[{role:'user',content:prompt}]})
-      });
-      const rd = await r.json(); respText = (rd.content && rd.content[0]) ? rd.content[0].text : '';
+      respText = await callClaude(prompt);
     } else {
-      const r = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=' + geminiKey, {
-        method:'POST', headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({contents:[{parts:[{text:prompt}]}],generationConfig:{maxOutputTokens:1500,thinkingConfig:{thinkingBudget:0}}})
-      });
-      const rd = await r.json(); respText = (rd.candidates && rd.candidates[0]) ? rd.candidates[0].content.parts[0].text : '';
+      respText = await callGemini(prompt);
     }
     const fb = JSON.parse(respText.replace(/```json|```/g,'').trim());
     const emojis = {fechou:'🏆',quase:'⚡',perdeu:'📚'};
@@ -30458,6 +31128,9 @@ const AUTO_BIBLIOTECA = [
       { dias:7, texto:'Olá {nome}! Como tens sentido a tua rotina de bem-estar com o X39 esta primeira semana? Adorava saber como estás 😊' },
       { dias:30, texto:'Olá {nome}! Já passou um mês — que tal renovarmos o teu pedido para não interromperes a rotina? Posso ajudar-te com isso agora.' }
     ] }, desc:'Cria 3 lembretes com mensagens prontas (Dia 1, 7 e 30) para acompanhares um novo cliente e apoiares a renovação.', tag:'Retenção' },
+  { id:'lib_obrigado_recompra', icon:'💰', titulo:'Obrigado por Recompra', trigger:{ tipo:'venda_registada' }, action:{ tipo:'copiar_mensagem', texto:'Olá {nome}! 🙏 Obrigado por confiares de novo em mim para o teu {produto}! Qualquer coisa que precises, sabes que podes contar comigo.' }, desc:'Sempre que registas uma venda (mesmo a um cliente já existente), prepara uma mensagem de agradecimento.', tag:'Retenção' },
+  { id:'lib_pedir_indicacao_45d', icon:'🎁', titulo:'Pedir Indicação 45 dias após Venda', trigger:{ tipo:'estado_muda', de:'*', para:'cliente' }, action:{ tipo:'criar_lembrete', dias:45, mensagem:'{nome} já é cliente há 45 dias e está satisfeito — ótimo momento para pedir uma indicação' }, desc:'Cria um lembrete 45 dias depois de um lead se tornar Cliente, para lhe pedires com naturalidade que indique alguém que possa beneficiar do produto.', tag:'Indicações' },
+  { id:'lib_msg_pedir_indicacao', icon:'🎁', titulo:'Mensagem de Pedido de Indicação', trigger:{ tipo:'estado_muda', de:'*', para:'cliente' }, action:{ tipo:'copiar_mensagem', texto:'Olá {nome}! 😊 Ainda bem que estás a gostar do X39! Já agora — conheces mais alguém que ache que podia beneficiar de mais energia e bem-estar no dia a dia? Adorava poder ajudar mais alguém como te ajudei a ti 🙏' }, desc:'Quando um lead passa a Cliente, prepara também uma mensagem pronta a usar mais tarde para lhe pedires uma indicação.', tag:'Indicações' },
 ];
 
 function getAutoRegras() { try { return JSON.parse(localStorage.getItem(getUserStorageKey('lw_automacao_regras')) || '[]'); } catch(e) { return []; } }
@@ -30489,9 +31162,9 @@ function renderAutomacao() {
   renderAutomacaoGrid();
 }
 
-function descreverTrigger(t) { if(t.tipo==='estado_muda')return `Lead passa a "${estadoLabel(t.para)}"`; if(t.tipo==='lead_criado')return 'Novo lead adicionado'; if(t.tipo==='sem_contacto_dias')return `Sem contacto há ${t.dias} dias`; if(t.tipo==='aniversario')return 'Aniversário do lead'; return t.tipo; }
+function descreverTrigger(t) { if(t.tipo==='estado_muda')return `Lead passa a "${estadoLabel(t.para)}"`; if(t.tipo==='lead_criado')return 'Novo lead adicionado'; if(t.tipo==='sem_contacto_dias')return `Sem contacto há ${t.dias} dias`; if(t.tipo==='aniversario')return 'Aniversário do lead'; if(t.tipo==='venda_registada')return 'Uma venda é registada'; return t.tipo; }
 function descreverAction(a) { if(a.tipo==='criar_lembrete')return `Cria lembrete em ${a.dias} dia(s)`; if(a.tipo==='copiar_mensagem')return 'Prepara mensagem para enviar'; if(a.tipo==='mudar_estado')return `Move para "${estadoLabel(a.estado)}"`; if(a.tipo==='notificar')return 'Mostra notificação'; if(a.tipo==='iniciar_sequencia')return `Inicia sequência de ${(a.passos||[]).length} mensagens`; return a.tipo; }
-function iconeTrigger(tipo) { return { estado_muda:'🔄', lead_criado:'👋', sem_contacto_dias:'🥶', aniversario:'🎂' }[tipo] || '⚙️'; }
+function iconeTrigger(tipo) { return { estado_muda:'🔄', lead_criado:'👋', sem_contacto_dias:'🥶', aniversario:'🎂', venda_registada:'💰' }[tipo] || '⚙️'; }
 
 function renderAutomacaoGrid() {
   const regras = getAutoRegras();
@@ -30574,10 +31247,11 @@ function atualizarRegraBuilderUI() {
     else tEl.innerHTML = '';
   }
   if (aEl) {
-    if (action === 'criar_lembrete') aEl.innerHTML = `<div class="form-label">Em quantos dias?</div><input class="form-input" type="number" id="regra-action-dias" value="1" min="0" style="margin-bottom:8px;"><div class="form-label">Mensagem do lembrete</div><input class="form-input" id="regra-action-msg" placeholder="Ex: Fazer follow-up com {nome}">`;
-    else if (action === 'copiar_mensagem') aEl.innerHTML = `<div class="form-label">Texto da mensagem (usa {nome})</div><textarea class="form-textarea" id="regra-action-texto" placeholder="Olá {nome}!..." style="min-height:70px;"></textarea>`;
+    const varsHint = trigger === 'venda_registada' ? ' (usa {nome}, {produto}, {valor})' : ' (usa {nome})';
+    if (action === 'criar_lembrete') aEl.innerHTML = `<div class="form-label">Em quantos dias?</div><input class="form-input" type="number" id="regra-action-dias" value="1" min="0" style="margin-bottom:8px;"><div class="form-label">Mensagem do lembrete${varsHint}</div><input class="form-input" id="regra-action-msg" placeholder="Ex: Fazer follow-up com {nome}">`;
+    else if (action === 'copiar_mensagem') aEl.innerHTML = `<div class="form-label">Texto da mensagem${varsHint}</div><textarea class="form-textarea" id="regra-action-texto" placeholder="Olá {nome}!..." style="min-height:70px;"></textarea>`;
     else if (action === 'mudar_estado') aEl.innerHTML = `<div class="form-label">Mudar para que estado?</div><select class="form-select" id="regra-action-estado"><option value="frio">Frio</option><option value="interessado">Interessado</option><option value="negociacao">Negociação</option><option value="cliente">Cliente</option></select>`;
-    else if (action === 'notificar') aEl.innerHTML = `<div class="form-label">Texto da notificação (usa {nome})</div><input class="form-input" id="regra-action-texto-notif" placeholder="Ex: {nome} precisa de atenção!">`;
+    else if (action === 'notificar') aEl.innerHTML = `<div class="form-label">Texto da notificação${varsHint}</div><input class="form-input" id="regra-action-texto-notif" placeholder="Ex: {nome} precisa de atenção!">`;
     else aEl.innerHTML = '';
   }
 }
@@ -30603,32 +31277,39 @@ function guardarRegraPersonalizada() {
   showToast('✅ Regra "' + nome + '" criada!');
 }
 
-function substituirVariaveis(texto, lead) { return (texto||'').replace(/\{nome\}/g, lead.nome||'').replace(/\{estado\}/g, estadoLabel(lead.estado)); }
+function substituirVariaveis(texto, lead, vendaInfo) {
+  let t = (texto||'').replace(/\{nome\}/g, lead.nome||'').replace(/\{estado\}/g, estadoLabel(lead.estado));
+  if (vendaInfo) {
+    t = t.replace(/\{produto\}/g, vendaInfo.produto || '').replace(/\{valor\}/g, vendaInfo.valor ? `€${vendaInfo.valor}` : '');
+  }
+  return t;
+}
 
-function executarAutomacoes(lead, estadoAnterior, novoEstado, ehNovoLead) {
+function executarAutomacoes(lead, estadoAnterior, novoEstado, ehNovoLead, extra) {
   if (!lead) return;
   const regras = getAutoRegras().filter(r => r.ativa !== false); if (!regras.length) return;
   regras.forEach(r => {
     let dispara = false;
     if (ehNovoLead && r.trigger.tipo === 'lead_criado') dispara = true;
     else if (!ehNovoLead && r.trigger.tipo === 'estado_muda' && novoEstado === r.trigger.para && estadoAnterior !== novoEstado) dispara = true;
+    else if (extra && extra.tipoEvento === 'venda_registada' && r.trigger.tipo === 'venda_registada') dispara = true;
     if (!dispara) return;
-    executarAcaoRegra(r, lead);
+    executarAcaoRegra(r, lead, extra);
   });
 }
 
-function executarAcaoRegra(regra, lead) {
+function executarAcaoRegra(regra, lead, extra) {
   const a = regra.action;
   if (a.tipo === 'criar_lembrete') {
     const dataDisparo = new Date(); dataDisparo.setDate(dataDisparo.getDate() + (a.dias||1)); dataDisparo.setHours(9,0,0,0);
     if (typeof lembretes !== 'undefined') {
-      lembretes.push({ id:'auto_'+regra.id+'_'+lead.id+'_'+Date.now(), tipo:'followup', mensagem:substituirVariaveis(a.mensagem, lead), proximoDisparo:dataDisparo.toISOString(), repeticao:'uma', criado:new Date().toISOString(), concluido:false, disparadoCount:0, _leadId:lead.id, _auto:true, _regraId:regra.id });
+      lembretes.push({ id:'auto_'+regra.id+'_'+lead.id+'_'+Date.now(), tipo:'followup', mensagem:substituirVariaveis(a.mensagem, lead, extra && extra.vendaInfo), proximoDisparo:dataDisparo.toISOString(), repeticao:'uma', criado:new Date().toISOString(), concluido:false, disparadoCount:0, _leadId:lead.id, _auto:true, _regraId:regra.id });
       if (typeof saveLembretes === 'function') saveLembretes();
     }
     registarAutoLogRegra(regra, '⏰', `Criou lembrete para <b>${lead.nome}</b> em ${a.dias} dia(s)`);
     showToast('⚙️ Automação: lembrete criado para ' + lead.nome);
   } else if (a.tipo === 'copiar_mensagem') {
-    const texto = substituirVariaveis(a.texto, lead);
+    const texto = substituirVariaveis(a.texto, lead, extra && extra.vendaInfo);
     copiarTextoSeguro(texto, '');
     registarAutoLogRegra(regra, '📋', `Preparou mensagem para <b>${lead.nome}</b>: "${texto.substring(0,50)}${texto.length>50?'…':''}"`);
     showToast('⚙️ Automação: mensagem copiada para ' + lead.nome + '!');
@@ -30637,7 +31318,7 @@ function executarAcaoRegra(regra, lead) {
     registarAutoLogRegra(regra, '🔄', `Moveu <b>${lead.nome}</b> para "${estadoLabel(a.estado)}"`);
     showToast('⚙️ Automação: ' + lead.nome + ' → ' + estadoLabel(a.estado));
   } else if (a.tipo === 'notificar') {
-    const texto = substituirVariaveis(a.texto, lead);
+    const texto = substituirVariaveis(a.texto, lead, extra && extra.vendaInfo);
     if (typeof dispararNotificacao === 'function') dispararNotificacao('⚙️ Automação LifeWave CRM', texto, '⚙️');
     else showToast('⚙️ ' + texto);
     registarAutoLogRegra(regra, '🔔', texto);
@@ -31040,8 +31721,8 @@ function exportarCSV() {
 
   let leads = []; try { leads = JSON.parse(localStorage.getItem(uk('lw_leads')) || '[]'); } catch(e) {}
   const leadsCSV = toCSV([
-    ['ID','Nome','Telefone','Email','Mercado','Estado','Fonte','Aniversario','Data Criacao','Notas'],
-    ...leads.map(l => [l.id,l.nome,l.tel,l.email,l.mercado,l.estado,l.fonte,l.aniversario,l.data,limpar(l.notas)])
+    ['ID','Nome','Telefone','Email','Mercado','Estado','Fonte','Indicado Por','Aniversario','Data Criacao','Notas'],
+    ...leads.map(l => [l.id,l.nome,l.tel,l.email,l.mercado,l.estado,l.fonte,l.indicadoPor||'',l.aniversario,l.data,limpar(l.notas)])
   ]);
 
   let membros = []; try { membros = JSON.parse(localStorage.getItem(uk('lw_membros')) || '[]'); } catch(e) {}
@@ -32087,16 +32768,16 @@ const CONQUISTAS_DEF = [
   { id:'primeiro_lead',    icon:'🌱', nome:'Primeiro Passo',       desc:'1º lead adicionado',              check:(l)=>l.length>=1 },
   { id:'dez_leads',        icon:'📋', nome:'Pipeline Ativo',        desc:'10 leads no CRM',                 check:(l)=>l.length>=10 },
   { id:'cinquenta_leads',  icon:'🚀', nome:'Máquina de Leads',      desc:'50 leads adicionados',            check:(l)=>l.length>=50 },
-  { id:'primeiro_cliente', icon:'🏆', nome:'Primeiro Cliente',      desc:'1º cliente conquistado',          check:(l)=>l.filter(x=>x.estado==='cliente').length>=1 },
-  { id:'cinco_clientes',   icon:'💎', nome:'Top Vendedor',          desc:'5 clientes conquistados',         check:(l)=>l.filter(x=>x.estado==='cliente').length>=5 },
-  { id:'dez_clientes',     icon:'👑', nome:'Campeão de Vendas',     desc:'10 clientes conquistados',        check:(l)=>l.filter(x=>x.estado==='cliente').length>=10 },
+  { id:'primeiro_cliente', icon:'🏆', nome:'Primeiro Cliente',      desc:'1º cliente conquistado',          check:(l)=>l.filter(x=>x.estado==='cliente').length>=1, temaPost:'Resultados de clientes' },
+  { id:'cinco_clientes',   icon:'💎', nome:'Top Vendedor',          desc:'5 clientes conquistados',         check:(l)=>l.filter(x=>x.estado==='cliente').length>=5, temaPost:'Resultados de clientes' },
+  { id:'dez_clientes',     icon:'👑', nome:'Campeão de Vendas',     desc:'10 clientes conquistados',        check:(l)=>l.filter(x=>x.estado==='cliente').length>=10, temaPost:'Resultados de clientes' },
   { id:'negociacao_ativa', icon:'🎯', nome:'Negociador',            desc:'Lead em negociação',              check:(l)=>l.filter(x=>x.estado==='negociacao').length>=1 },
   { id:'followup_10',      icon:'📞', nome:'Mestre do Follow-up',   desc:'10+ interações registadas',       check:(l)=>l.reduce((s,x)=>s+(x.historico?x.historico.length:0),0)>=10 },
   { id:'streak_3',         icon:'🔥', nome:'Em Chama',              desc:'3 dias seguidos no CRM',          check:(l,m,s)=>s>=3 },
-  { id:'streak_7',         icon:'⚡', nome:'Imparável',             desc:'7 dias seguidos no CRM',          check:(l,m,s)=>s>=7 },
-  { id:'streak_30',        icon:'🌟', nome:'Consistência Total',    desc:'30 dias seguidos',                check:(l,m,s)=>s>=30 },
-  { id:'equipa_1',         icon:'🤝', nome:'Líder a Crescer',       desc:'1º membro na equipa',             check:(l,m)=>m.length>=1 },
-  { id:'equipa_5',         icon:'👥', nome:'Construtor de Equipa',  desc:'5 membros na equipa',             check:(l,m)=>m.length>=5 },
+  { id:'streak_7',         icon:'⚡', nome:'Imparável',             desc:'7 dias seguidos no CRM',          check:(l,m,s)=>s>=7, temaPost:'Oportunidade de negócio' },
+  { id:'streak_30',        icon:'🌟', nome:'Consistência Total',    desc:'30 dias seguidos',                check:(l,m,s)=>s>=30, temaPost:'Oportunidade de negócio' },
+  { id:'equipa_1',         icon:'🤝', nome:'Líder a Crescer',       desc:'1º membro na equipa',             check:(l,m)=>m.length>=1, temaPost:'Oportunidade de negócio' },
+  { id:'equipa_5',         icon:'👥', nome:'Construtor de Equipa',  desc:'5 membros na equipa',             check:(l,m)=>m.length>=5, temaPost:'Oportunidade de negócio' },
 ];
 
 function _getStreakCount() {
@@ -32128,7 +32809,13 @@ function renderConquistas() {
   });
   if (novas.length) {
     _saveEarned(earned);
-    novas.forEach((c,i) => setTimeout(() => showToast(`🏅 Conquista: ${c.icon} ${c.nome} desbloqueada!`), i*1200));
+    novas.forEach((c,i) => setTimeout(() => {
+      if (c.temaPost) {
+        abrirModalCelebracaoConquista(c);
+      } else {
+        showToast(`🏅 Conquista: ${c.icon} ${c.nome} desbloqueada!`);
+      }
+    }, i*1200));
   }
 
   if (cntEl) cntEl.textContent = `${earned.length} / ${CONQUISTAS_DEF.length} desbloqueadas`;
@@ -32143,6 +32830,38 @@ function renderConquistas() {
       ${ok ? `<div class="badge-earned-tag">✓ Desbloqueada</div>` : `<div class="badge-locked-tag">🔒 Por desbloquear</div>`}
     </div>`;
   }).join('');
+}
+
+// ── Celebração de conquistas: sugere criar um post quando a conquista tem temaPost ──
+let _celebracaoConquistaAtual = null;
+
+function abrirModalCelebracaoConquista(c) {
+  _celebracaoConquistaAtual = c;
+  const iconEl = document.getElementById('celebracao-icon');
+  const nomeEl = document.getElementById('celebracao-nome');
+  const descEl = document.getElementById('celebracao-desc');
+  if (iconEl) iconEl.textContent = c.icon;
+  if (nomeEl) nomeEl.textContent = c.nome + '!';
+  if (descEl) descEl.textContent = c.desc;
+  if (typeof openModal === 'function') openModal('modal-celebracao-conquista');
+}
+
+function celebrarConquistaCriarPost() {
+  const c = _celebracaoConquistaAtual;
+  if (typeof closeModal === 'function') closeModal('modal-celebracao-conquista');
+  if (typeof goTo === 'function') goTo('posts');
+  setTimeout(() => {
+    const temaEl = document.getElementById('tema-select');
+    const ctxEl = document.getElementById('contexto-input');
+    if (temaEl && c && c.temaPost) {
+      const opt = Array.from(temaEl.options).find(o => o.value === c.temaPost || o.textContent === c.temaPost);
+      if (opt) temaEl.value = opt.value;
+    }
+    if (ctxEl && c) {
+      ctxEl.value = `Acabei de atingir um marco no meu negócio: ${c.nome} (${c.desc}). Quero celebrar este momento de forma genuína, sem soar a vendas, e inspirar quem me segue — sem mencionar números exatos.`;
+    }
+    showToast('✨ Contexto preenchido — ajusta o tom e gera o post!');
+  }, 200);
 }
 
 // ===================================================
