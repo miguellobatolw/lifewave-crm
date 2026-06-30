@@ -2193,6 +2193,27 @@
   }
   .btn-acao-concluido:hover { background: rgba(0,212,170,0.2); }
 
+  .acao-msg-ia-wrap:empty { display: none; }
+  .acao-msg-ia-loading {
+    font-size: 12px; color: var(--text2); padding: 9px 12px; margin-bottom: 12px;
+    background: var(--surface3); border-radius: 8px; font-style: italic;
+  }
+  .acao-msg-ia-resultado {
+    background: linear-gradient(135deg, rgba(0,212,170,0.08), rgba(0,132,255,0.05));
+    border: 1px solid rgba(0,212,170,0.25); border-radius: 10px;
+    padding: 12px; margin-bottom: 12px;
+  }
+  .acao-msg-ia-texto {
+    font-size: 12.5px; color: var(--text); line-height: 1.6;
+    white-space: pre-wrap; margin-bottom: 10px;
+  }
+  .acao-msg-ia-acoes { display: flex; gap: 7px; flex-wrap: wrap; }
+  .acao-msg-ia-erro {
+    font-size: 12px; color: #ff6b6b; padding: 9px 12px; margin-bottom: 12px;
+    background: rgba(255,107,107,0.08); border: 1px solid rgba(255,107,107,0.2);
+    border-radius: 8px;
+  }
+
   .acoes-empty {
     text-align: center; padding: 50px 20px; color: var(--text2);
   }
@@ -14637,6 +14658,7 @@ function atualizarSidebarUser(user) {
 function fazerLogout() {
   if (!confirm('Tens a certeza que queres sair?')) return;
   localStorage.removeItem(AUTH_KEY);
+  localStorage.removeItem('lw_auth_user_local');
   currentUser = null;
   leads = [];
   posts = [];
@@ -14650,8 +14672,12 @@ function fazerLogout() {
   document.getElementById('btn-continuar-step1').classList.add('visible');
   document.getElementById('btn-entrar-step2').classList.remove('visible');
   document.getElementById('login-error').textContent = '';
-  // Show login screen
-  document.getElementById('login-screen').classList.remove('hidden');
+  // Show login screen — entrarNaApp() seta tanto a classe 'hidden' como um
+  // style.display inline; é preciso desfazer os dois ou o ecrã de login
+  // fica preso a display:none mesmo depois de remover a classe.
+  const loginScreen = document.getElementById('login-screen');
+  loginScreen.classList.remove('hidden');
+  loginScreen.style.display = '';
   document.querySelector('.app').style.display = 'none';
   // Sign out from Google too
   try { google.accounts.id.disableAutoSelect(); } catch(e) {}
@@ -17154,8 +17180,10 @@ function renderAcoesLista() {
         </div>
       </div>
       <div class="acao-sugestao">${textoSugestao}</div>
+      <div class="acao-msg-ia-wrap" id="acao-msg-ia-${l.id}"></div>
       <div class="acao-btns">
         <button class="btn-acao-guiao" onclick="abrirGuiaoIAdiretamente('${l.id}','${sugestao.guiaoTipo}')">🎯 Guião IA</button>
+        <button class="btn-acao-guiao" onclick="gerarMensagemAcaoIA('${l.id}')" id="btn-msg-ia-${l.id}">✨ Mensagem IA</button>
         ${tel ? `<button class="btn-acao-wa" onclick="abrirMensagem('${l.id}','whatsapp')">💬 WhatsApp</button>` : ''}
         <button class="btn-acao-ver" onclick="verLead('${l.id}')">👁 Ver lead</button>
         <button class="btn-acao-concluido" onclick="marcarAcaoConcluida('${l.id}')">✅ Feito</button>
@@ -17173,7 +17201,96 @@ function abrirGuiaoIAdiretamente(leadId, tipoSugerido) {
   if (btnTipo) setTimeout(() => setGuiaoTipo(btnTipo), 50);
 }
 
+// ===================================================
+// MENSAGEM DE FOLLOW-UP IA — gerada por lead, direto no card de Ações
+// Mais leve que o Guião IA: não abre modal, mostra inline no próprio card.
+// ===================================================
+async function gerarMensagemAcaoIA(leadId) {
+  const l = leads.find(x => x.id === leadId);
+  if (!l) return;
+
+  const wrap = document.getElementById('acao-msg-ia-' + leadId);
+  const btn = document.getElementById('btn-msg-ia-' + leadId);
+  if (!wrap) return;
+
+  const key = claudeKey || geminiKey;
+  if (!key || key.length < 10) {
+    showToast('⚠️ Configura uma chave de IA primeiro (em Posts IA ou Respostas IA).');
+    return;
+  }
+
+  if (btn) { btn.disabled = true; btn.textContent = '✨ A gerar...'; }
+  wrap.innerHTML = `<div class="acao-msg-ia-loading">✨ A personalizar mensagem para ${escapeHtml(l.nome.split(' ')[0])}...</div>`;
+
+  const dias = diasSemContacto(l);
+  const ultimaNota = (l.historico || []).find(h => h.msg)?.msg || '';
+  const contexto = [
+    `Nome: ${l.nome.split(' ')[0]}`,
+    `Estado no funil: ${estadoLabel(l.estado)}`,
+    `Mercado: ${l.mercado || 'não definido'}`,
+    dias !== null ? `Dias sem contacto: ${dias}` : 'Lead novo, ainda sem contacto',
+    l.notas ? `Notas: ${l.notas.slice(0, 200)}` : '',
+    ultimaNota ? `Última interação registada: ${ultimaNota.slice(0, 150)}` : ''
+  ].filter(Boolean).join('\n');
+
+  const prompt = `Sou Brand Partner LifeWave (produto X39, patches de luz). Preciso de uma mensagem curta de follow-up em WhatsApp para este lead:
+${contexto}
+
+${LW_COMPLIANCE}
+
+Regras: Português de Portugal. Tom pessoal e caloroso, nunca robótico. Máximo 3 frases curtas. Sem saudação genérica tipo "Espero que estejas bem" repetida — vai direto ao ponto com naturalidade. Termina com uma pergunta aberta que convide a resposta. Responde APENAS com o texto da mensagem, sem aspas, sem explicações.`;
+
+  try {
+    let texto = '';
+    if (claudeKey && claudeKey.length > 10) {
+      const r = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-api-key': claudeKey, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
+        body: JSON.stringify({ model: 'claude-haiku-4-5-20251001', max_tokens: 200, messages: [{ role: 'user', content: prompt }] })
+      });
+      if (!r.ok) { const e = await r.json().catch(()=>({})); throw new Error(e?.error?.message || `HTTP ${r.status}`); }
+      const d = await r.json();
+      texto = d?.content?.[0]?.text || '';
+    } else {
+      const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiKey}`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }], generationConfig: { maxOutputTokens: 300, thinkingConfig: { thinkingBudget: 0 } } })
+      });
+      if (!r.ok) { const e = await r.json().catch(()=>({})); throw new Error(e?.error?.message || `HTTP ${r.status}`); }
+      const d = await r.json();
+      texto = d?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    }
+    texto = texto.trim();
+    if (!texto) throw new Error('Resposta vazia da IA');
+
+    const tel = l.tel ? telParaWaMe(l.tel) : '';
+    wrap.innerHTML = `<div class="acao-msg-ia-resultado">
+      <div class="acao-msg-ia-texto" id="acao-msg-ia-texto-${leadId}">${escapeHtml(texto)}</div>
+      <div class="acao-msg-ia-acoes">
+        <button class="btn-acao-snooze" onclick="copiarMensagemAcaoIA('${leadId}')">📋 Copiar</button>
+        ${tel ? `<button class="btn-acao-wa" onclick="enviarMensagemAcaoIA('${leadId}','${tel}')">💬 Enviar</button>` : ''}
+        <button class="btn-acao-snooze" onclick="gerarMensagemAcaoIA('${leadId}')">🔄 Gerar outra</button>
+      </div>
+    </div>`;
+  } catch (err) {
+    wrap.innerHTML = `<div class="acao-msg-ia-erro">❌ ${escapeHtml(err.message || 'Erro ao gerar mensagem')}</div>`;
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = '✨ Mensagem IA'; }
+  }
+}
+
+function copiarMensagemAcaoIA(leadId) {
+  const txt = (document.getElementById('acao-msg-ia-texto-' + leadId) || {}).textContent || '';
+  copiarTextoSeguro(txt, '✅ Mensagem copiada!');
+}
+
+function enviarMensagemAcaoIA(leadId, telWA) {
+  const txt = (document.getElementById('acao-msg-ia-texto-' + leadId) || {}).textContent || '';
+  window.open(`https://wa.me/${telWA}?text=${encodeURIComponent(txt)}`, '_blank');
+}
+
 let _pfLeadIdAtual = null;
+
 
 function marcarAcaoConcluida(leadId) {
   const key = getUserStorageKey('lw_acoes_concluidas');
