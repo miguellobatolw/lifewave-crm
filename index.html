@@ -16,6 +16,7 @@
 <meta name="apple-mobile-web-app-title" content="Alfa Team CRM">
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
 <script src="https://accounts.google.com/gsi/client" async defer></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
 <style>
@@ -3458,6 +3459,18 @@
 </style>
 </head>
 <body>
+<!-- ===== PÁGINA PÚBLICA DE AGENDAMENTO (sem login, sem ficheiro à parte) ===== -->
+<!-- Ativa quando a URL tem ?pub=agenda&c=CONFIG_CODIFICADA -->
+<!-- Ex: https://teudominio.com/?pub=agenda&c=eyJ... -->
+<div id="pub-agendamento-screen" style="display:none;font-family:-apple-system,'Segoe UI',Roboto,sans-serif;background:#0f1117;color:#eaeaea;min-height:100vh;padding:20px;">
+  <div style="max-width:480px;margin:0 auto;">
+    <h1 id="pub-ag-titulo" style="font-size:20px;margin-bottom:8px;"></h1>
+    <p id="pub-ag-mensagem" style="font-size:13.5px;color:#a0a0b0;line-height:1.5;margin-bottom:24px;"></p>
+    <div id="pub-ag-lista"></div>
+    <div style="text-align:center;margin-top:24px;font-size:11px;color:#606070;">Toca num horário para enviar um pedido de confirmação via WhatsApp.</div>
+  </div>
+</div>
+
 <!-- ===== LOGIN SCREEN ===== -->
 <div id="login-screen">
   <div class="login-bg"></div>
@@ -3604,7 +3617,31 @@
   </div>
 
   <div class="login-footer">
-    Ao continuar, concordas com os Termos de Utilização.<br>Os teus dados ficam guardados neste dispositivo.
+    Ao continuar, concordas com os Termos de Utilização.<br>Os teus dados ficam guardados neste dispositivo.<br>
+    <button onclick="abrirConfigSupabase()" style="background:none;border:none;color:rgba(255,255,255,0.25);font-size:10.5px;cursor:pointer;text-decoration:underline;margin-top:6px;font-family:'DM Sans',sans-serif;">⚙️ Configurar backend (avançado)</button>
+  </div>
+</div>
+
+<!-- Supabase Backend Config Modal (aditivo — só afeta contas email/palavra-passe) -->
+<div id="modal-supabase-config" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:9999;align-items:center;justify-content:center;">
+  <div style="background:#151a28;border:1px solid rgba(255,255,255,0.08);border-radius:16px;padding:24px;max-width:380px;width:90%;">
+    <div style="font-family:'Syne',sans-serif;font-size:17px;font-weight:700;color:#fff;margin-bottom:6px;">⚙️ Backend (Supabase)</div>
+    <div style="font-size:12px;color:rgba(255,255,255,0.4);line-height:1.6;margin-bottom:18px;">
+      Ativa a sincronização entre dispositivos para contas de email/palavra-passe. Cria um projeto gratuito em <a href="https://supabase.com" target="_blank" style="color:#00d4aa;">supabase.com</a>, corre o script SQL fornecido, e cola aqui os dados de Settings → API.
+    </div>
+    <div class="form-group">
+      <label class="form-label">Project URL</label>
+      <input class="form-input" id="supabase-config-url" placeholder="https://xxxx.supabase.co">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Anon public key</label>
+      <input class="form-input" id="supabase-config-key" placeholder="eyJhbGciOi...">
+    </div>
+    <div style="display:flex;gap:8px;margin-top:14px;">
+      <button class="btn btn-secondary" style="flex:1;justify-content:center;" onclick="fecharConfigSupabase()">Cancelar</button>
+      <button class="btn btn-primary" style="flex:1;justify-content:center;" onclick="salvarConfigSupabase()">Guardar</button>
+    </div>
+    <div id="supabase-config-status" style="font-size:11.5px;color:var(--text2);text-align:center;margin-top:10px;"></div>
   </div>
 </div>
 
@@ -3953,7 +3990,7 @@
             🔔 Lembretes
             <span id="notif-badge-dashboard" style="display:none;position:absolute;top:-4px;right:-4px;background:#ff6b35;color:#fff;font-size:9px;font-weight:700;padding:2px 5px;border-radius:20px;min-width:16px;text-align:center;"></span>
           </button>
-          <button class="btn btn-secondary btn-sm" id="btn-drive-sync" onclick="driveSync('manual')" title="Guardar dados no Google Drive" style="display:none;">
+          <button class="btn btn-secondary btn-sm" id="btn-drive-sync" onclick="cloudSyncManual()" title="Guardar dados no Google Drive" style="display:none;">
             ☁️ <span id="drive-sync-label">Guardar na Cloud</span>
           </button>
           <button class="btn btn-secondary btn-sm" onclick="abrirModalBackup()" title="Backup e restauro de todos os dados da app" id="btn-backup-dashboard" style="position:relative;">
@@ -3988,7 +4025,7 @@
             <div style="font-size:13px;font-weight:700;color:#ef4444;margin-bottom:4px;">Os teus dados só existem neste dispositivo</div>
             <div id="drive-sync-falhou-aviso-texto" style="font-size:12px;color:var(--text2);line-height:1.5;margin-bottom:8px;">A sincronização automática com o Google Drive ainda não foi autorizada — se perderes ou trocares de telemóvel, estes contactos não estarão noutro lado.</div>
             <div style="display:flex;gap:8px;flex-wrap:wrap;">
-              <button class="btn btn-primary btn-sm" onclick="driveSync('manual')">☁️ Autorizar e Guardar na Cloud</button>
+              <button class="btn btn-primary btn-sm" onclick="cloudSyncManual()">☁️ Autorizar e Guardar na Cloud</button>
               <button class="btn btn-secondary btn-sm" onclick="drivesyncFalhouAvisoAdiar()">Adiar 3 dias</button>
             </div>
           </div>
@@ -4174,6 +4211,9 @@
       <!-- TOP LEADS MAIS QUENTES -->
       <div id="dash-top-leads-widget" style="margin-bottom:16px;"></div>
 
+      <!-- COMPROMISSOS PASSADOS SEM RESULTADO REGISTADO -->
+      <div id="dash-eventos-pendentes-widget" style="margin-bottom:16px;"></div>
+
       <!-- FUNIL DE CONVERSÃO — taxas reais por etapa -->
       <div id="dash-funil-conversao-widget" style="margin-bottom:16px;"></div>
 
@@ -4347,6 +4387,7 @@
       <div style="background:rgba(155,89,182,0.07);border:1px solid rgba(155,89,182,0.25);border-radius:12px;padding:12px 16px;margin-bottom:18px;font-size:12.5px;color:var(--text2);line-height:1.5;">
         💡 Recrutar tem etapas próprias, diferentes de vender produto: aqui o objetivo é levar a pessoa até se tornar Brand Partner <strong>ativo</strong> (55 PV/mês), não só comprar uma vez.
       </div>
+      <div id="recrutamento-analytics-container"></div>
       <div class="funnel-grid" id="recrutamento-container"></div>
     </div>
 
@@ -5384,6 +5425,13 @@
       <!-- RESUMO RÁPIDO -->
       <div id="ret-resumo" style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px;"></div>
 
+      <!-- EVOLUÇÃO DA RETENÇÃO (histórico mensal) -->
+      <div class="card" style="margin-bottom:16px;">
+        <div class="section-title" style="margin-bottom:4px;">📈 Evolução da Retenção (últimos 6 meses)</div>
+        <div style="font-size:11.5px;color:var(--text2);margin-bottom:14px;">% de Clientes Preferidos ativos no fim de cada mês — para ver se a retenção está a melhorar ou a piorar</div>
+        <div id="ret-historico"></div>
+      </div>
+
       <!-- FILTROS -->
       <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;align-items:center;">
         <select id="ret-filtro-estado" onchange="renderRetencao()" style="background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:7px 10px;font-size:12px;font-family:'DM Sans',sans-serif;cursor:pointer;">
@@ -6373,6 +6421,116 @@
     </div><!-- end page-recomendador -->
 
     <!-- ============================================================ -->
+    <!-- PAGE: BIBLIOTECA DE TESTEMUNHOS                               -->
+    <!-- ============================================================ -->
+    <div id="page-testemunhos" class="page">
+      <div class="page-header">
+        <div>
+          <div class="page-title">🎬 Biblioteca de Testemunhos</div>
+          <div class="page-sub">Fotos e vídeos de resultados reais, prontos a reusar em posts</div>
+        </div>
+        <button class="btn btn-primary btn-sm" onclick="abrirNovoTestemunho()">＋ Adicionar</button>
+      </div>
+
+      <div style="display:flex;gap:8px;overflow-x:auto;margin-bottom:16px;" class="scroll-fade-h">
+        <button class="pill active" id="tm-filtro-todos" onclick="testemunhosFiltrar('todos')" style="white-space:nowrap;">Todos</button>
+        <button class="pill" id="tm-filtro-x39" onclick="testemunhosFiltrar('X39')" style="white-space:nowrap;">X39</button>
+        <button class="pill" id="tm-filtro-x49" onclick="testemunhosFiltrar('X49')" style="white-space:nowrap;">X49</button>
+        <button class="pill" id="tm-filtro-aeon" onclick="testemunhosFiltrar('Aeon')" style="white-space:nowrap;">Aeon</button>
+        <button class="pill" id="tm-filtro-icewave" onclick="testemunhosFiltrar('IceWave')" style="white-space:nowrap;">IceWave</button>
+        <button class="pill" id="tm-filtro-negocio" onclick="testemunhosFiltrar('Negócio')" style="white-space:nowrap;">Negócio</button>
+        <button class="pill" id="tm-filtro-outro" onclick="testemunhosFiltrar('Outro')" style="white-space:nowrap;">Outro</button>
+      </div>
+
+      <div id="testemunhos-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px;"></div>
+      <div id="testemunhos-empty" style="display:none;text-align:center;padding:40px 20px;color:var(--text2);">
+        <div style="font-size:40px;margin-bottom:10px;">🎬</div>
+        <div style="font-size:14px;">Ainda sem testemunhos guardados.</div>
+        <div style="font-size:12px;margin-top:4px;">Adiciona fotos ou links de vídeo de resultados reais (com consentimento do cliente) para os teres sempre à mão ao criar posts.</div>
+      </div>
+    </div><!-- end page-testemunhos -->
+
+    <!-- ============================================================ -->
+    <!-- PAGE: LINK PÚBLICO DE AGENDAMENTO                             -->
+    <!-- ============================================================ -->
+    <div id="page-agendamento" class="page">
+      <div class="page-header">
+        <div>
+          <div class="page-title">📅 Link de Agendamento</div>
+          <div class="page-sub">Gera uma página que qualquer lead pode abrir para escolher um horário contigo</div>
+        </div>
+      </div>
+
+      <div class="card" style="margin-bottom:16px;">
+        <div class="section-title" style="margin-bottom:6px;">ℹ️ Como funciona</div>
+        <div style="font-size:12.5px;color:var(--text2);line-height:1.6;">
+          Define os teus horários abaixo. Tens duas formas de partilhar com um lead:<br><br>
+          <strong style="color:var(--text);">🔗 Link público (recomendado se já tens a app hospedada)</strong> — gera um link fixo que aponta para esta mesma app (GitHub Pages, domínio próprio, etc.). Não precisas de descarregar nem hospedar nenhum ficheiro à parte.<br><br>
+          <strong style="color:var(--text);">⬇️ Ficheiro .html independente</strong> — descarrega uma página autónoma que funciona sozinha, mesmo sem teres a app online (útil para enviar diretamente por WhatsApp ou hospedar num sítio à parte).<br><br>
+          Em ambos os casos, o lead escolhe um horário e um botão envia-te logo uma mensagem de WhatsApp já com o horário escolhido.
+        </div>
+      </div>
+
+      <div class="card" style="margin-bottom:16px;">
+        <div class="section-title" style="margin-bottom:14px;">🗓️ Disponibilidade Semanal</div>
+        <div id="ag-dias-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(90px,1fr));gap:8px;margin-bottom:16px;"></div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Hora de início</label>
+            <input class="form-input" type="time" id="ag-hora-inicio" value="09:00">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Hora de fim</label>
+            <input class="form-input" type="time" id="ag-hora-fim" value="18:00">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Duração de cada chamada</label>
+            <select class="form-select" id="ag-duracao">
+              <option value="15">15 minutos</option>
+              <option value="20" selected>20 minutos</option>
+              <option value="30">30 minutos</option>
+              <option value="45">45 minutos</option>
+              <option value="60">60 minutos</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Antecedência mínima</label>
+            <select class="form-select" id="ag-antecedencia">
+              <option value="12">12 horas</option>
+              <option value="24" selected>24 horas</option>
+              <option value="48">48 horas</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div class="card" style="margin-bottom:16px;">
+        <div class="section-title" style="margin-bottom:14px;">💬 Confirmação</div>
+        <div class="form-group">
+          <label class="form-label">O teu WhatsApp (com indicativo)</label>
+          <input class="form-input" id="ag-whatsapp" placeholder="Ex: 351912345678">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Título da página</label>
+          <input class="form-input" id="ag-titulo" placeholder="Ex: Marca uma chamada comigo">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Mensagem de boas-vindas na página</label>
+          <textarea class="form-textarea" id="ag-mensagem" placeholder="Ex: Escolhe o horário que te for mais conveniente para conversarmos sobre o X39 🙂" style="min-height:60px;"></textarea>
+        </div>
+      </div>
+
+      <button class="btn btn-primary" style="width:100%;justify-content:center;margin-bottom:10px;" onclick="agGerarLinkPublico()">🔗 Gerar Link Público (usar nesta app)</button>
+      <div id="ag-link-publico" style="display:none;margin-bottom:14px;">
+        <input class="form-input" id="ag-link-publico-input" readonly style="font-size:11.5px;" onclick="this.select()">
+      </div>
+      <button class="btn btn-secondary" style="width:100%;justify-content:center;margin-bottom:10px;" onclick="gerarPaginaAgendamento()">⬇️ Gerar e Descarregar Ficheiro Independente</button>
+      <div id="ag-status" style="text-align:center;font-size:11.5px;color:var(--text2);"></div>
+    </div><!-- end page-agendamento -->
+
+    <!-- ============================================================ -->
     <!-- PAGE: PERCURSO PARA O SUCESSO                                -->
     <!-- ============================================================ -->
     <div id="page-percurso" class="page">
@@ -7035,6 +7193,7 @@
             <option value="lead_criado">Um novo lead é adicionado</option>
             <option value="sem_contacto_dias">Lead fica X dias sem contacto</option>
             <option value="aniversario">É o aniversário do lead</option>
+            <option value="score_alto_parado">Lead com score alto está parado</option>
           </select>
           <div id="regra-trigger-extra" style="margin-top:10px;"></div>
         </div>
@@ -7895,6 +8054,14 @@
     <div class="bn-item" id="bn-recomendador" onclick="goTo('recomendador')">
       <div class="bn-icon-wrap"><span class="bn-icon">🧪</span></div>
       <span>Qual Patch?</span>
+    </div>
+    <div class="bn-item" id="bn-testemunhos" onclick="goTo('testemunhos')">
+      <div class="bn-icon-wrap"><span class="bn-icon">🎬</span></div>
+      <span>Testemunhos</span>
+    </div>
+    <div class="bn-item" id="bn-agendamento" onclick="goTo('agendamento')">
+      <div class="bn-icon-wrap"><span class="bn-icon">📅</span></div>
+      <span>Link Agendamento</span>
     </div>
 
     <div class="bn-more-item" id="bn-more" onclick="abrirMenuMais()">
@@ -8762,11 +8929,11 @@ function abrirMenuMais() {
   const GRUPOS = [
     {
       label: '🎯 Prospecção & Vendas',
-      itens: ['acoes','metas','mapa','promocoes','objecoes','analise','mensagens']
+      itens: ['acoes','metas','mapa','promocoes','objecoes','analise','mensagens','agendamento']
     },
     {
       label: '📣 Conteúdo & Comunicação',
-      itens: ['posts','stories','templates','apresentacao','auditoria']
+      itens: ['posts','stories','templates','apresentacao','auditoria','testemunhos']
     },
     {
       label: '🤝 Equipa & Recrutamento',
@@ -8796,8 +8963,8 @@ function abrirMenuMais() {
 
   // Palavras-chave por grupo para classificar módulos novos automaticamente
   const PALAVRAS_GRUPO = [
-    { idx: 0, keys: ['lead','venda','prospect','funil','contacto','mensagem','analise','obje','promo','meta','mapa','acao'] },
-    { idx: 1, keys: ['post','storie','template','apresenta','conteudo','comunic','publicar','reel','audit','complian','bio','perfil'] },
+    { idx: 0, keys: ['lead','venda','prospect','funil','contacto','mensagem','analise','obje','promo','meta','mapa','acao','agend','marcar','horario'] },
+    { idx: 1, keys: ['post','storie','template','apresenta','conteudo','comunic','publicar','reel','audit','complian','bio','perfil','testemunho'] },
     { idx: 2, keys: ['equipa','recrut','onboard','automa','parceiro','membro','downline'] },
     { idx: 3, keys: ['comiss','plano','calcula','simulad','retencao','finan','pagamento','bonus','pib','despes'] },
     { idx: 4, keys: ['catalogo','produto','patch','forma','treino','aprender','recomend'] },
@@ -8923,6 +9090,8 @@ function goTo(page, opts) {
   if (page === 'formacao') formacaoInit();
   if (page === 'catalogo') renderCatalogo();
   if (page === 'recomendador') recomInit();
+  if (page === 'testemunhos') renderTestemunhos();
+  if (page === 'agendamento') agCarregarFormulario();
   if (page === 'percurso') renderPercurso();
   if (page === 'stories') storiesInit();
   if (page === 'objecoes') objecoesInit();
@@ -10228,6 +10397,113 @@ function snoozeEsfriar(leadId, days) {
   showToast(`⏸ Adiado ${days} dias`);
 }
 
+// ────────────────────────────────────────────────────────
+// COMPROMISSOS PASSADOS SEM RESULTADO (v73) — fecha o ciclo da Agenda.
+// A Agenda já avisa antes de um evento acontecer, mas nunca perguntava
+// o que aconteceu depois — chamadas e reuniões agendadas ligadas a um lead
+// ficavam esquecidas e o histórico do lead não registava nada. Este widget
+// mostra eventos com data/hora já passada, ligados a um lead (ev.lead),
+// ainda sem resultado marcado (ev._resultado), com ações rápidas que
+// escrevem diretamente no histórico do lead. 100% aditivo — reaproveita
+// `eventos`, `ev.lead` e `leads[].historico` já existentes.
+// ────────────────────────────────────────────────────────
+function calcularEventosPendentes() {
+  if (typeof eventos === 'undefined' || typeof leads === 'undefined') return [];
+  const agora = Date.now();
+  return eventos
+    .filter(ev => ev.lead && ev.data && !ev._resultado)
+    .map(ev => {
+      const dt = new Date(ev.data + 'T' + (ev.hora || '23:59') + ':00').getTime();
+      if (isNaN(dt) || dt > agora) return null;
+      // Não sinaliza eventos muito antigos (30+ dias) — provavelmente já resolvidos manualmente
+      const diasPassados = Math.floor((agora - dt) / 864e5);
+      if (diasPassados > 30) return null;
+      const leadObj = leads.find(l => (l.nome || '').trim().toLowerCase() === ev.lead.trim().toLowerCase());
+      return { ev, leadObj, diasPassados };
+    })
+    .filter(Boolean)
+    .sort((a, b) => b.diasPassados - a.diasPassados);
+}
+
+function renderEventosPendentesWidget() {
+  const el = document.getElementById('dash-eventos-pendentes-widget');
+  if (!el) return;
+
+  const pendentes = calcularEventosPendentes();
+  if (!pendentes.length) { el.innerHTML = ''; return; }
+
+  const tipoIcon = { reuniao:'🤝', followup:'📞', entrega:'📦', webinar:'💻', pessoal:'👤', outro:'📌' };
+
+  el.innerHTML = `
+    <div style="background:rgba(0,132,255,0.05);border:1px solid rgba(0,132,255,0.2);border-radius:14px;padding:16px 18px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px;">
+        <div style="font-size:13px;font-weight:700;color:var(--text);display:flex;align-items:center;gap:6px;">
+          📅 Como correu?
+          <span style="font-size:10px;background:rgba(0,132,255,0.15);color:var(--accent2);padding:2px 8px;border-radius:20px;font-weight:700;">${pendentes.length}</span>
+        </div>
+        <button onclick="goTo('agenda')" style="background:none;border:none;color:var(--accent);font-size:11px;cursor:pointer;font-weight:600;white-space:nowrap;">Ver agenda →</button>
+      </div>
+      ${pendentes.slice(0, 3).map(({ ev, leadObj, diasPassados }) => {
+        const icon = tipoIcon[ev.tipo] || '📌';
+        const quando = diasPassados === 0 ? 'hoje' : diasPassados === 1 ? 'ontem' : `há ${diasPassados} dias`;
+        return `
+        <div style="margin-bottom:10px;padding:10px 12px;background:var(--surface3);border-radius:10px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+            <div style="min-width:0;">
+              <div style="font-size:13px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${icon} ${(ev.titulo||'').replace(/</g,'&lt;')}</div>
+              <div style="font-size:10.5px;color:var(--text2);">👤 ${(ev.lead||'').replace(/</g,'&lt;')} · ${quando}</div>
+            </div>
+          </div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;">
+            <button onclick="registarResultadoEvento('${ev.id}','bem')" style="flex:1;min-width:80px;background:rgba(0,212,170,0.12);border:1px solid rgba(0,212,170,0.25);border-radius:8px;color:var(--accent);font-size:11px;font-weight:600;padding:6px 8px;cursor:pointer;">✅ Foi bem</button>
+            <button onclick="registarResultadoEvento('${ev.id}','sem_resposta')" style="flex:1;min-width:80px;background:rgba(255,147,0,0.1);border:1px solid rgba(255,147,0,0.25);border-radius:8px;color:#ff9300;font-size:11px;font-weight:600;padding:6px 8px;cursor:pointer;">❌ Não atendeu</button>
+            <button onclick="adiarEventoPendente('${ev.id}')" style="background:rgba(255,255,255,0.05);border:1px solid var(--border);border-radius:8px;color:var(--text3);font-size:11px;padding:6px 8px;cursor:pointer;" title="Adiar 2 dias">⏸2d</button>
+          </div>
+        </div>`;
+      }).join('')}
+    </div>`;
+}
+
+// Regista o resultado de um evento passado: escreve no histórico do lead (se
+// encontrado por nome) e marca o evento como resolvido para não voltar a
+// aparecer no widget. "bem" também avança ligeiramente o lead se ainda
+// estiver numa fase inicial do funil (sinal de que a conversa avançou).
+function registarResultadoEvento(eventoId, resultado) {
+  const ev = eventos.find(e => e.id === eventoId);
+  if (!ev) return;
+  ev._resultado = resultado;
+  saveEventos();
+
+  const leadObj = leads.find(l => (l.nome || '').trim().toLowerCase() === (ev.lead || '').trim().toLowerCase());
+  if (leadObj) {
+    if (!Array.isArray(leadObj.historico)) leadObj.historico = [];
+    const msg = resultado === 'bem'
+      ? `📞 "${ev.titulo}" realizada — correu bem`
+      : `📞 "${ev.titulo}" — sem resposta/não atendeu`;
+    leadObj.historico.push({ tipo: 'chamada', msg, data: new Date().toLocaleString('pt-PT') });
+    if (resultado === 'bem' && ['novo','contactado'].includes(leadObj.estado)) {
+      leadObj.estado = 'interessado';
+      leadObj.historico.push({ tipo: 'estado', msg: `Estado alterado para "${estadoLabel(leadObj.estado)}"`, data: new Date().toLocaleString('pt-PT') });
+    }
+    saveleads();
+  }
+
+  renderEventosPendentesWidget();
+  if (typeof renderTopLeadsWidget === 'function') renderTopLeadsWidget();
+  showToast(resultado === 'bem' ? '✅ Registado no histórico do lead' : '📝 Registado — podes agendar novo follow-up');
+}
+
+function adiarEventoPendente(eventoId) {
+  const ev = eventos.find(e => e.id === eventoId);
+  if (!ev) return;
+  const d = new Date();
+  d.setDate(d.getDate() + 2);
+  ev.data = d.toISOString().slice(0, 10);
+  saveEventos();
+  renderEventosPendentesWidget();
+  showToast('⏸ Adiado 2 dias');
+}
+
 // ===================================================
 // PRÓXIMA MELHOR AÇÃO — escolhe UM único lead como prioridade do momento
 // Reduz a paralisia de escolha quando há muitos leads na lista. Reutiliza
@@ -10283,6 +10559,27 @@ function renderProximaAcao() {
   const partesResumo = [];
   if (totalEsfriar > 1) partesResumo.push(`${totalEsfriar} leads a esfriar`);
   if (eventosHoje > 0) partesResumo.push(`${eventosHoje} evento${eventosHoje > 1 ? 's' : ''} na agenda hoje`);
+
+  // Ritmo diário necessário — traduz a meta MENSAL de contactos (já definida em
+  // renderMetas) num número de HOJE, para saber se o dia está "em dia" ou atrasado.
+  // Reutiliza loadMetas() e calcularContactosEsteMes() já existentes — sem duplicar cálculo.
+  if (typeof loadMetas === 'function') {
+    const metas = loadMetas();
+    if (metas.contactos > 0) {
+      const feitos = calcularContactosEsteMes();
+      const faltam = Math.max(0, metas.contactos - feitos);
+      const hoje = new Date();
+      const ultimoDiaMes = new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0).getDate();
+      const diasRestantes = Math.max(1, ultimoDiaMes - hoje.getDate() + 1); // inclui hoje
+      const ritmoHoje = Math.ceil(faltam / diasRestantes);
+      if (faltam === 0) {
+        partesResumo.push('🎉 meta de contactos do mês já batida');
+      } else {
+        partesResumo.push(`ritmo: ${ritmoHoje} contacto${ritmoHoje > 1 ? 's' : ''} hoje para bater a meta do mês`);
+      }
+    }
+  }
+
   const resumoHtml = partesResumo.length
     ? `<div style="font-size:11.5px;color:var(--text2);margin-bottom:10px;">📌 Hoje: ${partesResumo.join(' · ')}.</div>`
     : '';
@@ -10413,6 +10710,8 @@ function renderDashboard() {
   if (typeof renderDashRankWidget === 'function') renderDashRankWidget();
   // Refresh top leads mais quentes
   if (typeof renderTopLeadsWidget === 'function') renderTopLeadsWidget();
+  // Refresh compromissos passados sem resultado registado
+  if (typeof renderEventosPendentesWidget === 'function') renderEventosPendentesWidget();
   // Refresh próxima melhor ação (1 lead prioritário, reduz paralisia de escolha)
   if (typeof renderProximaAcao === 'function') renderProximaAcao();
   // Refresh funil de conversão (taxas reais por etapa)
@@ -10759,6 +11058,133 @@ function renderFunilRecrutamento() {
   // Badge de progresso no nav (quantos prospetos em risco de "Parado")
   const badgeEl = document.getElementById('badge-recrutamento');
   // (sem badge dedicado por agora — mantém-se simples; pode adicionar-se depois)
+
+  renderRecrutAnalytics();
+}
+
+// =====================================================================
+// ANALYTICS DO FUNIL DE RECRUTAMENTO — taxa de conversão entre etapas,
+// tempo médio parado em cada etapa e destaque do gargalo real.
+// Segue a mesma lógica do Funil de Conversão (vendas): usa o estado
+// ATUAL de cada lead para "chegou a esta etapa ou mais longe", porque o
+// histórico em texto livre não é fiável o suficiente para reconstruir o
+// caminho exato de cada um. 'Parado' fica fora das barras de % (tal como
+// 'Frio'/'Perdido' no funil de vendas — saiu do funil ativo), mas entra
+// no cálculo de tempo médio, porque "quanto tempo até parar" é
+// precisamente o dado mais útil para identificar o gargalo.
+// =====================================================================
+function getLeadAddedDate(l) {
+  const hist = l.historico || [];
+  const added = hist.find(h => h && h.tipo === 'sistema' && /adicionad/i.test(h.msg || ''));
+  return added ? parseDataContactoLead(added.data) : null;
+}
+
+function calcularTemposEtapaRecrutamento() {
+  const tempos = {};
+  RECRUT_ETAPAS.forEach(e => { tempos[e.key] = { somaMs: 0, count: 0 }; });
+
+  getLeadsRecrutamento().forEach(l => {
+    const eventos = (l.historico || [])
+      .filter(h => h && h.tipo === 'estado' && /^Recrutamento:/.test(h.msg || ''))
+      .map(h => {
+        const m = h.msg.match(/Recrutamento: "(.+?)" → "(.+?)"/);
+        if (!m) return null;
+        const de = RECRUT_ETAPAS.find(e => recrutEtapaLabel(e.key) === m[1]);
+        const para = RECRUT_ETAPAS.find(e => recrutEtapaLabel(e.key) === m[2]);
+        const data = parseDataContactoLead(h.data);
+        if (!de || !para || !data || isNaN(data.getTime())) return null;
+        return { deKey: de.key, paraKey: para.key, data };
+      })
+      .filter(Boolean)
+      .sort((a, b) => a.data - b.data);
+
+    if (!eventos.length) return;
+
+    // Tempo antes da 1ª transição registada = tempo passado na etapa de
+    // origem desse evento, contado desde que o lead entrou no sistema.
+    const criado = getLeadAddedDate(l);
+    if (criado && !isNaN(criado.getTime())) {
+      const dur = eventos[0].data - criado;
+      if (dur > 0) { tempos[eventos[0].deKey].somaMs += dur; tempos[eventos[0].deKey].count++; }
+    }
+    for (let i = 1; i < eventos.length; i++) {
+      const dur = eventos[i].data - eventos[i - 1].data;
+      if (dur > 0) { tempos[eventos[i].deKey].somaMs += dur; tempos[eventos[i].deKey].count++; }
+    }
+  });
+
+  return tempos;
+}
+
+function formatarDuracaoDias(ms) {
+  const dias = ms / 86400000;
+  if (dias < 1) return Math.max(1, Math.round(ms / 3600000)) + 'h';
+  if (dias < 30) return Math.round(dias) + ' dias';
+  return (Math.round(dias / 30 * 10) / 10) + ' meses';
+}
+
+function renderRecrutAnalytics() {
+  const el = document.getElementById('recrutamento-analytics-container');
+  if (!el) return;
+  const todos = getLeadsRecrutamento();
+  if (todos.length < 3) { el.innerHTML = ''; return; } // poucos dados para um funil ter sentido
+
+  const ordemKeys = RECRUT_ETAPAS.map(e => e.key).filter(k => k !== 'parado');
+  const ativos = todos.filter(l => ordemKeys.includes(l.estadoRecrut || 'apresentado'));
+  const parados = todos.length - ativos.length;
+  const topo = ativos.length;
+  const tempos = calcularTemposEtapaRecrutamento();
+
+  let linhas = [];
+  let maiorQuedaIdx = -1, maiorQueda = 0;
+  if (topo >= 3) {
+    linhas = ordemKeys.map((key, idx) => {
+      const etapa = RECRUT_ETAPAS.find(e => e.key === key);
+      const chegaram = ativos.filter(l => ordemKeys.indexOf(l.estadoRecrut || 'apresentado') >= idx).length;
+      const pct = topo > 0 ? Math.round((chegaram / topo) * 100) : 0;
+      return { key, label: etapa.label, chegaram, pct };
+    });
+    for (let i = 1; i < linhas.length; i++) {
+      const queda = linhas[i - 1].pct - linhas[i].pct;
+      if (queda > maiorQueda) { maiorQueda = queda; maiorQuedaIdx = i; }
+    }
+  }
+
+  // Etapa onde os prospetos ficam mais tempo antes de avançar (ou desistir)
+  let etapaMaisLenta = null, maiorMedia = 0;
+  RECRUT_ETAPAS.forEach(e => {
+    const t = tempos[e.key];
+    if (t.count >= 2 && t.somaMs / t.count > maiorMedia) { maiorMedia = t.somaMs / t.count; etapaMaisLenta = e; }
+  });
+
+  el.innerHTML = `
+    <div style="background:var(--surface2);border:1px solid var(--border);border-radius:14px;padding:16px 18px;margin-bottom:18px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:6px;">
+        <div style="font-size:14px;font-weight:700;color:var(--text);">📊 Funil de Conversão — Recrutamento</div>
+        <div style="font-size:11px;color:var(--text2);">${topo} prospetos ativos${parados ? ' · ' + parados + ' parados (fora do funil)' : ''}</div>
+      </div>
+      ${linhas.length ? linhas.map((l, i) => `
+        <div style="margin-bottom:${i === linhas.length - 1 ? 0 : 12}px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+            <span style="font-size:12.5px;color:var(--text);">${l.label}</span>
+            <span style="font-size:12px;color:var(--text2);">${l.chegaram} · <strong style="color:var(--text);">${l.pct}%</strong>${tempos[l.key].count ? ' · média ' + formatarDuracaoDias(tempos[l.key].somaMs / tempos[l.key].count) + ' na etapa' : ''}</span>
+          </div>
+          <div style="background:var(--surface3);border-radius:20px;height:7px;overflow:hidden;">
+            <div style="width:${l.pct}%;height:100%;background:${i === maiorQuedaIdx ? '#ff6b6b' : 'var(--accent)'};border-radius:20px;transition:width .5s;"></div>
+          </div>
+        </div>
+      `).join('') : '<div style="font-size:12px;color:var(--text2);">Poucos dados ainda para calcular taxas de conversão.</div>'}
+      ${maiorQuedaIdx > 0 ? `
+        <div style="margin-top:14px;padding:10px 12px;background:rgba(255,107,107,0.08);border:1px solid rgba(255,107,107,0.2);border-radius:8px;font-size:12px;color:var(--text2);">
+          🔻 Maior perda: de <strong style="color:var(--text);">${linhas[maiorQuedaIdx-1].label}</strong> para <strong style="color:var(--text);">${linhas[maiorQuedaIdx].label}</strong> (−${maiorQueda} pontos percentuais).
+        </div>
+      ` : ''}
+      ${etapaMaisLenta ? `
+        <div style="margin-top:${maiorQuedaIdx > 0 ? 8 : 14}px;padding:10px 12px;background:rgba(245,200,66,0.08);border:1px solid rgba(245,200,66,0.25);border-radius:8px;font-size:12px;color:var(--text2);">
+          ⏳ Gargalo de tempo: os prospetos ficam em média <strong style="color:var(--text);">${formatarDuracaoDias(maiorMedia)}</strong> em <strong style="color:var(--text);">${etapaMaisLenta.label}</strong> antes de avançar (ou desistir). É aí que vale mais a pena apertar o follow-up.
+        </div>
+      ` : ''}
+    </div>`;
 }
 
 function verMaisRecrutColuna(colKey) {
@@ -11836,6 +12262,577 @@ function getRevistaContextoIA() {
     return `\nINFORMAÇÃO EXTRA DA REVISTA LIFEWAVE (carregada pelo utilizador em ${dataStr} — usa quando for relevante para tornar o conteúdo mais atual e específico, mas não cites "a revista" como fonte):\n${r.resumo}\n`;
   } catch(e) { return ''; }
 }
+
+// ===================================================
+// BIBLIOTECA DE TESTEMUNHOS — fotos/vídeos de resultados reais
+// Aditivo: módulo isolado, não altera nenhuma função existente.
+// Fotos são comprimidas no browser (canvas) antes de guardar, para não
+// sobrecarregar o localStorage. Vídeos guardam-se como LINK (Drive/YouTube/
+// etc.), nunca o ficheiro em si — um vídeo binário rebentaria a quota local.
+// ===================================================
+let testemunhos = [];
+let editingTestemunhoId = null;
+let tmFiltroAtivo = 'todos';
+let tmFotoBase64Temp = '';
+
+function loadTestemunhos() {
+  try { testemunhos = JSON.parse(localStorage.getItem(getUserStorageKey('lw_testemunhos')) || '[]'); }
+  catch(e) { testemunhos = []; }
+}
+
+function saveTestemunhos() {
+  localStorage.setItem(getUserStorageKey('lw_testemunhos'), JSON.stringify(testemunhos));
+  driveAutoSave();
+}
+
+function testemunhoToggleMidiaTipo() {
+  const tipo = document.getElementById('tm-midia-tipo').value;
+  document.getElementById('tm-wrap-foto').style.display = tipo === 'foto' ? '' : 'none';
+  document.getElementById('tm-wrap-video').style.display = tipo === 'video' ? '' : 'none';
+}
+
+// Comprime a foto no browser (canvas) para no máximo 900px no lado maior,
+// qualidade JPEG 0.72 — mantém qualidade suficiente para redes sociais
+// enquanto reduz drasticamente o peso em localStorage.
+function testemunhoPreverFoto(input) {
+  const file = input.files && input.files[0];
+  if (!file) return;
+  if (!file.type.startsWith('image/')) { showToast('⚠️ Escolhe um ficheiro de imagem'); input.value = ''; return; }
+
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    const img = new Image();
+    img.onload = function() {
+      const maxLado = 900;
+      let w = img.width, h = img.height;
+      if (w > h && w > maxLado) { h = Math.round(h * maxLado / w); w = maxLado; }
+      else if (h > maxLado) { w = Math.round(w * maxLado / h); h = maxLado; }
+      const canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+      tmFotoBase64Temp = canvas.toDataURL('image/jpeg', 0.72);
+      const preview = document.getElementById('tm-foto-preview');
+      if (preview) { preview.src = tmFotoBase64Temp; preview.style.display = ''; }
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+function abrirNovoTestemunho() {
+  editingTestemunhoId = null;
+  tmFotoBase64Temp = '';
+  document.getElementById('tm-modal-title').textContent = '🎬 Novo Testemunho';
+  document.getElementById('tm-midia-tipo').value = 'foto';
+  document.getElementById('tm-produto').value = 'X39';
+  document.getElementById('tm-categoria').value = 'energia';
+  document.getElementById('tm-nome-cliente').value = '';
+  document.getElementById('tm-notas').value = '';
+  document.getElementById('tm-video-url').value = '';
+  document.getElementById('tm-foto-input').value = '';
+  document.getElementById('tm-foto-preview').style.display = 'none';
+  document.getElementById('tm-consentimento').checked = false;
+  testemunhoToggleMidiaTipo();
+  openModal('modal-novo-testemunho');
+}
+
+function editarTestemunho(id) {
+  const t = testemunhos.find(x => x.id === id);
+  if (!t) return;
+  editingTestemunhoId = id;
+  tmFotoBase64Temp = t.fotoBase64 || '';
+  document.getElementById('tm-modal-title').textContent = '✏️ Editar Testemunho';
+  document.getElementById('tm-midia-tipo').value = t.midiaTipo || 'foto';
+  document.getElementById('tm-produto').value = t.produto || 'X39';
+  document.getElementById('tm-categoria').value = t.categoria || 'outro';
+  document.getElementById('tm-nome-cliente').value = t.nomeCliente || '';
+  document.getElementById('tm-notas').value = t.notas || '';
+  document.getElementById('tm-video-url').value = t.videoUrl || '';
+  document.getElementById('tm-foto-input').value = '';
+  const preview = document.getElementById('tm-foto-preview');
+  if (t.fotoBase64) { preview.src = t.fotoBase64; preview.style.display = ''; } else { preview.style.display = 'none'; }
+  document.getElementById('tm-consentimento').checked = !!t.consentimento;
+  testemunhoToggleMidiaTipo();
+  openModal('modal-novo-testemunho');
+}
+
+function salvarTestemunho() {
+  const midiaTipo = document.getElementById('tm-midia-tipo').value;
+  const consentimento = document.getElementById('tm-consentimento').checked;
+
+  if (!consentimento) { showToast('❌ Confirma que tens o consentimento do cliente para continuar'); return; }
+  if (midiaTipo === 'foto' && !tmFotoBase64Temp) { showToast('❌ Escolhe uma foto'); return; }
+  if (midiaTipo === 'video' && !document.getElementById('tm-video-url').value.trim()) { showToast('❌ Indica o link do vídeo'); return; }
+
+  const testemunho = {
+    id: editingTestemunhoId || gerarId(),
+    midiaTipo,
+    fotoBase64: midiaTipo === 'foto' ? tmFotoBase64Temp : '',
+    videoUrl: midiaTipo === 'video' ? document.getElementById('tm-video-url').value.trim() : '',
+    produto: document.getElementById('tm-produto').value,
+    categoria: document.getElementById('tm-categoria').value,
+    nomeCliente: document.getElementById('tm-nome-cliente').value.trim(),
+    notas: document.getElementById('tm-notas').value.trim(),
+    consentimento: true,
+    criadoEm: new Date().toISOString()
+  };
+
+  if (editingTestemunhoId) {
+    const idx = testemunhos.findIndex(t => t.id === editingTestemunhoId);
+    if (idx !== -1) testemunho.criadoEm = testemunhos[idx].criadoEm || testemunho.criadoEm;
+    if (idx !== -1) testemunhos[idx] = testemunho;
+  } else {
+    testemunhos.unshift(testemunho);
+  }
+
+  saveTestemunhos();
+  closeModal('modal-novo-testemunho');
+  const foiEdicao = !!editingTestemunhoId;
+  editingTestemunhoId = null;
+  tmFotoBase64Temp = '';
+  showToast(foiEdicao ? '✓ Testemunho atualizado' : '✓ Testemunho guardado!');
+  renderTestemunhos();
+}
+
+function eliminarTestemunho(id) {
+  if (!confirm('Eliminar este testemunho?')) return;
+  const t = testemunhos.find(x => x.id === id);
+  if (t) moverParaLixeira('testemunho', t);
+  testemunhos = testemunhos.filter(x => x.id !== id);
+  saveTestemunhos();
+  renderTestemunhos();
+  showToast('🗑 Testemunho movido para a lixeira (recuperável por 7 dias)');
+}
+
+function testemunhosFiltrar(filtro) {
+  tmFiltroAtivo = filtro;
+  ['todos','x39','x49','aeon','icewave','negocio','outro'].forEach(f => {
+    const el = document.getElementById('tm-filtro-' + f);
+    if (el) el.classList.remove('active');
+  });
+  const idMap = { 'Todos':'todos', X39:'x39', X49:'x49', Aeon:'aeon', IceWave:'icewave', 'Negócio':'negocio', Outro:'outro' };
+  const btnId = 'tm-filtro-' + (idMap[filtro] || filtro.toLowerCase());
+  const btn = document.getElementById(btnId);
+  if (btn) btn.classList.add('active');
+  renderTestemunhos();
+}
+
+const TM_CATEGORIA_LABELS = { energia:'⚡ Energia', sono:'😴 Sono', dor:'🩹 Dor/Desconforto', pele:'✨ Pele/Estética', mental:'🧠 Clareza Mental', negocio:'💼 Negócio', outro:'📋 Outro' };
+
+function renderTestemunhos() {
+  const grid = document.getElementById('testemunhos-grid');
+  const empty = document.getElementById('testemunhos-empty');
+  if (!grid) return;
+
+  const lista = tmFiltroAtivo === 'todos' ? testemunhos : testemunhos.filter(t => t.produto === tmFiltroAtivo);
+
+  if (!lista.length) {
+    grid.innerHTML = '';
+    if (empty) empty.style.display = 'block';
+    return;
+  }
+  if (empty) empty.style.display = 'none';
+
+  grid.innerHTML = lista.map(t => {
+    const thumb = t.midiaTipo === 'foto' && t.fotoBase64
+      ? `<img src="${t.fotoBase64}" style="width:100%;height:110px;object-fit:cover;border-radius:10px 10px 0 0;">`
+      : `<div style="width:100%;height:110px;display:flex;align-items:center;justify-content:center;background:var(--surface3);border-radius:10px 10px 0 0;font-size:32px;">🎥</div>`;
+    return `
+      <div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;overflow:hidden;cursor:pointer;" onclick="verTestemunho('${t.id}')">
+        ${thumb}
+        <div style="padding:8px;">
+          <div style="font-size:11px;font-weight:700;color:var(--text);">${escapeHtml(t.produto)}</div>
+          <div style="font-size:10px;color:var(--text2);">${TM_CATEGORIA_LABELS[t.categoria] || t.categoria}</div>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+function verTestemunho(id) {
+  const t = testemunhos.find(x => x.id === id);
+  if (!t) return;
+  const conteudo = document.getElementById('tm-ver-conteudo');
+  const midia = t.midiaTipo === 'foto' && t.fotoBase64
+    ? `<img src="${t.fotoBase64}" style="width:100%;border-radius:10px;margin-bottom:12px;max-height:320px;object-fit:cover;">`
+    : `<a href="${escapeHtml(t.videoUrl)}" target="_blank" rel="noopener" style="display:block;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:16px;text-align:center;margin-bottom:12px;color:var(--accent);text-decoration:none;">🎥 Abrir vídeo ↗</a>`;
+  conteudo.innerHTML = midia
+    + `<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;">`
+    + `<span class="auto-tag">${escapeHtml(t.produto)}</span><span class="auto-tag">${TM_CATEGORIA_LABELS[t.categoria] || t.categoria}</span>`
+    + `</div>`
+    + (t.nomeCliente ? `<div style="font-size:12px;color:var(--text2);margin-bottom:6px;">Cliente: ${escapeHtml(t.nomeCliente)}</div>` : '')
+    + (t.notas ? `<div style="font-size:13px;color:var(--text);line-height:1.5;background:var(--surface2);border-radius:8px;padding:10px;">${escapeHtml(t.notas)}</div>` : '<div style="font-size:12px;color:var(--text2);">Sem notas guardadas.</div>')
+    + `<div style="display:flex;gap:8px;margin-top:12px;">`
+    + `<button class="btn btn-secondary btn-sm" onclick="closeModal('modal-ver-testemunho'); editarTestemunho('${t.id}')">✏️ Editar</button>`
+    + `<button class="btn btn-danger btn-sm" onclick="closeModal('modal-ver-testemunho'); eliminarTestemunho('${t.id}')">🗑️ Eliminar</button>`
+    + `</div>`;
+  document.getElementById('tm-ver-btn-copiar').setAttribute('onclick', `testemunhoCopiarLegenda('${t.id}')`);
+  openModal('modal-ver-testemunho');
+}
+
+function testemunhoCopiarLegenda(id) {
+  const t = testemunhos.find(x => x.id === id);
+  if (!t || !t.notas) { showToast('⚠️ Este testemunho não tem notas/legenda guardada'); return; }
+  copiarTextoSeguro(t.notas, '📋 Legenda copiada!');
+}
+
+// ===================================================
+// LINK PÚBLICO DE AGENDAMENTO
+// Aditivo: gera um ficheiro .html autónomo (sem dependências) que o lead
+// pode abrir para escolher um horário. Como a app não tem servidor, o
+// "link" é este ficheiro — pode ser enviado diretamente ou hospedado
+// gratuitamente (Google Sites, Netlify Drop, GitHub Pages, etc.).
+// Não interfere com nenhuma função de Agenda/eventos já existente.
+// ===================================================
+const AG_DIAS = [
+  { key: 'seg', label: 'Seg' }, { key: 'ter', label: 'Ter' }, { key: 'qua', label: 'Qua' },
+  { key: 'qui', label: 'Qui' }, { key: 'sex', label: 'Sex' }, { key: 'sab', label: 'Sáb' }, { key: 'dom', label: 'Dom' }
+];
+
+function agGetConfigKey() { return getUserStorageKey('lw_agendamento_config'); }
+
+function agGetConfig() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(agGetConfigKey()) || 'null');
+    if (saved) return saved;
+  } catch(e) {}
+  const perfil = (typeof getUserPerfil === 'function') ? getUserPerfil() : {};
+  const wa = (perfil.linkWhatsapp || '').replace(/\D/g, '');
+  return {
+    dias: { seg: true, ter: true, qua: true, qui: true, sex: true, sab: false, dom: false },
+    horaInicio: '09:00', horaFim: '18:00', duracao: 20, antecedencia: 24,
+    whatsapp: wa, titulo: 'Marca uma chamada comigo',
+    mensagem: 'Escolhe o horário que te for mais conveniente para conversarmos 🙂'
+  };
+}
+
+function agSaveConfig(cfg) {
+  localStorage.setItem(agGetConfigKey(), JSON.stringify(cfg));
+  driveAutoSave();
+}
+
+function agRenderDiasGrid() {
+  const grid = document.getElementById('ag-dias-grid');
+  if (!grid) return;
+  const cfg = agGetConfig();
+  grid.innerHTML = AG_DIAS.map(d => `
+    <label style="display:flex;align-items:center;gap:6px;padding:8px 10px;background:${cfg.dias[d.key] ? 'rgba(0,212,170,0.1)' : 'var(--surface2)'};border:1px solid ${cfg.dias[d.key] ? 'rgba(0,212,170,0.35)' : 'var(--border)'};border-radius:8px;cursor:pointer;font-size:12.5px;">
+      <input type="checkbox" data-dia="${d.key}" ${cfg.dias[d.key] ? 'checked' : ''} onchange="agToggleDia('${d.key}',this.checked)">
+      ${d.label}
+    </label>`).join('');
+}
+
+function agToggleDia(dia, ligado) {
+  const cfg = agGetConfig();
+  cfg.dias[dia] = ligado;
+  agSaveConfig(cfg);
+  agRenderDiasGrid();
+}
+
+function agCarregarFormulario() {
+  const cfg = agGetConfig();
+  agRenderDiasGrid();
+  const hi = document.getElementById('ag-hora-inicio'); if (hi) hi.value = cfg.horaInicio;
+  const hf = document.getElementById('ag-hora-fim'); if (hf) hf.value = cfg.horaFim;
+  const dur = document.getElementById('ag-duracao'); if (dur) dur.value = String(cfg.duracao);
+  const ant = document.getElementById('ag-antecedencia'); if (ant) ant.value = String(cfg.antecedencia);
+  const wa = document.getElementById('ag-whatsapp'); if (wa) wa.value = cfg.whatsapp || '';
+  const tit = document.getElementById('ag-titulo'); if (tit) tit.value = cfg.titulo || '';
+  const msg = document.getElementById('ag-mensagem'); if (msg) msg.value = cfg.mensagem || '';
+}
+
+function agLerFormulario() {
+  const cfg = agGetConfig();
+  cfg.horaInicio = document.getElementById('ag-hora-inicio').value || '09:00';
+  cfg.horaFim = document.getElementById('ag-hora-fim').value || '18:00';
+  cfg.duracao = parseInt(document.getElementById('ag-duracao').value) || 20;
+  cfg.antecedencia = parseInt(document.getElementById('ag-antecedencia').value) || 24;
+  cfg.whatsapp = document.getElementById('ag-whatsapp').value.replace(/\D/g, '');
+  cfg.titulo = document.getElementById('ag-titulo').value.trim() || 'Marca uma chamada comigo';
+  cfg.mensagem = document.getElementById('ag-mensagem').value.trim();
+  agSaveConfig(cfg);
+  return cfg;
+}
+
+function gerarPaginaAgendamento() {
+  const cfg = agLerFormulario();
+  const statusEl = document.getElementById('ag-status');
+
+  if (!cfg.whatsapp || cfg.whatsapp.length < 8) {
+    showToast('❌ Indica o teu número de WhatsApp (com indicativo)');
+    if (statusEl) statusEl.textContent = '';
+    return;
+  }
+  if (!Object.values(cfg.dias).some(Boolean)) {
+    showToast('❌ Escolhe pelo menos um dia da semana');
+    return;
+  }
+
+  const html = agConstruirHTML(cfg);
+  const blob = new Blob([html], { type: 'text/html;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'agendamento.html';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+
+  if (statusEl) statusEl.textContent = '✅ Página descarregada — envia o ficheiro ou hospeda-o para teres um link fixo.';
+  showToast('✅ Página de agendamento gerada!');
+}
+
+// ===================================================
+// ROTA PÚBLICA DE AGENDAMENTO (dentro da própria app)
+// Aditivo: quando a URL tem ?pub=agenda&c=<config codificada>, mostra
+// só o ecrã de agendamento (sem login, sem sidebar). Não interfere com
+// o fluxo normal de autenticação nem com o gerador de ficheiro .html.
+// ===================================================
+const AG_DIA_KEYS = ['dom','seg','ter','qua','qui','sex','sab'];
+const AG_DIA_LABELS = { seg:'Segunda-feira', ter:'Terça-feira', qua:'Quarta-feira', qui:'Quinta-feira', sex:'Sexta-feira', sab:'Sábado', dom:'Domingo' };
+
+function agDetectarModoPublico() {
+  try {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('pub') !== 'agenda') return false;
+    const c = params.get('c');
+    if (!c) return false;
+    const cfg = JSON.parse(decodeURIComponent(escape(atob(c.replace(/-/g,'+').replace(/_/g,'/')))));
+    agRenderPaginaPublica(cfg);
+    return true;
+  } catch(e) {
+    console.warn('Link de agendamento inválido ou corrompido:', e);
+    return false;
+  }
+}
+
+function agGerarSlotsDia(cfg, data) {
+  const slots = [];
+  const hi = cfg.horaInicio.split(':').map(Number);
+  const hf = cfg.horaFim.split(':').map(Number);
+  const inicio = new Date(data); inicio.setHours(hi[0], hi[1], 0, 0);
+  const fim = new Date(data); fim.setHours(hf[0], hf[1], 0, 0);
+  const minimo = new Date(Date.now() + cfg.antecedencia * 3600000);
+  let cursor = new Date(inicio);
+  while (cursor < fim) {
+    if (cursor >= minimo) slots.push(new Date(cursor));
+    cursor = new Date(cursor.getTime() + cfg.duracao * 60000);
+  }
+  return slots;
+}
+
+function agEscolherSlotPublico(cfg, dataObj) {
+  const diaSemana = dataObj.toLocaleDateString('pt-PT', { weekday: 'long' });
+  const dataStr = dataObj.toLocaleDateString('pt-PT', { day: '2-digit', month: 'long' });
+  const horaStr = dataObj.toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' });
+  const msg = 'Olá! Gostava de marcar uma chamada: ' + diaSemana + ', ' + dataStr + ' às ' + horaStr + '. Fica bem para ti?';
+  const url = 'https://wa.me/' + cfg.whatsapp + '?text=' + encodeURIComponent(msg);
+  window.open(url, '_blank');
+}
+
+function agRenderPaginaPublica(cfg) {
+  // Esconde toda a app normal e mostra só o ecrã público
+  const appEl = document.querySelector('.app');
+  if (appEl) appEl.style.display = 'none';
+  const loginEl = document.getElementById('login-screen');
+  if (loginEl) loginEl.style.display = 'none';
+  const banner = document.getElementById('local-mode-banner');
+  if (banner) banner.style.display = 'none';
+
+  const screen = document.getElementById('pub-agendamento-screen');
+  screen.style.display = 'block';
+  document.getElementById('pub-ag-titulo').textContent = cfg.titulo || 'Marca uma chamada comigo';
+  document.getElementById('pub-ag-mensagem').textContent = cfg.mensagem || '';
+
+  const lista = document.getElementById('pub-ag-lista');
+  let html = '';
+  let encontrados = 0;
+  const hoje = new Date();
+  for (let i = 0; i < 21 && encontrados < 8; i++) {
+    const data = new Date(hoje); data.setDate(hoje.getDate() + i);
+    const chave = AG_DIA_KEYS[data.getDay()];
+    if (!cfg.dias[chave]) continue;
+    const slots = agGerarSlotsDia(cfg, data);
+    if (!slots.length) continue;
+    encontrados++;
+    html += '<div style="margin-bottom:18px;"><div style="font-size:13px;font-weight:700;color:#00d4aa;margin-bottom:8px;text-transform:capitalize;">' + AG_DIA_LABELS[chave] + ', ' + data.toLocaleDateString('pt-PT', {day:'2-digit', month:'short'}) + '</div><div style="display:grid;grid-template-columns:repeat(auto-fill, minmax(80px, 1fr));gap:8px;" data-slots="' + i + '"></div></div>';
+  }
+  if (!encontrados) {
+    html = '<div style="text-align:center;padding:40px 20px;color:#808090;font-size:13.5px;">Sem horários disponíveis nos próximos dias. Contacta diretamente.</div>';
+  }
+  lista.innerHTML = html;
+
+  // Re-percorre para anexar os slots com listeners reais (evita inline onclick com objetos Date)
+  encontrados = 0;
+  for (let i = 0; i < 21 && encontrados < 8; i++) {
+    const data = new Date(hoje); data.setDate(hoje.getDate() + i);
+    const chave = AG_DIA_KEYS[data.getDay()];
+    if (!cfg.dias[chave]) continue;
+    const slots = agGerarSlotsDia(cfg, data);
+    if (!slots.length) continue;
+    const container = lista.querySelector('[data-slots="' + i + '"]');
+    if (container) {
+      slots.forEach(s => {
+        const el = document.createElement('div');
+        el.textContent = s.toLocaleTimeString('pt-PT', {hour:'2-digit', minute:'2-digit'});
+        el.style.cssText = 'background:#1a1d29;border:1px solid #2a2e3e;border-radius:10px;padding:10px 8px;text-align:center;font-size:13px;cursor:pointer;';
+        el.onmouseenter = () => { el.style.background = '#00d4aa'; el.style.color = '#0f1117'; el.style.fontWeight = '700'; };
+        el.onmouseleave = () => { el.style.background = '#1a1d29'; el.style.color = ''; el.style.fontWeight = ''; };
+        el.onclick = () => agEscolherSlotPublico(cfg, s);
+        container.appendChild(el);
+      });
+    }
+    encontrados++;
+  }
+}
+
+// Gera um LINK público fixo que aponta para esta mesma app (sem descarregar ficheiro).
+// A configuração viaja codificada em base64 dentro da própria URL, por isso
+// funciona em qualquer visitante, mesmo sem sessão/localStorage próprio.
+function agGerarLinkPublico() {
+  const cfg = agLerFormulario();
+  const statusEl = document.getElementById('ag-status');
+
+  if (!cfg.whatsapp || cfg.whatsapp.length < 8) {
+    showToast('❌ Indica o teu número de WhatsApp (com indicativo)');
+    return;
+  }
+  if (!Object.values(cfg.dias).some(Boolean)) {
+    showToast('❌ Escolhe pelo menos um dia da semana');
+    return;
+  }
+
+  const jsonStr = JSON.stringify(cfg);
+  const b64 = btoa(unescape(encodeURIComponent(jsonStr))).replace(/\+/g,'-').replace(/\//g,'_');
+  const base = window.location.origin + window.location.pathname;
+  const link = base + '?pub=agenda&c=' + b64;
+
+  const linkBox = document.getElementById('ag-link-publico');
+  const linkInput = document.getElementById('ag-link-publico-input');
+  if (linkBox && linkInput) {
+    linkInput.value = link;
+    linkBox.style.display = 'block';
+  }
+
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(link).then(() => {
+      showToast('✅ Link copiado! Só funciona depois de hospedares esta app online.');
+    }).catch(() => {
+      showToast('✅ Link gerado — copia-o manualmente abaixo.');
+    });
+  } else {
+    showToast('✅ Link gerado — copia-o manualmente abaixo.');
+  }
+
+  if (statusEl) statusEl.textContent = window.location.protocol === 'file:'
+    ? '⚠️ Estás a abrir a app localmente — este link só funciona depois de hospedares o ficheiro (GitHub Pages, domínio próprio, etc.).'
+    : '✅ Link fixo gerado — funciona sempre que a app estiver online.';
+}
+
+// Gera o HTML autónomo (sem dependências externas) com a lógica de slots
+// embutida em JS puro — funciona offline e em qualquer browser.
+function agConstruirHTML(cfg) {
+  const diasAtivos = JSON.stringify(cfg.dias);
+  const tituloSeguro = (cfg.titulo || '').replace(/</g, '&lt;');
+  const mensagemSegura = (cfg.mensagem || '').replace(/</g, '&lt;');
+
+  return `<!DOCTYPE html>
+<html lang="pt">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>${tituloSeguro}</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, 'Segoe UI', Roboto, sans-serif; background: #0f1117; color: #eaeaea; min-height: 100vh; padding: 20px; }
+  .wrap { max-width: 480px; margin: 0 auto; }
+  h1 { font-size: 20px; margin-bottom: 8px; }
+  p.sub { font-size: 13.5px; color: #a0a0b0; line-height: 1.5; margin-bottom: 24px; }
+  .dia-bloco { margin-bottom: 18px; }
+  .dia-titulo { font-size: 13px; font-weight: 700; color: #00d4aa; margin-bottom: 8px; text-transform: capitalize; }
+  .slots { display: grid; grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); gap: 8px; }
+  .slot { background: #1a1d29; border: 1px solid #2a2e3e; border-radius: 10px; padding: 10px 8px; text-align: center; font-size: 13px; cursor: pointer; transition: all .15s; }
+  .slot:hover, .slot:active { background: #00d4aa; color: #0f1117; border-color: #00d4aa; font-weight: 700; }
+  .vazio { text-align: center; padding: 40px 20px; color: #808090; font-size: 13.5px; }
+  .rodape { text-align: center; margin-top: 24px; font-size: 11px; color: #606070; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>${tituloSeguro}</h1>
+  <p class="sub">${mensagemSegura}</p>
+  <div id="lista"></div>
+  <div class="rodape">Toca num horário para enviar um pedido de confirmação via WhatsApp.</div>
+</div>
+<script>
+  var CFG = {
+    dias: ${diasAtivos},
+    horaInicio: "${cfg.horaInicio}",
+    horaFim: "${cfg.horaFim}",
+    duracao: ${cfg.duracao},
+    antecedenciaHoras: ${cfg.antecedencia},
+    whatsapp: "${cfg.whatsapp}"
+  };
+  var DIA_KEYS = ['dom','seg','ter','qua','qui','sex','sab'];
+  var DIA_LABELS = { seg:'Segunda-feira', ter:'Terça-feira', qua:'Quarta-feira', qui:'Quinta-feira', sex:'Sexta-feira', sab:'Sábado', dom:'Domingo' };
+
+  function gerarSlotsDia(data) {
+    var slots = [];
+    var hi = CFG.horaInicio.split(':').map(Number);
+    var hf = CFG.horaFim.split(':').map(Number);
+    var inicio = new Date(data); inicio.setHours(hi[0], hi[1], 0, 0);
+    var fim = new Date(data); fim.setHours(hf[0], hf[1], 0, 0);
+    var agora = new Date();
+    var minimo = new Date(agora.getTime() + CFG.antecedenciaHoras * 3600000);
+    var cursor = new Date(inicio);
+    while (cursor < fim) {
+      if (cursor >= minimo) {
+        slots.push(new Date(cursor));
+      }
+      cursor = new Date(cursor.getTime() + CFG.duracao * 60000);
+    }
+    return slots;
+  }
+
+  function escolherSlot(dataObj) {
+    var diaSemana = dataObj.toLocaleDateString('pt-PT', { weekday: 'long' });
+    var dataStr = dataObj.toLocaleDateString('pt-PT', { day: '2-digit', month: 'long' });
+    var horaStr = dataObj.toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' });
+    var msg = 'Olá! Gostava de marcar uma chamada: ' + diaSemana + ', ' + dataStr + ' às ' + horaStr + '. Fica bem para ti?';
+    var url = 'https://wa.me/' + CFG.whatsapp + '?text=' + encodeURIComponent(msg);
+    window.open(url, '_blank');
+  }
+
+  function render() {
+    var lista = document.getElementById('lista');
+    var html = '';
+    var encontrados = 0;
+    var hoje = new Date();
+    for (var i = 0; i < 21 && encontrados < 8; i++) {
+      var data = new Date(hoje); data.setDate(hoje.getDate() + i);
+      var chave = DIA_KEYS[data.getDay()];
+      if (!CFG.dias[chave]) continue;
+      var slots = gerarSlotsDia(data);
+      if (!slots.length) continue;
+      encontrados++;
+      html += '<div class="dia-bloco"><div class="dia-titulo">' + DIA_LABELS[chave] + ', ' + data.toLocaleDateString('pt-PT', {day:'2-digit', month:'short'}) + '</div><div class="slots">';
+      slots.forEach(function(s, idx) {
+        html += '<div class="slot" onclick="escolherSlot(new Date(' + s.getTime() + '))">' + s.toLocaleTimeString('pt-PT', {hour:'2-digit', minute:'2-digit'}) + '</div>';
+      });
+      html += '</div></div>';
+    }
+    if (!encontrados) {
+      html = '<div class="vazio">Sem horários disponíveis nos próximos dias. Contacta diretamente.</div>';
+    }
+    lista.innerHTML = html;
+  }
+
+  render();
+<\/script>
+</body>
+</html>`;
+}
+
 
 // ===================================================
 // PROGRAMA DE REFERÊNCIA — "Top Indicadores"
@@ -14741,6 +15738,22 @@ const GOOGLE_CLIENT_ID_KEY = 'lw_google_client_id';
 const HARDCODED_CLIENT_ID = '729386302464-rfkh1qg2gh4e1e99hbgcpk0v3lchoi98.apps.googleusercontent.com';
 // ─────────────────────────────────────────────────────────────────────────────
 
+// ─── BACKEND REAL (SUPABASE) — só para contas "email/palavra-passe" ─────────
+// Aditivo: NÃO afeta utilizadores que entram com Google (esses continuam a
+// usar o Google Drive, como já funcionava). Serve apenas as contas criadas
+// com email+password no ecrã de login ("modo local" com conta), para que
+// deixem de ficar presas a um único dispositivo.
+// Depois de criares um projeto gratuito em https://supabase.com:
+//   1. Cola aqui o "Project URL" e a "anon public key" (Settings → API).
+//   2. Corre o SQL fornecido no ficheiro supabase-setup.sql (tabela + RLS).
+// Se deixares em branco, a app funciona exatamente como antes (sem backend
+// para contas locais) — nada quebra.
+const HARDCODED_SUPABASE_URL = '';
+const HARDCODED_SUPABASE_ANON_KEY = '';
+const SUPABASE_URL_KEY = 'lw_supabase_url';
+const SUPABASE_ANON_KEY_KEY = 'lw_supabase_anon_key';
+// ─────────────────────────────────────────────────────────────────────────────
+
 function getUserStorageKey(key) {
   if (!currentUser) return key;
   const safe = currentUser.email.replace(/[^a-zA-Z0-9_]/g, '_');
@@ -14803,7 +15816,7 @@ function abrirLixeira() {
         lead: '👤 Lead', membro: '🐺 Membro da Equipa', evento: '📅 Evento',
         venda: '💰 Venda', recurso: '🎓 Recurso de Formação', script: '🎬 Script Stories/Reels',
         template: '📝 Template', promocao: '📢 Promoção', regra: '⚙️ Regra de Automação',
-        diario: '📔 Registo do Diário', despesa: '💸 Despesa',
+        diario: '📔 Registo do Diário', despesa: '💸 Despesa', testemunho: '🎬 Testemunho',
       };
       const tipoLabel = tipoLabels[entry.tipo] || entry.tipo;
       return `
@@ -14866,6 +15879,9 @@ function restaurarDaLixeira(index) {
   } else if (entry.tipo === 'despesa') {
     despesas.unshift(entry.item);
     saveDespesas();
+  } else if (entry.tipo === 'testemunho') {
+    testemunhos.unshift(entry.item);
+    saveTestemunhos();
   }
 
   lixeira.splice(index, 1);
@@ -14882,6 +15898,7 @@ function restaurarDaLixeira(index) {
   if (typeof renderAutomacao === 'function') renderAutomacao();
   if (typeof renderDiario === 'function') renderDiario();
   if (typeof renderDespesas === 'function') renderDespesas();
+  if (typeof renderTestemunhos === 'function') renderTestemunhos();
   const nomeItem = entry.item.nome || entry.item.titulo || entry.item.texto?.substring(0,30) || 'Item';
   showToast(`✅ "${nomeItem}" restaurado`);
 }
@@ -14913,6 +15930,7 @@ function loadUserData() {
   loadEventos();
   loadVendas();
   loadDespesas();
+  loadTestemunhos();
   updateBadgeLuminate();
   if (typeof migrarSrBibliotecaParaUtilizador === 'function') migrarSrBibliotecaParaUtilizador();
   if (typeof inicializarAutomacoesPosVendaPorDefeito === 'function') inicializarAutomacoesPosVendaPorDefeito();
@@ -14969,6 +15987,15 @@ function loginComEmail() {
   if (!email) { mostrarErroLogin('Insere o teu email.'); return; }
   if (!password) { mostrarErroLogin('Insere a tua palavra-passe.'); return; }
 
+  // Se o backend Supabase estiver configurado, usa autenticação real (a
+  // conta passa a existir no servidor, não só neste browser) — isto é o
+  // que permite sincronizar entre dispositivos. Se não estiver configurado,
+  // mantém-se o comportamento antigo (100% local), sem quebrar nada.
+  if (supabaseConfigurado()) {
+    loginComEmailSupabase(email, password);
+    return;
+  }
+
   // Check if user exists
   const usersKey = 'lw_users';
   const users = JSON.parse(localStorage.getItem(usersKey) || '{}');
@@ -14984,10 +16011,57 @@ function loginComEmail() {
     entrarNaApp({ email, name: users[email].name || email.split('@')[0], picture: null, method: 'email' });
   } else {
     // New user: register
-    const name = email.split('@')[0].replace(/[._]/g, ' ').replace(/\w/g, c => c.toUpperCase());
+    const name = email.split('@')[0].replace(/[._]/g, ' ').replace(/\w/g, c => c.toUpperCase());
     users[email] = { hash: simpleHash(password), name };
     localStorage.setItem(usersKey, JSON.stringify(users));
     entrarNaApp({ email, name, picture: null, method: 'email' });
+  }
+}
+
+// Autenticação real via Supabase (auth.users), usada apenas quando o
+// backend está configurado. Tenta criar conta; se já existir, faz login.
+async function loginComEmailSupabase(email, password) {
+  const client = initSupabaseClient();
+  if (!client) { mostrarErroLogin('Não foi possível ligar ao backend. Verifica a ligação à internet.'); return; }
+
+  const btnEntrar = document.getElementById('btn-entrar-step2');
+  if (btnEntrar) btnEntrar.disabled = true;
+  mostrarErroLogin('');
+
+  try {
+    let { data, error } = await client.auth.signUp({ email, password });
+
+    if (error && /already registered|already exists/i.test(error.message || '')) {
+      ({ data, error } = await client.auth.signInWithPassword({ email, password }));
+    }
+
+    if (error) {
+      if (/invalid login credentials/i.test(error.message || '')) {
+        mostrarErroLogin('Palavra-passe incorreta. Tenta novamente.');
+      } else if (/password/i.test(error.message || '')) {
+        mostrarErroLogin('A palavra-passe precisa de pelo menos 6 caracteres.');
+      } else {
+        mostrarErroLogin('Erro ao entrar: ' + error.message);
+      }
+      return;
+    }
+
+    if (!data.session) {
+      mostrarErroLogin('Conta criada! Verifica o teu email para confirmar antes de entrares.');
+      return;
+    }
+
+    const uid = data.user.id;
+    const nomeGerado = email.split('@')[0].replace(/[._]/g, ' ').replace(/\w/g, c => c.toUpperCase());
+    const usersKey = 'lw_users';
+    const users = JSON.parse(localStorage.getItem(usersKey) || '{}');
+    if (!users[email]) { users[email] = { name: nomeGerado }; localStorage.setItem(usersKey, JSON.stringify(users)); }
+
+    entrarNaApp({ email, name: users[email].name || nomeGerado, picture: null, method: 'email', supabaseUserId: uid });
+  } catch(e) {
+    mostrarErroLogin('Erro ao ligar ao backend: ' + e.message);
+  } finally {
+    if (btnEntrar) btnEntrar.disabled = false;
   }
 }
 
@@ -15146,6 +16220,7 @@ function entrarNaApp(user) {
   // Google Drive: mostra botão e tenta carregar dados da cloud
   updateDriveButton();
   setTimeout(driveLoadOnLogin, 1500);
+  setTimeout(supabaseLoadOnLogin, 1500);
   setTimeout(() => driveLerComprasDaEquipa(true), 3500); // sync silenciosa da equipa, se a pasta estiver configurada
 
   // Show profile setup prompt if slug not configured
@@ -15496,6 +16571,8 @@ function fazerLogout() {
   document.querySelector('.app').style.display = 'none';
   // Sign out from Google too
   try { google.accounts.id.disableAutoSelect(); } catch(e) {}
+  // Sign out from Supabase too (limpa a sessão guardada pelo SDK)
+  try { if (supabaseClient) supabaseClient.auth.signOut(); } catch(e) {}
 }
 
 function mostrarPerfilUtilizador() {
@@ -15519,7 +16596,16 @@ function updateDriveButton() {
   const btn = document.getElementById('btn-drive-sync');
   if (!btn) return;
   const isGoogle = currentUser && currentUser.method === 'google';
-  btn.style.display = isGoogle ? 'inline-flex' : 'none';
+  const isSupabase = currentUser && currentUser.method === 'email' && currentUser.supabaseUserId && supabaseConfigurado();
+  btn.style.display = (isGoogle || isSupabase) ? 'inline-flex' : 'none';
+  btn.title = isSupabase ? 'Guardar dados no backend' : 'Guardar dados no Google Drive';
+}
+
+// Dispara a sincronização manual certa consoante o tipo de conta — evita
+// espalhar "if (method === ...)" por todos os botões que chamam sync.
+function cloudSyncManual() {
+  if (currentUser && currentUser.method === 'email') { supabaseSync('manual'); return; }
+  driveSync('manual');
 }
 
 // Recolhe TODOS os dados do utilizador num único objecto
@@ -15534,6 +16620,8 @@ function getDrivePayload() {
     eventos:           JSON.parse(localStorage.getItem(uk('lw_eventos'))          || '[]'),
     vendas:            JSON.parse(localStorage.getItem(uk('lw_vendas'))           || '[]'),
     despesas:          JSON.parse(localStorage.getItem(uk('lw_despesas'))         || '[]'),
+    testemunhos:       JSON.parse(localStorage.getItem(uk('lw_testemunhos'))      || '[]'),
+    agendamentoConfig: JSON.parse(localStorage.getItem(uk('lw_agendamento_config')) || 'null'),
     revista:           JSON.parse(localStorage.getItem(uk('lw_revista'))          || 'null'),
     viagens:           JSON.parse(localStorage.getItem(uk('lw_viagens'))          || 'null'),
     viagemAtividades:  JSON.parse(localStorage.getItem(uk('lw_viagem_atividades'))|| '[]'),
@@ -15552,6 +16640,8 @@ function applyDrivePayload(data) {
   if (data.eventos)          { localStorage.setItem(uk('lw_eventos'),          JSON.stringify(data.eventos));          eventos  = data.eventos; }
   if (data.vendas)           { localStorage.setItem(uk('lw_vendas'),           JSON.stringify(data.vendas));           vendas   = data.vendas; }
   if (data.despesas)         { localStorage.setItem(uk('lw_despesas'),         JSON.stringify(data.despesas));         despesas = data.despesas; }
+  if (data.testemunhos)      { localStorage.setItem(uk('lw_testemunhos'),      JSON.stringify(data.testemunhos));      testemunhos = data.testemunhos; }
+  if (data.agendamentoConfig) { localStorage.setItem(uk('lw_agendamento_config'), JSON.stringify(data.agendamentoConfig)); }
   if (data.revista)          { localStorage.setItem(uk('lw_revista'),          JSON.stringify(data.revista)); }
   if (data.viagens)          { localStorage.setItem(uk('lw_viagens'),          JSON.stringify(data.viagens));          viagens  = data.viagens; }
   if (data.viagemAtividades) { localStorage.setItem(uk('lw_viagem_atividades'),JSON.stringify(data.viagemAtividades)); viagemAtividades = data.viagemAtividades; }
@@ -16182,9 +17272,164 @@ function driveEquipaAutoSave() {
 }
 
 function driveAutoSave() {
+  // Contas email/palavra-passe: usa o backend Supabase (se configurado),
+  // não o Drive. Aditivo — não interfere com a lógica abaixo, que continua
+  // exclusiva a contas Google exatamente como antes.
+  if (currentUser && currentUser.method === 'email') { supabaseAutoSave(); return; }
   if (!currentUser || currentUser.method !== 'google') return;
   clearTimeout(driveAutoSaveTimer);
   driveAutoSaveTimer = setTimeout(() => driveSync('auto'), 4000);
+}
+
+// ===================================================
+// BACKEND SUPABASE — só para contas "email/palavra-passe" (currentUser.method
+// === 'email'). Reaproveita getDrivePayload()/applyDrivePayload() e a MESMA
+// lógica de merge do driveSync(), só troca o "transporte" (Supabase em vez
+// de Google Drive). Não mexe em nada do fluxo Google/Drive existente.
+// ===================================================
+let supabaseClient = null;
+let supabaseSyncPending = false;
+let supabaseAutoSaveTimer = null;
+
+function getSupabaseConfig() {
+  return {
+    url: (localStorage.getItem(SUPABASE_URL_KEY) || HARDCODED_SUPABASE_URL || '').trim(),
+    key: (localStorage.getItem(SUPABASE_ANON_KEY_KEY) || HARDCODED_SUPABASE_ANON_KEY || '').trim(),
+  };
+}
+
+function supabaseConfigurado() {
+  const { url, key } = getSupabaseConfig();
+  return !!url && !!key;
+}
+
+function abrirConfigSupabase() {
+  const { url, key } = getSupabaseConfig();
+  document.getElementById('supabase-config-url').value = url;
+  document.getElementById('supabase-config-key').value = key;
+  document.getElementById('supabase-config-status').textContent = '';
+  document.getElementById('modal-supabase-config').style.display = 'flex';
+}
+
+function fecharConfigSupabase() {
+  document.getElementById('modal-supabase-config').style.display = 'none';
+}
+
+function salvarConfigSupabase() {
+  const url = document.getElementById('supabase-config-url').value.trim();
+  const key = document.getElementById('supabase-config-key').value.trim();
+  if (!url || !key) {
+    document.getElementById('supabase-config-status').textContent = '❌ Preenche os dois campos.';
+    return;
+  }
+  localStorage.setItem(SUPABASE_URL_KEY, url);
+  localStorage.setItem(SUPABASE_ANON_KEY_KEY, key);
+  supabaseClient = null; // força recriação do cliente com a nova config
+  document.getElementById('supabase-config-status').textContent = '✅ Guardado! Cria ou entra na tua conta normalmente.';
+  showToast('✅ Backend configurado');
+}
+
+function initSupabaseClient() {
+  if (supabaseClient) return supabaseClient;
+  const { url, key } = getSupabaseConfig();
+  if (!url || !key) return null;
+  if (typeof supabase === 'undefined' || !supabase.createClient) return null; // SDK ainda não carregou
+  try {
+    supabaseClient = supabase.createClient(url, key);
+  } catch(e) {
+    console.warn('Erro ao iniciar Supabase:', e);
+    supabaseClient = null;
+  }
+  return supabaseClient;
+}
+
+function supabaseAtivo() {
+  return !!(currentUser && currentUser.method === 'email' && currentUser.supabaseUserId && initSupabaseClient());
+}
+
+// Auto-save com debounce, espelhando driveAutoSave()
+function supabaseAutoSave() {
+  if (!supabaseAtivo()) return;
+  clearTimeout(supabaseAutoSaveTimer);
+  supabaseAutoSaveTimer = setTimeout(() => supabaseSync('auto'), 4000);
+}
+
+// Ao entrar na app com conta email: puxa e faz merge dos dados do backend.
+async function supabaseLoadOnLogin() {
+  if (!currentUser || currentUser.method !== 'email' || !currentUser.supabaseUserId) return;
+  await supabaseSync('auto-login');
+}
+
+async function supabaseSync(mode) {
+  if (!supabaseAtivo()) {
+    if (mode === 'manual') showToast('❌ Backend não configurado ou sessão inválida.');
+    return;
+  }
+  if (supabaseSyncPending) return;
+  supabaseSyncPending = true;
+
+  const btn = document.getElementById('btn-drive-sync');
+  const label = document.getElementById('drive-sync-label');
+  try {
+    if (mode === 'manual') {
+      if (label) label.textContent = '⏳ A guardar…';
+      if (btn) btn.style.opacity = '0.6';
+    }
+
+    const client = initSupabaseClient();
+    const uid = currentUser.supabaseUserId;
+
+    const { data: remoteRow, error: readErr } = await client
+      .from('crm_backup').select('payload').eq('user_id', uid).maybeSingle();
+    if (readErr) throw readErr;
+
+    const payload = getDrivePayload();
+    const totalLocalAntes = (payload.leads || []).length;
+
+    if (remoteRow && remoteRow.payload) {
+      const remote = remoteRow.payload;
+      // Mesma lógica de "não ressuscitar eliminados" e merge por id já usada no Drive.
+      const lixeiraAtual = getLixeira();
+      const idsEliminadosLead = new Set(lixeiraAtual.filter(e => e.tipo === 'lead').map(e => e.item?.id));
+      const idsEliminadosMembro = new Set(lixeiraAtual.filter(e => e.tipo === 'membro').map(e => e.item?.id));
+      const merge = (local, rem, idsExcluidos) => {
+        if (!Array.isArray(local) || !Array.isArray(rem)) return local || rem || [];
+        const remFiltrado = idsExcluidos ? rem.filter(x => !idsExcluidos.has(x.id)) : rem;
+        const ids = new Set(local.map(x => x.id));
+        return [...local, ...remFiltrado.filter(x => !ids.has(x.id))];
+      };
+      payload.leads   = merge(payload.leads,   remote.leads,   idsEliminadosLead);
+      payload.posts   = merge(payload.posts,   remote.posts);
+      payload.membros = merge(payload.membros, remote.membros, idsEliminadosMembro);
+      payload.eventos = merge(payload.eventos, remote.eventos);
+      payload.vendas  = merge(payload.vendas,  remote.vendas);
+      applyDrivePayload(payload);
+    }
+
+    const { error: writeErr } = await client
+      .from('crm_backup')
+      .upsert({ user_id: uid, payload: getDrivePayload(), updated_at: new Date().toISOString() }, { onConflict: 'user_id' });
+    if (writeErr) throw writeErr;
+
+    renderDashboard(); renderFollowUps(); renderAniversarios(); renderMetas();
+    renderAgenda(); renderAcoes(); updateBadge(); updateBadgeLuminate();
+
+    if (label) label.textContent = '☁️ Cloud Ativa';
+    if (btn) { btn.style.opacity = '1'; btn.style.color = 'var(--accent)'; }
+
+    if (mode === 'manual') {
+      showToast('☁️ Dados sincronizados com o backend!');
+    } else if (payload.leads.length > totalLocalAntes) {
+      showToast(`☁️ ${payload.leads.length - totalLocalAntes} contacto(s) sincronizado(s) de outro dispositivo`);
+    }
+  } catch(e) {
+    console.warn('Supabase sync falhou:', e);
+    if (mode === 'manual') showToast('❌ Erro ao sincronizar: ' + e.message);
+    if (label) label.textContent = 'Guardar na Cloud';
+    if (btn) btn.style.opacity = '1';
+  } finally {
+    supabaseSyncPending = false;
+  }
 }
 
 // ===================================================
@@ -16774,6 +18019,10 @@ function entrarModoLocal() {
 
 // ---- Boot: check if already logged in ----
 (function initAuth() {
+  // Se a URL pedir a página pública de agendamento, mostra só isso e ignora
+  // login/auth por completo (não expõe a CRM nem exige conta).
+  if (agDetectarModoPublico()) return;
+
   const saved = localStorage.getItem(AUTH_KEY);
   if (saved) {
     try {
@@ -18417,12 +19666,131 @@ function retEstadoLabel(estado) {
   return { ativo: '✅ Ativo', risco: '⚠️ Em risco', critico: '🔴 Crítico', perdido: '💀 Perdido' }[estado] || estado;
 }
 
+// ===================================================
+// EVOLUÇÃO DA RETENÇÃO — histórico mensal (aditivo, v76)
+// Reconstitui, para cada um dos últimos N meses, qual seria o estado de
+// cada Cliente Preferido SE "hoje" fosse o último dia desse mês — usando
+// a mesma lógica de ciclo pessoal de getClientesPreferenciaisRet(), mas
+// só com as compras já feitas até essa data (não usa dados futuros).
+// Não altera getClientesPreferenciaisRet() nem renderRetencao().
+// ===================================================
+function _calcularEstadoClienteEm(historicoCompras, dataRef) {
+  const datasOrdenadas = historicoCompras
+    .map(v => new Date(v.data).getTime())
+    .filter(t => !isNaN(t) && t <= dataRef)
+    .sort((a, b) => a - b);
+  if (!datasOrdenadas.length) return null; // ainda não era cliente nessa data
+
+  const ultimaCompra = datasOrdenadas[datasOrdenadas.length - 1];
+  const dias = Math.floor((dataRef - ultimaCompra) / 86400000);
+
+  let estado;
+  if (datasOrdenadas.length >= 2) {
+    let somaIntervalos = 0;
+    for (let i = 1; i < datasOrdenadas.length; i++) somaIntervalos += (datasOrdenadas[i] - datasOrdenadas[i-1]);
+    const ciclo = Math.max(7, Math.round((somaIntervalos / (datasOrdenadas.length - 1)) / 86400000));
+    if (dias <= ciclo * 1.3)      estado = 'ativo';
+    else if (dias <= ciclo * 2)   estado = 'risco';
+    else if (dias <= ciclo * 3)   estado = 'critico';
+    else                          estado = 'perdido';
+  } else {
+    if (dias <= 30)       estado = 'ativo';
+    else if (dias <= 60)  estado = 'risco';
+    else if (dias <= 90)  estado = 'critico';
+    else                  estado = 'perdido';
+  }
+  return estado;
+}
+
+function calcularHistoricoRetencao(nMeses) {
+  nMeses = nMeses || 6;
+  if (typeof vendas === 'undefined') return [];
+  if (typeof loadVendas === 'function') loadVendas();
+
+  // Agrupa todas as compras "preferido" por cliente (ignora canceladas)
+  const porCliente = {};
+  vendas.forEach(v => {
+    if (v.tipo !== 'preferido' || v.estado === 'cancelada') return;
+    const nome = (v.cliente || '').trim();
+    if (!nome || isNaN(new Date(v.data).getTime())) return;
+    (porCliente[nome] = porCliente[nome] || []).push(v);
+  });
+  const clientes = Object.values(porCliente);
+
+  const meses = _ultimosNMeses(nMeses);
+  return meses.map(ym => {
+    const [y, m] = ym.split('-').map(Number);
+    const fimDoMes = new Date(y, m, 0, 23, 59, 59).getTime(); // último instante do mês
+    let ativos = 0, risco = 0, critico = 0, perdidos = 0, totalConhecidos = 0;
+    clientes.forEach(historico => {
+      const estado = _calcularEstadoClienteEm(historico, fimDoMes);
+      if (!estado) return; // ainda não era cliente neste mês
+      totalConhecidos++;
+      if (estado === 'ativo') ativos++;
+      else if (estado === 'risco') risco++;
+      else if (estado === 'critico') critico++;
+      else perdidos++;
+    });
+    const pctRetencao = totalConhecidos > 0 ? Math.round((ativos / totalConhecidos) * 100) : null;
+    return { ym, label: _labelMesPT(ym), ativos, risco, critico, perdidos, totalConhecidos, pctRetencao };
+  });
+}
+
+function renderHistoricoRetencao() {
+  const el = document.getElementById('ret-historico');
+  if (!el) return;
+
+  const dados = calcularHistoricoRetencao(6);
+  const temDados = dados.some(m => m.totalConhecidos > 0);
+  if (!temDados) {
+    el.innerHTML = '<div style="text-align:center;padding:20px;color:var(--text2);font-size:12.5px;">Ainda sem histórico suficiente. Regista vendas do tipo "Preferido" para veres a evolução da retenção aqui.</div>';
+    return;
+  }
+
+  const barrasHtml = dados.map(m => {
+    const h = m.pctRetencao === null ? 0 : Math.round((m.pctRetencao / 100) * 64);
+    const cor = m.pctRetencao === null ? 'var(--text3)' : m.pctRetencao >= 70 ? 'var(--accent2)' : m.pctRetencao >= 40 ? 'var(--gold)' : 'var(--accent3)';
+    return `
+      <div style="display:flex;flex-direction:column;align-items:center;gap:4px;flex:1;min-width:0;">
+        <div style="font-size:10px;font-weight:700;color:${cor};white-space:nowrap;">${m.pctRetencao === null ? '—' : m.pctRetencao + '%'}</div>
+        <div style="display:flex;align-items:flex-end;height:66px;">
+          <div title="${m.ativos} ativos de ${m.totalConhecidos} clientes conhecidos" style="width:14px;height:${Math.max(h,2)}px;background:${cor};border-radius:3px 3px 0 0;"></div>
+        </div>
+        <div style="font-size:10px;color:var(--text3);">${m.label}</div>
+      </div>`;
+  }).join('');
+
+  const atual = dados[dados.length - 1];
+  const anterior = dados[dados.length - 2];
+  let tendenciaHtml = '';
+  if (atual.pctRetencao !== null && anterior && anterior.pctRetencao !== null) {
+    const diff = atual.pctRetencao - anterior.pctRetencao;
+    const cor = diff > 0 ? 'var(--accent2)' : diff < 0 ? 'var(--accent3)' : 'var(--text2)';
+    const seta = diff > 0 ? '▲' : diff < 0 ? '▼' : '→';
+    tendenciaHtml = `<div style="padding:10px;background:var(--surface2);border-radius:10px;">
+      <div style="font-size:10.5px;color:var(--text2);">Tendência vs. mês anterior</div>
+      <div style="font-size:16px;font-weight:700;color:${cor};">${seta} ${Math.abs(diff)} p.p.</div>
+    </div>`;
+  }
+
+  el.innerHTML = `
+    <div style="display:flex;gap:6px;align-items:flex-end;padding:8px 2px 2px;overflow-x:auto;">${barrasHtml}</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-top:16px;">
+      <div style="padding:10px;background:var(--surface2);border-radius:10px;">
+        <div style="font-size:10.5px;color:var(--text2);">Retenção (mês atual)</div>
+        <div style="font-size:16px;font-weight:700;color:${atual.pctRetencao >= 70 ? 'var(--accent2)' : atual.pctRetencao >= 40 ? 'var(--gold)' : 'var(--accent3)'};">${atual.pctRetencao === null ? '—' : atual.pctRetencao + '%'}</div>
+      </div>
+      ${tendenciaHtml}
+    </div>`;
+}
+
 function retEstadoCor(estado) {
   return { ativo: '#00d4aa', risco: '#f5c842', critico: '#ff6b35', perdido: '#ff4444' }[estado] || 'var(--text2)';
 }
 
 function renderRetencao() {
   if (typeof loadVendas === 'function') loadVendas();
+  if (typeof renderHistoricoRetencao === 'function') renderHistoricoRetencao();
 
   const todos = getClientesPreferenciaisRet();
   const filtroEstado  = document.getElementById('ret-filtro-estado')?.value || '';
@@ -18765,6 +20133,22 @@ function abrirModalMetas() {
   openModal('modal-metas');
 }
 
+// Contactos realizados este mês — extraído para função partilhada (v75) para
+// que renderMetas() e renderProximaAcao() usem exatamente o mesmo cálculo,
+// sem duplicar a lógica em dois sítios.
+function calcularContactosEsteMes() {
+  const agora = new Date();
+  const inicioMes = new Date(agora.getFullYear(), agora.getMonth(), 1);
+  return leads.reduce((acc, l) => {
+    if (!l.historico) return acc;
+    return acc + l.historico.filter(h => {
+      if (h.tipo !== 'mensagem') return false;
+      const d = new Date(h.data);
+      return !isNaN(d) && d >= inicioMes;
+    }).length;
+  }, 0);
+}
+
 function renderMetas() {
   const grid = document.getElementById('dash-metas-grid');
   const mesLabel = document.getElementById('dash-metas-mes-label');
@@ -18798,14 +20182,7 @@ function renderMetas() {
   }).length;
 
   // Contactos realizados (histórico de mensagens este mês)
-  const contactosEsteMes = leads.reduce((acc, l) => {
-    if (!l.historico) return acc;
-    return acc + l.historico.filter(h => {
-      if (h.tipo !== 'mensagem') return false;
-      const d = new Date(h.data);
-      return !isNaN(d) && d >= inicioMes;
-    }).length;
-  }, 0);
+  const contactosEsteMes = calcularContactosEsteMes();
 
   if (!temMetas) {
     grid.innerHTML = `<div style="text-align:center;padding:8px 0;color:var(--text2);font-size:13px;">
@@ -25272,6 +26649,88 @@ function renderPrevisaoComissao() {
   </div>
 </div>
 
+<!-- MODAL: NOVO/EDITAR TESTEMUNHO -->
+<div class="modal-overlay" id="modal-novo-testemunho">
+  <div class="modal" style="max-width:480px;">
+    <div class="modal-title">
+      <span id="tm-modal-title">🎬 Novo Testemunho</span>
+      <button class="modal-close" onclick="closeModal('modal-novo-testemunho'); editingTestemunhoId=null;">✕</button>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Tipo de conteúdo</label>
+        <select class="form-select" id="tm-midia-tipo" onchange="testemunhoToggleMidiaTipo()">
+          <option value="foto">📷 Foto</option>
+          <option value="video">🎥 Link de Vídeo</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Produto</label>
+        <select class="form-select" id="tm-produto">
+          <option>X39</option>
+          <option>X49</option>
+          <option>Aeon</option>
+          <option>IceWave</option>
+          <option>Negócio</option>
+          <option>Outro</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-group" id="tm-wrap-foto">
+      <label class="form-label">Foto</label>
+      <input type="file" class="form-input" id="tm-foto-input" accept="image/*" onchange="testemunhoPreverFoto(this)">
+      <img id="tm-foto-preview" style="display:none;max-width:100%;border-radius:10px;margin-top:8px;max-height:200px;object-fit:cover;">
+    </div>
+    <div class="form-group" id="tm-wrap-video" style="display:none;">
+      <label class="form-label">Link do vídeo (Google Drive, YouTube, etc.)</label>
+      <input class="form-input" id="tm-video-url" placeholder="https://...">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Categoria de resultado</label>
+      <select class="form-select" id="tm-categoria">
+        <option value="energia">⚡ Energia</option>
+        <option value="sono">😴 Sono</option>
+        <option value="dor">🩹 Dor/Desconforto</option>
+        <option value="pele">✨ Pele/Estética</option>
+        <option value="mental">🧠 Clareza Mental</option>
+        <option value="negocio">💼 Negócio/Rendimento</option>
+        <option value="outro">📋 Outro</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Nome do cliente (uso interno, opcional)</label>
+      <input class="form-input" id="tm-nome-cliente" placeholder="Ex: Maria S. — não aparece no post">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Notas / Legenda sugerida</label>
+      <textarea class="form-textarea" id="tm-notas" placeholder="Ex: Cliente reportou mais energia ao fim de 2 semanas de uso do X39..." style="min-height:60px;"></textarea>
+    </div>
+    <label style="display:flex;align-items:flex-start;gap:8px;font-size:12px;color:var(--text2);margin-bottom:6px;background:rgba(0,212,170,0.06);border:1px solid rgba(0,212,170,0.2);border-radius:8px;padding:10px;cursor:pointer;">
+      <input type="checkbox" id="tm-consentimento" style="margin-top:2px;flex-shrink:0;">
+      <span>Confirmo que tenho o <strong style="color:var(--text);">consentimento do cliente</strong> para guardar e reutilizar esta foto/vídeo em conteúdo de marketing.</span>
+    </label>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="closeModal('modal-novo-testemunho'); editingTestemunhoId=null;">Cancelar</button>
+      <button class="btn btn-primary" onclick="salvarTestemunho()">✅ Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: VER TESTEMUNHO -->
+<div class="modal-overlay" id="modal-ver-testemunho">
+  <div class="modal" style="max-width:480px;">
+    <div class="modal-title">
+      <span>🎬 Testemunho</span>
+      <button class="modal-close" onclick="closeModal('modal-ver-testemunho')">✕</button>
+    </div>
+    <div id="tm-ver-conteudo"></div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="closeModal('modal-ver-testemunho')">Fechar</button>
+      <button class="btn btn-primary" id="tm-ver-btn-copiar" onclick="testemunhoCopiarLegenda()">📋 Copiar Legenda</button>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL: META MENSAL -->
 <div class="modal-overlay" id="modal-meta-mensal">
   <div class="modal" style="max-width:420px;">
@@ -28898,6 +30357,8 @@ const AUDITORIA_ITENS_DEFAULT = [
   'Bio de cada página de Facebook sem termos proibidos',
   'Bio de cada página de Facebook inclui divulgação de parceria',
   'Foto de capa de cada página/perfil sem texto ou imagem com claims (ex: "stem cell")',
+  'Fotos "antes/depois" publicadas sem legendas com claims médicos (ex: "curou", "eliminou a dor")',
+  'Testemunhos de clientes publicados têm consentimento documentado e não incluem claims médicos nas suas próprias palavras',
   'Posts fixados/destacados revistos',
   'Guiões e templates fixos da app revistos (conteúdo estático, não gerado por IA)'
 ];
@@ -29985,6 +31446,12 @@ let _tmplIATexto = '';
 const TEMPLATES_BASE = [
   { id:'tb1', fase:'primeiro_contacto', canal:'WhatsApp', titulo:'Abordagem pessoal (conhecido)', texto:'Olá {nome}! Espero que estejas bem 😊\nTenho andado a explorar algo que tem feito uma diferença incrível na minha energia e bem-estar e lembrei-me de ti.\nNão te quero tomar muito tempo — seria possível falarmos 10 minutos esta semana? Tens {dia} disponível?', variaveis:['{nome}','{dia}'] },
   { id:'tb2', fase:'primeiro_contacto', canal:'Instagram DM', titulo:'Abordagem fria (perfil público)', texto:'Olá {nome}! Vi o teu perfil e achei que talvez te pudesse interessar algo que partilho — relacionado com saúde e bem-estar.\nSe tiveres curiosidade, posso contar mais. Sem compromisso 😊', variaveis:['{nome}'] },
+  { id:'tb12', fase:'primeiro_contacto', canal:'WhatsApp', titulo:'Abordagem pessoal — direta sobre LifeWave (Mercado Quente)', texto:'Olá {nome}! Espero que estejas bem 😊\nTenho andado a explorar uma coisa da LifeWave — patches de bem-estar e energia — que me tem feito mesmo diferença.\nNão te quero tomar muito tempo, mas se tiveres curiosidade posso explicar-te em 10 minutos. Topas?', variaveis:['{nome}'] },
+  { id:'tb13', fase:'primeiro_contacto', canal:'WhatsApp', titulo:'Abordagem direta sobre LifeWave (Mercado Morno)', texto:'Olá {nome}, tudo bem? Há uns tempos que não falamos!\nAndo envolvido(a) com a LifeWave, uma marca de bem-estar com uma tecnologia bem interessante (X39). Lembrei-me de ti — achas que faria sentido eu explicar-te um pouco?', variaveis:['{nome}'] },
+  { id:'tb14', fase:'primeiro_contacto', canal:'WhatsApp', titulo:'Abordagem direta sobre LifeWave (Mercado Frio)', texto:'Olá {nome}! Vi o teu perfil e pareceste-me uma pessoa aberta a novidades.\nTrabalho com a LifeWave, uma marca de bem-estar com tecnologia de fotomodulação (X39). Se tiveres curiosidade, posso contar mais — sem qualquer compromisso.', variaveis:['{nome}'] },
+  { id:'tb15', fase:'primeiro_contacto', canal:'WhatsApp', titulo:'Pergunta aberta — curiosidade genuína', texto:'Olá {nome}, tudo bem?\nUma pergunta rápida: já ouviste falar da LifeWave? É uma marca de bem-estar com uma tecnologia chamada X39 que me tem impressionado.\nNão sei se é a tua área, mas se tiveres curiosidade digo-te com todo o gosto mais informação. Sem pressão nenhuma 😊', variaveis:['{nome}'] },
+  { id:'tb16', fase:'primeiro_contacto', canal:'WhatsApp', titulo:'Pergunta aberta — foco em rendimento extra', texto:'Olá {nome}!\nUma pergunta rápida — estás aberto(a) a conhecer uma forma de gerar rendimento extra através da LifeWave, uma marca de bem-estar em crescimento?\nNão faz mal se não for a tua praia agora. Se quiseres saber mais até {dia_semana}, é só dizeres 🙂', variaveis:['{nome}','{dia_semana}'] },
+  { id:'tb17', fase:'primeiro_contacto', canal:'WhatsApp', titulo:'Pergunta aberta — mais pessoal', texto:'Olá {nome}, espero que estejas bem.\nAndo a trabalhar com a LifeWave (X39) e tenho gostado bastante do que tenho visto — tanto a nível de bem-estar como de oportunidade de negócio.\nAchei que podia fazer sentido para ti. Interessa-te saber mais, ou não é o momento? Tudo bem de qualquer forma!', variaveis:['{nome}'] },
   { id:'tb3', fase:'follow_up', canal:'WhatsApp', titulo:'Follow-up após primeiro contacto', texto:'Olá {nome}! Só queria dar seguimento à nossa conversa de {data_ultima}.\nSoubeste mais alguma coisa ou tens alguma questão? Fico aqui para ajudar 🙂', variaveis:['{nome}','{data_ultima}'] },
   { id:'tb4', fase:'follow_up', canal:'WhatsApp', titulo:'Follow-up após silêncio (5+ dias)', texto:'Olá {nome}! Percebi que talvez não seja o momento ideal — e está ótimo!\nSe um dia tiveres curiosidade sobre o que partilhei, estou por aqui. Cuida de ti! 😊', variaveis:['{nome}'] },
   { id:'tb5', fase:'apresentacao', canal:'WhatsApp', titulo:'Envio de apresentação/vídeo', texto:'Olá {nome}! Como combinado, deixo aqui o link com mais informação:\n{link}\nÉ uma tecnologia inovadora de fotobiomodulação que suporta o bem-estar e a energia. Vê com atenção e diz-me o que achaste! Se tiveres questões, estou aqui 😊', variaveis:['{nome}','{link}'] },
@@ -30079,6 +31546,7 @@ O template deve:
 - Terminar com uma pergunta aberta ou call-to-action suave
 - NUNCA usar: "cura", "trata", "alivia dor", "stem cell activation", "ativa células estaminais", "clinicamente provado", "detox", "milagre", "resultado garantido"
 - Usar APENAS linguagem aprovada: "suporta", "promove", "pode ajudar a manter", "fotomodulação", "bem-estar geral"
+${fase === 'primeiro_contacto' ? '- IMPORTANTE: menciona explicitamente "LifeWave" e/ou "X39" logo nesta primeira mensagem — não escondas a marca atrás de frases vagas como "uma oportunidade" ou "algo que descobri". Ser direto e transparente desde o início atrai pessoas realmente interessadas na área e constrói confiança; esconder a marca só gera desconfiança quando ela aparecer mais tarde.' : ''}
 ${getRevistaContextoIA()}
 ${LW_COMPLIANCE}
 
@@ -32108,6 +33576,7 @@ const AUTO_BIBLIOTECA = [
     ] }, desc:'Cria 3 lembretes com mensagens prontas (Dia 1, 7 e 30) para acompanhares um novo cliente e apoiares a renovação.', tag:'Retenção' },
   { id:'lib_pedir_indicacao_45d', icon:'🎁', titulo:'Pedir Indicação 45 dias após Venda', trigger:{ tipo:'estado_muda', de:'*', para:'cliente' }, action:{ tipo:'criar_lembrete', dias:45, mensagem:'{nome} já é cliente há 45 dias e está satisfeito — ótimo momento para pedir uma indicação' }, desc:'Cria um lembrete 45 dias depois de um lead se tornar Cliente, para lhe pedires com naturalidade que indique alguém que possa beneficiar do produto.', tag:'Indicações' },
   { id:'lib_msg_pedir_indicacao', icon:'🎁', titulo:'Mensagem de Pedido de Indicação', trigger:{ tipo:'estado_muda', de:'*', para:'cliente' }, action:{ tipo:'copiar_mensagem', texto:'Olá {nome}! 😊 Ainda bem que estás a gostar do X39! Já agora — conheces mais alguém que ache que podia beneficiar de mais energia e bem-estar no dia a dia? Adorava poder ajudar mais alguém como te ajudei a ti 🙏' }, desc:'Quando um lead passa a Cliente, prepara também uma mensagem pronta a usar mais tarde para lhe pedires uma indicação.', tag:'Indicações' },
+  { id:'lib_lead_quente_esfriando', icon:'🔥', titulo:'Lead quente a esfriar', trigger:{ tipo:'score_alto_parado', scoreMin:7, dias:4 }, action:{ tipo:'notificar', texto:'{nome} tem score alto e está parado há dias — não deixes esfriar, contacta hoje!' }, desc:'Avisa quando um lead com score ≥7 (alta probabilidade de fecho) fica parado sem contacto — para não perderes os leads mais valiosos por falta de acompanhamento.', tag:'Vendas' },
 ];
 
 function getAutoRegras() { try { return JSON.parse(localStorage.getItem(getUserStorageKey('lw_automacao_regras')) || '[]'); } catch(e) { return []; } }
@@ -32175,9 +33644,9 @@ function renderAutomacao() {
   renderAutomacaoGrid();
 }
 
-function descreverTrigger(t) { if(t.tipo==='estado_muda')return `Lead passa a "${estadoLabel(t.para)}"`; if(t.tipo==='lead_criado')return 'Novo lead adicionado'; if(t.tipo==='sem_contacto_dias')return `Sem contacto há ${t.dias} dias`; if(t.tipo==='aniversario')return 'Aniversário do lead'; return t.tipo; }
+function descreverTrigger(t) { if(t.tipo==='estado_muda')return `Lead passa a "${estadoLabel(t.para)}"`; if(t.tipo==='lead_criado')return 'Novo lead adicionado'; if(t.tipo==='sem_contacto_dias')return `Sem contacto há ${t.dias} dias`; if(t.tipo==='aniversario')return 'Aniversário do lead'; if(t.tipo==='score_alto_parado')return `Score ≥${t.scoreMin} parado há ${t.dias} dias`; return t.tipo; }
 function descreverAction(a) { if(a.tipo==='criar_lembrete')return `Cria lembrete em ${a.dias} dia(s)`; if(a.tipo==='copiar_mensagem')return 'Prepara mensagem para enviar'; if(a.tipo==='mudar_estado')return `Move para "${estadoLabel(a.estado)}"`; if(a.tipo==='notificar')return 'Mostra notificação'; if(a.tipo==='iniciar_sequencia')return `Inicia sequência de ${(a.passos||[]).length} mensagens`; return a.tipo; }
-function iconeTrigger(tipo) { return { estado_muda:'🔄', lead_criado:'👋', sem_contacto_dias:'🥶', aniversario:'🎂' }[tipo] || '⚙️'; }
+function iconeTrigger(tipo) { return { estado_muda:'🔄', lead_criado:'👋', sem_contacto_dias:'🥶', aniversario:'🎂', score_alto_parado:'🔥' }[tipo] || '⚙️'; }
 
 function renderAutomacaoGrid() {
   const regras = getAutoRegras();
@@ -32257,6 +33726,7 @@ function atualizarRegraBuilderUI() {
   if (tEl) {
     if (trigger === 'estado_muda') tEl.innerHTML = `<div class="form-label">Para que estado?</div><select class="form-select" id="regra-trigger-estado"><option value="contactado">Contactado</option><option value="interessado">Interessado</option><option value="negociacao">Negociação</option><option value="cliente">Cliente</option><option value="frio">Frio</option></select>`;
     else if (trigger === 'sem_contacto_dias') tEl.innerHTML = `<div class="form-label">Quantos dias sem contacto?</div><input class="form-input" type="number" id="regra-trigger-dias" value="14" min="1">`;
+    else if (trigger === 'score_alto_parado') tEl.innerHTML = `<div class="form-label">Score mínimo (1-10)</div><input class="form-input" type="number" id="regra-trigger-score" value="7" min="1" max="10" style="margin-bottom:8px;"><div class="form-label">Parado há quantos dias sem contacto?</div><input class="form-input" type="number" id="regra-trigger-score-dias" value="4" min="1">`;
     else tEl.innerHTML = '';
   }
   if (aEl) {
@@ -32278,6 +33748,7 @@ function guardarRegraPersonalizada() {
   let trigger = { tipo: triggerTipo };
   if (triggerTipo === 'estado_muda') trigger.para = document.getElementById('regra-trigger-estado')?.value || 'cliente';
   if (triggerTipo === 'sem_contacto_dias') trigger.dias = parseInt(document.getElementById('regra-trigger-dias')?.value || 14);
+  if (triggerTipo === 'score_alto_parado') { trigger.scoreMin = parseInt(document.getElementById('regra-trigger-score')?.value || 7); trigger.dias = parseInt(document.getElementById('regra-trigger-score-dias')?.value || 4); }
   let action = { tipo: actionTipo };
   if (actionTipo === 'criar_lembrete') { action.dias = parseInt(document.getElementById('regra-action-dias')?.value || 1); action.mensagem = document.getElementById('regra-action-msg')?.value.trim() || 'Follow-up com {nome}'; }
   if (actionTipo === 'copiar_mensagem') action.texto = document.getElementById('regra-action-texto')?.value.trim() || 'Olá {nome}!';
@@ -32289,7 +33760,24 @@ function guardarRegraPersonalizada() {
   showToast('✅ Regra "' + nome + '" criada!');
 }
 
-function substituirVariaveis(texto, lead) { return (texto||'').replace(/\{nome\}/g, lead.nome||'').replace(/\{estado\}/g, estadoLabel(lead.estado)); }
+// Calcula o próximo dia útil (segunda-sexta) a partir de hoje, para usar em
+// variáveis de template como {dia_semana} — evita sugerir sábado/domingo.
+function proximoDiaUtilNome() {
+  const dias = ['Domingo','Segunda','Terça','Quarta','Quinta','Sexta','Sábado'];
+  const hoje = new Date();
+  let d = new Date(hoje);
+  d.setDate(d.getDate() + 1);
+  while (d.getDay() === 0 || d.getDay() === 6) d.setDate(d.getDate() + 1);
+  return dias[d.getDay()];
+}
+
+function substituirVariaveis(texto, lead) {
+  return (texto||'')
+    .replace(/\{nome\}/g, lead.nome||'')
+    .replace(/\{estado\}/g, estadoLabel(lead.estado))
+    .replace(/\{dia_semana\}/g, proximoDiaUtilNome())
+    .replace(/\{dia\}/g, proximoDiaUtilNome()); // {dia} mantido por compatibilidade com templates antigos (tb1)
+}
 
 function executarAutomacoes(lead, estadoAnterior, novoEstado, ehNovoLead) {
   if (!lead) return;
@@ -32397,6 +33885,23 @@ function verificarAutomacoesPeriodicas() {
           const jaHoje = getAutoLog().some(l => l.regraId === r.id && l.texto.includes(lead.nome) && l.data.startsWith(hojeMD.toLocaleDateString('pt-PT')));
           if (!jaHoje) executarAcaoRegra(r, lead);
         }
+      });
+    }
+    // Lead com score alto (alta probabilidade de fecho) parado sem contacto —
+    // mesma lógica de "já executou nos últimos X dias" do sem_contacto_dias,
+    // para não repetir o aviso todos os minutos enquanto a regra está ativa.
+    // Fora do funil ativo (cliente/frio) fica de fora, tal como nas outras
+    // regras baseadas em tempo — já não faz sentido "esfriar" quem já saiu.
+    if (r.trigger.tipo === 'score_alto_parado') {
+      leads.forEach(lead => {
+        if (lead.estado === 'cliente' || lead.estado === 'frio') return;
+        const dias = diasSemContacto(lead);
+        if (dias === null || dias < (r.trigger.dias || 4)) return;
+        const scoreMin = r.trigger.scoreMin || 7;
+        const { score } = calcularScore(lead);
+        if (score < scoreMin) return;
+        const jaExecutou = getAutoLog().some(l => l.regraId === r.id && l.texto.includes(lead.nome) && (agora - new Date(l.data.split(',')[0].split('/').reverse().join('-')).getTime()) < 86400000 * (r.trigger.dias || 4));
+        if (!jaExecutou) executarAcaoRegra(r, lead);
       });
     }
   });
@@ -33179,8 +34684,8 @@ function enviarWhatsAppParaLead(leadId, texto, lembreteId) {
 
 function substituirVariaveisWAI(texto, lead) {
   if (!texto) return '';
-  if (!lead) return texto.replace(/\{nome\}/g, '');
-  return texto.replace(/\{nome\}/g, lead.nome || '');
+  if (!lead) return texto.replace(/\{nome\}/g, '').replace(/\{dia_semana\}/g, proximoDiaUtilNome()).replace(/\{dia\}/g, proximoDiaUtilNome());
+  return texto.replace(/\{nome\}/g, lead.nome || '').replace(/\{dia_semana\}/g, proximoDiaUtilNome()).replace(/\{dia\}/g, proximoDiaUtilNome());
 }
 
 function abrirSeletorWA() {
@@ -34438,6 +35943,7 @@ async function acAnalisar() {
       + ' 7) NESTED/FORWARDED SCREENSHOT RULE (critical): if the screenshot shows a forwarded message or a screenshot-within-a-screenshot (e.g. the prospect forwarded a message they received from someone else, or shared a screenshot of a different conversation), do NOT confuse the participants of the inner forwarded screenshot with the participants of the outer conversation. The person who forwarded/shared that inner screenshot to the distributor is the actual prospect in this conversation — analyze their reaction and intent (e.g. "I think your account was hacked", suspicion, confusion) as the prospect\'s message, not as if the distributor sent the inner content. Always determine the real sender of each visible message based on bubble side and context, never assume the most recent or central text bubble belongs to the distributor by default.'
       + ' 8) UNRELATED CONTENT RULE (critical): a screenshot or pasted conversation may contain messages that have nothing to do with LifeWave — personal chit-chat, work topics, family matters, an entirely different business/project/opportunity, or an unrelated subject mixed into the same thread. IGNORE all such unrelated messages completely when producing resumo, objecoes, pontos_positivos, erros_cometidos, proximo_passo, probabilidade_conversao and proxima_mensagem. Base the ENTIRE analysis only on messages that EXPLICITLY reference LifeWave, X39 or other named LifeWave products/patches, phototherapy/photobiomodulation, or an unambiguous LifeWave business/compensation-plan opportunity. Do NOT assume something is LifeWave-related just because it is generically about "a business opportunity", "a project", "a video to watch" or "money" — those words alone are not evidence. If the name, brand or product is not identifiable and nothing in the visible text ties it to LifeWave, treat it as UNRELATED, even if it looks superficially similar (e.g. another company\'s pre-launch project, a different MLM, a generic investment pitch). NEVER speculate or stretch an ambiguous or unrelated item into a LifeWave interpretation (e.g. do not write things like "in a LifeWave context this could be interpreted as..." — if it is not explicitly LifeWave, it is not part of this analysis). If there are multiple separate LifeWave-related exchanges at different points in the thread, focus on the MOST RECENT one — that is the current live opportunity. If, after excluding unrelated content, there is no LifeWave-related material left at all, set "fase" to "sem_contexto", leave objecoes/pontos_positivos/erros_cometidos as empty arrays, set probabilidade_conversao to 0, and explain in "resumo" that no LifeWave-related conversation was found in the screenshot/text provided — do not describe or summarize the unrelated content instead.'
       + (_acLinksStr ? ' 9) LINK INCLUSION RULE (mandatory, not optional): if "fase" is "pronto_para_comprar" or "interesse", the "proxima_mensagem" field MUST include one of the distributor\'s personal links below — this is a hard requirement, not a suggestion. Use the produto link if the prospect is leaning toward the product/wellness angle, or the negocio link if they are leaning toward the business/partnership angle; use registo if neither is available. Weave the link naturally into the message (e.g. "Aqui tens o link com toda a informação: [link]"), never omit it in these two phases. If "fase" is "descoberta" or "consideracao", do NOT include any link yet — keep the conversation going first.' + _acLinksStr : '')
+      + ' 10) PROXIMA_MENSAGEM QUALITY RULES (critical — write it like an experienced LifeWave distributor who has closed real sales, not like a generic marketing bot): a) NAME THE BRAND — say "LifeWave" and/or "X39" explicitly; never hide behind vague phrases like "o projeto que te falei", "esta oportunidade incrível", "algo que partilho". Hiding the name reads as evasive and increases suspicion, especially in Portugal where network marketing already carries stigma — naming it plainly builds trust and lets the prospect research it themselves. b) NO EMPTY HYPE — cut filler enthusiasm like "tenho a certeza que vais adorar", "é incrível", "vai mudar a tua vida". Replace it with one concrete, specific reason tied to what THIS prospect said or asked (energy, sleep, recovery, skin, the business/income side) — specificity converts, generic excitement does not. c) GIVE A REAL REASON THE MESSAGE IS RELEVANT TO THEM — briefly say why you thought of them or why it fits what they mentioned, instead of a one-size-fits-all pitch. d) END WITH A CONCRETE NEXT STEP, NOT A PASSIVE ONE — avoid vague closers like "depois podemos falar" or "quando quiseres, diz". Propose something specific and low-friction (a suggested day/time for a quick call, or a direct question they can answer in one tap, e.g. "Quando vires, diz-me o que achaste — quinta à noite fica bem para uma chamada rápida?"). e) Keep it warm and human, never pushy or salesy — this is relationship-based selling, not a cold pitch. f) LINK FRAMING (important): the distributor\'s links use a third-party domain that does not visibly say "LifeWave" in the URL itself — so whenever a link is included in the message, frame it explicitly in the surrounding text so the prospect knows what they are clicking, e.g. "Aqui tens o meu link oficial com toda a informação sobre a LifeWave/X39: [link]" or "Este é o link com tudo sobre o X39 e a LifeWave: [link]" — never paste the link with no framing or with only a vague "aqui tens mais info", since the domain alone will not reassure the prospect that it is LifeWave-related.'
       + ' Respond ONLY in valid JSON with this exact structure: {"nome_detectado":"Maria Silva","tel_detectado":"+351912345678","email_detectado":"maria@email.com","sentimento":"positivo","fase":"interesse","resumo":"texto","objecoes":["obj1"],"pontos_positivos":["p1"],"erros_cometidos":["e1"],"proxima_mensagem":"msg exacta no idioma do prospecto","proximo_passo":"accao","probabilidade_conversao":60,"dica_extra":"dica","idioma_prospecto":"fr"}';
     var promptText = sys + '\n\nTemperatura do lead: ' + acTemp + '. Analisa esta conversa de ' + platLabel + (isImg ? '. Vê a imagem.' : ':\n\n' + texto) + (ctx ? '\n\nContexto: ' + ctx : '') + '\n\nResponde APENAS com JSON valido.';
 
