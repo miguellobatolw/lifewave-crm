@@ -412,9 +412,7 @@
   .modal-overlay {
     position: fixed;
     inset: 0;
-    background: rgba(0,0,0,0.75);
-    -webkit-backdrop-filter: blur(4px);
-    backdrop-filter: blur(4px);
+    background: rgba(0,0,0,0.86);
     z-index: 200;
     display: none;
     align-items: center;
@@ -7744,6 +7742,8 @@
   </main>
 
 
+  
+
   <!-- ==================== MODAL LEMBRETES & NOTIFICAÇÕES ==================== -->
   <div class="modal-overlay" id="modal-notificacoes">
     <div class="modal" style="max-width:560px;max-height:90vh;overflow-y:auto;">
@@ -13406,6 +13406,66 @@ function saveGeminiKey(val) {
   });
 }
 
+// ===================================================
+// ASSISTENTE "CRIAR CHAVE DE IA" — v78
+// Guia não-técnico para quem nunca criou uma API key. Não duplica
+// a lógica de guardar chave: chama saveGeminiKey()/saveClaudeKey(),
+// só acrescenta feedback visual em tempo real sobre o formato colado.
+// ===================================================
+function abrirGuiaChaveIA() {
+  try {
+    const modal = document.getElementById('modal-guia-chave-ia');
+    if (!modal) { alert('[DIAGNÓSTICO] Não encontrei o elemento modal-guia-chave-ia no HTML. Isto indica que estás a abrir uma versão do ficheiro sem a correção.'); return; }
+    const elG = document.getElementById('guia-gemini-key');
+    const elC = document.getElementById('guia-claude-key');
+    if (elG) elG.value = geminiKey || '';
+    if (elC) elC.value = claudeKey || '';
+    // Recalcula feedback (incluindo botão "Concluído — Fechar") para refletir
+    // chaves já guardadas anteriormente, em vez de deixar tudo em branco.
+    guiaChaveValidar('gemini');
+    guiaChaveValidar('claude');
+    modal.classList.add('open');
+    modal.style.display = 'flex';
+    // Garante que fica sempre por cima de qualquer outro modal que o tenha aberto
+    // (ex: Meu Perfil), independentemente da ordem no DOM.
+    modal.style.zIndex = '9999';
+    // Defesa extra: garante que o ecrã principal não fica preso a meio do scroll
+    window.scrollTo(0, 0);
+  } catch (e) {
+    alert('[DIAGNÓSTICO] Erro ao abrir o guia: ' + e.message);
+  }
+}
+
+function guiaChaveValidar(tipo) {
+  const isGemini = tipo === 'gemini';
+  const input = document.getElementById(isGemini ? 'guia-gemini-key' : 'guia-claude-key');
+  const feedback = document.getElementById(isGemini ? 'guia-gemini-feedback' : 'guia-claude-feedback');
+  const msg = document.getElementById(isGemini ? 'guia-gemini-msg' : 'guia-claude-msg');
+  const fecharBtn = document.getElementById(isGemini ? 'guia-gemini-fechar-btn' : 'guia-claude-fechar-btn');
+  const val = input.value.trim();
+
+  if (isGemini) saveGeminiKey(val); else saveClaudeKey(val);
+
+  if (!val) { feedback.textContent = ''; msg.textContent = ''; if (fecharBtn) fecharBtn.style.display = 'none'; return; }
+
+  const prefixoOk = isGemini ? (val.startsWith('AIza') || val.startsWith('AQ.')) : val.startsWith('sk-ant-');
+  const tamanhoOk = val.length > 20;
+
+  if (prefixoOk && tamanhoOk) {
+    feedback.textContent = '✅';
+    msg.textContent = '✅ Chave guardada! Já podes fechar esta janela e usar a IA na app.';
+    msg.style.color = 'var(--accent)';
+    if (fecharBtn) fecharBtn.style.display = 'block';
+  } else {
+    feedback.textContent = '⚠️';
+    msg.textContent = isGemini
+      ? '⚠️ Isto não parece uma chave Gemini válida (deveria começar por "AIza" ou "AQ."). Verifica se copiaste tudo, sem espaços.'
+      : '⚠️ Isto não parece uma chave Claude válida (deveria começar por "sk-ant-"). Verifica se copiaste tudo, sem espaços.';
+    msg.style.color = '#ff6b35';
+    if (fecharBtn) fecharBtn.style.display = 'none';
+  }
+}
+
 function saveGrokKey(val) {
   grokKey = val.trim();
   localStorage.setItem('lw_grokKey', grokKey);
@@ -13800,6 +13860,80 @@ async function callClaude(prompt, imageBase64, imageMediaType) {
   throw ultimoErro || new Error('Erro Claude');
 }
 
+// ===================================================
+// CHAMADA RÁPIDA DE IA (Claude Haiku → Gemini Flash) — v78
+// Consolida um padrão que estava duplicado em ~8 pontos do código
+// (mensagem de follow-up de lead, geração de conteúdo do catálogo,
+// keywords de imagem, plano de formação, mensagem de apoio a membro,
+// insight de notificações, templates IA, urgência de promoção):
+// todos faziam o mesmo "se houver chave Claude usa Haiku, senão se
+// houver chave Gemini usa Flash" com o próprio fetch copiado.
+// Mantém o mesmo comportamento (mesmos modelos, prioridade Claude
+// primeiro), só passa a validar res.ok antes de tentar ler o texto —
+// antes, uma resposta de erro da API podia ser lida como texto vazio
+// em vez de lançar um erro explicativo.
+// Devolve string (pode ser '' se nenhuma chave estiver configurada);
+// quem chama decide como tratar esse caso, tal como antes.
+// ===================================================
+async function callIARapida(prompt, maxTokens) {
+  maxTokens = maxTokens || 600;
+  if (claudeKey && claudeKey.length > 10) {
+    const r = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-api-key': claudeKey, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
+      body: JSON.stringify({ model: 'claude-haiku-4-5-20251001', max_tokens: maxTokens, messages: [{ role: 'user', content: prompt }] })
+    });
+    if (!r.ok) { const e = await r.json().catch(()=>({})); throw new Error(e?.error?.message || `HTTP ${r.status}`); }
+    const d = await r.json();
+    return (d.content && d.content[0] && d.content[0].text) ? d.content[0].text.trim() : '';
+  }
+  if (geminiKey && geminiKey.length > 10) {
+    const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiKey}`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }], generationConfig: { maxOutputTokens: maxTokens, thinkingConfig: { thinkingBudget: 0 } } })
+    });
+    if (!r.ok) { const e = await r.json().catch(()=>({})); throw new Error(e?.error?.message || `HTTP ${r.status}`); }
+    const d = await r.json();
+    return (d.candidates && d.candidates[0]) ? (d.candidates[0].content.parts[0].text || '').trim() : '';
+  }
+  return '';
+}
+
+// ===================================================
+// CHAMADA CLAUDE COM HISTÓRICO DE CONVERSA (system + messages) — v78
+// Consolida o padrão de fetch que era idêntico no Coach IA e no
+// simulador de Role-play: ambos enviam "system" + array de mensagens
+// (user/assistant) para a Claude Messages API, só variando o modelo
+// e o max_tokens. Os ramos Gemini de cada um NÃO foram tocados —
+// implementam a conversa de forma diferente entre si (um usa
+// histórico multi-turn real, o outro achata tudo num único prompt),
+// por isso não são duplicados um do outro.
+// Lança erro se a resposta não for OK; devolve o texto (ou '' se vazio).
+// ===================================================
+async function callClaudeChat({ system, messages, model, maxTokens }) {
+  const res = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': claudeKey,
+      'anthropic-version': '2023-06-01',
+      'anthropic-dangerous-direct-browser-access': 'true'
+    },
+    body: JSON.stringify({
+      model: model || 'claude-sonnet-4-6',
+      max_tokens: maxTokens || 2048,
+      system,
+      messages
+    })
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err?.error?.message || `Erro HTTP ${res.status}`);
+  }
+  const data = await res.json();
+  return data.content?.[0]?.text || '';
+}
+
 async function callAI(page, prompt, imageBase64, imageMediaType, cacheContext) {
   const ai = page === 'posts' ? postsAI : respAI;
   const loaderLabel = document.getElementById(page === 'posts' ? 'posts-loader-label' : 'resp-loader-label');
@@ -14129,17 +14263,7 @@ Se não conseguires inferir nada concreto, responde com um contexto genérico so
 Responde APENAS em JSON sem markdown, neste formato exato:
 {"title":"título inferido ou descrição curta","description":"1-2 frases sobre o tema provável","source":"${plat.nome}"}`;
 
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-api-key': claudeKey, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-6',
-        max_tokens: 500,
-        messages: [{ role: 'user', content: prompt }]
-      })
-    });
-    const data = await res.json();
-    const raw = data.content?.[0]?.text || '';
+    const raw = await callClaude(prompt);
     const clean = raw.replace(/```json|```/g, '').trim();
     const parsed = JSON.parse(clean);
     videoInfo = { title: parsed.title || '', description: parsed.description || '', source: parsed.source || plat.nome, thumbnailUrl: null };
@@ -18589,41 +18713,11 @@ Escreve APENAS a mensagem + próximo passo. Sem explicações nem introduções.
   try {
     let texto = '';
     if (ai === 'gemini') {
-      const body = {
-        contents: [{ role: 'user', parts: [{ text: prompt }] }],
-        generationConfig: { maxOutputTokens: 3000, temperature: 0.75, thinkingConfig: { thinkingBudget: 0 } }
-      };
-      let lastErr;
-      for (const model of GEMINI_MODELS) {
-        try {
-          const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiKey}`,
-            { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
-          const data = await res.json();
-          if (data.error) throw new Error(data.error.message);
-          texto = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
-          break;
-        } catch(e) { lastErr = e; if (e.message?.includes('quota')) continue; throw e; }
-      }
-      if (!texto) throw lastErr || new Error('Sem resposta Gemini');
+      texto = await callGemini(prompt);
+      if (!texto) throw new Error('Sem resposta Gemini');
     } else {
       if (location.protocol === 'file:' || location.protocol === 'content:') throw new Error('LOCAL_FILE');
-      const res = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': claudeKey,
-          'anthropic-version': '2023-06-01',
-          'anthropic-dangerous-direct-browser-access': 'true'
-        },
-        body: JSON.stringify({
-          model: 'claude-sonnet-4-6',
-          max_tokens: 3000,
-          messages: [{ role: 'user', content: prompt }]
-        })
-      });
-      if (!res.ok) { const e = await res.json().catch(()=>({})); throw new Error(e?.error?.message || `HTTP ${res.status}`); }
-      const data = await res.json();
-      texto = data.content?.[0]?.text || '';
+      texto = await callClaude(prompt);
     }
 
     // Separar a mensagem do próximo passo
@@ -18850,27 +18944,12 @@ async function coachEnviar() {
       const histRecente = coachHistory.slice(-10);
       const messages = histRecente.map(m => ({ role: m.role, content: m.content }));
 
-      const res = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': claudeKey,
-          'anthropic-version': '2023-06-01',
-          'anthropic-dangerous-direct-browser-access': 'true'
-        },
-        body: JSON.stringify({
-          model: 'claude-sonnet-4-6',
-          max_tokens: 2048,
-          system: getCoachSystem(),
-          messages
-        })
+      resposta = await callClaudeChat({
+        system: getCoachSystem(),
+        messages,
+        model: 'claude-sonnet-4-6',
+        maxTokens: 2048
       });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err?.error?.message || `Erro HTTP ${res.status}`);
-      }
-      const data = await res.json();
-      resposta = data.content?.[0]?.text || '';
     }
 
     // Remover typing bubble e mostrar resposta
@@ -19602,25 +19681,7 @@ ${LW_COMPLIANCE}
 Regras: Português de Portugal. Tom pessoal e caloroso, nunca robótico. Máximo 3 frases curtas. Sem saudação genérica tipo "Espero que estejas bem" repetida — vai direto ao ponto com naturalidade. Termina com uma pergunta aberta que convide a resposta. Responde APENAS com o texto da mensagem, sem aspas, sem explicações.`;
 
   try {
-    let texto = '';
-    if (claudeKey && claudeKey.length > 10) {
-      const r = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-api-key': claudeKey, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
-        body: JSON.stringify({ model: 'claude-haiku-4-5-20251001', max_tokens: 200, messages: [{ role: 'user', content: prompt }] })
-      });
-      if (!r.ok) { const e = await r.json().catch(()=>({})); throw new Error(e?.error?.message || `HTTP ${r.status}`); }
-      const d = await r.json();
-      texto = d?.content?.[0]?.text || '';
-    } else {
-      const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiKey}`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }], generationConfig: { maxOutputTokens: 300, thinkingConfig: { thinkingBudget: 0 } } })
-      });
-      if (!r.ok) { const e = await r.json().catch(()=>({})); throw new Error(e?.error?.message || `HTTP ${r.status}`); }
-      const d = await r.json();
-      texto = d?.candidates?.[0]?.content?.parts?.[0]?.text || '';
-    }
+    let texto = await callIARapida(prompt, claudeKey && claudeKey.length > 10 ? 200 : 300);
     texto = texto.trim();
     if (!texto) throw new Error('Resposta vazia da IA');
 
@@ -21499,6 +21560,40 @@ function calcularBonusBinario(minhaCategoria, bvSecaoPagamento) {
   return { elegivel: true, ganho, pct: tabela.pct, max: tabela.max, bv: bvSecaoPagamento, atingiuLimite: bruto > tabela.max };
 }
 
+// Calcula quanto volume (e dinheiro) está a ser desperdiçado por desequilíbrio
+// entre as duas secções do binário. O Bónus Binário paga sobre a secção MAIS
+// FRACA — o excedente na secção mais forte não conta neste período e não
+// transita (é perdido, não acumulado). Função pura, sem tocar em DOM, para
+// poder ser reutilizada e testada isoladamente.
+// Devolve null quando não há dados suficientes ou a categoria não é elegível
+// para Binário — nesses casos não faz sentido mostrar o alerta.
+function calcularDesequilibrioBinario(minhaCategoria, secL, secR) {
+  const elegivel = typeof indiceCategoria === 'function' && indiceCategoria(minhaCategoria) <= indiceCategoria('3-Star Manager');
+  const tabela = TABELA_BINARIO[minhaCategoria];
+  if (!elegivel || !tabela) return null;
+  const l = parseFloat(secL) || 0;
+  const r = parseFloat(secR) || 0;
+  if (l <= 0 || r <= 0) return null; // sem os dois lados preenchidos não há comparação a fazer
+
+  const fraca = Math.min(l, r);
+  const forte = Math.max(l, r);
+  const excedente = forte - fraca;
+  if (excedente <= 0) return { equilibrado: true, excedente: 0, ganhoPerdido: 0 };
+
+  // Quanto ganharia a mais SE a secção fraca tivesse o mesmo volume da forte,
+  // face ao que ganha hoje — respeitando sempre o teto (max) da categoria.
+  const ganhoAtual = calcularBonusBinario(minhaCategoria, fraca).ganho || 0;
+  const ganhoSeEquilibrado = calcularBonusBinario(minhaCategoria, forte).ganho || 0;
+  const ganhoPerdido = Math.max(0, ganhoSeEquilibrado - ganhoAtual);
+
+  return {
+    equilibrado: false,
+    ladoFraco: l <= r ? 'esquerda' : 'direita',
+    ladoForte: l <= r ? 'direita' : 'esquerda',
+    fraca, forte, excedente, ganhoPerdido,
+  };
+}
+
 // --- MENTOR MATCHING BONUS ---
 // % por Geração (1-6) e correspondência máxima por indivíduo, por Categoria de pagamento
 // Fonte: Plano de Compensação EMEA PT, pág.12 (valores em EUR)
@@ -22459,6 +22554,13 @@ function renderEquipa() {
   const inativos = membros.filter(m => m.estado === 'inativo').length;
   const totalCliEquipa = membros.reduce((acc,m) => acc + (m.clientes||0), 0);
 
+  // Ativação real = quantos membros tiveram crescimento de números (venda/recruta/pontos)
+  // nos últimos 14 dias — diferente de "Ativos", que é uma etiqueta manual.
+  const comAtividadeRegistada = membros.filter(m => m.ultimaAtividade);
+  const ativos14d = comAtividadeRegistada.filter(m => (Date.now() - new Date(m.ultimaAtividade).getTime())/86400000 <= 14).length;
+  const semHistorico = totalMembros - comAtividadeRegistada.length;
+  const pctAtivacao = totalMembros > 0 ? Math.round((ativos14d/totalMembros)*100) : 0;
+
   document.getElementById('equipa-kpis').innerHTML = `
     <div class="stat-card c1">
       <div class="stat-label">Total Membros</div>
@@ -22479,6 +22581,11 @@ function renderEquipa() {
       <div class="stat-label">Clientes da Equipa</div>
       <div class="stat-value" style="color:var(--accent3)">${totalCliEquipa}</div>
       <div class="stat-trend">Total fechado pela equipa</div>
+    </div>
+    <div class="stat-card c1" title="Membros cujos números (clientes/recrutados/pontos) cresceram nos últimos 14 dias">
+      <div class="stat-label">🔁 Duplicação Real (14d)</div>
+      <div class="stat-value" style="color:${pctAtivacao>=50?'var(--accent)':pctAtivacao>=25?'var(--gold)':'var(--accent3)'}">${pctAtivacao}%</div>
+      <div class="stat-trend">${ativos14d} de ${totalMembros} com ação nos últimos 14d${semHistorico ? ` · ${semHistorico} sem histórico ainda` : ''}</div>
     </div>
   `;
 
@@ -22846,6 +22953,16 @@ function salvarMembro() {
   const olxl = parseFloat(document.getElementById('mb-olxl').value) || 0;
   const categoria = calcularCategoria({ pv, qdv, secL, secR, olxl }).cat;
   const membroExistente = editingMembroId ? membros.find(m => m.id === editingMembroId) : null;
+
+  // Deteta atividade REAL do membro (não confundir com "ultimoContacto", que é
+  // quando TU o contactas). Se algum dos números de negócio dele cresceu desde
+  // a última vez, é sinal de que ele próprio vendeu/recrutou/fez pontos — é
+  // essa duplicação real que queremos medir, não só um contacto teu.
+  const clientesNovo = parseInt(document.getElementById('mb-clientes').value) || 0;
+  const recrutadosNovo = parseInt(document.getElementById('mb-recrutados').value) || 0;
+  const cresceu = !membroExistente || clientesNovo > (membroExistente.clientes||0) || recrutadosNovo > (membroExistente.recrutados||0)
+    || pv > (membroExistente.pv||0) || qdv > (membroExistente.qdv||0) || secL > (membroExistente.secL||0) || secR > (membroExistente.secR||0) || olxl > (membroExistente.olxl||0);
+
   const membro = {
     id: editingMembroId || gerarId(),
     nome,
@@ -22854,14 +22971,15 @@ function salvarMembro() {
     nivel: parseInt(document.getElementById('mb-nivel').value) || 1,
     data: document.getElementById('mb-data').value,
     estado: document.getElementById('mb-estado').value,
-    clientes: parseInt(document.getElementById('mb-clientes').value) || 0,
-    recrutados: parseInt(document.getElementById('mb-recrutados').value) || 0,
+    clientes: clientesNovo,
+    recrutados: recrutadosNovo,
     slug: document.getElementById('mb-slug').value.trim(),
     notas: document.getElementById('mb-notas').value.trim(),
     pv, qdv, secL, secR, olxl,
     categoria,
     historico: membroExistente?.historico || [],
     ultimoContacto: membroExistente?.ultimoContacto || null,
+    ultimaAtividade: cresceu ? new Date().toISOString() : (membroExistente?.ultimaAtividade || null),
     compras: _comprasMembroAtual,
   };
   if (editingMembroId) {
@@ -23772,6 +23890,38 @@ const COMPLIANCE_REGRAS = [
     termos: ['o melhor do mundo', 'nº1 absoluto', 'revolucionário e comprovado cientificamente', '100% garantido', 'resultados imediatos garantidos'] },
 ];
 
+// Nome da categoria usada quando se deteta um valor monetário associado a uma
+// recorrência (ex: "3000€ por mês") — sinal de alegação de rendimento que, em
+// muitos países, exige a Declaração de Rendimentos Típicos junto ao conteúdo.
+const LW_CATEGORIA_RENDIMENTO_NUMERICO = 'Alegação de rendimento sem disclosure';
+
+// Texto padrão do aviso de rendimentos típicos. Modelo comum em MLM: os
+// resultados variam e a maioria dos parceiros não obtém rendimentos
+// significativos — exigido por muitas autoridades de proteção ao consumidor
+// sempre que se comunica um valor de rendimento/oportunidade de negócio.
+const LW_INCOME_DISCLOSURE = `⚠️ Aviso de Rendimentos Típicos: Os resultados e rendimentos mencionados não são típicos nem garantidos. Os ganhos de um Parceiro de Marca LifeWave dependem do esforço individual, do tempo dedicado e de fatores fora do controlo da empresa — a maioria dos Parceiros não obtém rendimentos significativos. Este não é um esquema de "ficar rico depressa". Consulta a Declaração de Rendimentos Típicos oficial da LifeWave para valores médios reais.`;
+
+// Deteta valores monetários associados a uma recorrência temporal (ex: "3000€/mês",
+// "500 euros por semana") — sinal de alegação de rendimento concreta, distinto das
+// frases fixas de "rendimento garantido" já cobertas acima. Função separada porque
+// usa proximidade entre dois regex, não correspondência de termo exato.
+function detetarClaimsRendimentoNumericos(texto) {
+  const norm = (typeof _normalizarTexto === 'function') ? _normalizarTexto(texto || '') : (texto || '').toLowerCase();
+  const regexRecorrencia = /\b(por\s+m[ae]s|mensais|mensalmente|por\s+semana|semanais|semanalmente|por\s+dia|di[ae]rios?|por\s+ano|anuais|anualmente)\b|\/m[ae]s\b|\/semana\b|\/dia\b/g;
+  const posicoesRecorrencia = [];
+  let m;
+  while ((m = regexRecorrencia.exec(norm)) !== null) posicoesRecorrencia.push(m.index);
+  if (!posicoesRecorrencia.length) return [];
+
+  const regexValor = /\d{2,6}\s?(€|eur\b|euros?\b|\$|d[oó]lares?\b|reais?\b|r\$)/g;
+  const encontrados = [];
+  while ((m = regexValor.exec(norm)) !== null) {
+    const perto = posicoesRecorrencia.some(p => Math.abs(p - m.index) <= 40);
+    if (perto) encontrados.push({ termo: m[0].trim(), categoria: LW_CATEGORIA_RENDIMENTO_NUMERICO, risco: 'médio' });
+  }
+  return encontrados;
+}
+
 // Função pura (sem tocar em DOM) — devolve os termos de risco encontrados num texto.
 // Partilhada pelo modal manual "Verificador de Compliance" (v74) e pelo aviso
 // automático pós-geração (aditivo, não substitui nem altera o modal existente).
@@ -23807,6 +23957,13 @@ function detetarTermosCompliance(texto) {
   // Palavras de negação que, imediatamente antes do termo, indicam que o texto
   // está a NEGAR a característica (ex: "não contêm medicamentos") e não a afirmá-la.
   const NEGACOES = ['nao', 'sem', 'nem'];
+
+  // Hashtags escrevem-se sem espaços (#celulasestaminais), por isso um termo
+  // de várias palavras ("células estaminais") nunca bate certo com \b...\b no
+  // texto normal. Aqui extraem-se as hashtags do texto e compara-se a versão
+  // "colada" (sem espaços) de cada termo com o conteúdo de cada hashtag.
+  const hashtags = (textoNorm.match(/#[a-z0-9_]+/g) || []).map(h => h.slice(1));
+
   COMPLIANCE_REGRAS.forEach(regra => {
     regra.termos.forEach(termo => {
       const termoNorm = (typeof _normalizarTexto === 'function') ? _normalizarTexto(termo) : termo.toLowerCase();
@@ -23823,8 +23980,31 @@ function detetarTermosCompliance(texto) {
           encontrados.push({ termo, categoria: regra.categoria, risco: regra.risco });
         }
       }
+
+      // Verificação adicional dentro de hashtags — cobre tanto termos de
+      // várias palavras/hífen ("células estaminais", "ghk-cu", sem espaço
+      // nem hífen numa hashtag) como termos de uma palavra em variações com
+      // sufixo que o \b normal não apanha (ex: "#peptideos" no plural).
+      // Sem negação possível dentro de uma hashtag isolada.
+      // Termos curtos (<=6 chars, ex: "cura", "sara", "detox") só contam com
+      // correspondência EXATA da hashtag inteira, para não apanhar falsos
+      // positivos como "#sarah" (nome) ou "#curadoria" por conterem "sara"/"cura".
+      // Termos mais longos e específicos (ex: "peptideo", "celulasestaminais")
+      // já são suficientemente distintos para aceitar correspondência parcial
+      // (cobre plurais e pequenas variações dentro da hashtag).
+      const termoColado = termoNorm.replace(/[\s-]+/g, '');
+      if (termoColado.length > 6) {
+        if (hashtags.some(h => h.includes(termoColado))) {
+          encontrados.push({ termo, categoria: regra.categoria, risco: regra.risco });
+        }
+      } else if (termoColado.length >= 4) {
+        if (hashtags.some(h => h === termoColado)) {
+          encontrados.push({ termo, categoria: regra.categoria, risco: regra.risco });
+        }
+      }
     });
   });
+  encontrados.push(...detetarClaimsRendimentoNumericos(textoSemDisclaimer));
   return encontrados;
 }
 
@@ -23865,11 +24045,21 @@ function verificarCompliance() {
       </div>
     </div>`).join('');
 
+  // Se houver valores de rendimento concretos (ex: "3000€/mês"), sugere adicionar
+  // o Aviso de Rendimentos Típicos em vez de só assinalar como risco — a alegação
+  // em si pode ser verdadeira, o que falta é o disclaimer que a acompanha.
+  const temClaimRendimento = encontrados.some(e => e.categoria === LW_CATEGORIA_RENDIMENTO_NUMERICO);
+  const btnAvisoRendimento = temClaimRendimento ? `
+    <div style="margin-top:10px;padding:10px 12px;background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.25);border-radius:10px;">
+      <div style="font-size:12px;color:var(--text);margin-bottom:8px;">💡 Foi detetado um valor de rendimento concreto. Em muitos países isto exige juntar um aviso de que os resultados variam.</div>
+      <button class="btn btn-secondary btn-sm" onclick="copiarTextoSeguro(LW_INCOME_DISCLOSURE, '📋 Aviso de Rendimentos copiado!')">📋 Copiar Aviso de Rendimentos</button>
+    </div>` : '';
+
   resEl.innerHTML = `
     <div style="padding:10px 12px;background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.2);border-radius:10px;font-size:12px;color:var(--text);margin-bottom:10px;">
       ⚠️ ${encontrados.length} termo${encontrados.length > 1 ? 's' : ''} de risco encontrado${encontrados.length > 1 ? 's' : ''}. Sugestão: substitui por linguagem de experiência pessoal ("no meu caso senti...") em vez de promessas ou alegações de saúde.
     </div>
-    <div style="display:flex;flex-direction:column;gap:6px;">${itensHtml}</div>`;
+    <div style="display:flex;flex-direction:column;gap:6px;">${itensHtml}</div>${btnAvisoRendimento}`;
 }
 
 function getMetaMensal() {
@@ -25436,39 +25626,7 @@ async function catGerarConteudo(produtoId, tipo, forcar) {
   const prompt = tipoInfo.instrucao + '\n\nPRODUTO: ' + p.nome + '\nDESCRIÇÃO: ' + p.desc + '\nBENEFÍCIOS: ' + beneficiosStr + (p.uso ? '\nCOMO USAR: ' + p.uso : '') + '\n\n' + LW_COMPLIANCE + '\n\nResponde APENAS com o conteúdo final, sem explicações nem títulos extra.';
 
   try {
-    let texto = '';
-
-    if (claudeKey && claudeKey.length > 10) {
-      const r = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': claudeKey,
-          'anthropic-version': '2023-06-01',
-          'anthropic-dangerous-direct-browser-access': 'true'
-        },
-        body: JSON.stringify({
-          model: 'claude-haiku-4-5-20251001',
-          max_tokens: 600,
-          messages: [{ role: 'user', content: prompt }]
-        })
-      });
-      if (!r.ok) {
-        const eJson = await r.json().catch(() => ({}));
-        const eMsg = (eJson && eJson.error && eJson.error.message) ? eJson.error.message : ('Erro HTTP ' + r.status);
-        throw new Error(eMsg);
-      }
-      const d = await r.json();
-      texto = (d.content && d.content[0] && d.content[0].text) ? d.content[0].text.trim() : '';
-    } else if (geminiKey && geminiKey.length > 10) {
-      const r = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=' + geminiKey, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }], generationConfig: { maxOutputTokens: 1500, thinkingConfig: { thinkingBudget: 0 } } })
-      });
-      const d = await r.json();
-      texto = (d.candidates && d.candidates[0]) ? d.candidates[0].content.parts[0].text.trim() : '';
-    }
+    let texto = await callIARapida(prompt, claudeKey && claudeKey.length > 10 ? 600 : 1500);
 
     if (!texto) throw new Error('Resposta vazia');
 
@@ -25523,23 +25681,7 @@ async function catGerarKeywordsIA(produto) {
   const prompt = 'Para um post nas redes sociais sobre o produto "' + produto.nome + '" (' + produto.desc.substring(0, 100) + '), sugere 4 termos de pesquisa em INGLÊS para encontrar fotos gratuitas no Pexels. Os termos devem ser visuais, evocadores e adequados para redes sociais de bem-estar. Responde APENAS com os 4 termos separados por vírgula, sem mais nada.';
   
   try {
-    let texto = '';
-    if (claudeKey && claudeKey.length > 10) {
-      const r = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-api-key': claudeKey, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
-        body: JSON.stringify({ model: 'claude-haiku-4-5-20251001', max_tokens: 80, messages: [{ role: 'user', content: prompt }] })
-      });
-      const d = await r.json();
-      texto = (d.content && d.content[0]) ? d.content[0].text.trim() : '';
-    } else if (geminiKey && geminiKey.length > 10) {
-      const r = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=' + geminiKey, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }], generationConfig: { maxOutputTokens: 200, thinkingConfig: { thinkingBudget: 0 } } })
-      });
-      const d = await r.json();
-      texto = (d.candidates && d.candidates[0]) ? d.candidates[0].content.parts[0].text.trim() : '';
-    }
+    let texto = await callIARapida(prompt, claudeKey && claudeKey.length > 10 ? 80 : 200);
     if (texto) {
       return texto.split(',').map(k => k.trim().replace(/^["']|["']$/g, '')).filter(k => k.length > 2).slice(0, 4);
     }
@@ -26401,7 +26543,10 @@ function renderPrevisaoComissao() {
 
     <div style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px;margin-bottom:14px;">
       <div style="font-size:11px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:0.7px;margin-bottom:12px;">🔑 Chaves API de Inteligência Artificial</div>
-      <div style="font-size:11.5px;color:var(--text2);margin-bottom:12px;line-height:1.5;">Guardadas localmente no teu dispositivo. Usadas em toda a app (posts, analisador, respostas, etc).</div>
+      <div style="font-size:11.5px;color:var(--text2);margin-bottom:10px;line-height:1.5;">Guardadas localmente no teu dispositivo. Usadas em toda a app (posts, analisador, respostas, etc).</div>
+      <button type="button" onclick="abrirGuiaChaveIA()" style="width:100%;background:linear-gradient(135deg,var(--accent),var(--accent2));border:none;color:#04140f;font-weight:700;font-size:12.5px;padding:11px 14px;border-radius:10px;cursor:pointer;margin-bottom:14px;display:flex;align-items:center;justify-content:center;gap:6px;">
+        📖 Nunca criei uma chave — ajuda-me passo a passo (2 min, grátis) [v2]
+      </button>
 
       <div class="form-group" style="margin-bottom:10px;">
         <label class="form-label" style="display:flex;align-items:center;gap:6px;">
@@ -26409,7 +26554,7 @@ function renderPrevisaoComissao() {
           <a href="https://aistudio.google.com/app/apikey" target="_blank" style="font-size:10px;color:#4285f4;margin-left:auto;">Obter chave →</a>
         </label>
         <div style="display:flex;gap:8px;align-items:center;">
-          <input class="form-input" type="password" id="perfil-gemini-key" placeholder="AIza..." style="flex:1;" oninput="saveGeminiKey(this.value)">
+          <input class="form-input" type="password" id="perfil-gemini-key" placeholder="AIza... ou AQ...." style="flex:1;" oninput="saveGeminiKey(this.value)">
           <span id="perfil-gemini-status" style="font-size:11px;color:var(--accent);white-space:nowrap;"></span>
         </div>
       </div>
@@ -26470,7 +26615,7 @@ function renderPrevisaoComissao() {
       </div>
     </div>
 
-    <!-- Links pessoais / redes sociais -->
+    <!-- ==================== ASSISTENTE: CRIAR CHAVE DE IA (v78) ==================== -->
     <div style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px;margin-bottom:14px;">
       <div style="font-size:11px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:0.7px;margin-bottom:4px;">📱 Os Teus Links Pessoais</div>
       <div style="font-size:11.5px;color:var(--text2);margin-bottom:12px;line-height:1.5;">Guardados no teu perfil e disponíveis em toda a app (Analisador, Coach IA, Quick Replies, etc).</div>
@@ -26864,7 +27009,7 @@ function renderPrevisaoComissao() {
       <button class="modal-close" onclick="closeModal('modal-compliance-check')">✕</button>
     </div>
     <div style="font-size:11.5px;color:var(--text2);margin-bottom:12px;line-height:1.5;">
-      Cola aqui um post ou mensagem antes de publicar. Verifica localmente (sem enviar dados para fora) se há linguagem de risco: alegações de saúde/cura, promessas de rendimento garantido ou pressão excessiva.
+      Cola aqui um post ou mensagem antes de publicar. Verifica localmente (sem enviar dados para fora) se há linguagem de risco: alegações de saúde/cura, promessas de rendimento garantido, valores de rendimento sem aviso legal, ou pressão excessiva.
     </div>
     <div class="form-group">
       <textarea class="form-textarea" id="compliance-texto" placeholder="Cola aqui o texto a verificar..." style="min-height:110px;"></textarea>
@@ -27421,19 +27566,7 @@ Responde em português europeu, tom motivador mas realista.`;
     if (promoAI === 'gemini') {
       estrategia = await callGemini(promptEstrategia(promoData));
     } else {
-      const res2 = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': claudeKey,
-          'anthropic-version': '2023-06-01',
-          'anthropic-dangerous-direct-browser-access': 'true'
-        },
-        body: JSON.stringify({ model: 'claude-sonnet-4-6', max_tokens: 1500, messages: [{ role: 'user', content: promptEstrategia(promoData) }] })
-      });
-      if (!res2.ok) { const e = await res2.json().catch(()=>({})); throw new Error(e?.error?.message||`HTTP ${res2.status}`); }
-      const data2 = await res2.json();
-      estrategia = data2.content?.[0]?.text || '';
+      estrategia = await callClaude(promptEstrategia(promoData));
     }
 
     // Montar objecto promoção
@@ -28664,23 +28797,7 @@ Adapta o plano ao perfil e objetivo. Sê específico, prático e motivador. Resp
       return;
     }
 
-    let resposta = '';
-    if (claudeKey && claudeKey.length > 10) {
-      const resp = await fetch('https://api.anthropic.com/v1/messages', {
-        method:'POST',
-        headers:{ 'Content-Type':'application/json', 'x-api-key': claudeKey, 'anthropic-version':'2023-06-01', 'anthropic-dangerous-direct-browser-access':'true' },
-        body: JSON.stringify({ model:'claude-haiku-4-5-20251001', max_tokens:1500, messages:[{ role:'user', content: prompt }] })
-      });
-      const data = await resp.json();
-      resposta = data?.content?.[0]?.text || 'Erro na resposta.';
-    } else if (geminiKey && geminiKey.length > 10) {
-      const resp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiKey}`, {
-        method:'POST', headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({ contents:[{ parts:[{ text: prompt }] }], generationConfig:{maxOutputTokens:3000, thinkingConfig:{thinkingBudget:0}} })
-      });
-      const data = await resp.json();
-      resposta = data?.candidates?.[0]?.content?.parts?.[0]?.text || 'Erro na resposta.';
-    }
+    let resposta = await callIARapida(prompt, claudeKey && claudeKey.length > 10 ? 1500 : 3000) || 'Erro na resposta.';
 
     if (loader) loader.style.display = 'none';
     el.textContent = resposta;
@@ -29089,23 +29206,7 @@ Responde APENAS com o texto da mensagem, em Português de Portugal.`;
 
   showToast('🤖 A gerar mensagem...');
   try {
-    let resposta = '';
-    if (claudeKey && claudeKey.length > 10) {
-      const resp = await fetch('https://api.anthropic.com/v1/messages', {
-        method:'POST',
-        headers:{ 'Content-Type':'application/json', 'x-api-key': claudeKey, 'anthropic-version':'2023-06-01', 'anthropic-dangerous-direct-browser-access':'true' },
-        body: JSON.stringify({ model:'claude-haiku-4-5-20251001', max_tokens:400, messages:[{ role:'user', content: prompt }] })
-      });
-      const data = await resp.json();
-      resposta = data?.content?.[0]?.text || '';
-    } else if (geminiKey && geminiKey.length > 10) {
-      const resp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiKey}`, {
-        method:'POST', headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({ contents:[{ parts:[{ text: prompt }] }], generationConfig:{maxOutputTokens:600, thinkingConfig:{thinkingBudget:0}} })
-      });
-      const data = await resp.json();
-      resposta = data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
-    }
+    let resposta = await callIARapida(prompt, claudeKey && claudeKey.length > 10 ? 400 : 600);
     if (resposta) {
       copiarTextoSeguro(resposta, '');
       showToast('📋 Mensagem copiada! Cola no WhatsApp do ' + m.nome);
@@ -30104,13 +30205,7 @@ async function alertasIAAnalisar() {
     const key = claudeKey || geminiKey;
     if (key && key.length > 10 && alertasLocais.length > 0) {
       const prompt = `Sou distribuidor LifeWave X39. CRM: ${leads.length} leads, ${membros.length} membros equipa. Alertas: ${alertasLocais.map(a=>a.titulo).join('; ')}. Dá-me 2-3 ações concretas para fazer HOJE. Português Portugal. Tom positivo e direto. Máx 80 palavras.`;
-      if (claudeKey && claudeKey.length > 10) {
-        const r = await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':claudeKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:'claude-haiku-4-5-20251001',max_tokens:250,messages:[{role:'user',content:prompt}]})});
-        const d = await r.json(); iaInsight = d?.content?.[0]?.text||'';
-      } else {
-        const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiKey}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({contents:[{parts:[{text:prompt}]}],generationConfig:{maxOutputTokens:400,thinkingConfig:{thinkingBudget:0}}})});
-        const d = await r.json(); iaInsight = d?.candidates?.[0]?.content?.parts?.[0]?.text||'';
-      }
+      iaInsight = await callIARapida(prompt, claudeKey && claudeKey.length > 10 ? 250 : 400);
     }
   } catch(e) {}
 
@@ -31799,14 +31894,7 @@ Responde APENAS com o texto do template, em Português de Portugal. Sem explica�
   document.getElementById('tmpl-ia-resultado').style.display = 'none';
   document.getElementById('tmpl-ia-btn').disabled = true;
   try {
-    let resp = '';
-    if (claudeKey && claudeKey.length > 10) {
-      const r = await fetch('https://api.anthropic.com/v1/messages', { method:'POST', headers:{'Content-Type':'application/json','x-api-key':claudeKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'}, body:JSON.stringify({model:'claude-haiku-4-5-20251001',max_tokens:600,messages:[{role:'user',content:prompt}]}) });
-      const d = await r.json(); resp = d?.content?.[0]?.text || '';
-    } else if (geminiKey && geminiKey.length > 10) {
-      const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiKey}`,{ method:'POST',headers:{'Content-Type':'application/json'}, body:JSON.stringify({contents:[{parts:[{text:prompt}]}],generationConfig:{maxOutputTokens:900,thinkingConfig:{thinkingBudget:0}}}) });
-      const d = await r.json(); resp = d?.candidates?.[0]?.content?.parts?.[0]?.text || '';
-    }
+    let resp = await callIARapida(prompt, claudeKey && claudeKey.length > 10 ? 600 : 900);
     _tmplIATexto = resp;
     document.getElementById('tmpl-ia-texto').textContent = resp;
     document.getElementById('tmpl-ia-resultado').style.display = 'block';
@@ -32014,14 +32102,7 @@ Em Português de Portugal. Responde APENAS com o texto da mensagem.`;
   document.getElementById('promo-urgencia-resultado').style.display = 'none';
   document.getElementById('promo-ia-btn').disabled = true;
   try {
-    let resp = '';
-    if (claudeKey && claudeKey.length > 10) {
-      const r = await fetch('https://api.anthropic.com/v1/messages', { method:'POST', headers:{'Content-Type':'application/json','x-api-key':claudeKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'}, body:JSON.stringify({model:'claude-haiku-4-5-20251001',max_tokens:500,messages:[{role:'user',content:prompt}]}) });
-      const d = await r.json(); resp = d?.content?.[0]?.text || '';
-    } else if (geminiKey && geminiKey.length > 10) {
-      const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiKey}`,{ method:'POST',headers:{'Content-Type':'application/json'}, body:JSON.stringify({contents:[{parts:[{text:prompt}]}],generationConfig:{maxOutputTokens:800,thinkingConfig:{thinkingBudget:0}}}) });
-      const d = await r.json(); resp = d?.candidates?.[0]?.content?.parts?.[0]?.text || '';
-    }
+    let resp = await callIARapida(prompt, claudeKey && claudeKey.length > 10 ? 500 : 800);
     _promoIATexto = resp;
     document.getElementById('promo-ia-texto').textContent = resp;
     document.getElementById('promo-urgencia-resultado').style.display = 'block';
@@ -33180,6 +33261,13 @@ function renderDashQualifRT() {
     return;
   }
 
+  // Alerta de binário desequilibrado: o Bónus Binário paga sobre a secção
+  // MAIS FRACA (min(secL, secR)) — o volume excedente na secção mais forte
+  // não conta para este período e não é recuperável depois. Aditivo: só
+  // calcula e mostra quando há dados suficientes (secL e secR > 0) e a
+  // categoria já é elegível para Binário (>= 3-Star Manager).
+  const desequilibrioBinario = calcularDesequilibrioBinario(catAtual, secL, secR);
+
   // Countdown fim do mês
   const diasRestantes = diasAteFinDoMes();
   const urgenciaMes = diasRestantes <= 5 ? 'critico' : diasRestantes <= 10 ? 'alerta' : 'normal';
@@ -33234,6 +33322,20 @@ function renderDashQualifRT() {
     alertaRitmoHTML = `<div style="background:rgba(255,68,68,0.1);border:1px solid rgba(255,68,68,0.3);border-radius:10px;padding:10px 12px;margin-bottom:12px;font-size:12px;font-weight:700;color:#ff4444;">🚨 Último dia do mês — age agora!</div>`;
   }
 
+  // Alerta de binário desequilibrado: só aparece quando há perda real de
+  // dinheiro (ganhoPerdido > 0) — se o teto do Bónus Binário já foi atingido
+  // pela secção fraca, o desequilíbrio não custa nada neste período.
+  let alertaBinarioHTML = '';
+  if (desequilibrioBinario && !desequilibrioBinario.equilibrado && desequilibrioBinario.ganhoPerdido > 0) {
+    alertaBinarioHTML = `
+      <div style="background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.3);border-radius:10px;padding:10px 12px;margin-bottom:12px;display:flex;align-items:center;gap:8px;">
+        <span style="font-size:16px;">⚖️</span>
+        <div style="font-size:12px;color:var(--text);">
+          <strong style="color:#f5c842;">Binário desequilibrado:</strong> a secção ${desequilibrioBinario.ladoForte} (${fmtNum(desequilibrioBinario.forte)}) tem ${fmtNum(desequilibrioBinario.excedente)} a mais que a ${desequilibrioBinario.ladoFraco} (${fmtNum(desequilibrioBinario.fraca)}). Esse volume não conta para o Binário este período — estás a perder <strong style="color:#f5c842;">~${fmtMoeda(desequilibrioBinario.ganhoPerdido)}</strong>. Considera direcionar novas inscrições/encomendas para a secção mais fraca.
+        </div>
+      </div>`;
+  }
+
   // Ícones de rank
   const catIcon = { 'Brand Partner':'🌱','Brand Partner Ativo':'🌿','1-Star Manager':'⭐','2-Star Manager':'⭐⭐','3-Star Manager':'⭐⭐⭐','1-Star Director':'🥉','2-Star Director':'🥈','3-Star Director':'🥇','1-Star Executive':'💎','2-Star Executive':'💎💎','3-Star Executive':'💎💎💎','1-Star Presidential':'👑','2-Star Presidential':'👑👑','3-Star Presidential':'👑👑👑' };
 
@@ -33253,6 +33355,7 @@ function renderDashQualifRT() {
       </div>
 
       ${alertaRitmoHTML}
+      ${alertaBinarioHTML}
 
       ${proxCat ? `
         ${mkBarra('Volume Pessoal (PV)', pv, proxCat.pv)}
@@ -33436,26 +33539,9 @@ async function relatorioGerar() {
     statusTxt.textContent = '🤖 IA a analisar...';
     let respText = '';
     if (claudeKey && claudeKey.length > 10) {
-      const r = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: { 'Content-Type':'application/json','x-api-key':claudeKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true' },
-        body: JSON.stringify({ model:'claude-sonnet-4-6', max_tokens:2000, messages:[{role:'user',content:prompt}] })
-      });
-      const rd = await r.json();
-      if (!r.ok) throw new Error(rd.error?.message || `Erro Claude (${r.status})`);
-      respText = (rd.content && rd.content[0]) ? rd.content[0].text : '';
+      respText = await callClaude(prompt);
     } else {
-      const r = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=' + geminiKey, {
-        method:'POST', headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({ contents:[{parts:[{text:prompt}]}], generationConfig:{maxOutputTokens:3000, thinkingConfig:{thinkingBudget:0}} })
-      });
-      const rd = await r.json();
-      if (!r.ok) throw new Error(rd.error?.message || `Erro Gemini (${r.status})`);
-      const cand = rd.candidates && rd.candidates[0];
-      if (cand && cand.finishReason === 'MAX_TOKENS' && (!cand.content || !cand.content.parts)) {
-        throw new Error('A IA usou todos os tokens a "pensar" e não sobrou texto. Tenta novamente.');
-      }
-      respText = (cand && cand.content && cand.content.parts && cand.content.parts[0]) ? cand.content.parts[0].text : '';
+      respText = await callGemini(prompt);
     }
     if (!respText.trim()) throw new Error('A IA não devolveu resposta. Tenta novamente.');
     let ia;
@@ -33653,12 +33739,8 @@ async function rpLeadResponde() {
     const msgs = rpHistorico.slice(1).map(m => ({role: m.role === 'lead' ? 'assistant' : m.role, content: m.content}));
     let resp = '';
     if (claudeKey && claudeKey.length > 10) {
-      const r = await fetch('https://api.anthropic.com/v1/messages', {
-        method:'POST',
-        headers:{'Content-Type':'application/json','x-api-key':claudeKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
-        body: JSON.stringify({model:'claude-haiku-4-5-20251001',max_tokens:250,system:sys,messages:msgs})
-      });
-      const rd = await r.json(); resp = (rd.content && rd.content[0]) ? rd.content[0].text : '...';
+      resp = await callClaudeChat({ system: sys, messages: msgs, model: 'claude-haiku-4-5-20251001', maxTokens: 250 });
+      if (!resp) resp = '...';
     } else {
       const lines = rpHistorico.slice(1).map(m => ((m.role === 'assistant' || m.role === 'lead') ? rpCfg.nome : 'Distribuidor') + ': ' + m.content);
       const fullP = sys + '\n\n' + lines.join('\n') + '\n' + rpCfg.nome + ':';
@@ -33707,17 +33789,9 @@ async function roleplayTerminar() {
   try {
     let respText = '';
     if (claudeKey && claudeKey.length > 10) {
-      const r = await fetch('https://api.anthropic.com/v1/messages', {
-        method:'POST', headers:{'Content-Type':'application/json','x-api-key':claudeKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
-        body: JSON.stringify({model:'claude-sonnet-4-6',max_tokens:700,messages:[{role:'user',content:prompt}]})
-      });
-      const rd = await r.json(); respText = (rd.content && rd.content[0]) ? rd.content[0].text : '';
+      respText = await callClaude(prompt);
     } else {
-      const r = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=' + geminiKey, {
-        method:'POST', headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({contents:[{parts:[{text:prompt}]}],generationConfig:{maxOutputTokens:1500,thinkingConfig:{thinkingBudget:0}}})
-      });
-      const rd = await r.json(); respText = (rd.candidates && rd.candidates[0]) ? rd.candidates[0].content.parts[0].text : '';
+      respText = await callGemini(prompt);
     }
     const fb = JSON.parse(respText.replace(/```json|```/g,'').trim());
     const emojis = {fechou:'🏆',quase:'⚡',perdeu:'📚'};
@@ -33959,7 +34033,10 @@ function renderAutomacaoLog() {
   if (!listEl) return;
   if (!log.length) { listEl.innerHTML=''; if(emptyEl) emptyEl.style.display='block'; return; }
   if (emptyEl) emptyEl.style.display = 'none';
-  listEl.innerHTML = log.slice(0,50).map(l => `<div class="auto-log-item"><div class="auto-log-icon">${l.icon}</div><div class="auto-log-txt">${l.texto}</div><div class="auto-log-time">${l.data}</div></div>`).join('');
+  listEl.innerHTML = log.slice(0,50).map(l => {
+    const btnEnviar = (l.leadId && l.textoEnvio) ? `<button class="btn-acao-wa" style="margin-top:6px;" onclick="enviarWhatsAppDoLog('${l.id}')">📲 Enviar agora</button>` : '';
+    return `<div class="auto-log-item"><div class="auto-log-icon">${l.icon}</div><div class="auto-log-txt">${l.texto}${btnEnviar}</div><div class="auto-log-time">${l.data}</div></div>`;
+  }).join('');
 }
 
 function atualizarRegraBuilderUI() {
@@ -34061,7 +34138,7 @@ function executarAcaoRegra(regra, lead) {
   } else if (a.tipo === 'copiar_mensagem') {
     const texto = substituirVariaveis(a.texto, lead);
     copiarTextoSeguro(texto, '');
-    registarAutoLogRegra(regra, '📋', `Preparou mensagem para <b>${escapeHtml(lead.nome)}</b>: "${escapeHtml(texto.substring(0,50))}${texto.length>50?'…':''}"`);
+    registarAutoLogRegra(regra, '📋', `Preparou mensagem para <b>${escapeHtml(lead.nome)}</b>: "${escapeHtml(texto.substring(0,50))}${texto.length>50?'…':''}"`, lead.id, texto);
     showToast('⚙️ Automação: mensagem copiada para ' + lead.nome + '!');
   } else if (a.tipo === 'mudar_estado') {
     setTimeout(() => { lead.estado = a.estado; if (typeof saveleads === 'function') saveleads(); if (typeof renderFunil === 'function') renderFunil(); if (typeof renderDashboard === 'function') renderDashboard(); }, 300);
@@ -34102,7 +34179,23 @@ function executarAcaoRegra(regra, lead) {
     showToast('🧵 Sequência iniciada para ' + lead.nome + ' (' + passos.length + ' mensagens agendadas)');
   }
 }
-function registarAutoLogRegra(regra, icon, texto) { const log = getAutoLog(); log.push({ icon, texto, regraId: regra.id, data: new Date().toLocaleString('pt-PT') }); saveAutoLog(log); }
+function registarAutoLogRegra(regra, icon, texto, leadId, textoEnvio) {
+  const log = getAutoLog();
+  const entry = { id: 'log_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8), icon, texto, regraId: regra.id, data: new Date().toLocaleString('pt-PT') };
+  // leadId + textoEnvio são opcionais: só existem quando a ação envolve uma mensagem
+  // pronta a enviar a um lead concreto, para o log poder oferecer o botão "Enviar agora".
+  if (leadId && textoEnvio) { entry.leadId = leadId; entry.textoEnvio = textoEnvio; }
+  log.push(entry);
+  saveAutoLog(log);
+}
+
+// Envia pelo WhatsApp a mensagem registada numa entrada do log de automação.
+// Reutiliza enviarWhatsAppParaLead (já usada nas sequências) — não duplica lógica de envio.
+function enviarWhatsAppDoLog(logId) {
+  const entry = getAutoLog().find(l => l.id === logId);
+  if (!entry || !entry.leadId || !entry.textoEnvio) { showToast('⚠️ Esta automação já não tem mensagem associada'); return; }
+  enviarWhatsAppParaLead(entry.leadId, entry.textoEnvio, null);
+}
 
 function verificarAutomacoesPeriodicas() {
   if (typeof leads === 'undefined' || !leads.length) return;
@@ -36163,7 +36256,9 @@ async function acAnalisar() {
       + ' 3) Write ALL other JSON fields (resumo, objecoes, pontos_positivos, erros_cometidos, proximo_passo, dica_extra) in ' + uiLangName + '.'
       + ' 4) Also extract the contact/prospect name if visible (e.g. chat header name in a screenshot, or a name mentioned in the pasted text). If no name is identifiable, return an empty string.'
       + ' 5) If a phone number or email address is visible in the conversation (e.g. shared by the prospect), extract it; otherwise return empty string.'
-      + ' 6) SCREENSHOT SENDER/RECEIVER RULE (critical, only applies when analyzing an image): identify who sent each message by visual position and styling — in WhatsApp, Messenger and Instagram, messages sent by the distributor (the app owner, "Tu"/"You") appear on the RIGHT side in a colored bubble (blue/green), while messages from the prospect appear on the LEFT in a gray/white bubble. The chat header name at the top of the screenshot is the PROSPECT, not the distributor.'
+      + ' 6) ROLE DEFINITION (critical, applies to the entire analysis, both image and text): there are exactly two roles in this conversation — the DISTRIBUTOR (the app owner, "Tu"/"You"' + (perfNome ? ', "' + perfNome + '"' : '') + ', the LifeWave business owner who is requesting this analysis) and the PROSPECT (the destinatário — the contact/lead/customer receiving the distributor\'s outreach, whose name may appear in the "Contexto" field, an imported file name, or a chat header). Never invert these two roles. Every coaching field ("resumo", "pontos_positivos", "erros_cometidos", "dica_extra") and "proxima_mensagem" must be written strictly FROM the distributor\'s point of view and addressed TO the prospect — the distributor is always "I/me" in this analysis, the prospect is always "them".'
+      + ' 6a) SCREENSHOT SENDER/RECEIVER RULE (critical, only applies when analyzing an image): identify who sent each message by visual position and styling — in WhatsApp, Messenger and Instagram, messages sent by the distributor appear on the RIGHT side in a colored bubble (blue/green), while messages from the prospect appear on the LEFT in a gray/white bubble. The chat header name at the top of the screenshot is the PROSPECT, not the distributor.'
+      + ' 6b) PASTED/EXPORTED TEXT SENDER RULE (critical, only applies when analyzing pasted or imported text, including WhatsApp exports in the format "dd/mm/yyyy, hh:mm - Nome: mensagem" or simple "Nome: mensagem" lines): the label before the colon on each line is the real author of that specific line — it is NOT automatically the distributor just because it appears first, most often, or looks like a business name. Identify the DISTRIBUTOR by comparing each label against' + (perfNome ? ' "' + perfNome + '"' : ' the distributor\'s configured profile name') + ' and against the literal words "Tu"/"You"/"Eu", allowing for nicknames, first-name-only forms, or minor spelling variations. Whichever OTHER author label appears in the conversation is the PROSPECT — a 1:1 conversation only ever has these two authors, no matter how many times each label repeats. If the "Contexto" field names the contact (e.g. "Conversa com Maria"), use it to confirm which label is the prospect. If the distributor cannot be confidently matched by name, fall back to conversational cues (whoever is presenting/pitching LifeWave or X39 is the distributor; whoever is asking questions, raising objections, or reacting to the pitch is the prospect), and if real ambiguity remains, note it briefly in "resumo" instead of silently guessing wrong.'
       + ' 7) NESTED/FORWARDED SCREENSHOT RULE (critical): if the screenshot shows a forwarded message or a screenshot-within-a-screenshot (e.g. the prospect forwarded a message they received from someone else, or shared a screenshot of a different conversation), do NOT confuse the participants of the inner forwarded screenshot with the participants of the outer conversation. The person who forwarded/shared that inner screenshot to the distributor is the actual prospect in this conversation — analyze their reaction and intent (e.g. "I think your account was hacked", suspicion, confusion) as the prospect\'s message, not as if the distributor sent the inner content. Always determine the real sender of each visible message based on bubble side and context, never assume the most recent or central text bubble belongs to the distributor by default.'
       + ' 8) UNRELATED CONTENT RULE (critical): a screenshot or pasted conversation may contain messages that have nothing to do with LifeWave — personal chit-chat, work topics, family matters, an entirely different business/project/opportunity, or an unrelated subject mixed into the same thread. IGNORE all such unrelated messages completely when producing resumo, objecoes, pontos_positivos, erros_cometidos, proximo_passo, probabilidade_conversao and proxima_mensagem. Base the ENTIRE analysis only on messages that EXPLICITLY reference LifeWave, X39 or other named LifeWave products/patches, phototherapy/photobiomodulation, or an unambiguous LifeWave business/compensation-plan opportunity. Do NOT assume something is LifeWave-related just because it is generically about "a business opportunity", "a project", "a video to watch" or "money" — those words alone are not evidence. If the name, brand or product is not identifiable and nothing in the visible text ties it to LifeWave, treat it as UNRELATED, even if it looks superficially similar (e.g. another company\'s pre-launch project, a different MLM, a generic investment pitch). NEVER speculate or stretch an ambiguous or unrelated item into a LifeWave interpretation (e.g. do not write things like "in a LifeWave context this could be interpreted as..." — if it is not explicitly LifeWave, it is not part of this analysis). If there are multiple separate LifeWave-related exchanges at different points in the thread, focus on the MOST RECENT one — that is the current live opportunity. If, after excluding unrelated content, there is no LifeWave-related material left at all, set "fase" to "sem_contexto", leave objecoes/pontos_positivos/erros_cometidos as empty arrays, set probabilidade_conversao to 0, and explain in "resumo" that no LifeWave-related conversation was found in the screenshot/text provided — do not describe or summarize the unrelated content instead.'
       + (_acLinksStr ? ' 9) LINK INCLUSION RULE (mandatory, not optional): if "fase" is "pronto_para_comprar" or "interesse", the "proxima_mensagem" field MUST include one of the distributor\'s personal links below — this is a hard requirement, not a suggestion. Use the produto link if the prospect is leaning toward the product/wellness angle, or the negocio link if they are leaning toward the business/partnership angle; use registo if neither is available. Weave the link naturally into the message (e.g. "Aqui tens o link com toda a informação: [link]"), never omit it in these two phases. If "fase" is "descoberta" or "consideracao", do NOT include any link yet — keep the conversation going first.' + _acLinksStr : '')
@@ -38287,4 +38382,65 @@ function renderSaudeRede() {
 }
 </script>
 
+
+<!-- ==== REPOSICIONADO fora de .app: garante que fica sempre por cima de modal-perfil e de qualquer outro modal ==== -->
+<!-- ==== MOVIDO: guia de criação de chave IA (top-level, evita bug do backdrop-filter) ==== -->
+    <div class="modal-overlay" id="modal-guia-chave-ia" style="z-index:9999;">
+      <div class="modal" style="max-width:480px;max-height:90vh;overflow-y:auto;">
+        <div class="modal-title">
+          🔑 Criar a tua chave de IA
+          <button class="modal-close" onclick="closeModal('modal-guia-chave-ia')">✕</button>
+        </div>
+
+        <div style="font-size:12.5px;color:var(--text2);line-height:1.6;margin-bottom:16px;">
+          A "chave de IA" é só uma senha pessoal que liga esta app à inteligência artificial que escreve as tuas mensagens e posts. É grátis, demora 2 minutos e só precisas de fazer isto <strong>uma vez</strong>.
+        </div>
+
+        <div id="guia-chave-passo-gemini" style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px;margin-bottom:14px;">
+          <div style="font-size:12px;font-weight:700;color:var(--accent);margin-bottom:10px;">✦ Opção recomendada — Google Gemini (100% grátis)</div>
+
+          <div style="display:flex;flex-direction:column;gap:10px;font-size:12.5px;color:var(--text);line-height:1.5;">
+            <div><strong>1.</strong> Abre o Google AI Studio com a tua conta Google normal (a mesma do Gmail).</div>
+            <a href="https://aistudio.google.com/app/apikey" target="_blank" style="display:block;text-align:center;background:#4285f4;color:#fff;font-weight:700;font-size:12.5px;padding:9px;border-radius:8px;text-decoration:none;">🔗 Abrir Google AI Studio</a>
+            <div><strong>2.</strong> Clica no botão azul "<em>Create API key</em>" (ou "Criar chave de API").</div>
+            <div><strong>3.</strong> A Google mostra uma sequência de letras e números a começar por <code>AIza</code> ou <code>AQ.</code> (ambos os formatos são válidos) — clica no ícone de copiar ao lado dela.</div>
+            <div><strong>4.</strong> Volta aqui e cola-a no campo abaixo:</div>
+          </div>
+
+          <div style="display:flex;gap:8px;align-items:center;margin-top:10px;">
+            <input class="form-input" type="password" id="guia-gemini-key" placeholder="Cola aqui a chave (AIza... ou AQ....)" style="flex:1;" oninput="guiaChaveValidar('gemini')">
+            <span id="guia-gemini-feedback" style="font-size:16px;"></span>
+          </div>
+          <div id="guia-gemini-msg" style="font-size:11px;margin-top:6px;color:var(--text2);"></div>
+          <button type="button" id="guia-gemini-fechar-btn" onclick="closeModal('modal-guia-chave-ia')" style="display:none;width:100%;background:var(--accent);border:none;color:#04140f;font-weight:700;font-size:13px;padding:11px;border-radius:8px;cursor:pointer;margin-top:12px;">
+            ✅ Concluído — Fechar
+          </button>
+        </div>
+
+        <button type="button" onclick="document.getElementById('guia-chave-claude-bloco').style.display = document.getElementById('guia-chave-claude-bloco').style.display === 'none' ? 'block' : 'none';" style="width:100%;background:none;border:1px dashed var(--border);color:var(--text2);font-size:12px;padding:9px;border-radius:8px;cursor:pointer;margin-bottom:10px;">
+          🧠 Preferes qualidade superior e não te importas de pagar? (Claude/Anthropic) ▾
+        </button>
+
+        <div id="guia-chave-claude-bloco" style="display:none;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px;margin-bottom:6px;">
+          <div style="font-size:12px;font-weight:700;color:var(--accent);margin-bottom:10px;">🧠 Claude (Anthropic) — qualidade superior, pago ao uso</div>
+          <div style="display:flex;flex-direction:column;gap:10px;font-size:12.5px;color:var(--text);line-height:1.5;">
+            <div><strong>1.</strong> Cria conta e adiciona um cartão (uso muito baixo custa cêntimos/mês para esta app).</div>
+            <a href="https://console.anthropic.com/settings/keys" target="_blank" style="display:block;text-align:center;background:var(--accent);color:#04140f;font-weight:700;font-size:12.5px;padding:9px;border-radius:8px;text-decoration:none;">🔗 Abrir Consola Anthropic</a>
+            <div><strong>2.</strong> Clica em "<em>Create Key</em>", dá-lhe um nome (ex: "CRM") e copia a chave — começa por <code>sk-ant-</code>.</div>
+            <div><strong>3.</strong> Cola-a aqui:</div>
+          </div>
+          <div style="display:flex;gap:8px;align-items:center;margin-top:10px;">
+            <input class="form-input" type="password" id="guia-claude-key" placeholder="Cola aqui a chave (sk-ant-...)" style="flex:1;" oninput="guiaChaveValidar('claude')">
+            <span id="guia-claude-feedback" style="font-size:16px;"></span>
+          </div>
+          <div id="guia-claude-msg" style="font-size:11px;margin-top:6px;color:var(--text2);"></div>
+          <button type="button" id="guia-claude-fechar-btn" onclick="closeModal('modal-guia-chave-ia')" style="display:none;width:100%;background:var(--accent);border:none;color:#04140f;font-weight:700;font-size:13px;padding:11px;border-radius:8px;cursor:pointer;margin-top:12px;">
+            ✅ Concluído — Fechar
+          </button>
+        </div>
+
+        <div style="font-size:11px;color:var(--text3);margin-top:12px;line-height:1.5;">💡 A chave fica guardada só neste dispositivo. Se usares a app noutro telemóvel ou computador, repete este processo lá também.</div>
+      </div>
+    </div>
+    <!-- ==================== FIM ASSISTENTE CRIAR CHAVE ==================== -->
 </body>
