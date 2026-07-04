@@ -3466,6 +3466,14 @@
   <div style="max-width:480px;margin:0 auto;">
     <h1 id="pub-ag-titulo" style="font-size:20px;margin-bottom:8px;"></h1>
     <p id="pub-ag-mensagem" style="font-size:13.5px;color:#a0a0b0;line-height:1.5;margin-bottom:24px;"></p>
+    <div style="margin-bottom:20px;">
+      <label style="display:block;font-size:12px;color:#a0a0b0;margin-bottom:6px;">O teu nome</label>
+      <input id="pub-ag-nome" placeholder="Como te chamas?" style="width:100%;background:#1a1d29;border:1px solid #2a2e3e;border-radius:10px;padding:12px;color:#eaeaea;font-size:14px;box-sizing:border-box;">
+    </div>
+    <div style="margin-bottom:20px;">
+      <label style="display:block;font-size:12px;color:#a0a0b0;margin-bottom:6px;">O teu telemóvel (opcional, ajuda a identificar-te mais depressa)</label>
+      <input id="pub-ag-tel" type="tel" placeholder="Ex: 912345678" style="width:100%;background:#1a1d29;border:1px solid #2a2e3e;border-radius:10px;padding:12px;color:#eaeaea;font-size:14px;box-sizing:border-box;">
+    </div>
     <div id="pub-ag-lista"></div>
     <div style="text-align:center;margin-top:24px;font-size:11px;color:#606070;">Toca num horário para enviar um pedido de confirmação via WhatsApp.</div>
   </div>
@@ -4001,6 +4009,9 @@
           <button class="btn btn-logout btn-sm" onclick="fazerLogout()" title="Terminar sessão">⏻ Logout</button>
         </div>
       </div>
+
+      <!-- PEDIDOS DE AGENDAMENTO — lembretes vindos do link público enviado a leads -->
+      <div id="dash-agendamento-pedidos-widget" style="display:none;margin-bottom:16px;"></div>
 
       <!-- PRÓXIMA MELHOR AÇÃO — um único lead em destaque -->
       <div id="dash-proxima-acao-widget" style="margin-bottom:16px;"></div>
@@ -4794,6 +4805,8 @@
         </div>
         <button class="btn btn-primary" onclick="openModal('modal-novo-evento')">＋ Novo Evento</button>
       </div>
+      <!-- PEDIDOS DE AGENDAMENTO — lembretes vindos do link público enviado a leads -->
+      <div id="agenda-agendamento-pedidos-widget" style="display:none;margin-bottom:16px;"></div>
       <!-- Google Calendar Sync Bar -->
       <div class="google-sync-bar" id="agenda-sync-bar">
         <span class="gsync-label">🔗 Sincronizar com Google Calendar</span>
@@ -7193,7 +7206,6 @@
             <option value="lead_criado">Um novo lead é adicionado</option>
             <option value="sem_contacto_dias">Lead fica X dias sem contacto</option>
             <option value="aniversario">É o aniversário do lead</option>
-            <option value="score_alto_parado">Lead com score alto está parado</option>
           </select>
           <div id="regra-trigger-extra" style="margin-top:10px;"></div>
         </div>
@@ -9076,9 +9088,9 @@ function goTo(page, opts) {
   if (page === 'acoes') renderAcoes();
   if (page === 'funil') { _funilPaginaPorColuna = {}; renderFunil(); }
   if (page === 'lista') renderLista();
-  if (page === 'dashboard') renderDashboard();
+  if (page === 'dashboard') { renderDashboard(); renderAgendamentoPedidosWidget('dash-agendamento-pedidos-widget'); }
   if (page === 'calendario') renderCalendario();
-  if (page === 'agenda') renderAgenda();
+  if (page === 'agenda') { renderAgenda(); renderAgendamentoPedidosWidget('agenda-agendamento-pedidos-widget'); }
   if (page === 'coach') coachInit();
   if (page === 'stats') { renderStats(); renderTopIndicadores(); }
   if (page === 'equipa') { renderEquipa(); renderMiniCRM(); }
@@ -12622,10 +12634,26 @@ function agGerarSlotsDia(cfg, data) {
 }
 
 function agEscolherSlotPublico(cfg, dataObj) {
+  const nomeInput = document.getElementById('pub-ag-nome');
+  const telInput = document.getElementById('pub-ag-tel');
+  const nome = nomeInput ? nomeInput.value.trim() : '';
+  const tel = telInput ? telInput.value.replace(/\D/g, '') : '';
+  if (!nome) {
+    if (nomeInput) { nomeInput.style.borderColor = '#ff6b35'; nomeInput.focus(); }
+    return;
+  }
+
   const diaSemana = dataObj.toLocaleDateString('pt-PT', { weekday: 'long' });
   const dataStr = dataObj.toLocaleDateString('pt-PT', { day: '2-digit', month: 'long' });
   const horaStr = dataObj.toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' });
-  const msg = 'Olá! Gostava de marcar uma chamada: ' + diaSemana + ', ' + dataStr + ' às ' + horaStr + '. Fica bem para ti?';
+  // Link de volta à própria app (mesmo ficheiro/domínio onde este ecrã público está a correr),
+  // para que o distribuidor, ao tocar nele a partir do WhatsApp, veja logo um lembrete
+  // pronto a confirmar no Dashboard e na Agenda — já com nome e telefone para tentar
+  // associar automaticamente a um lead existente, sem precisar de escrever nada.
+  const baseUrl = window.location.origin + window.location.pathname;
+  let linkConfirmacao = baseUrl + '?addEvento=' + dataObj.getTime() + '&nome=' + encodeURIComponent(nome);
+  if (tel) linkConfirmacao += '&tel=' + encodeURIComponent(tel);
+  const msg = 'Olá, sou ' + nome + '! Gostava de marcar uma chamada: ' + diaSemana + ', ' + dataStr + ' às ' + horaStr + '. Fica bem para ti?\n\n🔗 ' + linkConfirmacao;
   const url = 'https://wa.me/' + cfg.whatsapp + '?text=' + encodeURIComponent(msg);
   window.open(url, '_blank');
 }
@@ -12831,6 +12859,212 @@ function agConstruirHTML(cfg) {
 <\/script>
 </body>
 </html>`;
+}
+
+
+// ===================================================
+// PEDIDOS DE AGENDAMENTO — lembrete no Dashboard e na Agenda
+// Quando um lead escolhe um horário na página pública (agEscolherSlotPublico),
+// a mensagem de WhatsApp inclui um link de volta a esta mesma app. Quando o
+// distribuidor (dono da conta) toca nesse link no seu próprio telemóvel, o
+// pedido fica guardado aqui e aparece como lembrete até ser confirmado
+// (cria um Evento normal na Agenda, reutilizando salvarEvento() sem o alterar)
+// ou dispensado. Totalmente aditivo — não mexe em eventos, leads ou vendas.
+// ===================================================
+let agendamentoPedidos = [];
+
+function loadAgendamentoPedidos() {
+  try { agendamentoPedidos = JSON.parse(localStorage.getItem(getUserStorageKey('lw_agendamento_pedidos')) || '[]'); }
+  catch(e) { agendamentoPedidos = []; }
+}
+
+function saveAgendamentoPedidos() {
+  localStorage.setItem(getUserStorageKey('lw_agendamento_pedidos'), JSON.stringify(agendamentoPedidos));
+  driveAutoSave();
+}
+
+// Chamado uma vez no arranque (dentro de entrarNaApp) para capturar o
+// parâmetro ?addEvento=<timestamp> vindo do link enviado ao lead.
+function agDetectarPedidoConfirmacao() {
+  try {
+    const params = new URLSearchParams(window.location.search);
+    const add = params.get('addEvento');
+    if (!add) return;
+    const ts = parseInt(add, 10);
+    const nomeParam = (params.get('nome') || '').trim();
+    const telParam = (params.get('tel') || '').replace(/\D/g, '');
+
+    // Limpa sempre o parâmetro da URL, mesmo que inválido, para nunca reprocessar
+    try { history.replaceState({}, '', window.location.pathname + window.location.hash); } catch(e2) {}
+
+    if (isNaN(ts)) return;
+    loadAgendamentoPedidos();
+    const jaExiste = agendamentoPedidos.some(p => p.ts === ts);
+    if (jaExiste) { showToast('ℹ️ Este pedido de agendamento já estava guardado'); return; }
+
+    agendamentoPedidos.unshift({
+      id: gerarId(), ts, criadoEm: new Date().toISOString(),
+      estado: 'pendente', eventoId: null,
+      nome: nomeParam, telefone: telParam
+    });
+    saveAgendamentoPedidos();
+    showToast('📅 Novo pedido de agendamento recebido!' + (nomeParam ? ' (' + nomeParam + ')' : ''));
+    renderAgendamentoPedidosWidget('dash-agendamento-pedidos-widget');
+    renderAgendamentoPedidosWidget('agenda-agendamento-pedidos-widget');
+  } catch(e) {
+    console.warn('Erro ao processar pedido de agendamento:', e);
+  }
+}
+
+// Renderiza a lista de pedidos pendentes no elemento indicado. A mesma
+// função alimenta tanto o widget do Dashboard como o da Agenda — sem
+// duplicar lógica.
+function renderAgendamentoPedidosWidget(containerId) {
+  const el = document.getElementById(containerId);
+  if (!el) return;
+  if (typeof agendamentoPedidos === 'undefined') loadAgendamentoPedidos();
+
+  const pendentes = agendamentoPedidos.filter(p => p.estado === 'pendente').sort((a,b) => a.ts - b.ts);
+  if (!pendentes.length) { el.style.display = 'none'; el.innerHTML = ''; return; }
+
+  el.style.display = 'block';
+  el.innerHTML = `
+    <div class="card" style="margin-bottom:16px;border:1px solid rgba(245,200,66,0.35);background:rgba(245,200,66,0.06);">
+      <div class="section-title" style="margin-bottom:10px;">📅 Pedidos de Agendamento (${pendentes.length})</div>
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        ${pendentes.map(p => {
+          const d = new Date(p.ts);
+          const dataStr = d.toLocaleDateString('pt-PT', { weekday: 'long', day: '2-digit', month: 'long' });
+          const horaStr = d.toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' });
+          const quemPediu = p.nome ? escapeHtml(p.nome) : 'alguém via link';
+          return `
+          <div style="display:flex;align-items:center;gap:10px;padding:10px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;">
+            <div style="flex:1;">
+              <div style="font-size:13px;font-weight:600;color:var(--text);text-transform:capitalize;">${dataStr}</div>
+              <div style="font-size:12px;color:var(--text2);">às ${horaStr} · pedido de <strong style="color:var(--text);">${quemPediu}</strong></div>
+            </div>
+            <button class="btn btn-primary btn-sm" onclick="agConfirmarPedido('${p.id}')">✅ Agendar</button>
+            <button class="btn btn-secondary btn-sm" onclick="agDispensarPedido('${p.id}')">✕</button>
+          </div>`;
+        }).join('')}
+      </div>
+    </div>`;
+}
+
+function agDispensarPedido(pedidoId) {
+  const p = agendamentoPedidos.find(x => x.id === pedidoId);
+  if (p) { p.estado = 'dispensado'; saveAgendamentoPedidos(); }
+  renderAgendamentoPedidosWidget('dash-agendamento-pedidos-widget');
+  renderAgendamentoPedidosWidget('agenda-agendamento-pedidos-widget');
+}
+
+// Abre o modal de Novo Evento já pré-preenchido com a data/hora do pedido.
+// Redireciona temporariamente o botão "Guardar" para agFinalizarPedidoAposEvento,
+// que chama salvarEvento() (sem a alterar) e só depois marca o pedido como confirmado.
+function agConfirmarPedido(pedidoId) {
+  const p = agendamentoPedidos.find(x => x.id === pedidoId);
+  if (!p) return;
+  const dataObj = new Date(p.ts);
+
+  editingEventoId = null;
+  openModal('modal-novo-evento');
+  document.getElementById('modal-novo-evento-title').textContent = '📅 Confirmar Agendamento';
+  document.getElementById('ev-titulo').value = 'Chamada agendada via link';
+  document.getElementById('ev-data').value = dataObj.toISOString().slice(0, 10);
+  document.getElementById('ev-hora').value = dataObj.toTimeString().slice(0, 5);
+  document.getElementById('ev-tipo').value = 'reuniao';
+  document.getElementById('ev-notas').value = 'Criado automaticamente a partir de um pedido feito através do teu Link de Agendamento.';
+
+  // Tenta associar automaticamente a um lead já existente: telefone primeiro
+  // (mais fiável, é como veio pelo WhatsApp), depois nome — mesma lógica
+  // já usada em "Guardar análise no Lead" (Análise de Conversa).
+  let match = null;
+  if (p.telefone && typeof leads !== 'undefined') {
+    match = leads.find(function(l) { return l.tel && l.tel.replace(/\D/g, '').endsWith(p.telefone.slice(-9)); });
+  }
+  if (!match && p.nome && typeof leads !== 'undefined') {
+    const nomeNorm = p.nome.trim().toLowerCase();
+    match = leads.find(function(l) { return l.nome && l.nome.trim().toLowerCase() === nomeNorm; });
+    if (!match) {
+      match = leads.find(function(l) {
+        return l.nome && (l.nome.toLowerCase().indexOf(nomeNorm) !== -1 || nomeNorm.indexOf(l.nome.toLowerCase()) !== -1);
+      });
+    }
+  }
+
+  const evLeadEl = document.getElementById('ev-lead');
+  const notaAssociacao = document.getElementById('ev-lead-nota-auto');
+
+  // Sugestões para correção manual, caso o palpite automático esteja errado
+  const datalistEl = document.getElementById('ev-lead-datalist');
+  if (datalistEl && typeof leads !== 'undefined') {
+    datalistEl.innerHTML = leads.map(function(l) { return '<option value="' + l.nome.replace(/"/g,'&quot;') + '">'; }).join('');
+  }
+
+  if (match) {
+    evLeadEl.value = match.nome;
+    if (notaAssociacao) notaAssociacao.textContent = '🔎 Associado automaticamente (' + (p.telefone && match.tel ? 'pelo telefone' : 'pelo nome') + ')';
+  } else {
+    evLeadEl.value = p.nome || '';
+    if (notaAssociacao) notaAssociacao.textContent = p.nome ? '⚠️ Sem contacto correspondente encontrado — confirma o nome ou cria o lead' : '';
+  }
+
+  const btn = document.getElementById('modal-novo-evento-btn-guardar');
+  if (btn) btn.setAttribute('onclick', `agFinalizarPedidoAposEvento('${pedidoId}')`);
+}
+
+function agFinalizarPedidoAposEvento(pedidoId) {
+  const totalAntes = eventos.length;
+  const nomeLeadNoFormulario = (document.getElementById('ev-lead').value || '').trim();
+  const p = agendamentoPedidos.find(x => x.id === pedidoId);
+
+  salvarEvento(); // função existente e inalterada
+
+  if (eventos.length > totalAntes) {
+    if (p) {
+      p.estado = 'confirmado';
+      p.eventoId = eventos[eventos.length - 1].id;
+      saveAgendamentoPedidos();
+    }
+
+    // Regista no histórico do lead associado, se houver um com nome exatamente igual
+    if (nomeLeadNoFormulario && typeof leads !== 'undefined') {
+      const nomeNorm = nomeLeadNoFormulario.toLowerCase();
+      const leadAssociado = leads.find(function(l) { return l.nome && l.nome.trim().toLowerCase() === nomeNorm; });
+      if (leadAssociado) {
+        leadAssociado.historico = leadAssociado.historico || [];
+        const dataObj = p ? new Date(p.ts) : new Date();
+        const dataFmt = dataObj.toLocaleDateString('pt-PT', { day: '2-digit', month: 'long' }) + ' às ' + dataObj.toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' });
+        leadAssociado.historico.push({
+          tipo: 'sistema',
+          msg: `📅 Agendamento confirmado via link público: ${dataFmt}`,
+          data: new Date().toLocaleString('pt-PT')
+        });
+        leadAssociado.ultimoContacto = new Date().toISOString();
+        saveleads();
+      }
+    }
+
+    renderAgendamentoPedidosWidget('dash-agendamento-pedidos-widget');
+    renderAgendamentoPedidosWidget('agenda-agendamento-pedidos-widget');
+  }
+  // Repõe o botão ao comportamento normal (título em falta faz salvarEvento
+  // devolver sem fechar o modal, por isso só repomos depois de confirmar
+  // que o utilizador já não está a meio de corrigir o formulário)
+  if (!document.getElementById('modal-novo-evento').classList.contains('open')) {
+    agResetBotaoGuardarEvento();
+  }
+}
+
+// Repõe o botão "Guardar Evento" ao comportamento normal — chamado ao
+// cancelar/fechar o modal, para nunca deixar um pedido "preso" ao botão.
+function agResetBotaoGuardarEvento() {
+  const btn = document.getElementById('modal-novo-evento-btn-guardar');
+  if (btn) btn.setAttribute('onclick', 'salvarEvento()');
+  const nota = document.getElementById('ev-lead-nota-auto');
+  if (nota) nota.textContent = '';
+  const titleEl = document.getElementById('modal-novo-evento-title');
+  if (titleEl && titleEl.textContent === '📅 Confirmar Agendamento') titleEl.textContent = '🗓️ Novo Evento';
 }
 
 
@@ -15931,6 +16165,7 @@ function loadUserData() {
   loadVendas();
   loadDespesas();
   loadTestemunhos();
+  loadAgendamentoPedidos();
   updateBadgeLuminate();
   if (typeof migrarSrBibliotecaParaUtilizador === 'function') migrarSrBibliotecaParaUtilizador();
   if (typeof inicializarAutomacoesPosVendaPorDefeito === 'function') inicializarAutomacoesPosVendaPorDefeito();
@@ -16175,6 +16410,9 @@ function entrarNaApp(user) {
   // Load this user's data
   loadUserData();
 
+  // Deteta se a URL trouxe um pedido de agendamento (link enviado a um lead)
+  agDetectarPedidoConfirmacao();
+
   // Deteta se existem leads guardados sob OUTRA conta/sessão neste mesmo
   // browser (ex: entrou ontem com Google, hoje caiu em "modo local", ou
   // trocou de conta Google sem reparar). Evita o susto de "desapareceram
@@ -16203,6 +16441,7 @@ function entrarNaApp(user) {
 
   // Re-render
   renderDashboard();
+  renderAgendamentoPedidosWidget('dash-agendamento-pedidos-widget');
   renderFollowUps();
   renderAniversarios();
   renderMetas();
@@ -16210,6 +16449,7 @@ function entrarNaApp(user) {
   renderStreak();
   renderDigestDiario();
   renderAgenda();
+  renderAgendamentoPedidosWidget('agenda-agendamento-pedidos-widget');
   renderAcoes();
   updateBadge();
 
@@ -16621,6 +16861,7 @@ function getDrivePayload() {
     vendas:            JSON.parse(localStorage.getItem(uk('lw_vendas'))           || '[]'),
     despesas:          JSON.parse(localStorage.getItem(uk('lw_despesas'))         || '[]'),
     testemunhos:       JSON.parse(localStorage.getItem(uk('lw_testemunhos'))      || '[]'),
+    agendamentoPedidos: JSON.parse(localStorage.getItem(uk('lw_agendamento_pedidos')) || '[]'),
     agendamentoConfig: JSON.parse(localStorage.getItem(uk('lw_agendamento_config')) || 'null'),
     revista:           JSON.parse(localStorage.getItem(uk('lw_revista'))          || 'null'),
     viagens:           JSON.parse(localStorage.getItem(uk('lw_viagens'))          || 'null'),
@@ -16641,6 +16882,7 @@ function applyDrivePayload(data) {
   if (data.vendas)           { localStorage.setItem(uk('lw_vendas'),           JSON.stringify(data.vendas));           vendas   = data.vendas; }
   if (data.despesas)         { localStorage.setItem(uk('lw_despesas'),         JSON.stringify(data.despesas));         despesas = data.despesas; }
   if (data.testemunhos)      { localStorage.setItem(uk('lw_testemunhos'),      JSON.stringify(data.testemunhos));      testemunhos = data.testemunhos; }
+  if (data.agendamentoPedidos) { localStorage.setItem(uk('lw_agendamento_pedidos'), JSON.stringify(data.agendamentoPedidos)); agendamentoPedidos = data.agendamentoPedidos; }
   if (data.agendamentoConfig) { localStorage.setItem(uk('lw_agendamento_config'), JSON.stringify(data.agendamentoConfig)); }
   if (data.revista)          { localStorage.setItem(uk('lw_revista'),          JSON.stringify(data.revista)); }
   if (data.viagens)          { localStorage.setItem(uk('lw_viagens'),          JSON.stringify(data.viagens));          viagens  = data.viagens; }
@@ -25596,7 +25838,7 @@ function renderPrevisaoComissao() {
   <div class="modal" style="max-width:500px;">
     <div class="modal-title">
       <span id="modal-novo-evento-title">🗓️ Novo Evento</span>
-      <button class="modal-close" onclick="closeModal('modal-novo-evento'); editingEventoId=null;">✕</button>
+      <button class="modal-close" onclick="closeModal('modal-novo-evento'); editingEventoId=null; agResetBotaoGuardarEvento();">✕</button>
     </div>
     <div class="form-group">
       <label class="form-label">Título *</label>
@@ -25626,7 +25868,9 @@ function renderPrevisaoComissao() {
       </div>
       <div class="form-group">
         <label class="form-label">Lead associado (opcional)</label>
-        <input class="form-input" id="ev-lead" placeholder="Nome do contacto">
+        <input class="form-input" id="ev-lead" placeholder="Nome do contacto" list="ev-lead-datalist">
+        <datalist id="ev-lead-datalist"></datalist>
+        <div id="ev-lead-nota-auto" style="font-size:11px;color:var(--text2);margin-top:4px;"></div>
       </div>
     </div>
     <div class="form-group">
@@ -25634,8 +25878,8 @@ function renderPrevisaoComissao() {
       <textarea class="form-textarea" id="ev-notas" placeholder="Detalhes, assunto, local..." style="min-height:70px;"></textarea>
     </div>
     <div class="modal-actions">
-      <button class="btn btn-secondary" onclick="closeModal('modal-novo-evento'); editingEventoId=null;">Cancelar</button>
-      <button class="btn btn-primary" onclick="salvarEvento()">✅ Guardar Evento</button>
+      <button class="btn btn-secondary" onclick="closeModal('modal-novo-evento'); editingEventoId=null; agResetBotaoGuardarEvento();">Cancelar</button>
+      <button class="btn btn-primary" id="modal-novo-evento-btn-guardar" onclick="salvarEvento()">✅ Guardar Evento</button>
     </div>
   </div>
 </div>
@@ -33576,7 +33820,6 @@ const AUTO_BIBLIOTECA = [
     ] }, desc:'Cria 3 lembretes com mensagens prontas (Dia 1, 7 e 30) para acompanhares um novo cliente e apoiares a renovação.', tag:'Retenção' },
   { id:'lib_pedir_indicacao_45d', icon:'🎁', titulo:'Pedir Indicação 45 dias após Venda', trigger:{ tipo:'estado_muda', de:'*', para:'cliente' }, action:{ tipo:'criar_lembrete', dias:45, mensagem:'{nome} já é cliente há 45 dias e está satisfeito — ótimo momento para pedir uma indicação' }, desc:'Cria um lembrete 45 dias depois de um lead se tornar Cliente, para lhe pedires com naturalidade que indique alguém que possa beneficiar do produto.', tag:'Indicações' },
   { id:'lib_msg_pedir_indicacao', icon:'🎁', titulo:'Mensagem de Pedido de Indicação', trigger:{ tipo:'estado_muda', de:'*', para:'cliente' }, action:{ tipo:'copiar_mensagem', texto:'Olá {nome}! 😊 Ainda bem que estás a gostar do X39! Já agora — conheces mais alguém que ache que podia beneficiar de mais energia e bem-estar no dia a dia? Adorava poder ajudar mais alguém como te ajudei a ti 🙏' }, desc:'Quando um lead passa a Cliente, prepara também uma mensagem pronta a usar mais tarde para lhe pedires uma indicação.', tag:'Indicações' },
-  { id:'lib_lead_quente_esfriando', icon:'🔥', titulo:'Lead quente a esfriar', trigger:{ tipo:'score_alto_parado', scoreMin:7, dias:4 }, action:{ tipo:'notificar', texto:'{nome} tem score alto e está parado há dias — não deixes esfriar, contacta hoje!' }, desc:'Avisa quando um lead com score ≥7 (alta probabilidade de fecho) fica parado sem contacto — para não perderes os leads mais valiosos por falta de acompanhamento.', tag:'Vendas' },
 ];
 
 function getAutoRegras() { try { return JSON.parse(localStorage.getItem(getUserStorageKey('lw_automacao_regras')) || '[]'); } catch(e) { return []; } }
@@ -33644,9 +33887,9 @@ function renderAutomacao() {
   renderAutomacaoGrid();
 }
 
-function descreverTrigger(t) { if(t.tipo==='estado_muda')return `Lead passa a "${estadoLabel(t.para)}"`; if(t.tipo==='lead_criado')return 'Novo lead adicionado'; if(t.tipo==='sem_contacto_dias')return `Sem contacto há ${t.dias} dias`; if(t.tipo==='aniversario')return 'Aniversário do lead'; if(t.tipo==='score_alto_parado')return `Score ≥${t.scoreMin} parado há ${t.dias} dias`; return t.tipo; }
+function descreverTrigger(t) { if(t.tipo==='estado_muda')return `Lead passa a "${estadoLabel(t.para)}"`; if(t.tipo==='lead_criado')return 'Novo lead adicionado'; if(t.tipo==='sem_contacto_dias')return `Sem contacto há ${t.dias} dias`; if(t.tipo==='aniversario')return 'Aniversário do lead'; return t.tipo; }
 function descreverAction(a) { if(a.tipo==='criar_lembrete')return `Cria lembrete em ${a.dias} dia(s)`; if(a.tipo==='copiar_mensagem')return 'Prepara mensagem para enviar'; if(a.tipo==='mudar_estado')return `Move para "${estadoLabel(a.estado)}"`; if(a.tipo==='notificar')return 'Mostra notificação'; if(a.tipo==='iniciar_sequencia')return `Inicia sequência de ${(a.passos||[]).length} mensagens`; return a.tipo; }
-function iconeTrigger(tipo) { return { estado_muda:'🔄', lead_criado:'👋', sem_contacto_dias:'🥶', aniversario:'🎂', score_alto_parado:'🔥' }[tipo] || '⚙️'; }
+function iconeTrigger(tipo) { return { estado_muda:'🔄', lead_criado:'👋', sem_contacto_dias:'🥶', aniversario:'🎂' }[tipo] || '⚙️'; }
 
 function renderAutomacaoGrid() {
   const regras = getAutoRegras();
@@ -33726,7 +33969,6 @@ function atualizarRegraBuilderUI() {
   if (tEl) {
     if (trigger === 'estado_muda') tEl.innerHTML = `<div class="form-label">Para que estado?</div><select class="form-select" id="regra-trigger-estado"><option value="contactado">Contactado</option><option value="interessado">Interessado</option><option value="negociacao">Negociação</option><option value="cliente">Cliente</option><option value="frio">Frio</option></select>`;
     else if (trigger === 'sem_contacto_dias') tEl.innerHTML = `<div class="form-label">Quantos dias sem contacto?</div><input class="form-input" type="number" id="regra-trigger-dias" value="14" min="1">`;
-    else if (trigger === 'score_alto_parado') tEl.innerHTML = `<div class="form-label">Score mínimo (1-10)</div><input class="form-input" type="number" id="regra-trigger-score" value="7" min="1" max="10" style="margin-bottom:8px;"><div class="form-label">Parado há quantos dias sem contacto?</div><input class="form-input" type="number" id="regra-trigger-score-dias" value="4" min="1">`;
     else tEl.innerHTML = '';
   }
   if (aEl) {
@@ -33748,7 +33990,6 @@ function guardarRegraPersonalizada() {
   let trigger = { tipo: triggerTipo };
   if (triggerTipo === 'estado_muda') trigger.para = document.getElementById('regra-trigger-estado')?.value || 'cliente';
   if (triggerTipo === 'sem_contacto_dias') trigger.dias = parseInt(document.getElementById('regra-trigger-dias')?.value || 14);
-  if (triggerTipo === 'score_alto_parado') { trigger.scoreMin = parseInt(document.getElementById('regra-trigger-score')?.value || 7); trigger.dias = parseInt(document.getElementById('regra-trigger-score-dias')?.value || 4); }
   let action = { tipo: actionTipo };
   if (actionTipo === 'criar_lembrete') { action.dias = parseInt(document.getElementById('regra-action-dias')?.value || 1); action.mensagem = document.getElementById('regra-action-msg')?.value.trim() || 'Follow-up com {nome}'; }
   if (actionTipo === 'copiar_mensagem') action.texto = document.getElementById('regra-action-texto')?.value.trim() || 'Olá {nome}!';
@@ -33885,23 +34126,6 @@ function verificarAutomacoesPeriodicas() {
           const jaHoje = getAutoLog().some(l => l.regraId === r.id && l.texto.includes(lead.nome) && l.data.startsWith(hojeMD.toLocaleDateString('pt-PT')));
           if (!jaHoje) executarAcaoRegra(r, lead);
         }
-      });
-    }
-    // Lead com score alto (alta probabilidade de fecho) parado sem contacto —
-    // mesma lógica de "já executou nos últimos X dias" do sem_contacto_dias,
-    // para não repetir o aviso todos os minutos enquanto a regra está ativa.
-    // Fora do funil ativo (cliente/frio) fica de fora, tal como nas outras
-    // regras baseadas em tempo — já não faz sentido "esfriar" quem já saiu.
-    if (r.trigger.tipo === 'score_alto_parado') {
-      leads.forEach(lead => {
-        if (lead.estado === 'cliente' || lead.estado === 'frio') return;
-        const dias = diasSemContacto(lead);
-        if (dias === null || dias < (r.trigger.dias || 4)) return;
-        const scoreMin = r.trigger.scoreMin || 7;
-        const { score } = calcularScore(lead);
-        if (score < scoreMin) return;
-        const jaExecutou = getAutoLog().some(l => l.regraId === r.id && l.texto.includes(lead.nome) && (agora - new Date(l.data.split(',')[0].split('/').reverse().join('-')).getTime()) < 86400000 * (r.trigger.dias || 4));
-        if (!jaExecutou) executarAcaoRegra(r, lead);
       });
     }
   });
