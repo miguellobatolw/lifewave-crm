@@ -4410,6 +4410,7 @@
         <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
           <button class="btn btn-green btn-sm" onclick="abrirMensagemMassa('whatsapp')" title="Enviar WhatsApp em massa">💬 WhatsApp Massa</button>
           <button class="btn btn-blue btn-sm" onclick="abrirMensagemMassa('sms')" title="Enviar SMS em massa">📱 SMS Massa</button>
+          <button class="btn btn-secondary" onclick="abrirDuplicados()" title="Detetar contactos duplicados">🧬 Duplicados</button>
           <button class="btn btn-secondary" onclick="abrirLixeira()" title="Ver leads eliminados recentemente">🗑️ Lixeira</button>
           <button class="btn btn-secondary" onclick="openModal('modal-importar')">📂 Importar</button>
           <button class="btn btn-primary" onclick="openModal('modal-lead')">＋ Novo Lead</button>
@@ -5079,6 +5080,7 @@
                 <option value="nome">Por nome</option>
                 <option value="recente">Mais recentes</option>
                 <option value="inativos">Inativos primeiro</option>
+                <option value="saude">🩺 Saúde (crítico primeiro)</option>
               </select>
             </div>
           </div>
@@ -5554,6 +5556,7 @@
           <div class="page-title">🧮 Calculadora 2.0</div>
           <div class="page-sub" id="calc-sub">Calcula os teus ganhos semanais com o Plano de Compensação LifeWave 2.0</div>
         </div>
+        <button class="btn btn-secondary" id="calc-usar-perfil-btn" onclick="calcUsarDadosPerfil()" title="Preenche PV, BV Binário e categoria com os dados guardados no teu Perfil">📥 Usar meu Perfil</button>
         <button class="btn btn-secondary" id="calc-reset-btn" onclick="resetCalculadora()">🔄 Limpar</button>
       </div>
 
@@ -6127,6 +6130,7 @@
           </select>
           <select class="form-select" id="formacao-filtro-cat" onchange="formacaoFiltrarBiblioteca()" style="width:180px;height:40px;">
             <option value="">Todas as categorias</option>
+            <option value="crm">Como Usar o CRM</option>
             <option value="produto">Produto X39</option>
             <option value="negocio">Negócio/MLM</option>
             <option value="vendas">Técnicas de Venda</option>
@@ -6858,6 +6862,10 @@
           <div id="aud-progresso-barra" style="height:100%;background:linear-gradient(90deg,var(--accent),#00d4aa);width:0%;transition:width .3s;"></div>
         </div>
       </div>
+
+      <button class="btn btn-secondary" style="width:100%;margin-bottom:16px;" onclick="abrirComplianceCheck('')">
+        🔍 Verificar uma bio/legenda antes de marcar um item — cola o texto e deteta automaticamente termos proibidos
+      </button>
 
       <div id="aud-lista" style="display:flex;flex-direction:column;gap:10px;"></div>
 
@@ -8745,6 +8753,29 @@
   </div>
 </div>
 
+<!-- MODAL: DETETAR DUPLICADOS -->
+<div class="modal-overlay" id="modal-duplicados">
+  <div class="modal" style="max-width:640px;">
+    <div class="modal-title">
+      <span>🧬 Contactos Duplicados</span>
+      <button class="modal-close" onclick="closeModal('modal-duplicados')">✕</button>
+    </div>
+    <div class="ai-note" style="margin-bottom:14px;">
+      <span>📋</span>
+      <span>Deteta contactos com o <strong>mesmo telefone</strong>, <strong>mesmo email</strong> ou <strong>nome muito parecido</strong>. Escolhe qual manter — o outro passa para a lixeira (recuperável 7 dias) e o histórico é fundido.</span>
+    </div>
+    <div id="duplicados-loading" style="text-align:center;padding:30px 0;color:var(--text2);font-size:13px;">A analisar contactos...</div>
+    <div id="duplicados-vazio" style="display:none;text-align:center;padding:30px 0;">
+      <div style="font-size:32px;margin-bottom:8px;">✅</div>
+      <div style="font-size:13px;color:var(--text2);">Não foram encontrados duplicados. A tua lista está limpa!</div>
+    </div>
+    <div id="duplicados-lista" style="display:none;max-height:60vh;overflow-y:auto;display:flex;flex-direction:column;gap:10px;"></div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="closeModal('modal-duplicados')">Fechar</button>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL: BACKUP COMPLETO -->
 <div class="modal-overlay" id="modal-backup">
   <div class="modal" style="max-width:560px;">
@@ -9064,12 +9095,55 @@ function abrirMenuMais() {
 }
 
 
+// ---- VÍDEOS TUTORIAIS POR PÁGINA (atalho "Alfa") ----
+// A ligação vídeo -> página é feita através do campo "Página relacionada"
+// no recurso da Biblioteca (Formação). Não precisa de edição de código.
+function videoTutorialDaPagina(page) {
+  const recursos = formacaoCarregarRecursos();
+  // Usa o mais recente adicionado para esta página, se houver mais que um
+  return recursos.find(r => r.tipo === 'video' && r.paginaRelacionada === page) || null;
+}
+
+function abrirVideoTutorialPagina(page) {
+  const r = videoTutorialDaPagina(page);
+  if (!r || !r.url) { showToast('🎬 Vídeo desta secção ainda não disponível'); return; }
+  window.open(r.url, '_blank');
+}
+
+function atualizarBotaoVideoTutorial(page) {
+  const header = document.querySelector('#page-' + page + ' .page-header');
+  if (!header) return;
+  const r = videoTutorialDaPagina(page);
+  let btn = document.getElementById('btn-video-tutorial-' + page);
+  if (!r || !r.url) { if (btn) btn.style.display = 'none'; return; }
+  if (!btn) {
+    // Garante um container de ações (2º filho do header) para não criar uma 3ª coluna no flex.
+    let container = header.children.length > 1 ? header.children[header.children.length - 1] : null;
+    if (!container) {
+      container = document.createElement('div');
+      container.style.cssText = 'display:flex;gap:10px;align-items:center;flex-shrink:0;';
+      header.appendChild(container);
+    }
+    btn = document.createElement('button');
+    btn.id = 'btn-video-tutorial-' + page;
+    btn.className = 'btn btn-secondary btn-sm';
+    btn.onclick = () => abrirVideoTutorialPagina(page);
+    container.insertBefore(btn, container.firstChild);
+  }
+  btn.innerHTML = '🎬 ' + (r.titulo || 'Como usar isto');
+  btn.style.display = '';
+}
+
+// Garante o botão também na página ativa por defeito (dashboard), sem depender do goTo()
+document.addEventListener('DOMContentLoaded', () => setTimeout(() => atualizarBotaoVideoTutorial('dashboard'), 500));
+
 function goTo(page, opts) {
   const fromHistory = opts && opts.fromHistory;
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
   document.querySelectorAll('.bn-item, .bn-more-item').forEach(n => n.classList.remove('active'));
   document.getElementById('page-' + page).classList.add('active');
+  atualizarBotaoVideoTutorial(page);
   const items = document.querySelectorAll('.nav-item');
   const map = { dashboard: 0, acoes: 1, funil: 2, lista: 3, posts: 4, calendario: 5, agenda: 6, coach: 8, stats: 9, equipa: 10, comissoes: 11, luminate: 12, calculadora: 13, 'plano-comp': 14, formacao: 15, catalogo: 16, percurso: 17, stories: 18, objecoes: 19, metas: 20, templates: 21, promocoes: 22, checklist: 23, relatorio: 24, roleplay: 25, onboarding: 27, automacao: 28, mapa: 29, apresentacao: 30, diario: 31, analise: 32, tutorial: 33 };
   if (map[page] !== undefined && items[map[page]]) items[map[page]].classList.add('active');
@@ -11016,6 +11090,21 @@ let _recrutDragColKey = null;
 function getLeadsRecrutamento() {
   if (typeof leads === 'undefined') return [];
   return leads.filter(l => l.objetivo === 'parceiro');
+}
+
+// Atalho a partir do alerta de "Binário desequilibrado" na Calculadora/Qualificação:
+// leva ao Funil de Recrutamento e lembra qual a secção mais fraca, para o
+// próximo candidato inscrito ser colocado aí. Reaproveita getLeadsRecrutamento()
+// e as etapas já definidas em RECRUT_ETAPAS — não cria um filtro novo, só conta
+// quantos candidatos ainda estão antes de "Inscrito (BP)".
+const RECRUT_ETAPAS_PRE_INSCRICAO = ['apresentado', 'seguimento', 'kit_enviado'];
+function irParaRecrutamentoSecaoFraca(lado) {
+  goTo('recrutamento');
+  const candidatos = getLeadsRecrutamento().filter(l => RECRUT_ETAPAS_PRE_INSCRICAO.includes(l.estadoRecrut || 'apresentado'));
+  const msg = candidatos.length > 0
+    ? `💡 Tens ${candidatos.length} candidato${candidatos.length > 1 ? 's' : ''} por inscrever — coloca o próximo na secção ${lado}.`
+    : `💡 Coloca o próximo novo parceiro na secção ${lado}.`;
+  showToast(msg);
 }
 
 function renderFunilRecrutamento() {
@@ -14412,6 +14501,9 @@ function renderImportPreview() {
     return;
   }
 
+  // Ordena A-Z por nome (usa normalizarNome para ignorar acentos/maiúsculas na comparação)
+  importContactos.sort((a, b) => normalizarNome(a.nome).localeCompare(normalizarNome(b.nome), 'pt'));
+
   area.style.display = 'block';
   confirmBtn.style.display = 'inline-flex';
   countLabel.textContent = `${importContactos.length} contacto(s) encontrado(s)`;
@@ -14443,7 +14535,7 @@ function confirmarImport() {
 
   let novos = 0;
   selecionados.forEach(c => {
-    const existe = leads.some(l => l.nome === c.nome && (l.tel === c.tel || (!l.tel && !c.tel)));
+    const existe = leadJaExiste(c);
     if (!existe) {
       leads.unshift({
         id: gerarId(),
@@ -14782,6 +14874,9 @@ async function executarSyncContacts() {
       : `${googleContactsToImport.length} contactos encontrados`;
     status.className = 'gsync-status ok';
 
+    // Ordena A-Z por nome (usa normalizarNome para ignorar acentos/maiúsculas na comparação)
+    googleContactsToImport.sort((a, b) => normalizarNome(a.nome).localeCompare(normalizarNome(b.nome), 'pt'));
+
     // Reset filtros de importação
     const fInd = document.getElementById('gc-filtro-indicativo');
     const fCom = document.getElementById('gc-filtro-com-contacto');
@@ -14868,7 +14963,7 @@ function confirmarImportGoogleContacts() {
 
   let novos = 0;
   selecionados.forEach(c => {
-    const existe = leads.some(l => l.nome === c.nome && (l.tel === c.tel || (!l.tel && !c.tel)));
+    const existe = leadJaExiste(c);
     if (!existe) {
       leads.unshift({
         id: gerarId(),
@@ -15210,6 +15305,7 @@ function iniciarGoogleAuth(action) {
 
 // ===== MENSAGENS (WhatsApp / SMS / Ligar) =====
 let msgLeadId = null;
+let msgTemplateTipoAtual = null; // 'tipo' do template usado nesta mensagem (para medir taxa de resposta), null se escrita à mão
 let msgCanal = 'whatsapp'; // 'whatsapp' | 'sms'
 
 const TEMPLATES = {
@@ -15234,6 +15330,7 @@ const TEMPLATES = {
 
 function abrirMensagem(leadId, canal) {
   msgLeadId = leadId;
+  msgTemplateTipoAtual = null;
   msgCanal = canal || 'whatsapp';
   const l = leads.find(x => x.id === leadId);
   if (!l) return;
@@ -15260,6 +15357,8 @@ function abrirMensagem(leadId, canal) {
   const semTel = !telRaw;
   document.getElementById('msg-no-tel-warn').style.display = semTel ? 'block' : 'none';
   document.getElementById('msg-destino-row').style.display = semTel ? 'none' : 'block';
+
+  if (typeof atualizarSelosTaxaRespostaTemplates === 'function') atualizarSelosTaxaRespostaTemplates();
 
   setMsgCanal(msgCanal);
   openModal('modal-mensagem');
@@ -15311,6 +15410,217 @@ function telParaWaMe(tel) {
   return limparTelefone(tel).replace(/\D/g, '');
 }
 
+// ===== DEDUPLICAÇÃO ROBUSTA DE LEADS =====
+// Normaliza nome para comparação (minúsculas, sem acentos, sem espaços extra)
+function normalizarNome(nome) {
+  return (nome || '')
+    .trim()
+    .toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '') // remove acentos
+    .replace(/\s+/g, ' ');
+}
+
+// Verifica se um contacto {nome, tel, email} já existe na lista de leads.
+// Critérios (qualquer um chega para considerar duplicado):
+//   1. Telefone igual após normalização (limparTelefone) — só se ambos tiverem telefone
+//   2. Email igual (case-insensitive) — só se ambos tiverem email
+//   3. Nome normalizado igual, apenas quando nenhum dos dois lados tem telefone/email para comparar
+// Retorna o lead existente encontrado, ou null.
+function leadJaExiste(contacto, listaLeads) {
+  const lista = listaLeads || leads;
+  const nomeNorm = normalizarNome(contacto.nome);
+  const telNorm = contacto.tel ? limparTelefone(contacto.tel) : '';
+  const emailNorm = contacto.email ? contacto.email.trim().toLowerCase() : '';
+
+  return lista.find(l => {
+    const lTelNorm = l.tel ? limparTelefone(l.tel) : '';
+    const lEmailNorm = l.email ? l.email.trim().toLowerCase() : '';
+    const lNomeNorm = normalizarNome(l.nome);
+
+    if (telNorm && lTelNorm && telNorm === lTelNorm) return true;
+    if (emailNorm && lEmailNorm && emailNorm === lEmailNorm) return true;
+    if (nomeNorm && lNomeNorm === nomeNorm && !telNorm && !lTelNorm && !emailNorm && !lEmailNorm) return true;
+    return false;
+  }) || null;
+}
+
+// ===== MÓDULO: DETEÇÃO DE DUPLICADOS NA LISTA EXISTENTE =====
+// Distância de Levenshtein simples, usada só para detetar nomes "parecidos"
+// (ex: "Joao Silva" vs "João Silva " ou pequenos erros de escrita).
+function _levenshtein(a, b) {
+  if (a === b) return 0;
+  const m = a.length, n = b.length;
+  if (m === 0) return n;
+  if (n === 0) return m;
+  let prev = Array.from({ length: n + 1 }, (_, i) => i);
+  for (let i = 1; i <= m; i++) {
+    const curr = [i];
+    for (let j = 1; j <= n; j++) {
+      curr[j] = a[i - 1] === b[j - 1]
+        ? prev[j - 1]
+        : 1 + Math.min(prev[j - 1], prev[j], curr[j - 1]);
+    }
+    prev = curr;
+  }
+  return prev[n];
+}
+
+// Normalização de telefone só para efeitos de COMPARAÇÃO na deteção de duplicados:
+// reduz ao número "puro" (só dígitos, sem indicativo de país), para apanhar casos
+// como "912345678" vs "351912345678" vs "+351 912 345 678" que limparTelefone()
+// sozinha não junta. Não substitui limparTelefone() no resto da app.
+function _telSoNumero(tel) {
+  let d = limparTelefone(tel).replace(/\D/g, '');
+  // remove indicativos comuns de 2-3 dígitos deixando só os últimos 9 dígitos (padrão PT/BR/ES/etc)
+  if (d.length > 9) d = d.slice(-9);
+  return d;
+}
+
+// Compara dois leads e devolve o motivo da suspeita de duplicado, ou null.
+function _motivoDuplicado(a, b) {
+  const telA = a.tel ? _telSoNumero(a.tel) : '';
+  const telB = b.tel ? _telSoNumero(b.tel) : '';
+  const emailA = a.email ? a.email.trim().toLowerCase() : '';
+  const emailB = b.email ? b.email.trim().toLowerCase() : '';
+  const nomeA = normalizarNome(a.nome);
+  const nomeB = normalizarNome(b.nome);
+
+  if (telA && telB && telA === telB) return { tipo: 'Mesmo telefone', forte: true };
+  if (emailA && emailB && emailA === emailB) return { tipo: 'Mesmo email', forte: true };
+  if (nomeA && nomeB && nomeA !== nomeB) {
+    const maxLen = Math.max(nomeA.length, nomeB.length);
+    if (maxLen >= 4) {
+      const dist = _levenshtein(nomeA, nomeB);
+      // tolera até ~20% de diferença nos caracteres (erros de escrita/acentos)
+      if (dist > 0 && dist <= Math.max(1, Math.floor(maxLen * 0.2))) {
+        return { tipo: 'Nome parecido', forte: false };
+      }
+    }
+  }
+  return null;
+}
+
+// Varre todos os leads e devolve lista de pares suspeitos { a, b, motivo }
+function detetarLeadsDuplicados() {
+  const pares = [];
+  const vistos = new Set(); // evita reportar o mesmo par duas vezes
+  for (let i = 0; i < leads.length; i++) {
+    for (let j = i + 1; j < leads.length; j++) {
+      const a = leads[i], b = leads[j];
+      const chave = [a.id, b.id].sort().join('|');
+      if (vistos.has(chave)) continue;
+      const motivo = _motivoDuplicado(a, b);
+      if (motivo) {
+        vistos.add(chave);
+        pares.push({ a, b, motivo });
+      }
+    }
+  }
+  // Duplicados fortes (telefone/email) primeiro, nomes parecidos depois
+  pares.sort((p1, p2) => (p2.motivo.forte ? 1 : 0) - (p1.motivo.forte ? 1 : 0));
+  return pares;
+}
+
+function abrirDuplicados() {
+  openModal('modal-duplicados');
+  document.getElementById('duplicados-loading').style.display = 'block';
+  document.getElementById('duplicados-vazio').style.display = 'none';
+  document.getElementById('duplicados-lista').style.display = 'none';
+
+  // setTimeout curto para o loading aparecer mesmo com listas grandes (evita UI travada sem feedback)
+  setTimeout(() => {
+    const pares = detetarLeadsDuplicados();
+    document.getElementById('duplicados-loading').style.display = 'none';
+
+    if (!pares.length) {
+      document.getElementById('duplicados-vazio').style.display = 'block';
+      return;
+    }
+
+    const listaEl = document.getElementById('duplicados-lista');
+    listaEl.style.display = 'flex';
+    listaEl.innerHTML = pares.map((p, idx) => {
+      const corBadge = p.motivo.forte ? 'var(--accent3)' : 'var(--gold)';
+      return `
+        <div class="card" style="padding:12px 14px;" id="dup-par-${idx}">
+          <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:${corBadge};margin-bottom:8px;">⚠️ ${p.motivo.tipo}</div>
+          <div style="display:flex;gap:10px;align-items:stretch;">
+            <div style="flex:1;background:var(--surface2);border-radius:8px;padding:9px 10px;">
+              <div style="font-size:13px;font-weight:700;color:var(--text);">${p.a.nome || '(sem nome)'}</div>
+              <div style="font-size:11px;color:var(--text2);margin-top:2px;">${[p.a.tel, p.a.email].filter(Boolean).join(' · ') || 'Sem contacto'}</div>
+              <div style="font-size:10px;color:var(--text3);margin-top:4px;">${(p.a.historico||[]).length} evento(s) · desde ${p.a.data||'?'}</div>
+              <button class="btn btn-secondary btn-sm" style="width:100%;margin-top:8px;" onclick="fundirLeadsDuplicados('${p.a.id}','${p.b.id}','dup-par-${idx}')">Manter este →</button>
+            </div>
+            <div style="flex:1;background:var(--surface2);border-radius:8px;padding:9px 10px;">
+              <div style="font-size:13px;font-weight:700;color:var(--text);">${p.b.nome || '(sem nome)'}</div>
+              <div style="font-size:11px;color:var(--text2);margin-top:2px;">${[p.b.tel, p.b.email].filter(Boolean).join(' · ') || 'Sem contacto'}</div>
+              <div style="font-size:10px;color:var(--text3);margin-top:4px;">${(p.b.historico||[]).length} evento(s) · desde ${p.b.data||'?'}</div>
+              <button class="btn btn-secondary btn-sm" style="width:100%;margin-top:8px;" onclick="fundirLeadsDuplicados('${p.b.id}','${p.a.id}','dup-par-${idx}')">← Manter este</button>
+            </div>
+          </div>
+          <button class="btn btn-secondary btn-sm" style="width:100%;margin-top:8px;opacity:0.7;" onclick="ignorarParDuplicado('dup-par-${idx}')">Não é duplicado — ignorar</button>
+        </div>
+      `;
+    }).join('');
+  }, 30);
+}
+
+function ignorarParDuplicado(elId) {
+  const el = document.getElementById(elId);
+  if (el) el.remove();
+  _fecharDuplicadosSeVazio();
+}
+
+function _fecharDuplicadosSeVazio() {
+  const listaEl = document.getElementById('duplicados-lista');
+  if (listaEl && !listaEl.children.length) {
+    listaEl.style.display = 'none';
+    document.getElementById('duplicados-vazio').style.display = 'block';
+  }
+}
+
+// Funde dois leads: mantém o lead "manterId", junta o histórico e os campos em
+// falta vindos do lead "removerId", e move o removido para a lixeira (recuperável).
+function fundirLeadsDuplicados(manterId, removerId, elId) {
+  const manter = leads.find(l => l.id === manterId);
+  const remover = leads.find(l => l.id === removerId);
+  if (!manter || !remover) { showToast('❌ Não foi possível fundir — lead não encontrado'); return; }
+
+  if (!confirm(`Vais manter "${manter.nome}" e mover "${remover.nome}" para a lixeira, com o histórico fundido. Continuar?`)) return;
+
+  // Preenche campos vazios do lead mantido com dados do lead removido
+  ['tel', 'email', 'mercado', 'objetivo', 'fonte', 'indicadoPor', 'notas', 'aniversario'].forEach(campo => {
+    if (!manter[campo] && remover[campo]) manter[campo] = remover[campo];
+  });
+
+  // Funde históricos por ordem cronológica de criação (removido antes de marcar a fusão)
+  manter.historico = (manter.historico || []).concat(remover.historico || []);
+  manter.historico.push({
+    tipo: 'sistema',
+    msg: `Fundido com contacto duplicado "${remover.nome}"`,
+    data: new Date().toLocaleString('pt-PT')
+  });
+
+  moverParaLixeira('lead', remover);
+  leads = leads.filter(l => l.id !== removerId);
+
+  // Remove lembretes/sequências órfãos do lead removido, tal como em eliminarLead()
+  if (typeof lembretes !== 'undefined' && lembretes.length) {
+    lembretes = lembretes.filter(l => l._leadId !== removerId);
+    if (typeof saveLembretes === 'function') saveLembretes();
+  }
+
+  saveleads();
+  renderDashboard();
+  renderFunil();
+  renderLista();
+  showToast(`✓ Contactos fundidos em "${manter.nome}"`);
+
+  const el = document.getElementById(elId);
+  if (el) el.remove();
+  _fecharDuplicadosSeVazio();
+}
+
 function updateMsgCount() {
   const len = document.getElementById('msg-texto').value.length;
   const el = document.getElementById('msg-char-count');
@@ -15349,6 +15659,7 @@ function usarTemplate(tipo) {
   if (fn) {
     document.getElementById('msg-texto').value = fn().replace(/\{nome\}/g, nome);
     updateMsgCount();
+    msgTemplateTipoAtual = tipo; // guarda qual template foi escolhido, para depois medir taxa de resposta
   }
 }
 
@@ -15484,11 +15795,13 @@ function enviarMensagem() {
   const l = leads.find(x => x.id === msgLeadId);
   if (l) {
     l.historico = l.historico || [];
-    l.historico.push({
+    const entradaMsg = {
       tipo: 'mensagem',
       msg: `${msgCanal === 'whatsapp' ? '💬 WhatsApp' : '📱 SMS'} enviado: "${texto.slice(0, 60)}${texto.length > 60 ? '…' : ''}"`,
       data: new Date().toLocaleString('pt-PT')
-    });
+    };
+    if (msgTemplateTipoAtual) entradaMsg.templateTipo = msgTemplateTipoAtual; // liga esta mensagem ao template usado, se algum
+    l.historico.push(entradaMsg);
     l.ultimoContacto = new Date().toISOString();
     saveleads();
   }
@@ -16596,6 +16909,7 @@ function entrarNaApp(user) {
   // Show welcome popup for first-time users (or if they haven't dismissed it for this version)
   setTimeout(welcomeCheckAndShow, 900);
   setTimeout(verificarRelatorioSemanalPendente, 2500);
+  setTimeout(() => { if (typeof verificarAlertasInatividade === 'function') verificarAlertasInatividade(); }, 4000);
 }
 
 // Verifica se este browser tem leads guardados sob OUTRAS chaves de conta
@@ -18197,6 +18511,74 @@ salvarPerfil = function() {
       if (document.getElementById('page-tutorial')?.classList.contains('active')) tutRender();
     }
   } catch(e) {}
+  // Snapshot mensal para a Projeção Multi-Mês de Rank (módulo aditivo v79)
+  try {
+    if (typeof qualifHistoricoSalvarSnapshot === 'function') {
+      const p = getUserPerfil();
+      qualifHistoricoSalvarSnapshot({ pv: p.pv, qdv: p.qdv, secL: p.secL, secR: p.secR, olxl: p.olxl });
+    }
+  } catch(e) {}
+};
+
+// Sincroniza um lembrete automático (visível na Agenda e no badge de
+// notificações) com a data de próxima encomenda do perfil. Antes só existia
+// o banner passivo do Dashboard (renderEncomendaBanner) — quem não abrisse
+// o Dashboard nesse dia não via nenhum aviso. Reaproveita o sistema de
+// lembretes já existente (loadLembretes/saveLembretes) e o limiar
+// ENCOMENDA_DIAS_AVISO já usado pelo banner — não duplica esse cálculo nem
+// introduz um novo threshold. Usa um id fixo para atualizar sempre o mesmo
+// lembrete em vez de acumular um novo de cada vez que o perfil é guardado.
+function sincronizarLembreteEncomenda(perfil) {
+  if (typeof loadLembretes === 'function') loadLembretes();
+  const ID_LEMBRETE_ENCOMENDA = 'notif_encomenda_auto';
+  const idx = lembretes.findIndex(l => l.id === ID_LEMBRETE_ENCOMENDA);
+
+  if (!perfil || !perfil.dataProximaEncomenda) {
+    // Sem data definida: remove o lembrete automático anterior (se existir)
+    // para não deixar um aviso órfão a apontar para uma data que já não existe.
+    if (idx > -1) { lembretes.splice(idx, 1); saveLembretes(); }
+    return;
+  }
+
+  const dataEncomenda = new Date(perfil.dataProximaEncomenda + 'T00:00:00');
+  if (isNaN(dataEncomenda.getTime())) return;
+  const dataAviso = new Date(dataEncomenda);
+  dataAviso.setDate(dataAviso.getDate() - (typeof ENCOMENDA_DIAS_AVISO === 'number' ? ENCOMENDA_DIAS_AVISO : 5));
+  dataAviso.setHours(9, 0, 0, 0);
+
+  // Se o aviso calculado já ficaria no passado (prazo apertado ou já vencido),
+  // agenda para daqui a 1h para ainda assim surgir hoje em vez de nunca disparar.
+  if (dataAviso.getTime() < Date.now()) dataAviso.setTime(Date.now() + 60 * 60 * 1000);
+
+  const mensagem = `📦 A tua encomenda LifeWave vence em ${formatarDataPT(perfil.dataProximaEncomenda)} — confirma o autoship para não perderes a categoria.`;
+
+  if (idx > -1) {
+    lembretes[idx].proximoDisparo = dataAviso.toISOString();
+    lembretes[idx].mensagem = mensagem;
+    lembretes[idx].concluido = false;
+  } else {
+    lembretes.push({
+      id: ID_LEMBRETE_ENCOMENDA,
+      tipo: 'encomenda',
+      mensagem,
+      proximoDisparo: dataAviso.toISOString(),
+      repeticao: 'uma',
+      criado: new Date().toISOString(),
+      concluido: false,
+      disparadoCount: 0
+    });
+  }
+  saveLembretes();
+}
+
+// Encadeia mais uma vez (não substitui o wrap do tutorial acima) para também
+// sincronizar o lembrete automático sempre que o perfil é guardado.
+const _salvarPerfil_comTutorial = salvarPerfil;
+salvarPerfil = function() {
+  _salvarPerfil_comTutorial.apply(this, arguments);
+  try {
+    if (typeof getUserPerfil === 'function') sincronizarLembreteEncomenda(getUserPerfil());
+  } catch(e) {}
 };
 
 // ===== LINKS EXTRA PERSONALIZADOS (perfil) =====
@@ -19274,6 +19656,68 @@ function calcularAutoTags(l) {
   return tags;
 }
 
+// ===================================================
+// TAXA DE RESPOSTA POR TEMPLATE — combina duas fontes, sem as
+// misturar internamente na contagem de "resposta" (os critérios
+// de deteção são diferentes por natureza):
+//
+// 1) Envios manuais pela app (templateTipo) — ver usarTemplate/
+//    enviarMensagem. "Resposta" = a entrada seguinte no histórico
+//    é uma nota ou mudança de estado (mesmo sinal já usado na
+//    auto-tag 🔇 Sem resposta).
+// 2) Templates identificados pela IA em conversas reais já tidas
+//    fora da app (templateTipoDetectado) — ver acGuardarNoLead.
+//    Aqui a mensagem já foi enviada e a conversa já aconteceu, por
+//    isso "resposta" = a fase detetada pela IA não é 'perdido' nem
+//    'sem_contexto' (ou seja, o prospect reagiu de alguma forma).
+//
+// Ambas alimentam o mesmo total por tipo de template, para dar uma
+// visão única e útil — mas cada uma usa o sinal de resposta que faz
+// sentido para a sua origem.
+// ===================================================
+function calcularEstatsTemplates() {
+  const stats = {}; // { tipo: { enviados, responderam } }
+  (leads || []).forEach(l => {
+    const hist = l.historico || [];
+    hist.forEach((h, i) => {
+      if (h.tipo === 'mensagem' && h.templateTipo) {
+        const tipo = h.templateTipo;
+        if (!stats[tipo]) stats[tipo] = { enviados: 0, responderam: 0 };
+        stats[tipo].enviados++;
+        const seguinte = hist[i + 1];
+        if (seguinte && (seguinte.tipo === 'nota' || seguinte.tipo === 'estado')) {
+          stats[tipo].responderam++;
+        }
+      } else if (h.tipo === 'analise_ia' && h.templateTipoDetectado) {
+        const tipo = h.templateTipoDetectado;
+        if (!stats[tipo]) stats[tipo] = { enviados: 0, responderam: 0 };
+        stats[tipo].enviados++;
+        if (h.faseDetectada && h.faseDetectada !== 'perdido' && h.faseDetectada !== 'sem_contexto') {
+          stats[tipo].responderam++;
+        }
+      }
+    });
+  });
+  return stats;
+}
+
+// Preenche os selos "X% respondem" junto aos botões de template rápido
+// no modal de mensagem, usando as estatísticas reais já calculadas.
+// Só mostra o selo quando há pelo menos 3 envios (amostra mínima para
+// não mostrar "100%" com base num único caso).
+function atualizarSelosTaxaRespostaTemplates() {
+  const stats = calcularEstatsTemplates();
+  document.querySelectorAll('[data-tipo-template-badge]').forEach(span => {
+    const tipo = span.getAttribute('data-tipo-template-badge');
+    const s = stats[tipo];
+    if (!s || s.enviados < 3) { span.textContent = ''; return; }
+    const pct = Math.round((s.responderam / s.enviados) * 100);
+    span.textContent = ` · ${pct}% respondem`;
+    span.style.opacity = '0.75';
+    span.style.fontSize = '10px';
+  });
+}
+
 // Converte a data guardada no histórico (formato pt-PT toLocaleString) para timestamp.
 function parseDataHistorico(str) {
   if (!str) return null;
@@ -20278,6 +20722,34 @@ function atualizarBadgeRetencao() {
   const badgeBn   = document.getElementById('bn-badge-retencao');
   if (badgeSide) { badgeSide.textContent = emAlerta; badgeSide.style.display = emAlerta > 0 ? '' : 'none'; }
   if (badgeBn)   { badgeBn.textContent  = emAlerta; badgeBn.style.display   = emAlerta > 0 ? '' : 'none'; }
+  if (typeof verificarAlertaRetencaoDiario === 'function') verificarAlertaRetencaoDiario(todos);
+}
+
+// ===================================================
+// ALERTA DE RETENÇÃO — Notifica 1x/dia se houver clientes
+// em risco ou críticos (reaproveita dispararNotificacao já
+// existente; não substitui o badge, complementa-o).
+// ===================================================
+function verificarAlertaRetencaoDiario(todosClientes) {
+  const hoje = new Date().toDateString();
+  const jaAvisouHoje = localStorage.getItem(getUserStorageKey('lw_retencao_alert_' + hoje));
+  if (jaAvisouHoje) return; // só 1x por dia
+
+  const criticos = todosClientes.filter(c => c.estado === 'critico');
+  const risco    = todosClientes.filter(c => c.estado === 'risco');
+  if (criticos.length === 0 && risco.length === 0) return;
+
+  localStorage.setItem(getUserStorageKey('lw_retencao_alert_' + hoje), '1');
+
+  const total = criticos.length + risco.length;
+  const primeiroNome = (criticos[0] || risco[0]).nome;
+  const corpo = total === 1
+    ? `${primeiroNome} está sem comprar há algum tempo — pode ser boa altura para reconectar.`
+    : `${total} clientes preferenciais precisam de atenção (${criticos.length} críticos, ${risco.length} em risco).`;
+
+  if (typeof dispararNotificacao === 'function') {
+    dispararNotificacao('⚠️ Clientes em risco de retenção', corpo, '⚠️');
+  }
 }
 
 // ===================================================
@@ -20615,12 +21087,16 @@ function renderDigestDiario() {
     });
   }
 
-  // 1b. Membros da equipa sem contacto há muito tempo
-  const membrosUrgentes = (typeof membros !== 'undefined' ? membros : []).filter(m => getPrioridadeMembro(m) === 'urgente');
+  // 1b. Membros da equipa em estado crítico de saúde (combina PV, contacto,
+  // duplicação real e progressão de rank — mais completo que só "sem contacto",
+  // usando o Índice de Saúde por Membro já calculado em calcularIndiceSaudeMembro)
+  const membrosUrgentes = (typeof membros !== 'undefined' ? membros : []).filter(m =>
+    typeof calcularIndiceSaudeMembro === 'function' ? calcularIndiceSaudeMembro(m).nivel === 'Crítico' : getPrioridadeMembro(m) === 'urgente'
+  );
   if (membrosUrgentes.length > 0) {
     itens.push({
       icon: '👥', cor: '#ff5555',
-      texto: `${membrosUrgentes.length} membro${membrosUrgentes.length > 1 ? 's' : ''} da equipa sem contacto há muito tempo`,
+      texto: `${membrosUrgentes.length} membro${membrosUrgentes.length > 1 ? 's' : ''} da equipa em estado crítico`,
       fn: "goTo('equipa')"
     });
   }
@@ -20639,6 +21115,39 @@ function renderDigestDiario() {
       icon: '🎂', cor: 'var(--text2)',
       texto: `${anivAmanha.length === 1 ? anivAmanha[0].nome + ' faz' : anivAmanha.length + ' contactos fazem'} anos amanhã`,
       fn: "document.getElementById('aniversarios-banner')?.scrollIntoView({behavior:'smooth'})"
+    });
+  }
+
+  // 2b. Aniversário de negócio (data de inscrição como Brand Partner) —
+  // módulo aditivo (v79). Reaproveita diasParaAniversario() já existente
+  // (que só olha para mês/dia) e acrescenta o cálculo de anos completos,
+  // que os aniversários de leads não precisam. Cobre tanto o aniversário
+  // da própria Helena (perfil) como o de cada membro da equipa.
+  const anivNegocioHoje = [];
+  try {
+    const perfilAniv = (typeof getUserPerfil === 'function') ? getUserPerfil() : null;
+    if (perfilAniv?.dataInscricao) {
+      const anos = calcularAnosNegocio(perfilAniv.dataInscricao);
+      if (diasParaAniversario(perfilAniv.dataInscricao) === 0 && anos > 0) {
+        anivNegocioHoje.push({ nome: null, anos }); // null = é a própria Helena
+      }
+    }
+    (typeof membros !== 'undefined' ? membros : []).forEach(m => {
+      if (!m.data) return;
+      const anos = calcularAnosNegocio(m.data);
+      if (diasParaAniversario(m.data) === 0 && anos > 0) {
+        anivNegocioHoje.push({ nome: m.nome, anos });
+      }
+    });
+  } catch(e) {}
+  if (anivNegocioHoje.length > 0) {
+    const primeiro = anivNegocioHoje[0];
+    itens.push({
+      icon: '🎉', cor: 'var(--accent)',
+      texto: primeiro.nome
+        ? `${primeiro.nome} faz ${primeiro.anos} ano${primeiro.anos > 1 ? 's' : ''} de equipa hoje — envia uma mensagem de parabéns!`
+        : `Fazes ${primeiro.anos} ano${primeiro.anos > 1 ? 's' : ''} de negócio hoje! 🎉`,
+      fn: primeiro.nome ? "goTo('equipa')" : null
     });
   }
 
@@ -20786,6 +21295,21 @@ function diasParaAniversario(dateStr) {
   return Math.round((aniv - hojeSemHora) / 86400000);
 }
 
+// Anos completos desde uma data (ex: dataInscricao) até hoje — usado para o
+// Aniversário de Negócio no Digest Diário (módulo aditivo v79). Independente
+// de diasParaAniversario(), que só calcula a proximidade do próximo dia/mês.
+function calcularAnosNegocio(dateStr) {
+  if (!dateStr) return 0;
+  const inicio = new Date(dateStr + 'T00:00:00');
+  if (isNaN(inicio.getTime())) return 0;
+  const hoje = new Date();
+  let anos = hoje.getFullYear() - inicio.getFullYear();
+  const aindaNaoFezAnos = (hoje.getMonth() < inicio.getMonth()) ||
+    (hoje.getMonth() === inicio.getMonth() && hoje.getDate() < inicio.getDate());
+  if (aindaNaoFezAnos) anos--;
+  return Math.max(0, anos);
+}
+
 function renderAniversarios() {
   const banner = document.getElementById('aniversarios-banner');
   const lista = document.getElementById('aniversarios-lista');
@@ -20929,6 +21453,20 @@ function renderStats() {
   const fontesSorted = Object.entries(fonteMap).sort((a,b) => b[1]-a[1]);
   const maxFonte = Math.max(1, ...fontesSorted.map(f => f[1]));
   const fonteColors = ['#00d4aa','#0084ff','#f5c842','#ff6b35','#8b9cf7','#ff6b6b','#25d366','#a78bfa'];
+
+  // Custo por fonte: soma das despesas com "fonte" associada (campo opcional,
+  // preenchido no registo de despesa) dentro do mesmo período selecionado nas Stats.
+  // 100% aditivo — só aparece quando o utilizador liga despesas a uma fonte.
+  const custoPorFonte = {};
+  (typeof despesas !== 'undefined' ? despesas : []).forEach(d => {
+    if (!d.fonte) return;
+    if (desde) {
+      const dd = d.data ? new Date(d.data + 'T00:00:00') : null;
+      if (!dd || isNaN(dd.getTime()) || dd < desde) return;
+    }
+    custoPorFonte[d.fonte] = (custoPorFonte[d.fonte] || 0) + (d.valor || 0);
+  });
+
   document.getElementById('stats-fontes-chart').innerHTML = fontesSorted.length ? fontesSorted.map(([nome, count], i) => {
     const pct = Math.round((count / maxFonte) * 100);
     const pctTotal = total > 0 ? Math.round((count / total) * 100) : 0;
@@ -20940,6 +21478,12 @@ function renderStats() {
     const convLabel = conv.parceiros > 0
       ? `${pctConv}% conversão · ${conv.clientes} cliente${conv.clientes!==1?'s':''} (${conv.parceiros} parceiro${conv.parceiros!==1?'s':''})`
       : `${pctConv}% conversão · ${conv.clientes} cliente${conv.clientes!==1?'s':''}`;
+    const custo = custoPorFonte[nome] || 0;
+    let custoLabel = '';
+    if (custo > 0) {
+      const custoPorLead = conv.total > 0 ? custo / conv.total : 0;
+      custoLabel = `<div style="margin-top:2px;font-size:10.5px;color:var(--text3);">💸 ${fmtMoeda(custo)} gasto${custo!==1?'s':''}${custoPorLead > 0 ? ` · ${fmtMoeda(custoPorLead)}/lead` : ''}${conv.clientes > 0 ? ` · ${fmtMoeda(custo / conv.clientes)}/cliente` : ''}</div>`;
+    }
     return `
       <div style="margin-bottom:10px;">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
@@ -20950,6 +21494,7 @@ function renderStats() {
           <div style="height:100%;width:${pct}%;background:${color};border-radius:3px;transition:width 0.6s ease;"></div>
         </div>
         <div style="margin-top:3px;font-size:10.5px;color:${corConv};font-weight:600;">${convLabel}</div>
+        ${custoLabel}
       </div>
     `;
   }).join('') : '<div style="color:var(--text2);font-size:13px;text-align:center;padding:20px 0;">Sem dados ainda</div>';
@@ -22543,9 +23088,14 @@ function renderEquipa() {
   else if (ordem === 'nome') lista.sort((a,b) => a.nome.localeCompare(b.nome));
   else if (ordem === 'recente') lista.reverse();
   else if (ordem === 'inativos') lista.sort((a,b) => {
-    const order = { inativo: 0, iniciante: 1, ativo: 2 };
-    return (order[a.estado]||1) - (order[b.estado]||1);
+    // Mesmo critério de "inativo real" usado no widget Saúde da Rede e nos
+    // lembretes automáticos: etiqueta manual OU 14+ dias sem crescimento de
+    // números — não só a etiqueta manual, que pode estar desatualizada.
+    const inativoReal = m => (m.estado === 'inativo' || m.estado === 'inativa')
+      || (!!m.ultimaAtividade && (Date.now() - new Date(m.ultimaAtividade).getTime())/86400000 >= 14);
+    return (inativoReal(a) === inativoReal(b)) ? 0 : (inativoReal(a) ? -1 : 1);
   });
+  else if (ordem === 'saude') lista.sort((a,b) => calcularIndiceSaudeMembro(a).score - calcularIndiceSaudeMembro(b).score);
 
   // KPIs
   const totalMembros = membros.length;
@@ -22609,12 +23159,13 @@ function renderEquipa() {
       const avatarColor = avatarColors[m.nome.charCodeAt(0) % avatarColors.length];
       const rankNum = i + 1;
       const rankColor = rankNum <= 3 ? rankColors[rankNum-1] : 'var(--text3)';
+      const saudeM = calcularIndiceSaudeMembro(m);
       return `
         <div class="membro-row" onclick="verMembro('${m.id}')">
           <div class="membro-rank" style="color:${rankColor}">${rankNum <= 3 ? ['🥇','🥈','🥉'][rankNum-1] : rankNum}</div>
           <div class="membro-avatar" style="background:linear-gradient(135deg,${avatarColor},${avatarColor}99)">${initials}</div>
           <div class="membro-info">
-            <div class="membro-nome">${m.nome} <span class="nivel-badge">Nív. ${m.nivel}</span>${(() => { const p = getPrioridadeMembro(m); return p === 'urgente' ? ' <span style="color:#ff5555;font-size:11px;" title="Sem contacto há muito tempo">🔴</span>' : p === 'aviso' ? ' <span style="color:var(--gold);font-size:11px;" title="A precisar de contacto">🟡</span>' : ''; })()}</div>
+            <div class="membro-nome">${m.nome} <span class="nivel-badge">Nív. ${m.nivel}</span><span title="Índice de Saúde: ${saudeM.score}/100 — ${saudeM.nivel}" style="margin-left:4px;font-size:10px;font-weight:700;color:${saudeM.cor};">${saudeM.emoji} ${saudeM.score}</span>${(() => { const p = getPrioridadeMembro(m); return p === 'urgente' ? ' <span style="color:#ff5555;font-size:11px;" title="Sem contacto há muito tempo">🔴</span>' : p === 'aviso' ? ' <span style="color:var(--gold);font-size:11px;" title="A precisar de contacto">🟡</span>' : ''; })()}${(() => { const semAtividadeReal = !!m.ultimaAtividade && (Date.now() - new Date(m.ultimaAtividade).getTime())/86400000 >= 14; return semAtividadeReal ? ' <span style="color:var(--text3);font-size:11px;" title="Sem vendas/recrutas registados há 14+ dias">😴</span>' : ''; })()}</div>
             <div class="membro-meta">
               <span class="${estadoCls}">${estadoEmoji} ${estadoLabel}</span>
               ${m.tel ? ` · ${m.tel}` : ''}
@@ -23294,6 +23845,52 @@ function calcSaudeBP(m) {
   return { semanasDecorridas, semanasRestantes, arranqueAtivo, statusAtivo, pvEmRisco, pv, pontosVIP };
 }
 
+// ===================================================
+// ÍNDICE DE SAÚDE POR MEMBRO — módulo aditivo (v79)
+// Score 0-100 por membro da equipa, para ordenar rapidamente quem
+// precisa de mais atenção. Reaproveita dados e critérios já existentes
+// (calcSaudeBP, getPrioridadeMembro, e o critério de "atividade real
+// 14 dias" usado em renderEquipa/calcSaudeRede) em vez de os duplicar —
+// este módulo só combina esses sinais num único número com pesos.
+// ===================================================
+function calcularIndiceSaudeMembro(m) {
+  let score = 100;
+  const motivos = [];
+
+  // 1) Estado de PV (Ativo/Risco/Inativo) — peso 35
+  const s = calcSaudeBP(m);
+  if (s.pv === 0) { score -= 35; motivos.push('Sem PV registado'); }
+  else if (s.pvEmRisco) { score -= 20; motivos.push(`PV em risco (${s.pv}/55)`); }
+  else if (!s.statusAtivo) { score -= 35; motivos.push('Inativo'); }
+
+  // 2) Dias sem contacto — peso 25 (usa a mesma cadência já usada na Equipa)
+  const prioridade = getPrioridadeMembro(m);
+  if (prioridade === 'urgente') { score -= 25; motivos.push('Sem contacto há muito tempo'); }
+  else if (prioridade === 'aviso') { score -= 12; motivos.push('A precisar de contacto'); }
+
+  // 3) Duplicação real (venda/recruta/pontos nos últimos 14 dias) — peso 25
+  // Mesmo critério usado em renderEquipa() e calcSaudeRede(), não duplicado em lógica nova.
+  const semAtividadeReal = !!m.ultimaAtividade && (Date.now() - new Date(m.ultimaAtividade).getTime()) / 86400000 >= 14;
+  if (!m.ultimaAtividade) { score -= 10; motivos.push('Sem histórico de atividade'); }
+  else if (semAtividadeReal) { score -= 25; motivos.push('Sem novas vendas/recrutas há 14+ dias'); }
+
+  // 4) Progressão de rank estagnada — peso 15
+  // Só penaliza quando há categoria definida e QDV é 0 (sem sinal de progressão),
+  // não exige o histórico da Feature #1 para funcionar com dados só do membro.
+  if (m.categoria && (m.qdv || 0) === 0 && (m.pv || 0) > 0) {
+    score -= 15; motivos.push('Sem volume de equipa (QDV) registado');
+  }
+
+  score = Math.max(0, Math.min(100, score));
+
+  let nivel, cor, emoji;
+  if (score >= 75) { nivel = 'Saudável'; cor = 'var(--accent)'; emoji = '💚'; }
+  else if (score >= 45) { nivel = 'Atenção'; cor = 'var(--gold)'; emoji = '⚡'; }
+  else { nivel = 'Crítico'; cor = '#ff6b6b'; emoji = '🔴'; }
+
+  return { score, nivel, cor, emoji, motivos };
+}
+
 function saudePainelHTML(m, s) {
   const corPV = s.statusAtivo ? 'var(--accent)' : s.pvEmRisco ? 'var(--gold)' : '#ff6b6b';
   const pvPct  = Math.min(100, Math.round((s.pv / 55) * 100));
@@ -23370,6 +23967,15 @@ function verMembro(id) {
 
   document.getElementById('ver-membro-nome').textContent = m.nome;
   const saude = calcSaudeBP(m);
+  const indiceSaude = calcularIndiceSaudeMembro(m);
+  const indiceSaudeHtml = `
+    <div style="background:${indiceSaude.cor}14;border:1px solid ${indiceSaude.cor}44;border-radius:10px;padding:12px 14px;margin-bottom:14px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <div style="font-size:12px;font-weight:700;color:${indiceSaude.cor};">${indiceSaude.emoji} Índice de Saúde</div>
+        <div style="font-size:20px;font-weight:800;color:${indiceSaude.cor};">${indiceSaude.score}<span style="font-size:11px;color:var(--text3);">/100</span></div>
+      </div>
+      ${indiceSaude.motivos.length ? `<div style="font-size:11px;color:var(--text2);margin-top:6px;">${indiceSaude.motivos.join(' · ')}</div>` : `<div style="font-size:11px;color:var(--text2);margin-top:6px;">Tudo em ordem com este membro.</div>`}
+    </div>`;
   let categoriaHtml = '';
   if (m.categoria) {
     const resultado = calcularCategoria({ pv: m.pv, qdv: m.qdv, secL: m.secL, secR: m.secR, olxl: m.olxl });
@@ -23392,6 +23998,7 @@ function verMembro(id) {
   }
 
   document.getElementById('ver-membro-content').innerHTML = `
+    ${indiceSaudeHtml}
     ${saudePainelHTML(m, saude)}
     ${categoriaHtml}
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;">
@@ -23426,6 +24033,7 @@ function verMembro(id) {
 // WhatsApp vazio, obrigando a escrever a mensagem do zero todas as vezes.
 const MSG_ALERTA_MEMBRO = {
   'inativo': (nome) => `Olá ${nome}! 👋 Reparei que não tens tido atividade recentemente. Tudo bem contigo? Estou aqui se precisares de ajuda ou quiseres conversar sobre os próximos passos. 💪`,
+  'sem-duplicacao': (nome) => `Olá ${nome}! 👋 Reparei que há umas semanas não há vendas ou recrutas novos registados da tua parte. Tudo bem contigo? Queres que vejamos juntos os próximos passos para voltares a ganhar ritmo? 💪`,
   'sem-pv': (nome) => `Olá ${nome}! 👋 Vi que ainda não tens PV registado este mês — só para confirmar, já fizeste a tua compra/pedido? Se precisares de ajuda com isso ou tiveres alguma questão, diz-me! 😊`,
   'pv-risco': (nome, extra) => `Olá ${nome}! 👋 Estás quase lá — faltam só ${extra || 'alguns'} PV para manteres o estado Ativo este mês. Posso ajudar-te a fechar isso antes do fim do mês?`,
   'blb-expira': (nome) => `Olá ${nome}! 👋 O teu período de arranque (BLB) está a chegar ao fim — esta é a fase decisiva para aproveitar os bónus. Vamos falar sobre o que falta fazer?`,
@@ -23681,6 +24289,7 @@ function abrirNovaDespesa() {
   document.getElementById('despesa-modal-title').textContent = '💸 Registar Despesa';
   document.getElementById('d-descricao').value = '';
   document.getElementById('d-categoria').value = 'amostras';
+  document.getElementById('d-fonte').value = '';
   document.getElementById('d-valor').value = '';
   document.getElementById('d-data').value = new Date().toISOString().slice(0,10);
   document.getElementById('d-notas').value = '';
@@ -23694,6 +24303,7 @@ function editarDespesa(id) {
   document.getElementById('despesa-modal-title').textContent = '✏️ Editar Despesa';
   document.getElementById('d-descricao').value = d.descricao || '';
   document.getElementById('d-categoria').value = d.categoria || 'outro';
+  document.getElementById('d-fonte').value = d.fonte || '';
   document.getElementById('d-valor').value = d.valor;
   document.getElementById('d-data').value = d.data;
   document.getElementById('d-notas').value = d.notas || '';
@@ -23710,6 +24320,7 @@ function salvarDespesa() {
     id: editingDespesaId || gerarId(),
     descricao,
     categoria: document.getElementById('d-categoria').value,
+    fonte: document.getElementById('d-fonte').value || '',
     valor,
     data: document.getElementById('d-data').value || new Date().toISOString().slice(0,10),
     notas: document.getElementById('d-notas').value.trim(),
@@ -23778,7 +24389,7 @@ function renderDespesas() {
     <div style="display:flex;align-items:center;gap:10px;padding:10px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;">
       <div style="flex:1;">
         <div style="font-size:13px;font-weight:600;color:var(--text);">${escapeHtml(d.descricao)}</div>
-        <div style="font-size:11px;color:var(--text2);">${DESPESA_CATEGORIAS[d.categoria] || d.categoria} · ${formatarDataPT ? formatarDataPT(d.data) : d.data}</div>
+        <div style="font-size:11px;color:var(--text2);">${DESPESA_CATEGORIAS[d.categoria] || d.categoria} · ${formatarDataPT ? formatarDataPT(d.data) : d.data}${d.fonte ? ` · 🔗 ${escapeHtml(d.fonte)}` : ''}</div>
       </div>
       <div style="font-size:14px;font-weight:700;color:var(--accent3);">${fmtMoeda(d.valor)}</div>
       <button class="btn btn-secondary btn-sm" onclick="editarDespesa('${d.id}')">✏️</button>
@@ -24008,11 +24619,87 @@ function detetarTermosCompliance(texto) {
   return encontrados;
 }
 
+// Gera uma versão em HTML do texto com os termos de risco sublinhados no
+// próprio sítio onde aparecem — complementa a lista de detetarTermosCompliance
+// (não a substitui, nem a altera). Reaproveita as mesmas fontes de regras
+// (COMPLIANCE_REGRAS + o padrão de valor/recorrência de rendimento) para as
+// duas vistas nunca divergirem uma da outra; percorre o texto de forma
+// independente só porque aqui precisamos das POSIÇÕES exatas no texto
+// original (com acentos/maiúsculas), e não apenas de uma lista de termos únicos.
+function gerarPreviewComplianceHTML(textoOriginal) {
+  const texto = textoOriginal || '';
+  // Normalização (minúsculas, sem acentos) preserva o nº de carateres em
+  // português — por isso um índice encontrado aqui aponta para o carater
+  // certo na string original, sem precisar de reconverter posições.
+  const norm = (typeof _normalizarTexto === 'function') ? _normalizarTexto(texto) : texto.toLowerCase();
+  const NEGACOES = ['nao', 'sem', 'nem'];
+  const intervalos = [];
+
+  COMPLIANCE_REGRAS.forEach(regra => {
+    regra.termos.forEach(termo => {
+      const termoNorm = (typeof _normalizarTexto === 'function') ? _normalizarTexto(termo) : termo.toLowerCase();
+      const termoEscapado = termoNorm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const regexTermo = new RegExp('\\b' + termoEscapado + '\\b', 'g');
+      let match;
+      while ((match = regexTermo.exec(norm)) !== null) {
+        const antes = norm.substring(Math.max(0, match.index - 40), match.index).trim().split(/\s+/).slice(-4);
+        const negado = antes.some(p => NEGACOES.includes(p));
+        if (!negado) intervalos.push({ inicio: match.index, fim: match.index + match[0].length, risco: regra.risco });
+      }
+    });
+  });
+
+  // Valores de rendimento com recorrência (ex: "3000€/mês") — mesmo padrão
+  // usado em detetarClaimsRendimentoNumericos, só que aqui guardamos a posição.
+  const regexRecorrencia = /\b(por\s+m[ae]s|mensais|mensalmente|por\s+semana|semanais|semanalmente|por\s+dia|di[ae]rios?|por\s+ano|anuais|anualmente)\b|\/m[ae]s\b|\/semana\b|\/dia\b/g;
+  const posicoesRecorrencia = [];
+  let m;
+  while ((m = regexRecorrencia.exec(norm)) !== null) posicoesRecorrencia.push(m.index);
+  if (posicoesRecorrencia.length) {
+    const regexValor = /\d{2,6}\s?(€|eur\b|euros?\b|\$|d[oó]lares?\b|reais?\b|r\$)/g;
+    while ((m = regexValor.exec(norm)) !== null) {
+      const perto = posicoesRecorrencia.some(p => Math.abs(p - m.index) <= 40);
+      if (perto) intervalos.push({ inicio: m.index, fim: m.index + m[0].length, risco: 'médio' });
+    }
+  }
+
+  if (!intervalos.length) return null;
+
+  // Ordena e funde intervalos sobrepostos (ex: duas regras a apanharem o
+  // mesmo troço) para não aninhar <mark> uns dentro dos outros.
+  intervalos.sort((a, b) => a.inicio - b.inicio);
+  const fundidos = [];
+  intervalos.forEach(iv => {
+    const ultimo = fundidos[fundidos.length - 1];
+    if (ultimo && iv.inicio <= ultimo.fim) {
+      ultimo.fim = Math.max(ultimo.fim, iv.fim);
+      if (iv.risco === 'alto') ultimo.risco = 'alto';
+    } else {
+      fundidos.push({ inicio: iv.inicio, fim: iv.fim, risco: iv.risco });
+    }
+  });
+
+  // Reconstrói o HTML: escapa o texto normal e envolve só os trechos
+  // marcados num <mark> sublinhado, colorido por nível de risco.
+  let html = '';
+  let cursor = 0;
+  fundidos.forEach(iv => {
+    html += escapeHtml(texto.substring(cursor, iv.inicio));
+    const cor = iv.risco === 'alto' ? '#ef4444' : '#f59e0b';
+    html += `<mark style="background:${cor}33;color:${cor};text-decoration:underline;text-decoration-style:wavy;text-decoration-color:${cor};border-radius:2px;padding:0 1px;">${escapeHtml(texto.substring(iv.inicio, iv.fim))}</mark>`;
+    cursor = iv.fim;
+  });
+  html += escapeHtml(texto.substring(cursor));
+  return html;
+}
+
 function abrirComplianceCheck(textoInicial) {
   const ta = document.getElementById('compliance-texto');
   if (ta) ta.value = textoInicial || '';
   const resEl = document.getElementById('compliance-resultado');
   if (resEl) resEl.innerHTML = '';
+  const previewEl = document.getElementById('compliance-preview');
+  if (previewEl) { previewEl.style.display = 'none'; previewEl.innerHTML = ''; }
   openModal('modal-compliance-check');
   if (textoInicial) verificarCompliance();
 }
@@ -24020,11 +24707,13 @@ function abrirComplianceCheck(textoInicial) {
 function verificarCompliance() {
   const ta = document.getElementById('compliance-texto');
   const resEl = document.getElementById('compliance-resultado');
+  const previewEl = document.getElementById('compliance-preview');
   if (!ta || !resEl) return;
   const texto = ta.value || '';
 
   if (!texto.trim()) {
     resEl.innerHTML = '<div style="text-align:center;padding:16px;color:var(--text2);font-size:12.5px;">Escreve ou cola o texto que queres verificar.</div>';
+    if (previewEl) { previewEl.style.display = 'none'; previewEl.innerHTML = ''; }
     return;
   }
 
@@ -24032,7 +24721,16 @@ function verificarCompliance() {
 
   if (!encontrados.length) {
     resEl.innerHTML = '<div style="padding:14px;background:rgba(0,212,170,0.08);border:1px solid rgba(0,212,170,0.2);border-radius:10px;font-size:12.5px;color:var(--accent);">✅ Não foram detetados termos de risco. Ainda assim, revê sempre o texto com bom senso antes de publicar.</div>';
+    if (previewEl) { previewEl.style.display = 'none'; previewEl.innerHTML = ''; }
     return;
+  }
+
+  // Sublinha os termos diretamente no texto (além da lista abaixo), para
+  // seres logo ao ver onde estão, sem teres de comparar com a lista.
+  if (previewEl) {
+    const html = gerarPreviewComplianceHTML(texto);
+    if (html) { previewEl.innerHTML = html; previewEl.style.display = 'block'; }
+    else { previewEl.style.display = 'none'; previewEl.innerHTML = ''; }
   }
 
   const corRisco = r => r === 'alto' ? '#ef4444' : '#f59e0b';
@@ -24915,6 +25613,57 @@ function resetCalculadora() {
   .forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
   calcularBonus();
   showToast('🔄 Calculadora limpa');
+}
+
+// ===================================================
+// PRÉ-PREENCHER CALCULADORA COM DADOS DO PERFIL — módulo aditivo (v79)
+// Só preenche os campos que têm correspondência direta e fiável com o
+// Perfil (PV e BV Binário) e seleciona automaticamente a categoria de
+// pagamento correspondente ao rank atual (via calcularCategoria, já
+// existente). NÃO inventa valores para BV por nível de patrocínio, MMB,
+// PIB ou BLB — esses só existem no backoffice LifeWave, e preenchê-los
+// com 0 passaria a falsa impressão de "sem ganhos" em vez de "sem dados".
+// ===================================================
+const CATEGORIA_PARA_CALC_ID = {
+  'Brand Partner Ativo':  'bp-ativo',
+  '1-Star Manager':       '1sm',
+  '2-Star Manager':       '2sm',
+  '3-Star Manager':       '3sm',
+  '1-Star Director':      '1sd',
+  '2-Star Director':      '2sd',
+  '3-Star Director':      '3sd',
+  '1-Star Executive':     '1se',
+  '2-Star Executive':     '2se',
+  '3-Star Executive':     '3se',
+  '1-Star Presidential':  '1sp',
+  '2-Star Presidential':  '2sp',
+  '3-Star Presidential':  '3sp',
+};
+
+function calcUsarDadosPerfil() {
+  const p = (typeof getUserPerfil === 'function') ? getUserPerfil() : null;
+  if (!p || (!p.pv && !p.bvBinario)) {
+    showToast('⚠️ Sem dados no Perfil ainda. Atualiza o Perfil primeiro.');
+    return;
+  }
+
+  const pvEl = document.getElementById('calc-pv');
+  const binEl = document.getElementById('calc-bv-binario');
+  if (pvEl) pvEl.value = p.pv || '';
+  if (binEl) binEl.value = p.bvBinario || '';
+
+  // Seleciona a categoria correspondente ao rank atual calculado a partir
+  // do Perfil, reaproveitando calcularCategoria() já existente.
+  if (typeof calcularCategoria === 'function') {
+    const res = calcularCategoria({ pv: p.pv, qdv: p.qdv, secL: p.secL, secR: p.secR, olxl: p.olxl });
+    const calcId = CATEGORIA_PARA_CALC_ID[res.cat];
+    if (calcId && CALC_CATEGORIAS.some(c => c.id === calcId)) {
+      calcCategoriaAtual = calcId;
+    }
+  }
+
+  renderCalculadora();
+  showToast('📥 PV, BV Binário e categoria preenchidos a partir do Perfil. Os restantes campos (BV por nível, MMB, PIB, BLB) não estão no Perfil — preenche-os manualmente com os dados do backoffice.');
 }
 // ===================================================
 
@@ -26310,11 +27059,11 @@ function renderPrevisaoComissao() {
       <div id="msg-cat-aviso" style="display:none;font-size:12px;color:var(--warning,#f59e0b);margin-bottom:8px;">⚠️ Seleciona pelo menos uma categoria (Negócio ou Produto) para ver os templates.</div>
       <div style="font-size:11.5px;color:var(--text2);margin-bottom:8px;">💡 Dica: reconecta primeiro, depois usa a "Ponte" quando a pessoa responder bem — taxas de resposta são muito mais altas que ir direto ao negócio.</div>
       <div style="display:flex;gap:6px;flex-wrap:wrap;" id="msg-templates-wrap">
-        <button class="btn btn-secondary btn-sm" data-cat="negocio" onclick="usarTemplate('primeiro');document.getElementById('msg-ia-objetivo').value='primeiro';toggleCampoRespostaLead()">👋 Primeiro contacto</button>
-        <button class="btn btn-secondary btn-sm" data-cat="negocio" onclick="usarTemplate('ponte');document.getElementById('msg-ia-objetivo').value='ponte';toggleCampoRespostaLead()">🌉 Ponte p/ negócio</button>
-        <button class="btn btn-secondary btn-sm" data-cat="negocio" onclick="usarTemplate('followup');document.getElementById('msg-ia-objetivo').value='followup';toggleCampoRespostaLead()">🔄 Follow-up</button>
-        <button class="btn btn-secondary btn-sm" data-cat="produto" onclick="usarTemplate('info');document.getElementById('msg-ia-objetivo').value='info';toggleCampoRespostaLead()">📦 Info produto</button>
-        <button class="btn btn-secondary btn-sm" data-cat="produto" onclick="usarTemplate('cliente');document.getElementById('msg-ia-objetivo').value='cliente';toggleCampoRespostaLead()">🎉 Bem-vindo cliente</button>
+        <button class="btn btn-secondary btn-sm" data-cat="negocio" data-tipo-template="primeiro" onclick="usarTemplate('primeiro');document.getElementById('msg-ia-objetivo').value='primeiro';toggleCampoRespostaLead()">👋 Primeiro contacto<span class="tmpl-taxa-badge" data-tipo-template-badge="primeiro"></span></button>
+        <button class="btn btn-secondary btn-sm" data-cat="negocio" data-tipo-template="ponte" onclick="usarTemplate('ponte');document.getElementById('msg-ia-objetivo').value='ponte';toggleCampoRespostaLead()">🌉 Ponte p/ negócio<span class="tmpl-taxa-badge" data-tipo-template-badge="ponte"></span></button>
+        <button class="btn btn-secondary btn-sm" data-cat="negocio" data-tipo-template="followup" onclick="usarTemplate('followup');document.getElementById('msg-ia-objetivo').value='followup';toggleCampoRespostaLead()">🔄 Follow-up<span class="tmpl-taxa-badge" data-tipo-template-badge="followup"></span></button>
+        <button class="btn btn-secondary btn-sm" data-cat="produto" data-tipo-template="info" onclick="usarTemplate('info');document.getElementById('msg-ia-objetivo').value='info';toggleCampoRespostaLead()">📦 Info produto<span class="tmpl-taxa-badge" data-tipo-template-badge="info"></span></button>
+        <button class="btn btn-secondary btn-sm" data-cat="produto" data-tipo-template="cliente" onclick="usarTemplate('cliente');document.getElementById('msg-ia-objetivo').value='cliente';toggleCampoRespostaLead()">🎉 Bem-vindo cliente<span class="tmpl-taxa-badge" data-tipo-template-badge="cliente"></span></button>
       </div>
     </div>
 
@@ -26987,6 +27736,20 @@ function renderPrevisaoComissao() {
       </div>
     </div>
     <div class="form-group">
+      <label class="form-label">Fonte associada (opcional)</label>
+      <select class="form-select" id="d-fonte">
+        <option value="">— Nenhuma —</option>
+        <option>Instagram</option>
+        <option>Facebook</option>
+        <option>WhatsApp</option>
+        <option>Pessoal</option>
+        <option>Referência</option>
+        <option>Google</option>
+        <option>Outro</option>
+      </select>
+      <div style="font-size:10.5px;color:var(--text3);margin-top:4px;">Liga esta despesa a uma fonte de leads para veres o custo por lead/cliente em Estatísticas.</div>
+    </div>
+    <div class="form-group">
       <label class="form-label">Data</label>
       <input class="form-input" type="date" id="d-data">
     </div>
@@ -27014,6 +27777,7 @@ function renderPrevisaoComissao() {
     <div class="form-group">
       <textarea class="form-textarea" id="compliance-texto" placeholder="Cola aqui o texto a verificar..." style="min-height:110px;"></textarea>
     </div>
+    <div id="compliance-preview" style="display:none;margin-bottom:10px;padding:10px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;font-size:12.5px;line-height:1.7;color:var(--text);white-space:pre-wrap;"></div>
     <div id="compliance-resultado" style="margin-bottom:8px;"></div>
     <div class="modal-actions">
       <button class="btn btn-secondary" onclick="closeModal('modal-compliance-check')">Fechar</button>
@@ -28308,7 +29072,7 @@ function formacaoCarregarProgresso() {
 function formacaoGuardarProgresso(p) { localStorage.setItem(FORMACAO_PROG_KEY, JSON.stringify(p)); }
 
 // ---- HELPERS ----
-const FORMACAO_CAT_ICONS = { produto:'📦', vendas:'💼', redes:'📱', negocio:'💰', sistema:'⚙️', equipa:'🐺', motivacao:'🎯' };
+const FORMACAO_CAT_ICONS = { crm:'🖥️', produto:'📦', vendas:'💼', redes:'📱', negocio:'💰', sistema:'⚙️', equipa:'🐺', motivacao:'🎯' };
 const FORMACAO_TIPO_ICONS = { video:'🎬', pdf:'📄', link:'🔗', guiao:'📝', imagem:'🖼️' };
 
 function formacaoCategoriaCor(cat) {
@@ -28316,7 +29080,7 @@ function formacaoCategoriaCor(cat) {
   return cores[cat] || 'rgba(255,255,255,0.06)';
 }
 function formacaoCategoriaCorBorda(cat) {
-  const cores = { produto:'rgba(0,212,170,0.3)', vendas:'rgba(0,132,255,0.3)', redes:'rgba(139,156,247,0.3)', negocio:'rgba(245,200,66,0.3)', sistema:'rgba(255,255,255,0.12)', equipa:'rgba(255,107,53,0.3)', motivacao:'rgba(0,212,170,0.2)' };
+  const cores = { crm:'rgba(139,92,246,0.3)', produto:'rgba(0,212,170,0.3)', vendas:'rgba(0,132,255,0.3)', redes:'rgba(139,156,247,0.3)', negocio:'rgba(245,200,66,0.3)', sistema:'rgba(255,255,255,0.12)', equipa:'rgba(255,107,53,0.3)', motivacao:'rgba(0,212,170,0.2)' };
   return cores[cat] || 'rgba(255,255,255,0.12)';
 }
 
@@ -28498,6 +29262,7 @@ function formacaoRenderBiblioteca(filtrados) {
   grid.innerHTML = recursos.map(r => {
     const icon = FORMACAO_TIPO_ICONS[r.tipo] || '📌';
     const catIcon = FORMACAO_CAT_ICONS[r.categoria] || '';
+    const podeEliminar = !r.autorEmail || r.autorEmail === currentUser?.email;
     return `
       <div class="card" style="padding:16px;display:flex;flex-direction:column;gap:10px;border-color:${formacaoCategoriaCorBorda(r.categoria)};">
         <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;">
@@ -28506,7 +29271,7 @@ function formacaoRenderBiblioteca(filtrados) {
             <div style="font-size:13px;font-weight:600;color:var(--text);line-height:1.4;">${r.titulo}</div>
             <div style="font-size:11px;color:var(--text2);margin-top:2px;">${catIcon} ${r.categoria} ${r.duracao?'· ⏱ '+r.duracao:''}</div>
           </div>
-          <button onclick="formacaoEliminarRecurso('${r.id}')" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:14px;flex-shrink:0;" title="Eliminar">🗑</button>
+          ${podeEliminar ? `<button onclick="formacaoEliminarRecurso('${r.id}')" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:14px;flex-shrink:0;" title="Eliminar">🗑</button>` : ''}
         </div>
         ${r.descricao ? `<div style="font-size:12px;color:var(--text2);line-height:1.6;">${r.descricao}</div>` : ''}
         <div style="display:flex;gap:8px;margin-top:auto;flex-wrap:wrap;">
@@ -28530,13 +29295,18 @@ function formacaoFiltrarBiblioteca() {
 }
 
 function formacaoEliminarRecurso(id) {
-  if (!confirm('Eliminar este recurso?')) return;
   const todosRecursos = formacaoCarregarRecursos();
   const r = todosRecursos.find(x => x.id === id);
+  if (r && r.autorEmail && r.autorEmail !== currentUser?.email) {
+    showToast('🔒 Só quem criou este recurso o pode eliminar');
+    return;
+  }
+  if (!confirm('Eliminar este recurso?')) return;
   if (r) moverParaLixeira('recurso', r);
   const recursos = todosRecursos.filter(r => r.id !== id);
   formacaoGuardarRecursos(recursos);
   formacaoRenderBiblioteca();
+  if (r && r.paginaRelacionada) atualizarBotaoVideoTutorial(r.paginaRelacionada);
   showToast('🗑 Recurso movido para a lixeira (recuperável por 7 dias)');
 }
 
@@ -28576,6 +29346,7 @@ function formacaoAbrirRecurso() {
         <div class="form-group">
           <label class="form-label">Categoria</label>
           <select class="form-select" id="frec-cat">
+            <option value="crm">Como Usar o CRM</option>
             <option value="produto">Produto X39</option>
             <option value="negocio">Negócio/MLM</option>
             <option value="vendas">Técnicas de Venda</option>
@@ -28586,6 +29357,51 @@ function formacaoAbrirRecurso() {
         </div>
       </div>
       <div class="form-group"><label class="form-label">URL / Link (opcional)</label><input class="form-input" id="frec-url" placeholder="https://..."></div>
+      <div class="form-group">
+        <label class="form-label">Página relacionada (opcional — mostra um botão de atalho nessa página)</label>
+        <select class="form-select" id="frec-pagina">
+          <option value="">Nenhuma / geral</option>
+          <option value="dashboard">Dashboard</option>
+          <option value="acoes">Ações do Dia</option>
+          <option value="funil">Funil</option>
+          <option value="recrutamento">Recrutamento</option>
+          <option value="lista">Lista de Leads</option>
+          <option value="posts">Posts</option>
+          <option value="calendario">Calendário</option>
+          <option value="agenda">Agenda</option>
+          <option value="coach">Coach IA</option>
+          <option value="stats">Estatísticas</option>
+          <option value="equipa">Equipa</option>
+          <option value="comissoes">Comissões</option>
+          <option value="retencao">Retenção</option>
+          <option value="luminate">Luminate</option>
+          <option value="calculadora">Calculadora</option>
+          <option value="plano-comp">Plano de Compensação</option>
+          <option value="formacao">Centro de Formação</option>
+          <option value="catalogo">Catálogo</option>
+          <option value="recomendador">Recomendador</option>
+          <option value="testemunhos">Testemunhos</option>
+          <option value="agendamento">Agendamento</option>
+          <option value="percurso">Percurso</option>
+          <option value="stories">Stories</option>
+          <option value="objecoes">Objeções</option>
+          <option value="auditoria">Auditoria</option>
+          <option value="metas">Metas</option>
+          <option value="despesas">Despesas</option>
+          <option value="templates">Templates</option>
+          <option value="promocoes">Promoções</option>
+          <option value="checklist">Checklist</option>
+          <option value="automacao">Automação</option>
+          <option value="mapa">Mapa</option>
+          <option value="apresentacao">Apresentação</option>
+          <option value="diario">Diário</option>
+          <option value="tutorial">Tutorial</option>
+          <option value="analise">Análise</option>
+          <option value="relatorio">Relatório</option>
+          <option value="roleplay">Roleplay</option>
+          <option value="onboarding">Onboarding</option>
+        </select>
+      </div>
       <div class="form-group"><label class="form-label">Duração (opcional)</label><input class="form-input" id="frec-duracao" placeholder="Ex: 20 min"></div>
       <div class="form-group"><label class="form-label">Descrição</label><textarea class="form-textarea" id="frec-desc" placeholder="Breve descrição do que este recurso contém..."></textarea></div>
       <div class="modal-actions"><button class="btn btn-secondary" onclick="document.getElementById('modal-formacao-recurso-overlay').classList.remove('open')">Cancelar</button><button class="btn btn-primary" onclick="formacaoSalvarRecurso()">Guardar Recurso</button></div>
@@ -28604,12 +29420,15 @@ function formacaoSalvarRecurso() {
     url: document.getElementById('frec-url')?.value.trim() || '',
     duracao: document.getElementById('frec-duracao')?.value.trim() || '',
     descricao: document.getElementById('frec-desc')?.value.trim() || '',
+    paginaRelacionada: document.getElementById('frec-pagina')?.value || '',
+    autorEmail: currentUser?.email || '',
   };
   const recursos = formacaoCarregarRecursos();
   recursos.unshift(recurso);
   formacaoGuardarRecursos(recursos);
   document.getElementById('modal-formacao-recurso-overlay').classList.remove('open');
   formacaoRenderBiblioteca();
+  if (recurso.paginaRelacionada) atualizarBotaoVideoTutorial(recurso.paginaRelacionada);
   showToast('✅ Recurso adicionado!');
 }
 
@@ -29239,7 +30058,8 @@ const NOTIF_TIPOS = {
   reuniao:   { icon: '📞', label: 'Reunião' },
   meta:      { icon: '🎯', label: 'Verificar Meta' },
   custom:    { icon: '✏️', label: 'Personalizado' },
-  equipa:    { icon: '😴', label: 'Membro Inativo' }
+  equipa:    { icon: '😴', label: 'Membro Inativo' },
+  encomenda: { icon: '📦', label: 'Encomenda' }
 };
 
 function loadLembretes() {
@@ -29449,7 +30269,7 @@ function renderListaLembretes() {
         </div>
       </div>
       <div class="notif-item-actions">
-        ${l._leadId && l._textoSequencia ? `<button class="notif-snooze-btn" onclick="enviarWhatsAppParaLead('${l._leadId}', ${JSON.stringify(l._textoSequencia)}, '${l.id}')" title="Enviar esta mensagem da sequência">💬 Enviar</button>` : (l._membroId ? `<button class="notif-snooze-btn" onclick="abrirWAMembro('${l._membroId}','inativo'); concluirLembrete('${l.id}')" title="Abrir WhatsApp para este membro">💬 WhatsApp</button>` : '')}
+        ${l._leadId && l._textoSequencia ? `<button class="notif-snooze-btn" onclick="enviarWhatsAppParaLead('${l._leadId}', ${JSON.stringify(l._textoSequencia)}, '${l.id}')" title="Enviar esta mensagem da sequência">💬 Enviar</button>` : (l._membroId ? `<button class="notif-snooze-btn" onclick="abrirWAMembro('${l._membroId}','${l._motivoAlerta || 'inativo'}'); concluirLembrete('${l.id}')" title="Abrir WhatsApp para este membro">💬 WhatsApp</button>` : '')}
         ${atrasado ? `<button class="notif-snooze-btn" onclick="adiarLembrete('${l.id}',15)">+15m</button>` : ''}
         <button class="notif-snooze-btn" onclick="adiarLembrete('${l.id}',60)">+1h</button>
         <button class="notif-snooze-btn" onclick="concluirLembrete('${l.id}')">✅</button>
@@ -29698,21 +30518,30 @@ function gerarLembretesAutomaticos() {
   if (typeof membros !== 'undefined' && membros.length > 0) {
     const lembreteMembroIds = new Set(lembretes.filter(l => !l.concluido).map(l => l._membroId).filter(Boolean));
     membros.forEach(m => {
-      if (m.estado !== 'inativo' && m.estado !== 'inativa') return;
+      const marcadoInativo = m.estado === 'inativo' || m.estado === 'inativa';
+      // Duplicação Real: o membro já tem historial de atividade registado (não é
+      // só falta de dados) mas os números não crescem há 14+ dias — sinal
+      // objetivo (ver KPI "Duplicação Real" em Equipa), independente da
+      // etiqueta manual de estado, que complementa o aviso acima em vez de o
+      // substituir — membros já marcados "inativo" continuam a disparar como antes.
+      const semAtividadeReal = !!m.ultimaAtividade && (Date.now() - new Date(m.ultimaAtividade).getTime()) / 86400000 >= 14;
+      if (!marcadoInativo && !semAtividadeReal) return;
       if (lembreteMembroIds.has(m.id)) return;
       const amanha = new Date();
       amanha.setDate(amanha.getDate() + 1);
       amanha.setHours(9, 0, 0, 0);
+      const motivo = marcadoInativo ? 'inativo(a) na equipa' : 'sem vendas/recrutas registados há 14+ dias';
       lembretes.push({
         id: 'notif_membro_' + m.id,
         tipo: 'equipa',
-        mensagem: 'Falar com ' + (m.nome || 'membro') + ' — inativo(a) na equipa',
+        mensagem: 'Falar com ' + (m.nome || 'membro') + ' — ' + motivo,
         proximoDisparo: amanha.toISOString(),
         repeticao: 'uma',
         criado: new Date().toISOString(),
         concluido: false,
         disparadoCount: 0,
         _membroId: m.id,
+        _motivoAlerta: marcadoInativo ? 'inativo' : 'sem-duplicacao',
         _auto: true
       });
     });
@@ -31806,6 +32635,34 @@ function getFaseLabel(fase) { return { primeiro_contacto:'👋 1º Contacto', fo
 function getFaseCor(fase) { return { primeiro_contacto:'rgba(0,132,255,.12)', follow_up:'rgba(245,200,66,.1)', apresentacao:'rgba(0,212,170,.1)', objecao:'rgba(255,107,53,.1)', fecho:'rgba(139,156,247,.12)', pos_venda:'rgba(37,211,102,.1)' }[fase] || 'rgba(255,255,255,.05)'; }
 function getFaseTextCor(fase) { return { primeiro_contacto:'var(--accent2)', follow_up:'var(--gold)', apresentacao:'var(--accent)', objecao:'var(--accent3)', fecho:'#8b9cf7', pos_venda:'#25d366' }[fase] || 'var(--text2)'; }
 
+// ===================================================
+// LISTA DE REFERÊNCIA DE TEMPLATES — junta os templates rápidos
+// do modal individual (TEMPLATES, ids 'primeiro'/'ponte'/'followup'/
+// 'info'/'cliente') com a biblioteca (TEMPLATES_BASE, ids 'tb1'...'tb17')
+// numa lista compacta (id + título + início do texto) para a IA da
+// Análise de Conversa comparar contra a mensagem real e identificar
+// qual template o distribuidor usou. Não duplica os textos completos —
+// só o suficiente para reconhecimento, poupando tokens.
+// ===================================================
+function getListaReferenciaTemplates() {
+  var lista = [];
+  // Nota: 'ponte' não tem texto fixo em TEMPLATES (só existe como instrução
+  // de prompt para a IA em gerarMsgIA) — por isso não aparece na lista de
+  // referência abaixo. Isto já era assim antes desta função existir.
+  var labelsRapidos = { primeiro: 'Primeiro contacto (reconexão)', ponte: 'Ponte p/ negócio', followup: 'Follow-up', info: 'Info produto', cliente: 'Bem-vindo cliente' };
+  Object.keys(TEMPLATES).forEach(function(chave) {
+    var tipo = chave.replace(/_(quente|morno|frio)$/, '');
+    if (lista.some(function(l){ return l.id === tipo; })) return; // já adicionado (as 3 variantes de mercado partilham o mesmo tipo)
+    var amostra = '';
+    try { amostra = TEMPLATES[chave]().replace(/\{nome\}/g, '').slice(0, 80); } catch(e) {}
+    lista.push({ id: tipo, titulo: labelsRapidos[tipo] || tipo, amostra: amostra });
+  });
+  (TEMPLATES_BASE || []).forEach(function(t) {
+    lista.push({ id: t.id, titulo: t.titulo, amostra: (t.texto || '').replace(/\{[a-z_]+\}/g, '').slice(0, 80) });
+  });
+  return lista;
+}
+
 function setTmplFiltro(filtro, btn) {
   tmplFiltroAtivo = filtro;
   document.querySelectorAll('[id^="tmpl-tab-"]').forEach(b => b.classList.remove('active'));
@@ -31825,9 +32682,14 @@ function renderTemplates() {
   if (empty) empty.style.display = 'none';
   grid.innerHTML = lista.map(t => {
     const isCustom = !!customTmpls.find(c => c.id === t.id);
+    const _tStats = (typeof calcularEstatsTemplates === 'function') ? calcularEstatsTemplates()[t.id] : null;
+    const _tTaxaBadge = (_tStats && _tStats.enviados >= 3)
+      ? ` <span style="font-size:9px;font-weight:700;padding:2px 7px;border-radius:20px;background:rgba(0,132,255,.12);color:var(--accent2);" title="${_tStats.responderam}/${_tStats.enviados} com reação detetada">📈 ${Math.round((_tStats.responderam/_tStats.enviados)*100)}% respondem</span>`
+      : '';
     return `<div class="tmpl-card">
       <span class="tmpl-fase-badge" style="background:${getFaseCor(t.fase)};color:${getFaseTextCor(t.fase)}">${getFaseLabel(t.fase)}</span>
       ${isCustom ? ' <span style="font-size:9px;font-weight:700;padding:2px 7px;border-radius:20px;background:rgba(139,156,247,.15);color:#8b9cf7;">🤖 IA</span>' : ''}
+      ${_tTaxaBadge}
       <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:2px;">${t.titulo}</div>
       <div style="font-size:11px;color:var(--text3);margin-bottom:8px;">📡 ${t.canal}</div>
       <div class="tmpl-texto" id="tmpl-txt-${t.id}">
@@ -32918,6 +33780,12 @@ function guardarVolumesChecklist() {
   renderChecklist();
   if (typeof renderDashQualifRT === 'function') renderDashQualifRT();
   showToast('✅ Volumes guardados!');
+  // Snapshot mensal para a Projeção Multi-Mês de Rank (módulo aditivo v79)
+  try {
+    if (typeof qualifHistoricoSalvarSnapshot === 'function') {
+      qualifHistoricoSalvarSnapshot({ pv, qdv, secL, secR, olxl });
+    }
+  } catch(e) {}
 }
 
 function abrirModalChkVolumes() {
@@ -33212,6 +34080,109 @@ function diasAteFinDoMes() {
   return Math.max(0, Math.ceil((fimMes - hoje) / 86400000));
 }
 
+// ===================================================
+// PROJEÇÃO MULTI-MÊS DE RANK — módulo aditivo (v79)
+// Guarda um snapshot mensal de {pv,qdv,secL,secR,olxl} sempre que o
+// utilizador actualiza o Perfil ou o Checklist de Volumes, e usa esse
+// histórico para projectar, em quantos meses (e em que mês/ano), o
+// distribuidor deverá atingir o próximo rank e o seguinte, ao ritmo
+// médio de crescimento observado. Não lê nem altera nenhum estado
+// existente — cria a sua própria chave de storage e só é chamado a
+// partir de wrappers, nunca de dentro das funções originais.
+// ===================================================
+function qualifHistStorageKey() {
+  try {
+    const u = JSON.parse(localStorage.getItem('lw_auth_user') || localStorage.getItem('lw_auth_user_local') || '{}');
+    return 'lw_qualif_hist_' + (u.email || u.uid || 'local').replace(/[^a-z0-9]/gi,'_');
+  } catch(e) { return 'lw_qualif_hist_local'; }
+}
+
+function qualifHistLoad() {
+  try { return JSON.parse(localStorage.getItem(qualifHistStorageKey()) || '[]'); } catch(e) { return []; }
+}
+
+function qualifHistSave(hist) {
+  try { localStorage.setItem(qualifHistStorageKey(), JSON.stringify(hist)); } catch(e) {}
+}
+
+// Grava (ou actualiza) o snapshot do mês corrente. Chamado no fim de
+// salvarPerfil() e de guardarVolumesChecklist(), via wrapper — nunca
+// substitui um mês já registado por dados desse mesmo mês, apenas
+// actualiza o valor mais recente disponível para o mês corrente.
+function qualifHistoricoSalvarSnapshot({ pv, qdv, secL, secR, olxl }) {
+  const mes = new Date().toISOString().slice(0, 7); // 'YYYY-MM'
+  const hist = qualifHistLoad();
+  const idx = hist.findIndex(h => h.mes === mes);
+  const snap = { mes, pv: pv || 0, qdv: qdv || 0, secL: secL || 0, secR: secR || 0, olxl: olxl || 0, ts: Date.now() };
+  if (idx !== -1) hist[idx] = snap; else hist.push(snap);
+  hist.sort((a, b) => a.mes.localeCompare(b.mes));
+  // Mantém no máximo os últimos 24 meses
+  qualifHistSave(hist.slice(-24));
+}
+
+// Calcula a projecção: ritmo médio mensal de crescimento do QDV (o
+// principal factor de progressão nos ranks a partir de Manager) com
+// base nos últimos meses de histórico, e quantos meses faltam para
+// atingir o próximo rank e o rank seguinte a esse.
+function calcularProjecaoRank(catAtual, qdvActual) {
+  const hist = qualifHistLoad();
+  // Precisa de pelo menos 2 meses distintos com QDV > 0 para ter um ritmo
+  const comQdv = hist.filter(h => h.qdv > 0);
+  if (comQdv.length < 2) return { disponivel: false, motivo: 'poucos_dados', mesesRegistados: comQdv.length };
+
+  const primeiro = comQdv[0];
+  const ultimo = comQdv[comQdv.length - 1];
+  const [y1, m1] = primeiro.mes.split('-').map(Number);
+  const [y2, m2] = ultimo.mes.split('-').map(Number);
+  const diffMeses = Math.max(1, (y2 - y1) * 12 + (m2 - m1));
+
+  const crescimentoTotal = ultimo.qdv - primeiro.qdv;
+  const ritmoMensal = crescimentoTotal / diffMeses;
+
+  if (ritmoMensal <= 0) return { disponivel: false, motivo: 'sem_crescimento', mesesRegistados: comQdv.length };
+
+  // Próximos 2 ranks acima do actual
+  const idxAtual = PERCURSO_SUCESSO.findIndex(n => n.cat === catAtual);
+  const alvos = [];
+  if (idxAtual > 0) alvos.push(PERCURSO_SUCESSO[idxAtual - 1]);
+  if (idxAtual > 1) alvos.push(PERCURSO_SUCESSO[idxAtual - 2]);
+
+  const hoje = new Date();
+  const projecoes = alvos.map(alvo => {
+    const qdvFalta = Math.max(0, alvo.qdv - qdvActual);
+    const mesesFalta = qdvFalta > 0 ? Math.ceil(qdvFalta / ritmoMensal) : 0;
+    const dataAlvo = new Date(hoje.getFullYear(), hoje.getMonth() + mesesFalta, 1);
+    return {
+      cat: alvo.cat,
+      mesesFalta,
+      dataLabel: dataAlvo.toLocaleDateString('pt-PT', { month: 'long', year: 'numeric' })
+    };
+  });
+
+  return { disponivel: true, ritmoMensal, projecoes };
+}
+
+// Bloco HTML da projeção, para inserir dentro do widget de Qualificação
+// em Tempo Real (renderDashQualifRT). Silencioso (retorna '') quando não
+// há dados suficientes, para não poluir a interface com avisos repetidos.
+function renderProjecaoRankHTML(catAtual, qdvActual) {
+  const proj = calcularProjecaoRank(catAtual, qdvActual);
+  if (!proj.disponivel || !proj.projecoes || proj.projecoes.length === 0) return '';
+
+  const linhas = proj.projecoes
+    .filter(p => p.mesesFalta > 0)
+    .map(p => `<div style="font-size:12px;color:var(--text);margin-top:4px;">📈 <strong style="color:var(--accent2);">${p.cat}</strong> em ~<strong>${p.mesesFalta}</strong> ${p.mesesFalta === 1 ? 'mês' : 'meses'} (${p.dataLabel})</div>`)
+    .join('');
+
+  if (!linhas) return '';
+
+  return `
+    <div style="background:rgba(0,132,255,0.06);border:1px solid rgba(0,132,255,0.2);border-radius:10px;padding:10px 12px;margin-bottom:12px;">
+      <div style="font-size:11px;font-weight:700;color:var(--text2);">🔮 Projeção ao ritmo atual</div>
+      ${linhas}
+    </div>`;
+}
+
 function renderDashQualifRT() {
   const el = document.getElementById('dash-qualif-rt-widget');
   if (!el) return;
@@ -33328,11 +34299,14 @@ function renderDashQualifRT() {
   let alertaBinarioHTML = '';
   if (desequilibrioBinario && !desequilibrioBinario.equilibrado && desequilibrioBinario.ganhoPerdido > 0) {
     alertaBinarioHTML = `
-      <div style="background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.3);border-radius:10px;padding:10px 12px;margin-bottom:12px;display:flex;align-items:center;gap:8px;">
-        <span style="font-size:16px;">⚖️</span>
-        <div style="font-size:12px;color:var(--text);">
-          <strong style="color:#f5c842;">Binário desequilibrado:</strong> a secção ${desequilibrioBinario.ladoForte} (${fmtNum(desequilibrioBinario.forte)}) tem ${fmtNum(desequilibrioBinario.excedente)} a mais que a ${desequilibrioBinario.ladoFraco} (${fmtNum(desequilibrioBinario.fraca)}). Esse volume não conta para o Binário este período — estás a perder <strong style="color:#f5c842;">~${fmtMoeda(desequilibrioBinario.ganhoPerdido)}</strong>. Considera direcionar novas inscrições/encomendas para a secção mais fraca.
+      <div style="background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.3);border-radius:10px;padding:10px 12px;margin-bottom:12px;">
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span style="font-size:16px;">⚖️</span>
+          <div style="font-size:12px;color:var(--text);">
+            <strong style="color:#f5c842;">Binário desequilibrado:</strong> a secção ${desequilibrioBinario.ladoForte} (${fmtNum(desequilibrioBinario.forte)}) tem ${fmtNum(desequilibrioBinario.excedente)} a mais que a ${desequilibrioBinario.ladoFraco} (${fmtNum(desequilibrioBinario.fraca)}). Esse volume não conta para o Binário este período — estás a perder <strong style="color:#f5c842;">~${fmtMoeda(desequilibrioBinario.ganhoPerdido)}</strong>.
+          </div>
         </div>
+        <button class="btn btn-secondary btn-sm" style="width:100%;margin-top:8px;" onclick="irParaRecrutamentoSecaoFraca('${desequilibrioBinario.ladoFraco}')">🎯 Ver candidatos para a secção ${desequilibrioBinario.ladoFraco}</button>
       </div>`;
   }
 
@@ -33363,6 +34337,8 @@ function renderDashQualifRT() {
         ${proxCat.secVal > 0 ? mkBarra('Secção mais fraca (QV)', Math.min(secL, secR), proxCat.secVal) : ''}
         ${proxCat.olxl > 0 ? mkBarra('Volume OLXL', olxl, proxCat.olxl) : ''}
       ` : '<div style="text-align:center;padding:6px;color:var(--gold);font-weight:700;font-size:13px;">🏆 Rank máximo atingido!</div>'}
+
+      ${renderProjecaoRankHTML(catAtual, qdv)}
 
       <!-- Equipa -->
       ${totalMembros > 0 ? `
@@ -36262,8 +37238,9 @@ async function acAnalisar() {
       + ' 7) NESTED/FORWARDED SCREENSHOT RULE (critical): if the screenshot shows a forwarded message or a screenshot-within-a-screenshot (e.g. the prospect forwarded a message they received from someone else, or shared a screenshot of a different conversation), do NOT confuse the participants of the inner forwarded screenshot with the participants of the outer conversation. The person who forwarded/shared that inner screenshot to the distributor is the actual prospect in this conversation — analyze their reaction and intent (e.g. "I think your account was hacked", suspicion, confusion) as the prospect\'s message, not as if the distributor sent the inner content. Always determine the real sender of each visible message based on bubble side and context, never assume the most recent or central text bubble belongs to the distributor by default.'
       + ' 8) UNRELATED CONTENT RULE (critical): a screenshot or pasted conversation may contain messages that have nothing to do with LifeWave — personal chit-chat, work topics, family matters, an entirely different business/project/opportunity, or an unrelated subject mixed into the same thread. IGNORE all such unrelated messages completely when producing resumo, objecoes, pontos_positivos, erros_cometidos, proximo_passo, probabilidade_conversao and proxima_mensagem. Base the ENTIRE analysis only on messages that EXPLICITLY reference LifeWave, X39 or other named LifeWave products/patches, phototherapy/photobiomodulation, or an unambiguous LifeWave business/compensation-plan opportunity. Do NOT assume something is LifeWave-related just because it is generically about "a business opportunity", "a project", "a video to watch" or "money" — those words alone are not evidence. If the name, brand or product is not identifiable and nothing in the visible text ties it to LifeWave, treat it as UNRELATED, even if it looks superficially similar (e.g. another company\'s pre-launch project, a different MLM, a generic investment pitch). NEVER speculate or stretch an ambiguous or unrelated item into a LifeWave interpretation (e.g. do not write things like "in a LifeWave context this could be interpreted as..." — if it is not explicitly LifeWave, it is not part of this analysis). If there are multiple separate LifeWave-related exchanges at different points in the thread, focus on the MOST RECENT one — that is the current live opportunity. If, after excluding unrelated content, there is no LifeWave-related material left at all, set "fase" to "sem_contexto", leave objecoes/pontos_positivos/erros_cometidos as empty arrays, set probabilidade_conversao to 0, and explain in "resumo" that no LifeWave-related conversation was found in the screenshot/text provided — do not describe or summarize the unrelated content instead.'
       + (_acLinksStr ? ' 9) LINK INCLUSION RULE (mandatory, not optional): if "fase" is "pronto_para_comprar" or "interesse", the "proxima_mensagem" field MUST include one of the distributor\'s personal links below — this is a hard requirement, not a suggestion. Use the produto link if the prospect is leaning toward the product/wellness angle, or the negocio link if they are leaning toward the business/partnership angle; use registo if neither is available. Weave the link naturally into the message (e.g. "Aqui tens o link com toda a informação: [link]"), never omit it in these two phases. If "fase" is "descoberta" or "consideracao", do NOT include any link yet — keep the conversation going first.' + _acLinksStr : '')
+      + ' 9b) TEMPLATE DETECTION RULE: compare the distributor\'s messages in this conversation against the reference list below (id, title, opening words of each app template). If one of them is a clear match — even if the distributor personalized it (changed the name, added/removed a sentence, reworded slightly) — return its exact id in "template_detectado". Judge by structure and core intent, not exact wording. If no template is a reasonably close match, or the distributor wrote something clearly original, return an empty string. Never guess a weak match just to fill the field.\n\nREFERENCE TEMPLATES:\n' + JSON.stringify(getListaReferenciaTemplates())
       + ' 10) PROXIMA_MENSAGEM QUALITY RULES (critical — write it like an experienced LifeWave distributor who has closed real sales, not like a generic marketing bot): a) NAME THE BRAND — say "LifeWave" and/or "X39" explicitly; never hide behind vague phrases like "o projeto que te falei", "esta oportunidade incrível", "algo que partilho". Hiding the name reads as evasive and increases suspicion, especially in Portugal where network marketing already carries stigma — naming it plainly builds trust and lets the prospect research it themselves. b) NO EMPTY HYPE — cut filler enthusiasm like "tenho a certeza que vais adorar", "é incrível", "vai mudar a tua vida". Replace it with one concrete, specific reason tied to what THIS prospect said or asked (energy, sleep, recovery, skin, the business/income side) — specificity converts, generic excitement does not. c) GIVE A REAL REASON THE MESSAGE IS RELEVANT TO THEM — briefly say why you thought of them or why it fits what they mentioned, instead of a one-size-fits-all pitch. d) END WITH A CONCRETE NEXT STEP, NOT A PASSIVE ONE — avoid vague closers like "depois podemos falar" or "quando quiseres, diz". Propose something specific and low-friction (a suggested day/time for a quick call, or a direct question they can answer in one tap, e.g. "Quando vires, diz-me o que achaste — quinta à noite fica bem para uma chamada rápida?"). e) Keep it warm and human, never pushy or salesy — this is relationship-based selling, not a cold pitch. f) LINK FRAMING (important): the distributor\'s links use a third-party domain that does not visibly say "LifeWave" in the URL itself — so whenever a link is included in the message, frame it explicitly in the surrounding text so the prospect knows what they are clicking, e.g. "Aqui tens o meu link oficial com toda a informação sobre a LifeWave/X39: [link]" or "Este é o link com tudo sobre o X39 e a LifeWave: [link]" — never paste the link with no framing or with only a vague "aqui tens mais info", since the domain alone will not reassure the prospect that it is LifeWave-related.'
-      + ' Respond ONLY in valid JSON with this exact structure: {"nome_detectado":"Maria Silva","tel_detectado":"+351912345678","email_detectado":"maria@email.com","sentimento":"positivo","fase":"interesse","resumo":"texto","objecoes":["obj1"],"pontos_positivos":["p1"],"erros_cometidos":["e1"],"proxima_mensagem":"msg exacta no idioma do prospecto","proximo_passo":"accao","probabilidade_conversao":60,"dica_extra":"dica","idioma_prospecto":"fr"}';
+      + ' Respond ONLY in valid JSON with this exact structure: {"nome_detectado":"Maria Silva","tel_detectado":"+351912345678","email_detectado":"maria@email.com","sentimento":"positivo","fase":"interesse","resumo":"texto","objecoes":["obj1"],"pontos_positivos":["p1"],"erros_cometidos":["e1"],"proxima_mensagem":"msg exacta no idioma do prospecto","proximo_passo":"accao","probabilidade_conversao":60,"dica_extra":"dica","idioma_prospecto":"fr","template_detectado":"tb1"}';
     var promptText = sys + '\n\nTemperatura do lead: ' + acTemp + '. Analisa esta conversa de ' + platLabel + (isImg ? '. Vê a imagem.' : ':\n\n' + texto) + (ctx ? '\n\nContexto: ' + ctx : '') + '\n\nResponde APENAS com JSON valido.';
 
     // Sistema central de fallback automático — cobre texto e imagem,
@@ -36325,7 +37302,8 @@ async function acAnalisar() {
         proxima_mensagem: mensagemExtraida || textoLegivel || 'Não foi possível extrair a mensagem. Tenta novamente.',
         proximo_passo: 'Tenta novamente ou usa texto em vez de imagem.',
         probabilidade_conversao: 30,
-        dica_extra: 'Dica: certifica-te de que a chave API está corretamente configurada.'
+        dica_extra: 'Dica: certifica-te de que a chave API está corretamente configurada.',
+        template_detectado: ''
       };
     }
 
@@ -36383,6 +37361,13 @@ function acMostrarResultado(r) {
   var dicaHtml = r.dica_extra ? '<div style="background:rgba(180,122,255,0.07);border:1px solid rgba(180,122,255,0.2);border-radius:var(--radius);padding:14px;display:flex;align-items:flex-start;gap:12px;"><span style="font-size:22px;flex-shrink:0;">💡</span><div><div style="font-size:12px;font-weight:700;color:#b47aff;margin-bottom:4px;">Dica estrategica</div><div style="font-size:12.5px;color:var(--text2);line-height:1.6;">' + r.dica_extra + '</div></div></div>' : '';
 
   var nomeDetectado = (r.nome_detectado || '').trim();
+
+  // Template da app que a IA reconheceu na mensagem do distribuidor (ver getListaReferenciaTemplates)
+  var templateDetectadoId = (r.template_detectado || '').trim();
+  var templateDetectadoInfo = templateDetectadoId ? getListaReferenciaTemplates().find(function(t){ return t.id === templateDetectadoId; }) : null;
+  var templateDetectadoHtml = templateDetectadoInfo
+    ? '<div style="background:rgba(0,132,255,0.07);border:1px solid rgba(0,132,255,0.2);border-radius:var(--radius);padding:12px 14px;display:flex;align-items:center;gap:10px;"><span style="font-size:18px;">📝</span><div style="font-size:12.5px;color:var(--text2);">Template identificado nesta conversa: <strong style="color:var(--text);">' + templateDetectadoInfo.titulo + '</strong></div></div>'
+    : '';
 
   // Mapeia a "fase" detetada pela IA para um estado do funil. A IA nunca passa
   // o lead a "cliente" sozinha (só uma venda confirmada deve fazer isso).
@@ -36444,6 +37429,7 @@ function acMostrarResultado(r) {
     + leadAssocHtml
     + objecoesHtml
     + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">' + pontosHtml + errosHtml + '</div>'
+    + templateDetectadoHtml
     + msgHtml + passoHtml + dicaHtml
     + '<button class="btn btn-secondary" onclick="acNovaAnalise()" style="justify-content:center;">Nova Analise</button>'
     + '</div>';
@@ -36596,6 +37582,11 @@ function acGuardarNoLead() {
     + (r.proxima_mensagem ? '\n➡️ Sugestão enviada/preparada: "' + r.proxima_mensagem.slice(0,200) + (r.proxima_mensagem.length > 200 ? '…' : '') + '"' : '');
 
   var entrada = { tipo: 'analise_ia', msg: resumoMsg, data: new Date().toLocaleString('pt-PT') };
+  var templateDetectadoAC = (r.template_detectado || '').trim();
+  if (templateDetectadoAC) {
+    entrada.templateTipoDetectado = templateDetectadoAC; // vem da IA, distinto de templateTipo (escolhido manualmente em usarTemplate)
+    entrada.faseDetectada = r.fase || '';
+  }
 
   var lead;
   if (leadIdEscolhido) {
@@ -37110,7 +38101,50 @@ const LW_TIPOS = [
     campoEstado: ['status','estado','renewed','renovado'],
     campoID:   ['id','distributor_id'],
   },
+  {
+    // Relatório de Comissões da própria semana — estrutura diferente dos
+    // outros tipos: uma linha por tipo de bónus (descrição + valor), não
+    // uma linha por membro da equipa. Por isso não tem campoNome nem
+    // atualiza membros[] — é tratado à parte em lwConfirmarImport() e
+    // alimenta a Calculadora 2.0 em vez da lista de Equipa. Módulo
+    // aditivo (v79); não altera o comportamento dos outros 6 tipos.
+    id: 'comissoes',
+    label: 'Comissões da semana',
+    icon: '💰',
+    sub: 'Preenche a Calculadora 2.0 com os valores reais dos bónus',
+    semNome: true,
+    keywords: [['bonus','bónus','commission','comissao','comissão','payout'],['amount','valor','total','value']],
+    campoDescricao: ['description','descricao','descrição','bonus_type','type','tipo','bonus_description','item'],
+    campoValor: ['amount','valor','value','total','payout','commission_amount'],
+  },
 ];
+
+// ── Normaliza descrição de bónus do relatório de Comissões para o campo
+// correspondente na Calculadora 2.0 (id do input) — módulo aditivo v79.
+// Cobre as variações mais comuns de texto usadas pelo LifeWave backoffice
+// nas linhas do relatório de Comissões (PT e EN).
+const LW_BONUS_PARA_CALC_CAMPO = [
+  // Matching (MMB) verificado ANTES de Nível — "Matching Gen 1" contém
+  // "gen 1", que também apareceria em "Level 1 Gen 1"; ao testar MMB
+  // primeiro evita-se classificar bónus de Matching como Nível.
+  [['matching gen 1', 'matching level 1', 'mmb gen 1', 'mmb 1'], 'calc-mmb-g1'],
+  [['matching gen 2', 'matching level 2', 'mmb gen 2', 'mmb 2'], 'calc-mmb-g2'],
+  [['matching gen 3', 'matching level 3', 'mmb gen 3', 'mmb 3'], 'calc-mmb-g3'],
+  [['level 1', 'nivel 1', 'nível 1', 'geracao 1', 'geração 1', 'gen 1'], 'calc-bv-n1'],
+  [['level 2', 'nivel 2', 'nível 2', 'geracao 2', 'geração 2', 'gen 2'], 'calc-bv-n2'],
+  [['level 3', 'nivel 3', 'nível 3', 'geracao 3', 'geração 3', 'gen 3'], 'calc-bv-n3'],
+  [['binary', 'binario', 'binário', 'binaria', 'binária', 'cycle'], 'calc-bv-binario'],
+  [['product introduction', 'pib', 'introducao de produto', 'introdução de produto'], 'calc-pib-core'],
+];
+
+function lwNormalizarDescricaoBonus(descricao) {
+  if (!descricao) return null;
+  const d = descricao.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
+  for (const [chaves, campo] of LW_BONUS_PARA_CALC_CAMPO) {
+    if (chaves.some(c => d.includes(c.normalize('NFD').replace(/[\u0300-\u036f]/g, '')))) return campo;
+  }
+  return null;
+}
 
 function lwDetetarTipo(headers) {
   let melhorScore = 0, melhorTipo = null;
@@ -37263,7 +38297,14 @@ function lwRenderPreview() {
 
   const linhasPreview = _lwCSVDados.slice(0, 200);
   const previewRows = linhasPreview.map(row => {
-    const nomeRaw = tipo ? lwGetCampo(row, tipo.campoNome) : (row['nome'] || row['name'] || Object.values(row)[0] || '');
+    // Tipos "semNome" (ex: comissoes) não têm pessoa associada — usa a
+    // descrição do bónus só para preview, sem contar como novo/atualizado.
+    const nomeRaw = tipo && !tipo.semNome
+      ? lwGetCampo(row, tipo.campoNome)
+      : tipo && tipo.semNome
+        ? lwGetCampo(row, tipo.campoDescricao || [])
+        : (row['nome'] || row['name'] || Object.values(row)[0] || '');
+    if (tipo && tipo.semNome) { return { nomeRaw, existe: false, row }; }
     const normNome = lwNormNome(nomeRaw);
     const existe = normNome && nomesExistentes.some(n => n === normNome || n.includes(normNome) || normNome.includes(n));
     if (existe) atualizados++; else novos++;
@@ -37322,6 +38363,14 @@ function lwRenderPreview() {
 // ── Confirmar importação e aplicar dados ─────────────────────────
 function lwConfirmarImport() {
   if (!_lwCSVTipo || !_lwCSVDados.length) { showToast('⚠️ Nenhum dado para importar'); return; }
+
+  // O tipo "comissoes" tem estrutura própria (linha por bónus, não por
+  // membro) e alimenta a Calculadora 2.0 em vez de membros[] — tratado
+  // à parte, sem passar pelo fluxo genérico abaixo. Módulo aditivo (v79).
+  if (_lwCSVTipo.id === 'comissoes') {
+    lwAplicarImportComissoes();
+    return;
+  }
 
   let novos = 0, atualizados = 0;
   const tipo = _lwCSVTipo;
@@ -37467,6 +38516,75 @@ function lwConfirmarImport() {
   lwResetImport();
   closeModal('modal-importar');
   goTo('equipa');
+}
+
+// ===================================================
+// APLICAR IMPORTAÇÃO DE COMISSÕES — módulo aditivo (v79)
+// Cada linha do relatório é {descricao, valor} de um bónus da semana.
+// Soma os valores por categoria (usando lwNormalizarDescricaoBonus) e
+// preenche diretamente os campos da Calculadora 2.0, em vez de tocar em
+// membros[] — não usa nem altera o fluxo genérico de lwConfirmarImport.
+// PV e categoria continuam a vir do Perfil (calcUsarDadosPerfil), pois o
+// relatório de Comissões não inclui essa informação.
+// ===================================================
+function lwAplicarImportComissoes() {
+  const tipo = _lwCSVTipo;
+  const somas = {}; // campo da calculadora -> soma acumulada
+  let linhasReconhecidas = 0;
+
+  _lwCSVDados.forEach(row => {
+    const descricao = lwGetCampo(row, tipo.campoDescricao);
+    const valorRaw = lwGetCampo(row, tipo.campoValor);
+    if (!descricao || !valorRaw) return;
+
+    const campo = lwNormalizarDescricaoBonus(descricao);
+    if (!campo) return; // descrição não reconhecida — não soma nem inventa categoria
+
+    const valor = parseFloat(String(valorRaw).replace(/[^\d.,\-]/g, '').replace(',', '.')) || 0;
+    if (valor === 0) return;
+
+    somas[campo] = (somas[campo] || 0) + valor;
+    linhasReconhecidas++;
+  });
+
+  if (linhasReconhecidas === 0) {
+    showToast('⚠️ Não foi possível reconhecer nenhuma linha de bónus neste ficheiro.');
+    lwResetImport();
+    closeModal('modal-importar');
+    return;
+  }
+
+  // O PIB soma-se todo em calc-pib-core (a distinção Starter/Bronze/Silver/
+  // Diamond não vem discriminada no relatório de Comissões da forma como
+  // este importador a lê, então evita-se dividir arbitrariamente por tipo
+  // de kit) — o utilizador pode ajustar manualmente se preferir repartir.
+  Object.entries(somas).forEach(([campoId, valor]) => {
+    const el = document.getElementById(campoId);
+    if (el) el.value = Math.round(valor * 100) / 100;
+  });
+
+  if (typeof calcularBonus === 'function') calcularBonus();
+
+  // Guarda histórico próprio (não mistura com o histórico de importações
+  // de equipa, que é sobre membros, não sobre comissões).
+  try {
+    const histKey = getUserStorageKey('lw_import_historico');
+    const hist = JSON.parse(localStorage.getItem(histKey) || '[]');
+    hist.push({
+      tipo: 'Comissões da semana',
+      data: new Date().toLocaleString('pt-PT'),
+      novos: 0, atualizados: linhasReconhecidas,
+      total: _lwCSVDados.length
+    });
+    if (hist.length > 20) hist.splice(0, hist.length - 20);
+    localStorage.setItem(histKey, JSON.stringify(hist));
+  } catch(e) {}
+
+  showToast(`✅ ${linhasReconhecidas} linha${linhasReconhecidas>1?'s':''} de bónus aplicada${linhasReconhecidas>1?'s':''} à Calculadora 2.0. Falta só PV (usa "📥 Usar meu Perfil") e escolher a categoria da semana.`);
+
+  lwResetImport();
+  closeModal('modal-importar');
+  goTo('calculadora');
 }
 
 function lwMostrarResumoImport(novos, atualizados, criticos, urgentes) {
@@ -38264,8 +39382,14 @@ function calcSaudeRede() {
   var membrosAtivos = todosMembros.filter(function(m) {
     return m.estado === 'ativo' || m.estado === 'ativa';
   }).length;
+  // Inativo = etiqueta manual "inativo" OU sem atividade real (venda/recruta/pontos)
+  // há 14+ dias, o mesmo critério já usado em Equipa (KPI "Ativação real") e nos
+  // lembretes automáticos — evita que este widget diga "tudo bem" quando a
+  // etiqueta manual está desatualizada mas os números do membro pararam de crescer.
   var membrosInativos = todosMembros.filter(function(m) {
-    return m.estado === 'inativo' || m.estado === 'inativa';
+    var marcadoInativo = m.estado === 'inativo' || m.estado === 'inativa';
+    var semAtividadeReal = !!m.ultimaAtividade && (hoje - new Date(m.ultimaAtividade).getTime()) / 864e5 >= 14;
+    return marcadoInativo || semAtividadeReal;
   }).length;
 
   // --- CLIENTES EM RISCO ---
@@ -38318,11 +39442,22 @@ function calcSaudeRede() {
   if (semFollowup14 > 0)  alertas.push({ icon:'⏰', msg: semFollowup14 + ' lead' + (semFollowup14>1?'s':'') + ' sem contacto há +14 dias', cor:'#f97316', page:'acoes' });
   else if (semFollowup7 > 0) alertas.push({ icon:'🔔', msg: semFollowup7 + ' lead' + (semFollowup7>1?'s':'') + ' sem contacto há +7 dias', cor:'var(--gold)', page:'acoes' });
   if (clientesRisco > 0)  alertas.push({ icon:'🔄', msg: clientesRisco + ' cliente' + (clientesRisco>1?'s':'') + ' renova' + (clientesRisco>1?'m':'') + ' em menos de 5 dias', cor:'var(--accent2)', page:'retencao' });
-  if (membrosInativos > 0) alertas.push({ icon:'😴', msg: membrosInativos + ' membro' + (membrosInativos>1?'s':'') + ' inativo' + (membrosInativos>1?'s':'') + ' na equipa', cor:'var(--text2)', page:'equipa' });
+  if (membrosInativos > 0) alertas.push({ icon:'😴', msg: membrosInativos + ' membro' + (membrosInativos>1?'s':'') + ' inativo' + (membrosInativos>1?'s':'') + ' na equipa', cor:'var(--text2)', page:'equipa', acao:'ordenarInativos' });
   if (leadsQuentes > 0)   alertas.push({ icon:'🔥', msg: leadsQuentes + ' lead' + (leadsQuentes>1?'s':'') + ' quente' + (leadsQuentes>1?'s':'') + ' — não percas o momentum!', cor:'var(--accent)', page:'funil' });
   if (!alertas.length)    alertas.push({ icon:'🎉', msg: 'Tudo em ordem! Continua assim.', cor:'var(--accent)', page:null });
 
   return { score, cor, label, emoji, bg, border, alertas, totalLeads, leadsAtivos, leadsQuentes, semFollowup7, semFollowup14, totalMembros, membrosAtivos, membrosInativos, clientesRisco };
+}
+
+// Navega a partir de um alerta do widget "Saúde da Rede", aplicando uma
+// pequena ação extra antes de ir para a página (ex: já filtrar/ordenar
+// pelo que motivou o alerta), sem duplicar a lógica de goTo().
+function irParaAlertaSaudeRede(page, acao) {
+  if (acao === 'ordenarInativos') {
+    var sel = document.getElementById('equipa-ordem');
+    if (sel) sel.value = 'inativos';
+  }
+  goTo(page);
 }
 
 function renderSaudeRede() {
@@ -38337,7 +39472,7 @@ function renderSaudeRede() {
   el.style.display = 'block';
 
   var alertasHtml = d.alertas.slice(0,3).map(function(a) {
-    var clicavel = a.page ? ' onclick="goTo(\'' + a.page + '\')" style="cursor:pointer;"' : '';
+    var clicavel = a.page ? ' onclick="irParaAlertaSaudeRede(\'' + a.page + '\',\'' + (a.acao||'') + '\')" style="cursor:pointer;"' : '';
     return '<div' + clicavel + ' style="display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:8px;background:rgba(255,255,255,0.03);transition:background .15s;" onmouseover="this.style.background=\'rgba(255,255,255,0.07)\'" onmouseout="this.style.background=\'rgba(255,255,255,0.03)\'">'
       + '<span style="font-size:15px;flex-shrink:0;">' + a.icon + '</span>'
       + '<span style="font-size:12px;color:' + a.cor + ';line-height:1.4;flex:1;">' + a.msg + '</span>'
