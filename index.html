@@ -19,6 +19,14 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+<!-- Geração de QR code local no browser (sem enviar o link a nenhum servidor externo).
+     Biblioteca embutida diretamente (em vez de carregada de um CDN externo) para funcionar
+     mesmo quando a app é aberta como ficheiro local (ex: content://downloads/... no Android),
+     onde pedidos de rede a scripts externos costumam ser bloqueados mesmo com internet ligada.
+     Fonte: qrcode@1.5.0 (github.com/soldair/node-qrcode), licença MIT. -->
+<script>
+var QRCode=function(t){"use strict";var r,e=function(){return"function"==typeof Promise&&Promise.prototype&&Promise.prototype.then},n=[0,26,44,70,100,134,172,196,242,292,346,404,466,532,581,655,733,815,901,991,1085,1156,1258,1364,1474,1588,1706,1828,1921,2051,2185,2323,2465,2611,2761,2876,3034,3196,3362,3532,3706],o=function(t){if(!t)throw new Error('"version" cannot be null or undefined');if(t<1||t>40)throw new Error('"version" should be in range from 1 to 40');return 4*t+17},a=function(t){return n[t]},i=function(t){for(var r=0;0!==t;)r++,t>>>=1;return r},u=function(t){if("function"!=typeof t)throw new Error('"toSJISFunc" is not a valid function.');r=t},s=function(){return void 0!==r},f=function(t){return r(t)};function h(t,r){return t(r={exports:{}},r.exports),r.exports}var c=h((function(t,r){r.L={bit:1},r.M={bit:0},r.Q={bit:3},r.H={bit:2},r.isValid=function(t){return t&&void 0!==t.bit&&t.bit>=0&&t.bit<4},r.from=function(t,e){if(r.isValid(t))return t;try{return function(t){if("string"!=typeof t)throw new Error("Param is not a string");switch(t.toLowerCase()){case"l":case"low":return r.L;case"m":case"medium":return r.M;case"q":case"quartile":return r.Q;case"h":case"high":return r.H;default:throw new Error("Unknown EC Level: "+t)}}(t)}catch(t){return e}}}));function g(){this.buffer=[],this.length=0}c.L,c.M,c.Q,c.H,c.isValid,g.prototype={get:function(t){var r=Math.floor(t/8);return 1==(this.buffer[r]>>>7-t%8&1)},put:function(t,r){for(var e=0;e<r;e++)this.putBit(1==(t>>>r-e-1&1))},getLengthInBits:function(){return this.length},putBit:function(t){var r=Math.floor(this.length/8);this.buffer.length<=r&&this.buffer.push(0),t&&(this.buffer[r]|=128>>>this.length%8),this.length++}};var d=g;function l(t){if(!t||t<1)throw new Error("BitMatrix size must be defined and greater than 0");this.size=t,this.data=new Uint8Array(t*t),this.reservedBit=new Uint8Array(t*t)}l.prototype.set=function(t,r,e,n){var o=t*this.size+r;this.data[o]=e,n&&(this.reservedBit[o]=!0)},l.prototype.get=function(t,r){return this.data[t*this.size+r]},l.prototype.xor=function(t,r,e){this.data[t*this.size+r]^=e},l.prototype.isReserved=function(t,r){return this.reservedBit[t*this.size+r]};var v=l,p=h((function(t,r){var e=o;r.getRowColCoords=function(t){if(1===t)return[];for(var r=Math.floor(t/7)+2,n=e(t),o=145===n?26:2*Math.ceil((n-13)/(2*r-2)),a=[n-7],i=1;i<r-1;i++)a[i]=a[i-1]-o;return a.push(6),a.reverse()},r.getPositions=function(t){for(var e=[],n=r.getRowColCoords(t),o=n.length,a=0;a<o;a++)for(var i=0;i<o;i++)0===a&&0===i||0===a&&i===o-1||a===o-1&&0===i||e.push([n[a],n[i]]);return e}}));p.getRowColCoords,p.getPositions;var w=o,m=function(t){var r=w(t);return[[0,0],[r-7,0],[0,r-7]]},E=h((function(t,r){r.Patterns={PATTERN000:0,PATTERN001:1,PATTERN010:2,PATTERN011:3,PATTERN100:4,PATTERN101:5,PATTERN110:6,PATTERN111:7};var e=3,n=3,o=40,a=10;function i(t,e,n){switch(t){case r.Patterns.PATTERN000:return(e+n)%2==0;case r.Patterns.PATTERN001:return e%2==0;case r.Patterns.PATTERN010:return n%3==0;case r.Patterns.PATTERN011:return(e+n)%3==0;case r.Patterns.PATTERN100:return(Math.floor(e/2)+Math.floor(n/3))%2==0;case r.Patterns.PATTERN101:return e*n%2+e*n%3==0;case r.Patterns.PATTERN110:return(e*n%2+e*n%3)%2==0;case r.Patterns.PATTERN111:return(e*n%3+(e+n)%2)%2==0;default:throw new Error("bad maskPattern:"+t)}}r.isValid=function(t){return null!=t&&""!==t&&!isNaN(t)&&t>=0&&t<=7},r.from=function(t){return r.isValid(t)?parseInt(t,10):void 0},r.getPenaltyN1=function(t){for(var r=t.size,n=0,o=0,a=0,i=null,u=null,s=0;s<r;s++){o=a=0,i=u=null;for(var f=0;f<r;f++){var h=t.get(s,f);h===i?o++:(o>=5&&(n+=e+(o-5)),i=h,o=1),(h=t.get(f,s))===u?a++:(a>=5&&(n+=e+(a-5)),u=h,a=1)}o>=5&&(n+=e+(o-5)),a>=5&&(n+=e+(a-5))}return n},r.getPenaltyN2=function(t){for(var r=t.size,e=0,o=0;o<r-1;o++)for(var a=0;a<r-1;a++){var i=t.get(o,a)+t.get(o,a+1)+t.get(o+1,a)+t.get(o+1,a+1);4!==i&&0!==i||e++}return e*n},r.getPenaltyN3=function(t){for(var r=t.size,e=0,n=0,a=0,i=0;i<r;i++){n=a=0;for(var u=0;u<r;u++)n=n<<1&2047|t.get(i,u),u>=10&&(1488===n||93===n)&&e++,a=a<<1&2047|t.get(u,i),u>=10&&(1488===a||93===a)&&e++}return e*o},r.getPenaltyN4=function(t){for(var r=0,e=t.data.length,n=0;n<e;n++)r+=t.data[n];return Math.abs(Math.ceil(100*r/e/5)-10)*a},r.applyMask=function(t,r){for(var e=r.size,n=0;n<e;n++)for(var o=0;o<e;o++)r.isReserved(o,n)||r.xor(o,n,i(t,o,n))},r.getBestMask=function(t,e){for(var n=Object.keys(r.Patterns).length,o=0,a=1/0,i=0;i<n;i++){e(i),r.applyMask(i,t);var u=r.getPenaltyN1(t)+r.getPenaltyN2(t)+r.getPenaltyN3(t)+r.getPenaltyN4(t);r.applyMask(i,t),u<a&&(a=u,o=i)}return o}}));E.Patterns,E.isValid,E.getPenaltyN1,E.getPenaltyN2,E.getPenaltyN3,E.getPenaltyN4,E.applyMask,E.getBestMask;var y=[1,1,1,1,1,1,1,1,1,1,2,2,1,2,2,4,1,2,4,4,2,4,4,4,2,4,6,5,2,4,6,6,2,5,8,8,4,5,8,8,4,5,8,11,4,8,10,11,4,9,12,16,4,9,16,16,6,10,12,18,6,10,17,16,6,11,16,19,6,13,18,21,7,14,21,25,8,16,20,25,8,17,23,25,9,17,23,34,9,18,25,30,10,20,27,32,12,21,29,35,12,23,34,37,12,25,34,40,13,26,35,42,14,28,38,45,15,29,40,48,16,31,43,51,17,33,45,54,18,35,48,57,19,37,51,60,19,38,53,63,20,40,56,66,21,43,59,70,22,45,62,74,24,47,65,77,25,49,68,81],A=[7,10,13,17,10,16,22,28,15,26,36,44,20,36,52,64,26,48,72,88,36,64,96,112,40,72,108,130,48,88,132,156,60,110,160,192,72,130,192,224,80,150,224,264,96,176,260,308,104,198,288,352,120,216,320,384,132,240,360,432,144,280,408,480,168,308,448,532,180,338,504,588,196,364,546,650,224,416,600,700,224,442,644,750,252,476,690,816,270,504,750,900,300,560,810,960,312,588,870,1050,336,644,952,1110,360,700,1020,1200,390,728,1050,1260,420,784,1140,1350,450,812,1200,1440,480,868,1290,1530,510,924,1350,1620,540,980,1440,1710,570,1036,1530,1800,570,1064,1590,1890,600,1120,1680,1980,630,1204,1770,2100,660,1260,1860,2220,720,1316,1950,2310,750,1372,2040,2430],I=function(t,r){switch(r){case c.L:return y[4*(t-1)+0];case c.M:return y[4*(t-1)+1];case c.Q:return y[4*(t-1)+2];case c.H:return y[4*(t-1)+3];default:return}},M=function(t,r){switch(r){case c.L:return A[4*(t-1)+0];case c.M:return A[4*(t-1)+1];case c.Q:return A[4*(t-1)+2];case c.H:return A[4*(t-1)+3];default:return}},N=new Uint8Array(512),B=new Uint8Array(256);!function(){for(var t=1,r=0;r<255;r++)N[r]=t,B[t]=r,256&(t<<=1)&&(t^=285);for(var e=255;e<512;e++)N[e]=N[e-255]}();var C=function(t){return N[t]},P=function(t,r){return 0===t||0===r?0:N[B[t]+B[r]]},R=h((function(t,r){r.mul=function(t,r){for(var e=new Uint8Array(t.length+r.length-1),n=0;n<t.length;n++)for(var o=0;o<r.length;o++)e[n+o]^=P(t[n],r[o]);return e},r.mod=function(t,r){for(var e=new Uint8Array(t);e.length-r.length>=0;){for(var n=e[0],o=0;o<r.length;o++)e[o]^=P(r[o],n);for(var a=0;a<e.length&&0===e[a];)a++;e=e.slice(a)}return e},r.generateECPolynomial=function(t){for(var e=new Uint8Array([1]),n=0;n<t;n++)e=r.mul(e,new Uint8Array([1,C(n)]));return e}}));function T(t){this.genPoly=void 0,this.degree=t,this.degree&&this.initialize(this.degree)}R.mul,R.mod,R.generateECPolynomial,T.prototype.initialize=function(t){this.degree=t,this.genPoly=R.generateECPolynomial(this.degree)},T.prototype.encode=function(t){if(!this.genPoly)throw new Error("Encoder not initialized");var r=new Uint8Array(t.length+this.degree);r.set(t);var e=R.mod(r,this.genPoly),n=this.degree-e.length;if(n>0){var o=new Uint8Array(this.degree);return o.set(e,n),o}return e};var L=T,b=function(t){return!isNaN(t)&&t>=1&&t<=40},U="(?:[u3000-u303F]|[u3040-u309F]|[u30A0-u30FF]|[uFF00-uFFEF]|[u4E00-u9FAF]|[u2605-u2606]|[u2190-u2195]|u203B|[u2010u2015u2018u2019u2025u2026u201Cu201Du2225u2260]|[u0391-u0451]|[u00A7u00A8u00B1u00B4u00D7u00F7])+",x="(?:(?![A-Z0-9 $%*+\\-./:]|"+(U=U.replace(/u/g,"\\u"))+")(?:.|[\r\n]))+",k=new RegExp(U,"g"),F=new RegExp("[^A-Z0-9 $%*+\\-./:]+","g"),S=new RegExp(x,"g"),D=new RegExp("[0-9]+","g"),Y=new RegExp("[A-Z $%*+\\-./:]+","g"),_=new RegExp("^"+U+"$"),z=new RegExp("^[0-9]+$"),H=new RegExp("^[A-Z0-9 $%*+\\-./:]+$"),J={KANJI:k,BYTE_KANJI:F,BYTE:S,NUMERIC:D,ALPHANUMERIC:Y,testKanji:function(t){return _.test(t)},testNumeric:function(t){return z.test(t)},testAlphanumeric:function(t){return H.test(t)}},K=h((function(t,r){r.NUMERIC={id:"Numeric",bit:1,ccBits:[10,12,14]},r.ALPHANUMERIC={id:"Alphanumeric",bit:2,ccBits:[9,11,13]},r.BYTE={id:"Byte",bit:4,ccBits:[8,16,16]},r.KANJI={id:"Kanji",bit:8,ccBits:[8,10,12]},r.MIXED={bit:-1},r.getCharCountIndicator=function(t,r){if(!t.ccBits)throw new Error("Invalid mode: "+t);if(!b(r))throw new Error("Invalid version: "+r);return r>=1&&r<10?t.ccBits[0]:r<27?t.ccBits[1]:t.ccBits[2]},r.getBestModeForData=function(t){return J.testNumeric(t)?r.NUMERIC:J.testAlphanumeric(t)?r.ALPHANUMERIC:J.testKanji(t)?r.KANJI:r.BYTE},r.toString=function(t){if(t&&t.id)return t.id;throw new Error("Invalid mode")},r.isValid=function(t){return t&&t.bit&&t.ccBits},r.from=function(t,e){if(r.isValid(t))return t;try{return function(t){if("string"!=typeof t)throw new Error("Param is not a string");switch(t.toLowerCase()){case"numeric":return r.NUMERIC;case"alphanumeric":return r.ALPHANUMERIC;case"kanji":return r.KANJI;case"byte":return r.BYTE;default:throw new Error("Unknown mode: "+t)}}(t)}catch(t){return e}}}));K.NUMERIC,K.ALPHANUMERIC,K.BYTE,K.KANJI,K.MIXED,K.getCharCountIndicator,K.getBestModeForData,K.isValid;var O=h((function(t,r){var e=i(7973);function n(t,r){return K.getCharCountIndicator(t,r)+4}function o(t,r){var e=0;return t.forEach((function(t){var o=n(t.mode,r);e+=o+t.getBitsLength()})),e}r.from=function(t,r){return b(t)?parseInt(t,10):r},r.getCapacity=function(t,r,e){if(!b(t))throw new Error("Invalid QR Code version");void 0===e&&(e=K.BYTE);var o=8*(a(t)-M(t,r));if(e===K.MIXED)return o;var i=o-n(e,t);switch(e){case K.NUMERIC:return Math.floor(i/10*3);case K.ALPHANUMERIC:return Math.floor(i/11*2);case K.KANJI:return Math.floor(i/13);case K.BYTE:default:return Math.floor(i/8)}},r.getBestVersionForData=function(t,e){var n,a=c.from(e,c.M);if(Array.isArray(t)){if(t.length>1)return function(t,e){for(var n=1;n<=40;n++){if(o(t,n)<=r.getCapacity(n,e,K.MIXED))return n}}(t,a);if(0===t.length)return 1;n=t[0]}else n=t;return function(t,e,n){for(var o=1;o<=40;o++)if(e<=r.getCapacity(o,n,t))return o}(n.mode,n.getLength(),a)},r.getEncodedBits=function(t){if(!b(t)||t<7)throw new Error("Invalid QR Code version");for(var r=t<<12;i(r)-e>=0;)r^=7973<<i(r)-e;return t<<12|r}}));O.getCapacity,O.getBestVersionForData,O.getEncodedBits;var Q=i(1335),V=function(t,r){for(var e=t.bit<<3|r,n=e<<10;i(n)-Q>=0;)n^=1335<<i(n)-Q;return 21522^(e<<10|n)};function q(t){this.mode=K.NUMERIC,this.data=t.toString()}q.getBitsLength=function(t){return 10*Math.floor(t/3)+(t%3?t%3*3+1:0)},q.prototype.getLength=function(){return this.data.length},q.prototype.getBitsLength=function(){return q.getBitsLength(this.data.length)},q.prototype.write=function(t){var r,e,n;for(r=0;r+3<=this.data.length;r+=3)e=this.data.substr(r,3),n=parseInt(e,10),t.put(n,10);var o=this.data.length-r;o>0&&(e=this.data.substr(r),n=parseInt(e,10),t.put(n,3*o+1))};var j=q,$=["0","1","2","3","4","5","6","7","8","9","A","B","C","D","E","F","G","H","I","J","K","L","M","N","O","P","Q","R","S","T","U","V","W","X","Y","Z"," ","$","%","*","+","-",".","/",":"];function X(t){this.mode=K.ALPHANUMERIC,this.data=t}X.getBitsLength=function(t){return 11*Math.floor(t/2)+t%2*6},X.prototype.getLength=function(){return this.data.length},X.prototype.getBitsLength=function(){return X.getBitsLength(this.data.length)},X.prototype.write=function(t){var r;for(r=0;r+2<=this.data.length;r+=2){var e=45*$.indexOf(this.data[r]);e+=$.indexOf(this.data[r+1]),t.put(e,11)}this.data.length%2&&t.put($.indexOf(this.data[r]),6)};var Z=X;function W(t){this.mode=K.BYTE,this.data=new Uint8Array(function(t){for(var r=[],e=t.length,n=0;n<e;n++){var o=t.charCodeAt(n);if(o>=55296&&o<=56319&&e>n+1){var a=t.charCodeAt(n+1);a>=56320&&a<=57343&&(o=1024*(o-55296)+a-56320+65536,n+=1)}o<128?r.push(o):o<2048?(r.push(o>>6|192),r.push(63&o|128)):o<55296||o>=57344&&o<65536?(r.push(o>>12|224),r.push(o>>6&63|128),r.push(63&o|128)):o>=65536&&o<=1114111?(r.push(o>>18|240),r.push(o>>12&63|128),r.push(o>>6&63|128),r.push(63&o|128)):r.push(239,191,189)}return new Uint8Array(r).buffer}(t))}W.getBitsLength=function(t){return 8*t},W.prototype.getLength=function(){return this.data.length},W.prototype.getBitsLength=function(){return W.getBitsLength(this.data.length)},W.prototype.write=function(t){for(var r=0,e=this.data.length;r<e;r++)t.put(this.data[r],8)};var G=W;function tt(t){this.mode=K.KANJI,this.data=t}tt.getBitsLength=function(t){return 13*t},tt.prototype.getLength=function(){return this.data.length},tt.prototype.getBitsLength=function(){return tt.getBitsLength(this.data.length)},tt.prototype.write=function(t){var r;for(r=0;r<this.data.length;r++){var e=f(this.data[r]);if(e>=33088&&e<=40956)e-=33088;else{if(!(e>=57408&&e<=60351))throw new Error("Invalid SJIS character: "+this.data[r]+"\nMake sure your charset is UTF-8");e-=49472}e=192*(e>>>8&255)+(255&e),t.put(e,13)}};var rt=tt,et=h((function(t){var r={single_source_shortest_paths:function(t,e,n){var o={},a={};a[e]=0;var i,u,s,f,h,c,g,d=r.PriorityQueue.make();for(d.push(e,0);!d.empty();)for(s in u=(i=d.pop()).value,f=i.cost,h=t[u]||{})h.hasOwnProperty(s)&&(c=f+h[s],g=a[s],(void 0===a[s]||g>c)&&(a[s]=c,d.push(s,c),o[s]=u));if(void 0!==n&&void 0===a[n]){var l=["Could not find a path from ",e," to ",n,"."].join("");throw new Error(l)}return o},extract_shortest_path_from_predecessor_list:function(t,r){for(var e=[],n=r;n;)e.push(n),n=t[n];return e.reverse(),e},find_path:function(t,e,n){var o=r.single_source_shortest_paths(t,e,n);return r.extract_shortest_path_from_predecessor_list(o,n)},PriorityQueue:{make:function(t){var e,n=r.PriorityQueue,o={};for(e in t=t||{},n)n.hasOwnProperty(e)&&(o[e]=n[e]);return o.queue=[],o.sorter=t.sorter||n.default_sorter,o},default_sorter:function(t,r){return t.cost-r.cost},push:function(t,r){var e={value:t,cost:r};this.queue.push(e),this.queue.sort(this.sorter)},pop:function(){return this.queue.shift()},empty:function(){return 0===this.queue.length}}};t.exports=r})),nt=h((function(t,r){function e(t){return unescape(encodeURIComponent(t)).length}function n(t,r,e){for(var n,o=[];null!==(n=t.exec(e));)o.push({data:n[0],index:n.index,mode:r,length:n[0].length});return o}function o(t){var r,e,o=n(J.NUMERIC,K.NUMERIC,t),a=n(J.ALPHANUMERIC,K.ALPHANUMERIC,t);return s()?(r=n(J.BYTE,K.BYTE,t),e=n(J.KANJI,K.KANJI,t)):(r=n(J.BYTE_KANJI,K.BYTE,t),e=[]),o.concat(a,r,e).sort((function(t,r){return t.index-r.index})).map((function(t){return{data:t.data,mode:t.mode,length:t.length}}))}function a(t,r){switch(r){case K.NUMERIC:return j.getBitsLength(t);case K.ALPHANUMERIC:return Z.getBitsLength(t);case K.KANJI:return rt.getBitsLength(t);case K.BYTE:return G.getBitsLength(t)}}function i(t,r){var e,n=K.getBestModeForData(t);if((e=K.from(r,n))!==K.BYTE&&e.bit<n.bit)throw new Error('"'+t+'" cannot be encoded with mode '+K.toString(e)+".\n Suggested mode is: "+K.toString(n));switch(e!==K.KANJI||s()||(e=K.BYTE),e){case K.NUMERIC:return new j(t);case K.ALPHANUMERIC:return new Z(t);case K.KANJI:return new rt(t);case K.BYTE:return new G(t)}}r.fromArray=function(t){return t.reduce((function(t,r){return"string"==typeof r?t.push(i(r,null)):r.data&&t.push(i(r.data,r.mode)),t}),[])},r.fromString=function(t,n){for(var i=function(t,r){for(var e={},n={start:{}},o=["start"],i=0;i<t.length;i++){for(var u=t[i],s=[],f=0;f<u.length;f++){var h=u[f],c=""+i+f;s.push(c),e[c]={node:h,lastCount:0},n[c]={};for(var g=0;g<o.length;g++){var d=o[g];e[d]&&e[d].node.mode===h.mode?(n[d][c]=a(e[d].lastCount+h.length,h.mode)-a(e[d].lastCount,h.mode),e[d].lastCount+=h.length):(e[d]&&(e[d].lastCount=h.length),n[d][c]=a(h.length,h.mode)+4+K.getCharCountIndicator(h.mode,r))}}o=s}for(var l=0;l<o.length;l++)n[o[l]].end=0;return{map:n,table:e}}(function(t){for(var r=[],n=0;n<t.length;n++){var o=t[n];switch(o.mode){case K.NUMERIC:r.push([o,{data:o.data,mode:K.ALPHANUMERIC,length:o.length},{data:o.data,mode:K.BYTE,length:o.length}]);break;case K.ALPHANUMERIC:r.push([o,{data:o.data,mode:K.BYTE,length:o.length}]);break;case K.KANJI:r.push([o,{data:o.data,mode:K.BYTE,length:e(o.data)}]);break;case K.BYTE:r.push([{data:o.data,mode:K.BYTE,length:e(o.data)}])}}return r}(o(t)),n),u=et.find_path(i.map,"start","end"),s=[],f=1;f<u.length-1;f++)s.push(i.table[u[f]].node);return r.fromArray(function(t){return t.reduce((function(t,r){var e=t.length-1>=0?t[t.length-1]:null;return e&&e.mode===r.mode?(t[t.length-1].data+=r.data,t):(t.push(r),t)}),[])}(s))},r.rawSplit=function(t){return r.fromArray(o(t))}}));function ot(t,r,e){var n,o,a=t.size,i=V(r,e);for(n=0;n<15;n++)o=1==(i>>n&1),n<6?t.set(n,8,o,!0):n<8?t.set(n+1,8,o,!0):t.set(a-15+n,8,o,!0),n<8?t.set(8,a-n-1,o,!0):n<9?t.set(8,15-n-1+1,o,!0):t.set(8,15-n-1,o,!0);t.set(a-8,8,1,!0)}function at(t,r,e){var n=new d;e.forEach((function(r){n.put(r.mode.bit,4),n.put(r.getLength(),K.getCharCountIndicator(r.mode,t)),r.write(n)}));var o=8*(a(t)-M(t,r));for(n.getLengthInBits()+4<=o&&n.put(0,4);n.getLengthInBits()%8!=0;)n.putBit(0);for(var i=(o-n.getLengthInBits())/8,u=0;u<i;u++)n.put(u%2?17:236,8);return function(t,r,e){for(var n=a(r),o=M(r,e),i=n-o,u=I(r,e),s=u-n%u,f=Math.floor(n/u),h=Math.floor(i/u),c=h+1,g=f-h,d=new L(g),l=0,v=new Array(u),p=new Array(u),w=0,m=new Uint8Array(t.buffer),E=0;E<u;E++){var y=E<s?h:c;v[E]=m.slice(l,l+y),p[E]=d.encode(v[E]),l+=y,w=Math.max(w,y)}var A,N,B=new Uint8Array(n),C=0;for(A=0;A<w;A++)for(N=0;N<u;N++)A<v[N].length&&(B[C++]=v[N][A]);for(A=0;A<g;A++)for(N=0;N<u;N++)B[C++]=p[N][A];return B}(n,t,r)}function it(t,r,e,n){var a;if(Array.isArray(t))a=nt.fromArray(t);else{if("string"!=typeof t)throw new Error("Invalid data");var i=r;if(!i){var u=nt.rawSplit(t);i=O.getBestVersionForData(u,e)}a=nt.fromString(t,i||40)}var s=O.getBestVersionForData(a,e);if(!s)throw new Error("The amount of data is too big to be stored in a QR Code");if(r){if(r<s)throw new Error("\nThe chosen QR Code version cannot contain this amount of data.\nMinimum version required to store current data is: "+s+".\n")}else r=s;var f=at(r,e,a),h=o(r),c=new v(h);return function(t,r){for(var e=t.size,n=m(r),o=0;o<n.length;o++)for(var a=n[o][0],i=n[o][1],u=-1;u<=7;u++)if(!(a+u<=-1||e<=a+u))for(var s=-1;s<=7;s++)i+s<=-1||e<=i+s||(u>=0&&u<=6&&(0===s||6===s)||s>=0&&s<=6&&(0===u||6===u)||u>=2&&u<=4&&s>=2&&s<=4?t.set(a+u,i+s,!0,!0):t.set(a+u,i+s,!1,!0))}(c,r),function(t){for(var r=t.size,e=8;e<r-8;e++){var n=e%2==0;t.set(e,6,n,!0),t.set(6,e,n,!0)}}(c),function(t,r){for(var e=p.getPositions(r),n=0;n<e.length;n++)for(var o=e[n][0],a=e[n][1],i=-2;i<=2;i++)for(var u=-2;u<=2;u++)-2===i||2===i||-2===u||2===u||0===i&&0===u?t.set(o+i,a+u,!0,!0):t.set(o+i,a+u,!1,!0)}(c,r),ot(c,e,0),r>=7&&function(t,r){for(var e,n,o,a=t.size,i=O.getEncodedBits(r),u=0;u<18;u++)e=Math.floor(u/3),n=u%3+a-8-3,o=1==(i>>u&1),t.set(e,n,o,!0),t.set(n,e,o,!0)}(c,r),function(t,r){for(var e=t.size,n=-1,o=e-1,a=7,i=0,u=e-1;u>0;u-=2)for(6===u&&u--;;){for(var s=0;s<2;s++)if(!t.isReserved(o,u-s)){var f=!1;i<r.length&&(f=1==(r[i]>>>a&1)),t.set(o,u-s,f),-1===--a&&(i++,a=7)}if((o+=n)<0||e<=o){o-=n,n=-n;break}}}(c,f),isNaN(n)&&(n=E.getBestMask(c,ot.bind(null,c,e))),E.applyMask(n,c),ot(c,e,n),{modules:c,version:r,errorCorrectionLevel:e,maskPattern:n,segments:a}}nt.fromArray,nt.fromString,nt.rawSplit;var ut=function(t,r){if(void 0===t||""===t)throw new Error("No input text");var e,n,o=c.M;return void 0!==r&&(o=c.from(r.errorCorrectionLevel,c.M),e=O.from(r.version),n=E.from(r.maskPattern),r.toSJISFunc&&u(r.toSJISFunc)),it(t,e,o,n)},st=h((function(t,r){function e(t){if("number"==typeof t&&(t=t.toString()),"string"!=typeof t)throw new Error("Color should be defined as hex string");var r=t.slice().replace("#","").split("");if(r.length<3||5===r.length||r.length>8)throw new Error("Invalid hex color: "+t);3!==r.length&&4!==r.length||(r=Array.prototype.concat.apply([],r.map((function(t){return[t,t]})))),6===r.length&&r.push("F","F");var e=parseInt(r.join(""),16);return{r:e>>24&255,g:e>>16&255,b:e>>8&255,a:255&e,hex:"#"+r.slice(0,6).join("")}}r.getOptions=function(t){t||(t={}),t.color||(t.color={});var r=void 0===t.margin||null===t.margin||t.margin<0?4:t.margin,n=t.width&&t.width>=21?t.width:void 0,o=t.scale||4;return{width:n,scale:n?4:o,margin:r,color:{dark:e(t.color.dark||"#000000ff"),light:e(t.color.light||"#ffffffff")},type:t.type,rendererOpts:t.rendererOpts||{}}},r.getScale=function(t,r){return r.width&&r.width>=t+2*r.margin?r.width/(t+2*r.margin):r.scale},r.getImageWidth=function(t,e){var n=r.getScale(t,e);return Math.floor((t+2*e.margin)*n)},r.qrToImageData=function(t,e,n){for(var o=e.modules.size,a=e.modules.data,i=r.getScale(o,n),u=Math.floor((o+2*n.margin)*i),s=n.margin*i,f=[n.color.light,n.color.dark],h=0;h<u;h++)for(var c=0;c<u;c++){var g=4*(h*u+c),d=n.color.light;if(h>=s&&c>=s&&h<u-s&&c<u-s)d=f[a[Math.floor((h-s)/i)*o+Math.floor((c-s)/i)]?1:0];t[g++]=d.r,t[g++]=d.g,t[g++]=d.b,t[g]=d.a}}}));st.getOptions,st.getScale,st.getImageWidth,st.qrToImageData;var ft=h((function(t,r){r.render=function(t,r,e){var n=e,o=r;void 0!==n||r&&r.getContext||(n=r,r=void 0),r||(o=function(){try{return document.createElement("canvas")}catch(t){throw new Error("You need to specify a canvas element")}}()),n=st.getOptions(n);var a=st.getImageWidth(t.modules.size,n),i=o.getContext("2d"),u=i.createImageData(a,a);return st.qrToImageData(u.data,t,n),function(t,r,e){t.clearRect(0,0,r.width,r.height),r.style||(r.style={}),r.height=e,r.width=e,r.style.height=e+"px",r.style.width=e+"px"}(i,o,a),i.putImageData(u,0,0),o},r.renderToDataURL=function(t,e,n){var o=n;void 0!==o||e&&e.getContext||(o=e,e=void 0),o||(o={});var a=r.render(t,e,o),i=o.type||"image/png",u=o.rendererOpts||{};return a.toDataURL(i,u.quality)}}));function ht(t,r){var e=t.a/255,n=r+'="'+t.hex+'"';return e<1?n+" "+r+'-opacity="'+e.toFixed(2).slice(1)+'"':n}function ct(t,r,e){var n=t+r;return void 0!==e&&(n+=" "+e),n}ft.render,ft.renderToDataURL;var gt=function(t,r,e){var n=st.getOptions(r),o=t.modules.size,a=t.modules.data,i=o+2*n.margin,u=n.color.light.a?"<path "+ht(n.color.light,"fill")+' d="M0 0h'+i+"v"+i+'H0z"/>':"",s="<path "+ht(n.color.dark,"stroke")+' d="'+function(t,r,e){for(var n="",o=0,a=!1,i=0,u=0;u<t.length;u++){var s=Math.floor(u%r),f=Math.floor(u/r);s||a||(a=!0),t[u]?(i++,u>0&&s>0&&t[u-1]||(n+=a?ct("M",s+e,.5+f+e):ct("m",o,0),o=0,a=!1),s+1<r&&t[u+1]||(n+=ct("h",i),i=0)):o++}return n}(a,o,n.margin)+'"/>',f='viewBox="0 0 '+i+" "+i+'"',h='<svg xmlns="http://www.w3.org/2000/svg" '+(n.width?'width="'+n.width+'" height="'+n.width+'" ':"")+f+' shape-rendering="crispEdges">'+u+s+"</svg>\n";return"function"==typeof e&&e(null,h),h};function dt(t,r,n,o,a){var i=[].slice.call(arguments,1),u=i.length,s="function"==typeof i[u-1];if(!s&&!e())throw new Error("Callback required as last argument");if(!s){if(u<1)throw new Error("Too few arguments provided");return 1===u?(n=r,r=o=void 0):2!==u||r.getContext||(o=n,n=r,r=void 0),new Promise((function(e,a){try{var i=ut(n,o);e(t(i,r,o))}catch(t){a(t)}}))}if(u<2)throw new Error("Too few arguments provided");2===u?(a=n,n=r,r=o=void 0):3===u&&(r.getContext&&void 0===a?(a=o,o=void 0):(a=o,o=n,n=r,r=void 0));try{var f=ut(n,o);a(null,t(f,r,o))}catch(t){a(t)}}var lt=ut,vt=dt.bind(null,ft.render),pt=dt.bind(null,ft.renderToDataURL),wt=dt.bind(null,(function(t,r,e){return gt(t,e)})),mt={create:lt,toCanvas:vt,toDataURL:pt,toString:wt};return t.create=lt,t.default=mt,t.toCanvas=vt,t.toDataURL=pt,t.toString=wt,Object.defineProperty(t,"__esModule",{value:!0}),t}({});
+</script>
 <style>
   :root {
     --bg: #0a0f1e;
@@ -4893,6 +4901,7 @@
         </div>
         <div style="display:flex;gap:10px;align-items:center;">
           <button class="btn btn-secondary btn-sm" onclick="exportarCSV()" title="Exportar dados para CSV" style="font-size:12px;">⬇️ Exportar CSV</button>
+          <button class="btn btn-secondary btn-sm" onclick="abrirRelatorioFiscal()" title="Resumo anual de vendas e despesas para o IRS/contabilista" style="font-size:12px;">🧾 Relatório Anual</button>
           <select id="stats-periodo" onchange="renderStats()" style="background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:8px 12px;font-size:13px;font-family:'DM Sans',sans-serif;cursor:pointer;">
             <option value="7">Últimos 7 dias</option>
             <option value="30" selected>Últimos 30 dias</option>
@@ -6737,6 +6746,8 @@
             <span id="sr-text" style="color:var(--text2);font-style:italic;">O teu script aparecerá aqui. Escolhe o formato, tipo e tema, depois clica em "Gerar".</span>
           </div>
 
+          <div id="sr-compliance-aviso" style="display:none;"></div>
+
           <div id="sr-copy-bar" style="display:none;margin-top:12px;gap:8px;flex-wrap:wrap;">
             <button class="btn btn-secondary btn-sm" onclick="srCopiar()">📋 Copiar</button>
             <button class="btn btn-secondary btn-sm" onclick="srGuardarBiblioteca()">💾 Guardar</button>
@@ -7020,10 +7031,58 @@
           <div class="page-sub">Acompanha promoções ativas, prazos e partilha com a tua equipa</div>
         </div>
         <div style="display:flex;gap:8px;">
-          <button class="btn btn-secondary" onclick="abrirModalNovaPromo()">＋ Adicionar</button>
+          <button class="btn btn-secondary" onclick="abrirModalNovaPromo()">＋ Adicionar Manual</button>
           <button class="btn btn-primary" onclick="partilharPromocoesEquipa()">📤 Partilhar com Equipa</button>
         </div>
       </div>
+
+      <!-- UPLOAD ZONE (mesmo padrão visual da página de Viagens) -->
+      <div class="card" style="margin-bottom:20px;">
+        <div class="section-title" style="margin-bottom:6px;">📎 Adicionar Promoção via PDF / Imagem</div>
+        <div style="font-size:13px;color:var(--text2);margin-bottom:16px;line-height:1.6;">
+          Faz upload do documento oficial de qualquer promoção (desconto, kit, envio grátis, bónus, etc.).
+          A IA lê o documento e configura automaticamente <strong style="color:var(--text);">o título, descrição, datas e uma estratégia de venda</strong> para a tua equipa.
+        </div>
+
+        <!-- AI selector (mesmo padrão da página de Viagens) -->
+        <div class="ai-selector-bar" style="margin-bottom:14px;">
+          <span class="ai-selector-label">IA para análise:</span>
+          <button class="ai-btn" id="promo-btn-claude" onclick="setPromoAI('claude')">🧠 Claude</button>
+          <button class="ai-btn active-gemini" id="promo-btn-gemini" onclick="setPromoAI('gemini')">✦ Gemini</button>
+        </div>
+        <!-- Drop zone -->
+        <div id="promo-drop-zone"
+          style="border:2px dashed var(--border);border-radius:var(--radius-sm);padding:28px 20px;text-align:center;cursor:pointer;transition:all 0.2s;background:var(--surface2);position:relative;margin-bottom:12px;"
+          onclick="document.getElementById('promo-file-input').click()"
+          ondragover="event.preventDefault();this.style.borderColor='var(--accent3)';this.style.background='rgba(255,107,53,0.05)'"
+          ondragleave="this.style.borderColor='var(--border)';this.style.background='var(--surface2)'"
+          ondrop="promoHandleDrop(event)">
+          <div id="promo-drop-icon" style="font-size:36px;margin-bottom:8px;">📢</div>
+          <div id="promo-drop-label" style="font-size:14px;font-weight:600;color:var(--text);">Clica ou arrasta o PDF/Imagem da promoção</div>
+          <div style="font-size:11px;color:var(--text2);margin-top:4px;">PDF, JPG, PNG ou WEBP · máx. 20MB</div>
+          <input type="file" id="promo-file-input" accept=".pdf,.jpg,.jpeg,.png,.webp" style="display:none" onchange="promoHandleFile(this.files[0])">
+        </div>
+
+        <div id="promo-upload-preview" style="display:none;margin-bottom:12px;"></div>
+
+        <div id="promo-upload-actions" style="display:none;gap:8px;flex-wrap:wrap;">
+          <button class="btn btn-ai" onclick="promoAnalisarIA()">🧠 Analisar e Adicionar Promoção</button>
+          <button class="btn btn-secondary" onclick="promoCancelarUpload()">✕ Cancelar</button>
+        </div>
+
+        <!-- Status IA -->
+        <div id="promo-ia-status" style="display:none;align-items:center;gap:12px;padding:14px;background:var(--surface2);border-radius:var(--radius-sm);border:1px solid var(--border);margin-top:12px;">
+          <div class="spinner"></div>
+          <div>
+            <div style="font-size:13px;font-weight:600;color:var(--text);" id="promo-ia-status-text">A analisar documento...</div>
+            <div style="font-size:11px;color:var(--text2);margin-top:2px;">Isto pode demorar alguns segundos.</div>
+          </div>
+        </div>
+
+        <!-- Resultado -->
+        <div id="promo-ia-resultado" style="display:none;margin-top:12px;"></div>
+      </div>
+
       <div id="promo-alerta-urgente" style="display:none;" class="promo-alerta-bar">
         <div class="promo-alerta-icon">⚠️</div>
         <div style="flex:1;">
@@ -7071,6 +7130,7 @@
         <div style="font-size:13px;">Adiciona a primeira promoção ou muda o filtro</div>
       </div>
     </div><!-- end page-promocoes -->
+
 
     <!-- ============================================================ -->
     <!-- PAGE: CHECKLIST DE QUALIFICAÇÃO SEMANAL                      -->
@@ -7488,7 +7548,10 @@
       <div id="ac-links-rapidos-wrap" style="margin-top:20px;display:none;">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
           <div class="section-title" style="margin:0;">🔗 Os Teus Links (clica para copiar)</div>
-          <button class="btn btn-secondary btn-sm" onclick="abrirPerfilModal(false)" title="Configurar links">⚙️ Editar</button>
+          <div style="display:flex;gap:6px;">
+            <button class="btn btn-secondary btn-sm" onclick="abrirQRCodes()" title="Gerar códigos QR">📱 QR</button>
+            <button class="btn btn-secondary btn-sm" onclick="abrirPerfilModal(false)" title="Configurar links">⚙️ Editar</button>
+          </div>
         </div>
         <div style="display:flex;flex-direction:column;gap:8px;" id="ac-links-rapidos">
           <div style="font-size:12px;color:var(--text2);padding:12px;background:var(--surface2);border-radius:8px;">⚙️ Configura o teu perfil para ver os teus links personalizados.</div>
@@ -8523,6 +8586,7 @@
     <div id="guiao-result" class="guiao-result">
       <span class="guiao-placeholder">O guião personalizado aparecerá aqui — criado com base nos dados reais deste lead.</span>
     </div>
+    <div id="guiao-compliance-aviso" style="display:none;"></div>
     <div class="guiao-actions" id="guiao-actions" style="display:none;">
       <button class="btn btn-secondary btn-sm" onclick="copiarGuiao()">📋 Copiar guião</button>
       <button class="btn btn-ai btn-sm" onclick="gerarGuiaoIA()">🔄 Gerar nova versão</button>
@@ -8776,6 +8840,51 @@
   </div>
 </div>
 
+<!-- MODAL: RELATÓRIO FISCAL ANUAL -->
+<div class="modal-overlay" id="modal-relatorio-fiscal">
+  <div class="modal" style="max-width:640px;">
+    <div class="modal-title">
+      <span>🧾 Relatório Anual</span>
+      <button class="modal-close" onclick="closeModal('modal-relatorio-fiscal')">✕</button>
+    </div>
+    <div class="ai-note" style="margin-bottom:14px;">
+      <span>ℹ️</span>
+      <span>Resumo das vendas e despesas registadas na app para o ano escolhido. <strong>Não é aconselhamento fiscal</strong> — serve para organizar os números antes de os entregares ao teu contabilista, que sabe as regras aplicáveis à tua situação (recibos verdes, categoria de rendimento, dedutibilidade, etc.).</span>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Ano</label>
+      <select class="form-select" id="rf-ano" onchange="renderRelatorioFiscal()"></select>
+    </div>
+    <div id="rf-conteudo"></div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="closeModal('modal-relatorio-fiscal')">Fechar</button>
+      <button class="btn btn-primary" onclick="exportarRelatorioFiscalCSV()">⬇️ Exportar CSV do ano</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: CÓDIGOS QR -->
+<div class="modal-overlay" id="modal-qrcodes">
+  <div class="modal" style="max-width:640px;">
+    <div class="modal-title">
+      <span>📱 Códigos QR dos Teus Links</span>
+      <button class="modal-close" onclick="closeModal('modal-qrcodes')">✕</button>
+    </div>
+    <div class="ai-note" style="margin-bottom:14px;">
+      <span>ℹ️</span>
+      <span>Gerado localmente no teu telemóvel/computador — os links não são enviados a nenhum servidor externo. Ótimo para cartões de visita, eventos, ou stories.</span>
+    </div>
+    <div id="qr-vazio" style="display:none;text-align:center;padding:30px 0;">
+      <div style="font-size:32px;margin-bottom:8px;">⚙️</div>
+      <div style="font-size:13px;color:var(--text2);">Configura o teu perfil (slug e/ou links pessoais) para gerares os teus códigos QR.</div>
+    </div>
+    <div id="qr-grid" style="display:grid;grid-template-columns:minmax(0,1fr);gap:14px;max-height:65vh;overflow-y:auto;"></div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="closeModal('modal-qrcodes')">Fechar</button>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL: BACKUP COMPLETO -->
 <div class="modal-overlay" id="modal-backup">
   <div class="modal" style="max-width:560px;">
@@ -8940,6 +9049,19 @@ function moverLeadParaEtapa(leadId, novaEtapa) {
   if (!lead) return;
   const estadoAnterior = lead.estado;
   lead.estado = novaEtapa;
+  // Regista quando entrou em negociação (para o alerta de "negociação parada" —
+  // etapa mais sensível ao tempo, onde um lead esfria rapidamente sem follow-up).
+  if (novaEtapa === 'negociacao' && estadoAnterior !== 'negociacao') {
+    lead.dataEntradaNegociacao = new Date().toISOString();
+  }
+  if (novaEtapa !== 'negociacao') {
+    delete lead.dataEntradaNegociacao;
+  }
+  // Limpa objeções guardadas quando o lead fecha (cliente) ou é perdido —
+  // deixaram de ser relevantes para a sugestão de ação; ficam só no histórico.
+  if ((novaEtapa === 'cliente' || novaEtapa === 'perdido') && lead.objecoes && lead.objecoes.length) {
+    lead.objecoes = [];
+  }
   saveleads();
   closeModal('modal-menu-mover');
   renderFunil();
@@ -9184,7 +9306,7 @@ function goTo(page, opts) {
   if (page === 'auditoria') renderAuditoria();
   if (page === 'metas') metasInit();
   if (page === 'templates') renderTemplates();
-  if (page === 'promocoes') renderPromocoes();
+  if (page === 'promocoes') { renderPromocoes(); syncPromoKeyInputs(); }
   if (page === 'checklist') renderChecklist();
   if (page === 'relatorio') relatorioInit();
   if (page === 'roleplay') roleplayInit();
@@ -9329,13 +9451,15 @@ function salvarLead() {
   }
 
   const estadoAnteriorEdicao = editingLeadId ? (leads.find(l => l.id === editingLeadId)?.estado) : null;
+  const leadExistente = editingLeadId ? leads.find(l => l.id === editingLeadId) : null;
+  const novoEstado = document.getElementById('f-estado').value;
   const lead = {
     id: editingLeadId || gerarId(),
     nome,
     tel: document.getElementById('f-tel').value.trim(),
     email: document.getElementById('f-email').value.trim(),
     mercado: document.getElementById('f-mercado').value,
-    estado: document.getElementById('f-estado').value,
+    estado: novoEstado,
     objetivo: document.getElementById('f-objetivo')?.value || 'cliente',
     fonte: document.getElementById('f-fonte').value,
     indicadoPor: document.getElementById('f-indicado-por')?.value.trim() || '',
@@ -9344,6 +9468,19 @@ function salvarLead() {
     data: new Date().toLocaleDateString('pt-PT'),
     historico: editingLeadId ? (leads.find(l => l.id === editingLeadId)?.historico || []) : []
   };
+  // Regista/preserva quando o lead entrou em negociação (usado no alerta de
+  // "negociação parada" — só marca a data quando entra de novo nesse estado).
+  if (novoEstado === 'negociacao') {
+    lead.dataEntradaNegociacao = (leadExistente && leadExistente.estado === 'negociacao' && leadExistente.dataEntradaNegociacao)
+      ? leadExistente.dataEntradaNegociacao
+      : new Date().toISOString();
+  }
+  // Preserva objeções guardadas (o modal reconstrói o lead do zero) — limpa-as
+  // só quando o lead fecha (cliente) ou é perdido, pois deixam de ser relevantes.
+  if (leadExistente && leadExistente.objecoes && leadExistente.objecoes.length) {
+    lead.objecoes = (novoEstado === 'cliente' || novoEstado === 'perdido') ? [] : leadExistente.objecoes;
+    if (leadExistente.dataUltimaObjecao) lead.dataUltimaObjecao = leadExistente.dataUltimaObjecao;
+  }
   if (editingLeadId) {
     const idx = leads.findIndex(l => l.id === editingLeadId);
     if (lead.estado !== leads[idx].estado) {
@@ -10761,9 +10898,22 @@ function renderFunilConversao() {
       ${maiorQuedaIdx > 0 ? `
         <div style="margin-top:14px;padding:10px 12px;background:rgba(255,107,107,0.08);border:1px solid rgba(255,107,107,0.2);border-radius:8px;font-size:12px;color:var(--text2);">
           🔻 Maior perda: de <strong style="color:var(--text);">${linhas[maiorQuedaIdx-1].label}</strong> para <strong style="color:var(--text);">${linhas[maiorQuedaIdx].label}</strong> (−${maiorQueda} pontos percentuais). É aí que vale mais a pena focar o follow-up.
+          <div style="margin-top:8px;">
+            <button class="btn btn-sm btn-primary" onclick="irParaGargaloFunil('${linhas[maiorQuedaIdx-1].key}')">🎯 Ver leads parados em "${linhas[maiorQuedaIdx-1].label}"</button>
+          </div>
         </div>
       ` : ''}
     </div>`;
+}
+
+// Navega para a Lista de Leads já filtrada pela etapa do funil identificada
+// como o maior ponto de perda — liga o diagnóstico (renderFunilConversao) a uma ação direta.
+function irParaGargaloFunil(estadoKey) {
+  goTo('lista');
+  setTimeout(() => {
+    const sel = document.getElementById('f-filtro-estado');
+    if (sel) { sel.value = estadoKey; aplicarFiltros(); }
+  }, 100);
 }
 
 function renderDashboard() {
@@ -10935,9 +11085,12 @@ function renderFunil() {
               </div>
               ${autoTagsHtml(l) || tagsLivresHtml(l) ? `<div style="margin-top:4px;">${autoTagsHtml(l)}${tagsLivresHtml(l)}</div>` : ''}
               <div class="lead-info">${l.tel || l.email || 'Sem contacto'}</div>
-              <div style="display:flex;align-items:center;justify-content:space-between;margin-top:6px;">
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-top:6px;gap:6px;">
                 <span class="lead-badge" style="background:rgba(255,255,255,0.06);color:var(--text2)">${l.mercado.split(' ')[0]}</span>
-                <button class="kb-mover-btn" onclick="event.stopPropagation();abrirMenuMoverLead('${l.id}','${col.key}')" title="Mover para outra etapa" style="background:rgba(255,255,255,0.06);border:none;color:var(--text2);font-size:11px;padding:3px 8px;border-radius:20px;cursor:pointer;">↔ Mover</button>
+                <div style="display:flex;gap:4px;flex-shrink:0;">
+                  ${col.key === 'negociacao' ? `<button class="kb-mover-btn" onclick="event.stopPropagation();abrirGuiaoIAdiretamente('${l.id}','fechar-venda')" title="Fecho assistido por IA" style="background:rgba(255,107,53,0.15);border:none;color:#ff6b35;font-size:11px;padding:3px 8px;border-radius:20px;cursor:pointer;font-weight:700;">🎯 Fecho</button>` : ''}
+                  <button class="kb-mover-btn" onclick="event.stopPropagation();abrirMenuMoverLead('${l.id}','${col.key}')" title="Mover para outra etapa" style="background:rgba(255,255,255,0.06);border:none;color:var(--text2);font-size:11px;padding:3px 8px;border-radius:20px;cursor:pointer;">↔ Mover</button>
+                </div>
               </div>
             </div>
           `).join('') : `<div class="kb-drop-hint" data-col="${col.key}">Arrasta aqui</div>`}
@@ -12213,8 +12366,8 @@ function getMeuLinks() {
     'produto-obrigado':`https://lwsinfo.com/x39${lc.lws}-obrigado?aff=${slug}`,
     negocio:           `https://lwsinfo.com/biz${lc.lws}?aff=${slug}`,
     'negocio-obrigado':`https://lwsinfo.com/biz${lc.lws}-obrigado?aff=${slug}`,
-    'produtos-direto': `https://lifewaveresults.com/?lng=${lc.lwr}`,
-    'negocio-direto':  `https://lifewaveresults.com/biz?lng=${lc.lwr}`,
+    'produtos-direto': `https://lifewaveresults.com/?lng=${lc.lwr}&aff=${slug}`,
+    'negocio-direto':  `https://lifewaveresults.com/biz?lng=${lc.lwr}&aff=${slug}`,
   };
 }
 
@@ -13724,9 +13877,15 @@ async function callGeminiModel(model, prompt, imageBase64, imageMediaType) {
     parts.push({ inline_data: { mime_type: imageMediaType || 'image/jpeg', data: imageBase64 } });
   }
   parts.push({ text: prompt });
+  // Quando há imagem, deixamos o Gemini "pensar" (thinkingBudget maior) para ler bem
+  // texto/detalhe visual em cartazes, gráficos e imagens compostas — com thinkingBudget:0
+  // o modelo tende a responder de forma genérica em vez de citar factos concretos da imagem.
+  const generationConfig = imageBase64
+    ? { maxOutputTokens: 4096, temperature: 0.8, thinkingConfig: { thinkingBudget: 512 } }
+    : { maxOutputTokens: 4096, temperature: 0.8, thinkingConfig: { thinkingBudget: 0 } };
   const body = {
     contents: [{ role: 'user', parts }],
-    generationConfig: { maxOutputTokens: 4096, temperature: 0.8, thinkingConfig: { thinkingBudget: 0 } }
+    generationConfig
   };
   const res = await fetch(
     `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiKey}`,
@@ -14024,8 +14183,12 @@ async function callClaudeChat({ system, messages, model, maxTokens }) {
 }
 
 async function callAI(page, prompt, imageBase64, imageMediaType, cacheContext) {
-  const ai = page === 'posts' ? postsAI : respAI;
-  const loaderLabel = document.getElementById(page === 'posts' ? 'posts-loader-label' : 'resp-loader-label');
+  // 'posts' e 'resp' mantêm o comportamento original (variável e loader próprios).
+  // Qualquer outra página (ex: 'guiao') usa postsAI como fonte da IA escolhida —
+  // é a mesma variável que o Guião IA já lia diretamente antes desta função existir
+  // para ele — e não depende de um loader label específico no DOM.
+  const ai = page === 'posts' ? postsAI : page === 'resp' ? respAI : postsAI;
+  const loaderLabel = document.getElementById(page === 'posts' ? 'posts-loader-label' : page === 'resp' ? 'resp-loader-label' : '');
   if (loaderLabel) loaderLabel.textContent = ai === 'gemini' ? '✦ Gemini está a criar...' : ai === 'grok' ? '⚡ Grok está a criar...' : '🧠 Claude está a criar...';
 
   // If file:// or content:// context, auto-switch to Gemini with helpful message
@@ -14190,12 +14353,14 @@ async function gerarPost() {
   const limite = limites[currentPlatform] || 400;
 
   const instrucao = postImageBase64
-    ? `Analisa esta imagem com atenção antes de escreveres seja o que for — ela pode ser QUALQUER tipo de imagem: um produto LifeWave específico (X39, X49, IceWave, Cellergize Morning/Night, Aeon, etc.), uma foto de estilo de vida (exercício, natureza, trabalho, família, viagem, rotina matinal), um evento (convenção, reunião de equipa, formação), uma pessoa, um resultado/conquista, um print de ecrã, ou outra coisa qualquer. NÃO assumas que é sempre um produto ou sempre o X39.
+    ? `Analisa esta imagem com atenção antes de escreveres seja o que for — ela pode ser QUALQUER tipo de imagem: um produto LifeWave específico (X39, X49, IceWave, Cellergize Morning/Night, Aeon, etc.), uma foto de estilo de vida (exercício, natureza, trabalho, família, viagem, rotina matinal), um evento (convenção, reunião de equipa, formação), um cartaz/gráfico promocional com texto sobreposto, uma pessoa, um resultado/conquista, um print de ecrã, ou outra coisa qualquer. NÃO assumas que é sempre um produto ou sempre o X39.
 Passos:
-1. Descreve para ti mesmo o que vês de facto na imagem (não inventes elementos que não estão lá).
+0. PRIMEIRO, se houver QUALQUER texto escrito na imagem (título, datas, local, nome de evento, nome de produto, números, slogans em cartazes/gráficos), lê-o e transcreve-o para ti mesmo palavra a palavra antes de continuares — isto é OBRIGATÓRIO e tem prioridade sobre a descrição visual genérica. Um cartaz de evento com datas e local concretos NÃO deve resultar num post genérico sobre "energia" ou "brilhar" — usa os factos concretos que leste (nome do evento, datas exatas, cidade/país, condições de qualificação, etc.) como base real do post.
+1. Descreve para ti mesmo o que vês de facto na imagem, incluindo todo o texto transcrito no passo 0 (não inventes elementos, nomes, datas ou locais que não estão lá).
 2. Se houver um produto LifeWave claramente identificável, cria o post à volta desse produto específico e dos benefícios aprovados dele.
-3. Se NÃO houver produto visível (ex: é uma foto de estilo de vida, evento, pessoa ou cenário), NÃO forces a menção de um produto — cria antes um post que ligue naturalmente o que se vê na imagem ao tema de bem-estar/energia/estilo de vida ativo ou à oportunidade de negócio LifeWave, conforme fizer mais sentido para o que a imagem mostra.
-4. Se o utilizador tiver escrito um "Contexto adicional" (fornecido mais abaixo), usa-o como prioridade máxima para decidir o ângulo do post — a imagem é o pano de fundo visual, o contexto escrito é a instrução do utilizador sobre o que ele quer comunicar.
+2.1 Se for um cartaz/gráfico de evento (convenção, viagem de incentivo, conferência, qualificação), o post TEM de mencionar explicitamente os dados concretos lidos no passo 0 (nome do evento, datas, local) — nunca substituas isto por linguagem vaga de "energia" ou "bem-estar" sem os factos.
+3. Se NÃO houver produto nem evento visível (ex: é uma foto de estilo de vida, pessoa ou cenário sem texto), NÃO forces a menção de um produto — cria antes um post que ligue naturalmente o que se vê na imagem ao tema de bem-estar/energia/estilo de vida ativo ou à oportunidade de negócio LifeWave, conforme fizer mais sentido para o que a imagem mostra.
+4. Se o utilizador tiver escrito um "Contexto adicional" (fornecido mais abaixo), usa-o como prioridade máxima para decidir o ângulo do post — a imagem (incluindo o texto nela) é a base factual, o contexto escrito é a instrução do utilizador sobre o que ele quer comunicar.
 Cria o post para ${currentPlatform} com base nisto.`
     : videoInfo
     ? `Cria um post para ${currentPlatform} sobre LifeWave X39, inspirado neste vídeo de ${videoInfo.source}:\nTítulo: ${videoInfo.title}\nContexto: ${videoInfo.description}\nRelaciona o tema do vídeo com os benefícios do X39.`
@@ -14668,7 +14833,6 @@ REGRAS:
 - Usa emojis com moderação (2-4 no máximo)
 - Comprimento ideal: 4-10 linhas — escreve SEMPRE a mensagem COMPLETA, nunca cortes a meio de uma frase
 ${getRevistaContextoIA()}
-${LW_COMPLIANCE}
 
 Responde APENAS com o texto da mensagem, pronto a copiar e enviar. Sem introdução nem explicação.`;
   } else {
@@ -14702,7 +14866,6 @@ REGRAS IMPORTANTES:
 - Comprimento ideal: 4-10 linhas para WhatsApp/Instagram, pode ser mais para Messenger — escreve SEMPRE a mensagem COMPLETA, nunca cortes a meio de uma frase
 - No final, se fizer sentido, inclui um convite suave para continuar a conversa ou próximo passo
 ${getRevistaContextoIA()}
-${LW_COMPLIANCE}
 
 Responde APENAS com o texto da mensagem, pronto a copiar e enviar. Sem introdução nem explicação.`;
   }
@@ -15748,13 +15911,9 @@ Regras:
 - Tom pessoal, caloroso e sem pressão de vendas
 - Comprimento: ${limite}
 - ${canal === 'SMS' ? 'Sem emojis, texto simples' : 'Podes usar alguns emojis (máximo 3)'}
-- NUNCA uses: "cura", "trata", "alivia dor", "stem cell activation", "ativa células estaminais", "clinicamente provado", "detox", "milagre", "resultado garantido", "sem dor"
-- Usa APENAS linguagem aprovada: "suporta", "promove", "pode ajudar a manter", "fotomodulação", "bem-estar geral"
 - Evita frases que pareçam um script copiado (ex: "pergunta aleatória", "espero que estejas bem!! 😊" genérico)
 - Termina com uma pergunta aberta ou convite suave
 - Não repitas factos óbvios do histórico de forma mecânica — usa-os com naturalidade
-
-${LW_COMPLIANCE_MSG}
 
 Responde APENAS com o texto da mensagem, sem título nem explicação.`;
 
@@ -16028,12 +16187,8 @@ Regras:
 - Personaliza a abertura com {nome}, mas VARIA a construção da frase (não uses sempre "Olá {nome}!" — alterna com formas como "{nome}, ...", "Ei {nome}!", ou entra direto no assunto mencionando {nome} a meio da 1ª frase). Pessoas que recebem mensagens em massa por vezes comparam notas; abertura sempre idêntica denuncia script.
 - Comprimento: ${limite}
 - ${canal === 'SMS' ? 'Sem emojis, texto simples' : 'Podes usar alguns emojis (máximo 3)'}
-- NUNCA uses: "cura", "trata", "alivia dor", "stem cell activation", "ativa células estaminais", "clinicamente provado", "detox", "milagre", "resultado garantido", "sem dor"
-- Usa APENAS linguagem aprovada: "suporta", "promove", "pode ajudar a manter", "fotomodulação", "bem-estar geral"
 - Termina com uma pergunta aberta ou convite suave
 - Usa {nome} como placeholder para o nome da pessoa
-
-${LW_COMPLIANCE_MSG}
 
 Responde APENAS com o texto da mensagem, sem título nem explicação.`;
 
@@ -18257,6 +18412,8 @@ function abrirPerfilModal(isPrimeiraVez) {
   document.getElementById('perfil-data-inscricao').value = p.dataInscricao || '';
   document.getElementById('perfil-data-proxima-encomenda').value = p.dataProximaEncomenda || '';
   document.getElementById('perfil-ciclo-encomenda').value = p.cicloEncomendaDias || 31;
+  const appUrlEl = document.getElementById('perfil-app-url');
+  if (appUrlEl) appUrlEl.value = p.urlAppOverride || '';
 
   // Upline: from profile, or from URL ref= captured at login
   const savedUpline = p.upline || localStorage.getItem('lw_upline_ref') || '';
@@ -18435,6 +18592,7 @@ function salvarPerfil() {
   const dataInscricao = (document.getElementById('perfil-data-inscricao')?.value || '').trim();
   let dataProximaEncomenda = (document.getElementById('perfil-data-proxima-encomenda')?.value || '').trim();
   const cicloEncomendaDias = parseInt(document.getElementById('perfil-ciclo-encomenda')?.value, 10) || 31;
+  const urlAppOverride = (document.getElementById('perfil-app-url')?.value || '').trim();
 
   // Se a data introduzida já passou, avança automaticamente em ciclos até à próxima data futura
   if (dataProximaEncomenda) {
@@ -18477,7 +18635,7 @@ function salvarPerfil() {
     .map(l => ({ nome: (l.nome || '').trim(), url: (l.url || '').trim() }))
     .filter(l => l.nome && l.url);
   const perfil = { slug, nomeDisplay: nome, emailLW, telemovel, pais, idioma, pv, qdv, secL, secR, olxl, bvBinario, upline, pastaEquipa,
-    dataInscricao, dataProximaEncomenda, cicloEncomendaDias,
+    dataInscricao, dataProximaEncomenda, cicloEncomendaDias, urlAppOverride,
     linkInstagram, linkInstagramPage, linkFacebook, linkFacebookPage,
     linkWhatsapp, linkYoutube, linkTiktok, linkWebsite, linksExtra };
   saveUserPerfil(perfil);
@@ -18620,6 +18778,15 @@ function atualizarLinkExtraPerfil(idx, campo, valor) {
   _linksExtraPerfilState[idx][campo] = valor;
 }
 
+// Copia um link individual da secção "Os Teus Links" (LifeWave) para a
+// área de transferência — módulo aditivo (v80). Reaproveita copiarLink()
+// já existente no resto da app, sem duplicar a lógica de cópia.
+function copiarLinkPerfilPreview(url) {
+  if (typeof copiarLink === 'function') { copiarLink(url, ''); return; }
+  // Fallback simples caso copiarLink não esteja disponível por algum motivo
+  navigator.clipboard?.writeText(url).then(() => showToast('📋 Link copiado!'));
+}
+
 function previewPerfilLinks() {
   const slug = (document.getElementById('perfil-slug')?.value || '').trim() || '…';
   const idioma = document.getElementById('perfil-idioma')?.value || 'pt';
@@ -18627,21 +18794,50 @@ function previewPerfilLinks() {
   const lc = langMap[idioma] || 'pt';
   const preview = document.getElementById('perfil-links-preview-content');
   if (!preview) return;
-  preview.innerHTML = `
-    📋 lifewave.com/${slug}/enrollment/enrollerselection<br>
-    🛒 lwsinfo.com/x39${lc}?aff=${slug}<br>
-    🤝 lwsinfo.com/biz${lc}?aff=${slug}<br>
-    🔗 lifewaveresults.com/?lng=${lc}
-  `;
+
+  // Cada link é apresentado como cartão individual, copiável separadamente
+  // — antes era só texto de pré-visualização, sem forma de copiar cada um.
+  const linksLW = [
+    { icon: '📋', label: 'Registo LifeWave', url: `https://lifewave.com/${slug}/enrollment/enrollerselection` },
+    { icon: '🛒', label: 'Funil Produto',     url: `https://lwsinfo.com/x39${lc}?aff=${slug}` },
+    { icon: '🤝', label: 'Funil Negócio',     url: `https://lwsinfo.com/biz${lc}?aff=${slug}` },
+    { icon: '🔗', label: 'Resultados',        url: `https://lifewaveresults.com/?lng=${lc}&aff=${slug}` },
+  ];
+  preview.innerHTML = linksLW.map(l => `
+    <div style="display:flex;gap:6px;align-items:center;">
+      <div style="font-size:11px;color:var(--text2);background:var(--surface3);border-radius:6px;padding:5px 8px;flex:1;word-break:break-all;font-family:monospace;" title="${escapeHtml(l.label)}">${l.icon} ${escapeHtml(l.url.replace(/^https?:\/\//,''))}</div>
+      <button class="btn btn-secondary btn-sm" onclick="copiarLinkPerfilPreview('${l.url.replace(/'/g,"\\'")}')" style="white-space:nowrap;flex-shrink:0;">📋</button>
+    </div>`).join('');
 
   // Show/update referral link
   const refWrap = document.getElementById('perfil-ref-link-wrap');
   const refUrl = document.getElementById('perfil-ref-link-url');
   if (refWrap && refUrl && slug && slug !== '…') {
-    const appUrl = window.location.href.split('?')[0].split('#')[0];
+    // Usa o URL configurado manualmente (necessário quando a app corre
+    // localmente, ex: content://, onde window.location.href não é um
+    // endereço partilhável) — com fallback ao comportamento anterior
+    // quando o campo está vazio, para não quebrar quem já usa a app online.
+    const appUrlManual = (document.getElementById('perfil-app-url')?.value || '').trim();
+    const appUrlAuto = window.location.href.split('?')[0].split('#')[0];
+    const localFileProtocolo = /^(content|file):/i.test(appUrlAuto);
+    const appUrl = appUrlManual || appUrlAuto;
     const link = appUrl + '?ref=' + encodeURIComponent(slug);
     refUrl.textContent = link;
     refWrap.style.display = 'block';
+    // Aviso visível quando não há URL manual e o automático é inválido para partilha
+    const avisoId = 'perfil-ref-link-aviso-local';
+    let aviso = document.getElementById(avisoId);
+    if (!appUrlManual && localFileProtocolo) {
+      if (!aviso) {
+        aviso = document.createElement('div');
+        aviso.id = avisoId;
+        aviso.style.cssText = 'font-size:10.5px;color:var(--gold);margin-top:5px;';
+        refUrl.parentElement.insertAdjacentElement('afterend', aviso);
+      }
+      aviso.textContent = '⚠️ Estás a usar a app localmente — este link não é válido para partilhar. Preenche o campo "URL onde a app está online" abaixo.';
+    } else if (aviso) {
+      aviso.remove();
+    }
   } else if (refWrap) {
     refWrap.style.display = 'none';
   }
@@ -18747,6 +18943,118 @@ function renderLinksRapidos(containerId) {
 }
 
 // ===== END PERFIL =====
+
+// ===================================================
+// CÓDIGOS QR — gera um QR code local (sem enviar o link a nenhum servidor)
+// para cada link do utilizador (LifeWave + redes sociais + links extra).
+// Reutiliza getMeuLinks()/getUserPerfil(), já usados em renderLinksRapidos,
+// para nunca ficar dessincronizado da lista real de links do perfil.
+// ===================================================
+function _qrObterTodosLinks() {
+  const p = getUserPerfil();
+  const out = [];
+
+  if (p.slug) {
+    const links = getMeuLinks();
+    out.push({ label: '📋 Registo LifeWave', url: links.registo });
+    out.push({ label: '🛒 Funil Produto', url: links.produto });
+    out.push({ label: '🤝 Funil Negócio', url: links.negocio });
+    out.push({ label: '🔗 Produtos (direto)', url: links['produtos-direto'] });
+    out.push({ label: '🔗 Negócio (direto)', url: links['negocio-direto'] });
+
+    // Link de convite/afiliado da própria app (mesmo cálculo que previewPerfilLinks():
+    // urlAppOverride guardado no perfil, com fallback ao URL atual da página).
+    const appUrlAuto = window.location.href.split('?')[0].split('#')[0];
+    const appUrl = (p.urlAppOverride || '').trim() || appUrlAuto;
+    const localFileProtocolo = /^(content|file):/i.test(appUrlAuto);
+    if (appUrl && !/^(content|file):/i.test(appUrl)) {
+      out.push({ label: '⭐ Link de Convite (Alfa Team)', url: appUrl + '?ref=' + encodeURIComponent(p.slug) });
+    }
+  }
+
+  const socialDefs = [
+    { key: 'linkInstagram', emoji: '📸', label: 'Instagram' },
+    { key: 'linkFacebook',  emoji: '📘', label: 'Facebook'  },
+    { key: 'linkWhatsapp',  emoji: '💬', label: 'WhatsApp'  },
+    { key: 'linkYoutube',   emoji: '▶️',  label: 'YouTube'   },
+    { key: 'linkTiktok',    emoji: '🎵', label: 'TikTok'    },
+    { key: 'linkWebsite',   emoji: '🌐', label: 'Website'   },
+  ];
+  socialDefs.forEach(d => {
+    if (p[d.key]) out.push({ label: d.emoji + ' ' + d.label, url: p[d.key] });
+  });
+
+  const linksExtra = Array.isArray(p.linksExtra) ? p.linksExtra : [];
+  linksExtra.filter(l => l && l.nome && l.url).forEach(l => {
+    out.push({ label: '➕ ' + l.nome, url: l.url });
+  });
+
+  return out.filter(l => l.url); // remove qualquer entrada sem URL válido
+}
+
+function abrirQRCodes() {
+  // Se chamado a partir de outro modal já aberto (ex: perfil), fecha-o primeiro.
+  // Todos os .modal-overlay partilham o mesmo z-index (200); sem isto, o modal
+  // de QR abre corretamente mas fica escondido por baixo do modal que já estava
+  // aberto (a ordem de empilhamento segue a ordem no DOM, não a ordem de abertura).
+  // Fechar não perde dados do formulário — closeModal só esconde, não limpa valores.
+  document.querySelectorAll('.modal-overlay.open').forEach(el => {
+    if (el.id !== 'modal-qrcodes') closeModal(el.id);
+  });
+  openModal('modal-qrcodes');
+  renderQRCodes();
+}
+
+function renderQRCodes() {
+  const linksList = _qrObterTodosLinks();
+  const grid = document.getElementById('qr-grid');
+  const vazio = document.getElementById('qr-vazio');
+
+  if (!linksList.length) {
+    grid.style.display = 'none';
+    vazio.style.display = 'block';
+    return;
+  }
+  grid.style.display = 'grid';
+  vazio.style.display = 'none';
+
+  if (typeof QRCode === 'undefined') {
+    grid.style.display = 'block';
+    grid.innerHTML = '<div style="text-align:center;padding:20px;color:var(--text2);font-size:12.5px;grid-column:1/-1;">⚠️ Não foi possível carregar o gerador de QR (precisa de ligação à internet na primeira vez). Tenta novamente mais tarde.</div>';
+    return;
+  }
+
+  grid.innerHTML = linksList.map((l, i) => `
+    <div class="card" style="padding:14px;text-align:center;min-width:0;">
+      <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:8px;">${escapeHtml(l.label)}</div>
+      <canvas id="qr-canvas-${i}" style="width:100%;max-width:260px;height:auto;border-radius:8px;"></canvas>
+      <div style="font-size:10.5px;color:var(--text3);margin:8px 0;word-break:break-all;">${escapeHtml(l.url.replace(/^https?:\/\//,''))}</div>
+      <button class="btn btn-secondary btn-sm" style="width:100%;" onclick="baixarQRCode(${i}, '${escapeHtml(l.label).replace(/'/g,"\\'")}')">⬇️ Descarregar PNG</button>
+    </div>
+  `).join('');
+
+  // Desenha cada QR depois do HTML estar no DOM (o canvas tem de existir primeiro)
+  linksList.forEach((l, i) => {
+    const canvas = document.getElementById('qr-canvas-' + i);
+    if (!canvas) return;
+    QRCode.toCanvas(canvas, l.url, { width: 360, margin: 1, color: { dark: '#000000', light: '#ffffff' } }, function(err) {
+      if (err) console.warn('Erro ao gerar QR para', l.label, err);
+    });
+  });
+
+  window._qrLinksAtual = linksList; // guardado para o download saber o link/label certo
+}
+
+function baixarQRCode(i, label) {
+  const canvas = document.getElementById('qr-canvas-' + i);
+  if (!canvas) { showToast('❌ Não foi possível gerar este QR'); return; }
+  const nomeFicheiro = 'qr-' + label.replace(/[^a-zA-Z0-9]+/g, '-').toLowerCase() + '.png';
+  const a = document.createElement('a');
+  a.href = canvas.toDataURL('image/png');
+  a.download = nomeFicheiro;
+  a.click();
+  showToast('📥 QR de "' + label + '" descarregado');
+}
 
 function entrarModoLocal() {
   const nome = prompt('Como te chamas? (podes mudar depois no perfil)', 'Distribuidor Alfa Team') || 'Utilizador';
@@ -19003,9 +19311,12 @@ function abrirGuiaoIA(leadId) {
 }
 
 async function gerarGuiaoIA() {
-  const ai = postsAI || 'gemini';
-  if (ai === 'claude' && !claudeKey) { showToast('⚠️ Falta a chave API Claude'); return; }
-  if (ai === 'gemini' && !geminiKey) { showToast('⚠️ Falta a chave API Gemini'); return; }
+  // Só bloqueia se NENHUMA IA estiver configurada — se a escolhida não tiver
+  // chave mas houver outra configurada, o fallback automático do callAI trata disso.
+  if (!geminiKey && !claudeKey && !grokKey && !groqKey && !mistralKey && !openrouterKey) {
+    showToast('⚠️ Configura pelo menos uma chave de IA no Perfil');
+    return;
+  }
 
   const l = leads.find(x => x.id === guiaoLeadId);
   if (!l) return;
@@ -19068,7 +19379,20 @@ guiaoTipoAtivo === 'apresentacao-negocio' ? `
 - Foca na liberdade financeira e no modelo de distribuição` :
 guiaoTipoAtivo === 'fechar-venda' ? `
 - A pessoa está quase a decidir — remove a última barreira
-- Sê direto mas sem pressão, ajuda-a a dar o passo final` :
+- Sê direto mas sem pressão, ajuda-a a dar o passo final${(() => {
+    if (l.estado !== 'negociacao') return '';
+    const partes = [];
+    if (l.dataEntradaNegociacao) {
+      const diasNeg = Math.floor((Date.now() - new Date(l.dataEntradaNegociacao).getTime()) / 864e5);
+      if (diasNeg >= 0) partes.push(`- Está em negociação há ${diasNeg} dia${diasNeg !== 1 ? 's' : ''} — usa isso para criar um fecho natural, não para pressionar`);
+    }
+    if (l.objecoes && l.objecoes.length > 0) {
+      const listaObj = l.objecoes.map(o => OBJECOES_LABELS[o] || o).join(', ');
+      partes.push(`- TODAS as objeções já levantadas por esta pessoa (responde-lhes todas, não só à última): ${listaObj}`);
+      partes.push(`- NÃO repitas a mesma resposta que provavelmente já foi dada antes — traz um ângulo novo (prova social, garantia, urgência legítima, ou uma pergunta que a ajude a decidir-se)`);
+    }
+    return partes.length ? '\n' + partes.join('\n') : '';
+  })()}` :
 `- A pessoa estava fria/inativa — reativa com algo genuíno e sem pressão
 - Não faças pitch imediato, reconecta primeiro como pessoa`}
 
@@ -19081,9 +19405,6 @@ INSTRUÇÕES:
 6. IMPORTANTE: NO MÁXIMO 5 frases curtas. Mensagem de ${guiaoCanal}, não email. Escreve COMPLETA, sem cortar.
 7. No final, numa linha separada, escreve exatamente: "💡 PRÓXIMO PASSO:" seguido da sugestão de ação concreta
 ${getRevistaContextoIA()}
-COMPLIANCE OBRIGATÓRIO — NUNCA VIOLES ESTAS REGRAS:
-${LW_COMPLIANCE}
-
 Escreve APENAS a mensagem + próximo passo. Sem explicações nem introduções. A mensagem tem de estar SEMPRE completa.`;
 
   const btn = document.getElementById('btn-gerar-guiao');
@@ -19093,14 +19414,11 @@ Escreve APENAS a mensagem + próximo passo. Sem explicações nem introduções.
   document.getElementById('guiao-actions').style.display = 'none';
 
   try {
-    let texto = '';
-    if (ai === 'gemini') {
-      texto = await callGemini(prompt);
-      if (!texto) throw new Error('Sem resposta Gemini');
-    } else {
-      if (location.protocol === 'file:' || location.protocol === 'content:') throw new Error('LOCAL_FILE');
-      texto = await callClaude(prompt);
-    }
+    // callAI já tenta a IA escolhida (postsAI) e, se falhar por erro recuperável
+    // (quota, chave inválida, sobrecarga, rede), cai automaticamente para a
+    // próxima IA configurada — mesmo sistema de fallback que os Posts usam.
+    const texto = await callAI('guiao', prompt);
+    if (!texto) throw new Error('Sem resposta da IA');
 
     // Separar a mensagem do próximo passo
     const proximoPassoMatch = texto.match(/([\s\S]*?)([💡\u2022\-]*\s*PR[ÓO]XIMO PASSO[\s\S]*)/i);
@@ -19112,11 +19430,22 @@ Escreve APENAS a mensagem + próximo passo. Sem explicações nem introduções.
 
     resultEl.innerHTML = mensagemTexto.replace(/\n/g, '<br>');
     document.getElementById('guiao-actions').style.display = 'flex';
+    mostrarAvisoComplianceAuto(mensagemTexto, document.getElementById('guiao-compliance-aviso'));
 
   } catch(e) {
-    let msg = '❌ Erro: ' + (e.message || 'Tenta novamente.');
-    if (e.message === 'LOCAL_FILE') msg = '⚠️ Ficheiro local — usa o Gemini ou abre via servidor.';
-    resultEl.innerHTML = '<span class="guiao-placeholder">' + msg + '</span>';
+    let msg;
+    if (e.message === 'LOCAL_FILE' || e.message === 'GEMINI_NO_KEY') {
+      msg = '⚠️ A app está aberta como ficheiro local ou falta a chave Gemini.\n\n👉 Seleciona "✦ Gemini" no seletor de IA e introduz a tua chave gratuita.\n\n🔑 Obter chave: aistudio.google.com/app/apikey';
+    } else if (e.message === 'CLAUDE_NO_KEY') {
+      msg = '⚠️ Falta a chave API do Claude.\n\n👉 Introduz a tua API Key do Claude no seletor de IA.\n\n🔑 Obter chave: console.anthropic.com';
+    } else if (e.message && (e.message.includes('quota') || e.message.includes('Quota') || e.message.includes('RESOURCE_EXHAUSTED'))) {
+      msg = '⏳ Quota esgotada (limite do plano gratuito atingido).\n\n👉 Aguarda 1 minuto e tenta de novo, ou muda de IA no seletor.';
+    } else if (e.message && (e.message.includes('high demand') || e.message.includes('overloaded') || e.message.includes('503') || e.message.includes('try again later'))) {
+      msg = '⏳ O modelo de IA está temporariamente sobrecarregado.\n\n👉 Aguarda 30-60 segundos e tenta de novo.';
+    } else {
+      msg = '❌ Erro: ' + (e.message || 'Tenta novamente.');
+    }
+    resultEl.innerHTML = '<span class="guiao-placeholder">' + msg.replace(/\n/g, '<br>') + '</span>';
   } finally {
     btn.disabled = false; btn.textContent = '🤖 Gerar Guião Personalizado';
   }
@@ -19238,6 +19567,21 @@ function guardarGuiaoNoLead() {
     msg: `📝 Guião IA gerado (${GUIAO_TIPO_LABELS[guiaoTipoAtivo]}): "${resumo}"`,
     data: new Date().toLocaleString('pt-PT')
   });
+  // Persiste as objeções selecionadas no lead (não só na sessão do modal) —
+  // é isto que alimenta a sugestão de follow-up pós-objeção em "Ações".
+  if (guiaoObjAtivas.size > 0) {
+    l.objecoes = l.objecoes || [];
+    const novasObj = Array.from(guiaoObjAtivas).filter(o => !l.objecoes.includes(o));
+    if (novasObj.length) {
+      l.objecoes.push(...novasObj);
+      l.dataUltimaObjecao = new Date().toISOString();
+      l.historico.push({
+        tipo: 'objecao',
+        msg: `🧩 Objeç${novasObj.length>1?'ões':'ão'} registada${novasObj.length>1?'s':''}: ${novasObj.join(', ')}`,
+        data: new Date().toLocaleString('pt-PT')
+      });
+    }
+  }
   saveleads();
   showToast('💾 Guião guardado no histórico do lead!');
   document.getElementById('btn-guardar-guiao').textContent = '✅ Guardado!';
@@ -19584,9 +19928,32 @@ const SUGESTOES_ACAO = {
   }
 };
 
+// Rótulos amigáveis das objeções (mesmos slugs usados em data-obj do Guião IA)
+const OBJECOES_LABELS = {
+  'é caro': '💸 "é caro"',
+  'tenho de pensar': '🤔 "tenho de pensar"',
+  'não acredito': '😒 "não acredito"',
+  'é uma pirâmide': '🔺 "é uma pirâmide"',
+  'não tenho tempo': '⏰ "não tenho tempo"',
+  'vou falar com o médico': '🩺 "vou falar com o médico"',
+  'não tenho dinheiro': '💶 "não tenho dinheiro"',
+  'já tentei mlm': '❌ "já tentei MLM"'
+};
+
 function getSugestaoAcao(l) {
   const dias = diasSemContacto(l) || 0;
   const mq = (l.mercado || '').toLowerCase().includes('quente');
+  // Objeção conhecida em negociação tem prioridade sobre a sugestão genérica —
+  // dá ao utilizador o próximo passo concreto (responder à objeção), não só
+  // "hora de fechar", que não diz o que fazer quando o lead já resistiu.
+  if (l.estado === 'negociacao' && l.objecoes && l.objecoes.length > 0) {
+    const ultimaObj = l.objecoes[l.objecoes.length - 1];
+    const label = OBJECOES_LABELS[ultimaObj] || ultimaObj;
+    return {
+      texto: (lead) => `🧩 <strong>${escapeHtml(lead.nome)}</strong> levantou a objeção ${label} há ${diasSemContacto(lead) || 0} dias. Responde a isso antes de tentar fechar de novo — usa o guião de objeções.`,
+      guiaoTipo: 'fechar-venda'
+    };
+  }
   if (l.estado === 'novo') return SUGESTOES_ACAO.novo;
   if (l.estado === 'contactado' && mq) return SUGESTOES_ACAO.contactado_quente;
   if (l.estado === 'contactado') return SUGESTOES_ACAO.contactado_frio;
@@ -20083,6 +20450,16 @@ function abrirGuiaoIAdiretamente(leadId, tipoSugerido) {
   const btnTipo = document.querySelector(`.guiao-tipo-btn[data-tipo="${tipoSugerido}"]`);
   abrirGuiaoIA(leadId);
   if (btnTipo) setTimeout(() => setGuiaoTipo(btnTipo), 50);
+  // Se o lead já tem uma objeção conhecida, pré-marca a pill correspondente —
+  // poupa o utilizador de ter de a selecionar de novo manualmente.
+  const l = leads.find(x => x.id === leadId);
+  if (l && l.objecoes && l.objecoes.length > 0) {
+    const ultimaObj = l.objecoes[l.objecoes.length - 1];
+    setTimeout(() => {
+      const pill = document.querySelector(`.guiao-obj-pill[data-obj="${ultimaObj}"]`);
+      if (pill && !guiaoObjAtivas.has(ultimaObj)) toggleGuiaoObj(pill);
+    }, 60);
+  }
 }
 
 // ===================================================
@@ -20120,8 +20497,6 @@ async function gerarMensagemAcaoIA(leadId) {
   const prompt = `Sou Brand Partner LifeWave (produto X39, patches de luz). Preciso de uma mensagem curta de follow-up em WhatsApp para este lead:
 ${contexto}
 ${getRevistaContextoIA()}
-${LW_COMPLIANCE}
-
 Regras: Português de Portugal. Tom pessoal e caloroso, nunca robótico. Máximo 3 frases curtas. Sem saudação genérica tipo "Espero que estejas bem" repetida — vai direto ao ponto com naturalidade. Termina com uma pergunta aberta que convide a resposta. Responde APENAS com o texto da mensagem, sem aspas, sem explicações.`;
 
   try {
@@ -20405,8 +20780,49 @@ function getClientesPreferenciaisRet() {
     const leadMatch = (typeof leads !== 'undefined') ? leads.find(l => (l.nome||'').trim().toLowerCase() === c.nome.toLowerCase()) : null;
     const tel = leadMatch?.tel ? limparTelefone(leadMatch.tel) : '';
     const totalCompras = c.historico.length;
-    return { ...c, dias, estado, cicloDiasPessoal, tel, totalCompras, leadId: leadMatch?.id };
+    // Sinal preditivo (aditivo, v80) — compara o ÚLTIMO intervalo entre compras
+    // com a média dos intervalos anteriores do mesmo cliente, para detetar
+    // abrandamento no próprio ritmo de compra ANTES de "dias" ultrapassar o
+    // ciclo pessoal e mudar o estado. Não altera estado/cicloDiasPessoal — é
+    // só um campo extra (tendencia) no objeto devolvido.
+    const tendencia = calcularTendenciaCliente(datasOrdenadas);
+    return { ...c, dias, estado, cicloDiasPessoal, tel, totalCompras, leadId: leadMatch?.id, tendencia };
   }).sort((a, b) => b.dias - a.dias);
+}
+
+// Compara o último intervalo entre compras de um cliente com a média dos
+// intervalos anteriores dele mesmo (não com outros clientes nem com limiares
+// fixos). Sinal complementar ao "estado": um cliente que sempre comprou a
+// cada ~30 dias mas cujo último intervalo já foi de 45 dias pode continuar
+// "ativo" (dentro do limiar de 1.3x) enquanto o número de dias-sem-comprar
+// não sobe mais — mas o PRÓPRIO ritmo dele já abrandou, o que só se vê
+// comparando intervalo a intervalo, não com o "dias" isolado de hoje.
+// Precisa de pelo menos 3 compras (2 intervalos anteriores + o último a
+// comparar); com menos que isso devolve null (dados insuficientes).
+function calcularTendenciaCliente(datasOrdenadasMs) {
+  if (!datasOrdenadasMs || datasOrdenadasMs.length < 3) return null;
+
+  const intervalos = [];
+  for (let i = 1; i < datasOrdenadasMs.length; i++) intervalos.push(datasOrdenadasMs[i] - datasOrdenadasMs[i-1]);
+
+  const ultimoIntervalo = intervalos[intervalos.length - 1];
+  const anteriores = intervalos.slice(0, -1);
+  const mediaAnterior = anteriores.reduce((a, b) => a + b, 0) / anteriores.length;
+
+  if (mediaAnterior < 86400000) return null; // média anterior < 1 dia: dados pouco fiáveis (ex: compras duplicadas no mesmo dia)
+
+  const racio = ultimoIntervalo / mediaAnterior;
+  let tipo;
+  if (racio >= 1.4)      tipo = 'abrandamento'; // último intervalo 40%+ mais longo que o habitual
+  else if (racio <= 0.7) tipo = 'aceleracao';    // a comprar mais depressa que o habitual
+  else                   tipo = 'estavel';
+
+  return {
+    tipo,
+    racio: Math.round(racio * 100) / 100,
+    ultimoIntervaloDias: Math.round(ultimoIntervalo / 86400000),
+    mediaAnteriorDias: Math.round(mediaAnterior / 86400000)
+  };
 }
 
 function retEstadoLabel(estado) {
@@ -20616,6 +21032,10 @@ function renderRetencao() {
           <div style="font-size:11px;color:var(--text3);margin-top:2px;">última há ${diasLabel}${c.cicloDiasPessoal ? ` · ciclo ${c.cicloDiasPessoal}d` : ''}</div>
         </div>
       </div>
+      ${c.tendencia?.tipo === 'abrandamento' ? `
+      <div style="font-size:11px;color:#f5c842;background:rgba(245,200,66,0.08);border:1px solid rgba(245,200,66,0.2);border-radius:8px;padding:5px 8px;margin-bottom:10px;">
+        📉 Ritmo a abrandar — passaram ${c.tendencia.ultimoIntervaloDias}d desde a penúltima compra até esta (habitual: ~${c.tendencia.mediaAnteriorDias}d). Vale a pena contactar antes de virar "Em risco".
+      </div>` : ''}
       <!-- Barra de progresso de inatividade -->
       <div style="height:4px;background:var(--surface3);border-radius:4px;margin-bottom:10px;overflow:hidden;">
         <div style="height:100%;width:${Math.min(100, Math.round(c.dias/90*100))}%;background:${cor};border-radius:4px;transition:width .4s;"></div>
@@ -24718,6 +25138,8 @@ function verificarCompliance() {
   }
 
   const encontrados = detetarTermosCompliance(texto);
+  const correcaoEl = document.getElementById('compliance-correcao-ia');
+  if (correcaoEl) correcaoEl.innerHTML = ''; // limpa correção IA de uma verificação anterior
 
   if (!encontrados.length) {
     resEl.innerHTML = '<div style="padding:14px;background:rgba(0,212,170,0.08);border:1px solid rgba(0,212,170,0.2);border-radius:10px;font-size:12.5px;color:var(--accent);">✅ Não foram detetados termos de risco. Ainda assim, revê sempre o texto com bom senso antes de publicar.</div>';
@@ -24757,7 +25179,81 @@ function verificarCompliance() {
     <div style="padding:10px 12px;background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.2);border-radius:10px;font-size:12px;color:var(--text);margin-bottom:10px;">
       ⚠️ ${encontrados.length} termo${encontrados.length > 1 ? 's' : ''} de risco encontrado${encontrados.length > 1 ? 's' : ''}. Sugestão: substitui por linguagem de experiência pessoal ("no meu caso senti...") em vez de promessas ou alegações de saúde.
     </div>
-    <div style="display:flex;flex-direction:column;gap:6px;">${itensHtml}</div>${btnAvisoRendimento}`;
+    <div style="display:flex;flex-direction:column;gap:6px;">${itensHtml}</div>${btnAvisoRendimento}
+    <button class="btn btn-secondary btn-sm" style="width:100%;margin-top:10px;" onclick="corrigirComplianceIA()">✨ Corrigir com IA (envia o texto à IA)</button>`;
+}
+
+// ===================================================
+// CORREÇÃO DE COMPLIANCE POR IA — pega no texto que já foi
+// verificado localmente (detetarTermosCompliance, acima) e pede
+// à IA uma reescrita que troque só a linguagem de risco pelos
+// termos aprovados (LW_COMPLIANCE_MSG), mantendo o resto da
+// mensagem o mais parecido possível com o original. É um passo
+// opcional e separado da verificação local: só corre quando o
+// utilizador clica no botão, porque (ao contrário da verificação
+// acima) envia o texto para a API de IA.
+// ===================================================
+async function corrigirComplianceIA() {
+  const ta = document.getElementById('compliance-texto');
+  const correcaoEl = document.getElementById('compliance-correcao-ia');
+  if (!ta || !correcaoEl) return;
+  const texto = ta.value || '';
+  if (!texto.trim()) return;
+
+  const key = claudeKey || geminiKey;
+  if (!key || key.length < 10) {
+    showToast('⚠️ Configura uma chave de IA primeiro (em Posts IA ou Respostas IA).');
+    return;
+  }
+
+  const encontrados = detetarTermosCompliance(texto);
+  const termosLista = [...new Set(encontrados.map(e => e.termo))].join(', ');
+
+  correcaoEl.innerHTML = '<div style="text-align:center;padding:12px;color:var(--text2);font-size:12px;">✨ A corrigir o texto...</div>';
+
+  const prompt = `És um revisor de compliance para Brand Partners LifeWave. Recebes um texto/post que já foi verificado localmente e contém os seguintes termos de risco: ${termosLista || '(ver texto)'}.
+
+${LW_COMPLIANCE_MSG}
+
+TEXTO ORIGINAL:
+"""
+${texto}
+"""
+
+Reescreve este texto substituindo APENAS a linguagem de risco pelos termos aprovados ou por linguagem de experiência pessoal (ex: "no meu caso senti...", em vez de promessas ou curas). Mantém o resto do texto — tom, estrutura, tamanho, emojis, idioma — o mais parecido possível com o original. Não acrescentes comentários nem explicações. Responde APENAS com o texto corrigido, pronto a publicar.`;
+
+  try {
+    const texto_corrigido = (await callIARapida(prompt, 500)).trim();
+    if (!texto_corrigido) throw new Error('Resposta vazia da IA');
+
+    correcaoEl.innerHTML = `
+      <div style="margin-top:4px;padding:10px 12px;background:rgba(0,212,170,0.06);border:1px solid rgba(0,212,170,0.2);border-radius:10px;">
+        <div style="font-size:11px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">✨ Versão corrigida (sugestão da IA)</div>
+        <div id="compliance-texto-corrigido" style="font-size:12.5px;color:var(--text);white-space:pre-wrap;line-height:1.6;margin-bottom:10px;">${escapeHtml(texto_corrigido)}</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;">
+          <button class="btn btn-secondary btn-sm" onclick="copiarTextoCorrigidoCompliance()">📋 Copiar versão corrigida</button>
+          <button class="btn btn-secondary btn-sm" onclick="usarTextoCorrigidoCompliance()">↩️ Usar e verificar de novo</button>
+          <button class="btn btn-secondary btn-sm" onclick="corrigirComplianceIA()">🔄 Gerar outra versão</button>
+        </div>
+      </div>`;
+  } catch (err) {
+    correcaoEl.innerHTML = `<div style="padding:10px 12px;color:var(--text2);font-size:12px;">❌ ${escapeHtml(err.message || 'Erro ao corrigir o texto')}</div>`;
+  }
+}
+
+function copiarTextoCorrigidoCompliance() {
+  const txt = (document.getElementById('compliance-texto-corrigido') || {}).textContent || '';
+  copiarTextoSeguro(txt, '✅ Versão corrigida copiada!');
+}
+
+// Substitui o texto original pela versão corrigida e volta a verificar —
+// fecha o ciclo para confirmar que a correção já não tem termos de risco.
+function usarTextoCorrigidoCompliance() {
+  const corrigido = (document.getElementById('compliance-texto-corrigido') || {}).textContent || '';
+  const ta = document.getElementById('compliance-texto');
+  if (!corrigido || !ta) return;
+  ta.value = corrigido;
+  verificarCompliance();
 }
 
 function getMetaMensal() {
@@ -27236,10 +27732,10 @@ function renderPrevisaoComissao() {
       <div id="perfil-datas-preview" style="margin-top:10px;"></div>
     </div>
 
-    <!-- Preview dos links -->
+    <!-- Os teus links (LifeWave + convite) -->
     <div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:16px;" id="perfil-links-preview">
-      <div style="font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:0.7px;margin-bottom:8px;">👁 Pré-visualização dos teus links</div>
-      <div id="perfil-links-preview-content" style="font-size:11px;color:var(--text2);line-height:1.8;"></div>
+      <div style="font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:0.7px;margin-bottom:8px;">🔗 Os Teus Links (gerados a partir do slug)</div>
+      <div id="perfil-links-preview-content" style="display:flex;flex-direction:column;gap:8px;"></div>
 
       <!-- Link de afiliado/convite -->
       <div id="perfil-ref-link-wrap" style="display:none;margin-top:10px;padding-top:10px;border-top:1px solid var(--border);">
@@ -27249,6 +27745,11 @@ function renderPrevisaoComissao() {
           <button class="btn btn-secondary btn-sm" onclick="copiarRefLink()" style="white-space:nowrap;flex-shrink:0;">📋 Copiar</button>
         </div>
         <div style="font-size:10.5px;color:var(--text3);margin-top:5px;">Partilha este link. Quem se registar através dele terá o teu slug como upline automaticamente.</div>
+        <div class="form-group" style="margin-top:10px;margin-bottom:0;">
+          <label class="form-label" style="font-size:10.5px;">🌐 URL onde a app está online (opcional)</label>
+          <input class="form-input" id="perfil-app-url" placeholder="Ex: https://teu-user.github.io/lifewave-crm.html" oninput="previewPerfilLinks()">
+          <div style="font-size:10.5px;color:var(--text3);margin-top:4px;">Se abres a app localmente (ficheiro descarregado, sem estar online), o link de convite não fica correto para partilhar — preenche aqui o endereço onde a app está publicada e o link acima corrige-se sozinho.</div>
+        </div>
       </div>
     </div>
 
@@ -27412,6 +27913,7 @@ function renderPrevisaoComissao() {
     </div>
 
     <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="abrirQRCodes()" title="Gerar códigos QR de todos os teus links">📱 Códigos QR</button>
       <button class="btn btn-secondary" onclick="closeModal('modal-perfil')">Cancelar</button>
       <button class="btn btn-primary" onclick="salvarPerfil()">✅ Guardar Perfil</button>
     </div>
@@ -27779,6 +28281,7 @@ function renderPrevisaoComissao() {
     </div>
     <div id="compliance-preview" style="display:none;margin-bottom:10px;padding:10px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;font-size:12.5px;line-height:1.7;color:var(--text);white-space:pre-wrap;"></div>
     <div id="compliance-resultado" style="margin-bottom:8px;"></div>
+    <div id="compliance-correcao-ia" style="margin-bottom:8px;"></div>
     <div class="modal-actions">
       <button class="btn btn-secondary" onclick="closeModal('modal-compliance-check')">Fechar</button>
       <button class="btn btn-primary" onclick="verificarCompliance()">🔍 Verificar</button>
@@ -28031,49 +28534,16 @@ function renderPromoBanner() {
         </div>
       </div>
       <div class="promo-banner-body ${promoExpandido ? 'open' : ''}">
-        ${semPromos ? '<div class="promo-no-active">Sem promoções activas. Adiciona uma abaixo ↓</div>' : `<div class="promo-items-grid">${itemsHtml}</div>`}
+        ${semPromos ? '<div class="promo-no-active">Sem promoções activas. <span style="color:var(--accent);cursor:pointer;" onclick="goTo(\'promocoes\')">Adiciona uma →</span></div>' : `<div class="promo-items-grid">${itemsHtml}</div>`}
 
-        <!-- ZONA UPLOAD IA -->
-        <div class="promo-upload-zone">
-          <div class="promo-upload-title">📎 Adicionar nova promoção via PDF ou Imagem</div>
-          <div class="promo-upload-sub">A IA lê o documento, extrai os detalhes e gera uma estratégia personalizada para a tua equipa.</div>
-
-          <div class="promo-ai-selector">
-            <span>IA:</span>
-            <button class="promo-ai-btn" id="promo-btn-claude" onclick="setPromoAI('claude')">🧠 Claude</button>
-            <button class="promo-ai-btn" id="promo-btn-gemini" onclick="setPromoAI('gemini')">✦ Gemini</button>
-          </div>
-          <div class="promo-upload-drop" id="promo-drop-zone"
-            onclick="document.getElementById('promo-file-input').click()"
-            ondragover="event.preventDefault();this.classList.add('drag-over')"
-            ondragleave="this.classList.remove('drag-over')"
-            ondrop="promoHandleDrop(event)">
-            <div id="promo-drop-icon" style="font-size:32px;margin-bottom:8px;">📄</div>
-            <div id="promo-drop-label" style="font-size:13px;font-weight:600;color:var(--text);">Clica ou arrasta um ficheiro aqui</div>
-            <div style="font-size:11px;color:var(--text2);margin-top:4px;">PDF, JPG, PNG ou WEBP · máx. 20MB</div>
-            <input type="file" id="promo-file-input" accept=".pdf,.jpg,.jpeg,.png,.webp" style="display:none" onchange="promoHandleFile(this.files[0])">
-          </div>
-
-          <div id="promo-upload-preview" style="display:none;margin-top:10px;"></div>
-
-          <div id="promo-ia-status" style="display:none;" class="promo-ia-status-box">
-            <div class="promo-ia-spinner"></div>
-            <span id="promo-ia-status-text">A analisar documento...</span>
-          </div>
-
-          <div id="promo-ia-resultado" style="display:none;" class="promo-ia-resultado-box"></div>
-
-          <div id="promo-upload-actions" style="display:none;margin-top:12px;gap:8px;flex-wrap:wrap;">
-            <button class="btn btn-primary btn-sm" onclick="promoAnalisarIA()">🧠 Analisar com IA</button>
-            <button class="btn btn-secondary btn-sm" onclick="promoCancelarUpload()">✕ Cancelar</button>
-          </div>
+        <div style="margin-top:14px;text-align:center;">
+          <button class="btn btn-secondary btn-sm" onclick="goTo('promocoes')">📢 Ver todas / Adicionar nova promoção</button>
         </div>
       </div>
     </div>
   `;
 
   iniciarCountdownTick();
-  syncPromoKeyInputs();
 }
 
 function renderPromoItem(p, agora) {
@@ -29262,7 +29732,6 @@ function formacaoRenderBiblioteca(filtrados) {
   grid.innerHTML = recursos.map(r => {
     const icon = FORMACAO_TIPO_ICONS[r.tipo] || '📌';
     const catIcon = FORMACAO_CAT_ICONS[r.categoria] || '';
-    const podeEliminar = !r.autorEmail || r.autorEmail === currentUser?.email;
     return `
       <div class="card" style="padding:16px;display:flex;flex-direction:column;gap:10px;border-color:${formacaoCategoriaCorBorda(r.categoria)};">
         <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;">
@@ -29271,7 +29740,7 @@ function formacaoRenderBiblioteca(filtrados) {
             <div style="font-size:13px;font-weight:600;color:var(--text);line-height:1.4;">${r.titulo}</div>
             <div style="font-size:11px;color:var(--text2);margin-top:2px;">${catIcon} ${r.categoria} ${r.duracao?'· ⏱ '+r.duracao:''}</div>
           </div>
-          ${podeEliminar ? `<button onclick="formacaoEliminarRecurso('${r.id}')" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:14px;flex-shrink:0;" title="Eliminar">🗑</button>` : ''}
+          <button onclick="formacaoEliminarRecurso('${r.id}')" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:14px;flex-shrink:0;" title="Eliminar">🗑</button>
         </div>
         ${r.descricao ? `<div style="font-size:12px;color:var(--text2);line-height:1.6;">${r.descricao}</div>` : ''}
         <div style="display:flex;gap:8px;margin-top:auto;flex-wrap:wrap;">
@@ -29295,13 +29764,9 @@ function formacaoFiltrarBiblioteca() {
 }
 
 function formacaoEliminarRecurso(id) {
+  if (!confirm('Eliminar este recurso?')) return;
   const todosRecursos = formacaoCarregarRecursos();
   const r = todosRecursos.find(x => x.id === id);
-  if (r && r.autorEmail && r.autorEmail !== currentUser?.email) {
-    showToast('🔒 Só quem criou este recurso o pode eliminar');
-    return;
-  }
-  if (!confirm('Eliminar este recurso?')) return;
   if (r) moverParaLixeira('recurso', r);
   const recursos = todosRecursos.filter(r => r.id !== id);
   formacaoGuardarRecursos(recursos);
@@ -29421,7 +29886,6 @@ function formacaoSalvarRecurso() {
     duracao: document.getElementById('frec-duracao')?.value.trim() || '',
     descricao: document.getElementById('frec-desc')?.value.trim() || '',
     paginaRelacionada: document.getElementById('frec-pagina')?.value || '',
-    autorEmail: currentUser?.email || '',
   };
   const recursos = formacaoCarregarRecursos();
   recursos.unshift(recurso);
@@ -31237,6 +31701,7 @@ ${LW_COMPLIANCE}`;
     if (loader) loader.style.display = 'none';
     if (textEl) { textEl.style.display=''; textEl.style.color='var(--text)'; textEl.style.fontStyle='normal'; textEl.textContent=resposta; }
     if (copyBar) copyBar.style.display = 'flex';
+    mostrarAvisoComplianceAuto(resposta, document.getElementById('sr-compliance-aviso'));
 
   } catch(err) {
     if (loader) loader.style.display = 'none';
@@ -31246,6 +31711,7 @@ ${LW_COMPLIANCE}`;
 
 function srCopiar() {
   if (!srUltimoTexto) { showToast('⚠️ Gera um script primeiro'); return; }
+  if (!_confirmarSeRisco(srUltimoTexto)) return;
   copiarTextoSeguro(srUltimoTexto, '');
   showToast('📋 Script copiado!');
 }
@@ -31262,6 +31728,7 @@ function srGuardarBiblioteca() {
 
 function srAgendar() {
   if (!srUltimoTexto) { showToast('⚠️ Gera um script primeiro'); return; }
+  if (!_confirmarSeRisco(srUltimoTexto)) return;
   if (typeof abrirAgendarModal === 'function') { if(typeof lastGeneratedPost !== 'undefined') lastGeneratedPost = srUltimoTexto; abrirAgendarModal(); }
   else { copiarTextoSeguro(srUltimoTexto, ''); showToast('📋 Copiado! Vai ao Calendário para agendar.'); goTo('calendario'); }
 }
@@ -31313,6 +31780,7 @@ function srEliminar(id) {
 function srCopiarItem(id) {
   const item = srCarregarBiblioteca().find(i=>i.id===id);
   if (!item) return;
+  if (!_confirmarSeRisco(item.texto)) return;
   copiarTextoSeguro(item.texto, '');
   showToast('📋 Copiado!');
 }
@@ -31320,6 +31788,7 @@ function srCopiarItem(id) {
 function srPartilharWA(id) {
   const item = srCarregarBiblioteca().find(i=>i.id===id);
   if (!item) return;
+  if (!_confirmarSeRisco(item.texto)) return;
   const txt = `🎬 *${SR_FORMATO_LABELS[item.formato]||'Script'}*\n\n${item.texto}`;
   if (navigator.share) { navigator.share({text:txt}); }
   else { window.open('https://wa.me/?text='+encodeURIComponent(txt.substring(0,600)),'_blank'); }
@@ -31798,17 +32267,96 @@ let metasMonthOffset = 0; // 0 = mês atual
 function metasGetKey(offset) {
   const d = new Date();
   d.setMonth(d.getMonth() + offset);
-  return `lw_metas_${d.getFullYear()}_${d.getMonth()}`;
+  // getUserStorageKey isola os dados por utilizador, tal como leads/membros/etc.
+  // Antes faltava aqui, o que fazia com que metas de contas diferentes no
+  // mesmo dispositivo/navegador se misturassem.
+  return getUserStorageKey(`lw_metas_${d.getFullYear()}_${d.getMonth()}`);
 }
 
 function metasGetData(offset) {
   const key = metasGetKey(offset !== undefined ? offset : metasMonthOffset);
-  return JSON.parse(localStorage.getItem(key) || '{"metas":{},"progressos":{},"marcos":[]}');
+  return JSON.parse(localStorage.getItem(key) || '{"metas":{},"progressos":{},"marcos":[],"progressosManuais":{}}');
 }
 
 function metasSaveData(data, offset) {
   const key = metasGetKey(offset !== undefined ? offset : metasMonthOffset);
   localStorage.setItem(key, JSON.stringify(data));
+}
+
+// Converte "dd/mm/yyyy" (formato usado em lead.data) para Date. Devolve null
+// se o formato não for reconhecido, para nunca rebentar o cálculo de metas
+// por causa de uma data inesperada.
+function _parseDataPT(str) {
+  if (!str || typeof str !== 'string') return null;
+  const m = str.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (!m) return null;
+  const d = new Date(parseInt(m[3]), parseInt(m[2]) - 1, parseInt(m[1]));
+  return isNaN(d.getTime()) ? null : d;
+}
+
+// Devolve {ano, mes} (mes 0-indexed) do mês correspondente ao offset das Metas,
+// tal como metasGetKey calcula, para os dois ficarem sempre alinhados.
+function _metasAnoMes(offset) {
+  const d = new Date();
+  d.setMonth(d.getMonth() + (offset !== undefined ? offset : metasMonthOffset));
+  return { ano: d.getFullYear(), mes: d.getMonth() };
+}
+
+// Calcula o progresso REAL de cada tipo de meta a partir dos dados já
+// existentes na app (leads, membros, vendas, posts) — em vez de depender só
+// do número escrito manualmente pelo utilizador. 100% derivado de dados que
+// já existem, sem nenhuma chamada ou custo extra.
+function metasCalcularAutomatico(tipoId, offset) {
+  const { ano, mes } = _metasAnoMes(offset);
+  const noMes = (d) => d && d.getFullYear() === ano && d.getMonth() === mes;
+
+  switch (tipoId) {
+    case 'clientes': {
+      // Procura no histórico do lead o evento que o mudou para "Cliente"
+      // (msg tipo 'Avançou para "Cliente"' ou 'Estado alterado para "Cliente"'),
+      // cuja data vem em toLocaleString('pt-PT') = "dd/mm/yyyy, hh:mm:ss".
+      // Fallback: leads antigos sem esse registo no histórico usam a data de
+      // criação do lead como aproximação — mais informação do que mostrar 0.
+      return (typeof leads !== 'undefined' ? leads : []).filter(l => {
+        if (l.estado !== 'cliente') return false;
+        const evCliente = (l.historico || []).slice().reverse().find(h => /cliente/i.test(h.msg || ''));
+        let dataRef = null;
+        if (evCliente && evCliente.data) {
+          const soData = String(evCliente.data).split(',')[0].trim(); // remove a hora, fica só "dd/mm/yyyy"
+          dataRef = _parseDataPT(soData);
+        }
+        if (!dataRef) dataRef = _parseDataPT(l.data);
+        return noMes(dataRef);
+      }).length;
+    }
+    case 'membros': {
+      return (typeof membros !== 'undefined' ? membros : []).filter(m => {
+        if (!m.data) return false;
+        const d = new Date(m.data + 'T00:00:00'); // m.data é "YYYY-MM-DD" (input type=date)
+        return !isNaN(d.getTime()) && noMes(d);
+      }).length;
+    }
+    case 'rendimento': {
+      return (typeof vendas !== 'undefined' ? vendas : []).reduce((soma, v) => {
+        if (!v.data) return soma;
+        const d = new Date(v.data + 'T00:00:00'); // v.data é "YYYY-MM-DD"
+        if (isNaN(d.getTime()) || !noMes(d)) return soma;
+        return soma + (parseFloat(v.comissao) || 0);
+      }, 0);
+    }
+    case 'contactos': {
+      return (typeof leads !== 'undefined' ? leads : []).filter(l => noMes(_parseDataPT(l.data))).length;
+    }
+    case 'posts': {
+      return (typeof posts !== 'undefined' ? posts : []).filter(p => {
+        if (!p.data) return false;
+        const d = new Date(p.data);
+        return !isNaN(d.getTime()) && noMes(d);
+      }).length;
+    }
+    default:
+      return null; // tipo desconhecido (ex: 'titulo', que não é numérico) — não calcula
+  }
 }
 
 function metasGetMonthLabel(offset) {
@@ -31858,7 +32406,14 @@ function renderMetasGrid() {
 
   const cardsMeta = METAS_TIPOS.map(tipo => {
     const meta = parseFloat(data.metas[tipo.id] || 0);
-    const prog = parseFloat(data.progressos[tipo.id] || 0);
+    // Progresso automático calculado a partir dos dados reais da app.
+    // Se o utilizador tiver ajustado manualmente este mês (progressosManuais),
+    // esse valor prevalece — dá-lhe sempre a palavra final.
+    const autoCalc = metasCalcularAutomatico(tipo.id, metasMonthOffset);
+    const foiAjustadoManualmente = data.progressosManuais && data.progressosManuais[tipo.id];
+    const prog = foiAjustadoManualmente
+      ? parseFloat(data.progressos[tipo.id] || 0)
+      : (autoCalc !== null ? autoCalc : parseFloat(data.progressos[tipo.id] || 0));
     const pct  = meta > 0 ? Math.min(100, Math.round((prog / meta) * 100)) : 0;
     const atingida = prog >= meta && meta > 0;
 
@@ -31896,6 +32451,7 @@ function renderMetasGrid() {
         </div>
         ${pct>=50&&pct<100?`<div style="font-size:10px;color:var(--text3);margin-top:4px;">Faltam ${tipo.id==='rendimento'?(meta-prog).toLocaleString('pt-PT')+'€':(meta-prog)+' '+tipo.unidade} para atingir a meta</div>`:''}
         ${pct>=100?`<div style="font-size:11px;color:#00d4aa;font-weight:600;margin-top:4px;">✅ Meta atingida!</div>`:''}
+        ${autoCalc !== null ? `<div style="font-size:10px;color:var(--text3);margin-top:5px;">${foiAjustadoManualmente ? '✏️ Ajustado manualmente' : '🤖 Calculado automaticamente'}</div>` : ''}
       </div>
       ` : `
       <div style="padding:12px;background:var(--surface2);border-radius:8px;text-align:center;margin-bottom:10px;">
@@ -31904,9 +32460,10 @@ function renderMetasGrid() {
       `}
 
       <div style="display:flex;gap:6px;">
-        <button onclick="abrirProgresso('${tipo.id}')" class="btn btn-primary btn-sm" style="flex:1;justify-content:center;">
-          ✏️ Atualizar
+        <button onclick="abrirProgresso('${tipo.id}')" class="btn btn-secondary btn-sm" style="flex:1;justify-content:center;" title="${autoCalc !== null ? 'O valor já é calculado automaticamente — usa isto só para corrigir' : 'Escrever o valor manualmente'}">
+          ${autoCalc !== null ? '✏️ Corrigir' : '✏️ Atualizar'}
         </button>
+        ${foiAjustadoManualmente ? `<button onclick="metasVoltarAutomatico('${tipo.id}')" class="btn btn-secondary btn-sm" style="flex:1;justify-content:center;" title="Voltar a calcular a partir dos dados da app">↺ Automático</button>` : ''}
         <button onclick="abrirMetasConfig()" class="btn btn-secondary btn-sm" style="flex:1;justify-content:center;">
           ⚙️ Meta
         </button>
@@ -32017,11 +32574,15 @@ function abrirProgresso(tipoId) {
   const tipo = METAS_TIPOS.find(t => t.id === tipoId);
   const data = metasGetData();
   const meta = parseFloat(data.metas[tipoId] || 0);
-  const prog = parseFloat(data.progressos[tipoId] || 0);
+  const foiAjustadoManualmente = data.progressosManuais && data.progressosManuais[tipoId];
+  const autoCalc = metasCalcularAutomatico(tipoId, metasMonthOffset);
+  const prog = foiAjustadoManualmente
+    ? parseFloat(data.progressos[tipoId] || 0)
+    : (autoCalc !== null ? autoCalc : parseFloat(data.progressos[tipoId] || 0));
   const pct  = meta > 0 ? Math.min(100, Math.round((prog/meta)*100)) : 0;
 
   document.getElementById('modal-prog-titulo').textContent = tipo.emoji + ' ' + tipo.label;
-  document.getElementById('modal-prog-desc').textContent = tipo.desc;
+  document.getElementById('modal-prog-desc').textContent = tipo.desc + (autoCalc !== null && !foiAjustadoManualmente ? ' — valor sugerido calculado automaticamente; grava para corrigir manualmente.' : '');
   document.getElementById('modal-prog-label').textContent =
     `Valor atual ${meta > 0 ? '(meta: ' + (tipo.id==='rendimento'?meta+'€':meta+' '+tipo.unidade) + ')' : ''}`;
   document.getElementById('modal-prog-valor').value = prog || '';
@@ -32041,9 +32602,17 @@ function guardarProgresso() {
   const data = metasGetData();
   const tipo = METAS_TIPOS.find(t => t.id === metasProgTipoAtual);
   const meta = parseFloat(data.metas[metasProgTipoAtual] || 0);
-  const progAnterior = parseFloat(data.progressos[metasProgTipoAtual] || 0);
+  // Se este tipo ainda não tinha sido ajustado manualmente, o "progresso
+  // anterior" relevante para os marcos é o que estava a ser mostrado (o
+  // calculado automaticamente), não o valor antigo guardado em progressos
+  // (que pode estar parado em 0 há meses, se nunca foi tocado).
+  const jaEraManual = data.progressosManuais && data.progressosManuais[metasProgTipoAtual];
+  const autoAnterior = metasCalcularAutomatico(metasProgTipoAtual, metasMonthOffset);
+  const progAnterior = jaEraManual ? parseFloat(data.progressos[metasProgTipoAtual] || 0) : (autoAnterior !== null ? autoAnterior : parseFloat(data.progressos[metasProgTipoAtual] || 0));
 
   data.progressos[metasProgTipoAtual] = novoVal;
+  data.progressosManuais = data.progressosManuais || {};
+  data.progressosManuais[metasProgTipoAtual] = true;
 
   // Verificar marcos
   if (meta > 0) {
@@ -32068,6 +32637,16 @@ function guardarProgresso() {
   renderMetasGrid();
   renderMetasMarcos();
   metasProgTipoAtual = null;
+}
+
+// Reverte um tipo de meta ajustado manualmente de volta ao cálculo automático
+// a partir dos dados reais da app (leads/membros/vendas/posts).
+function metasVoltarAutomatico(tipoId) {
+  const data = metasGetData();
+  if (data.progressosManuais) delete data.progressosManuais[tipoId];
+  metasSaveData(data);
+  showToast('🤖 Progresso voltou a ser calculado automaticamente');
+  renderMetasGrid();
 }
 
 function metasReset() {
@@ -32745,12 +33324,8 @@ O template deve:
 - Usar variáveis entre chavetas: {nome}, {data}, {link} quando relevante
 - Ser curto e direto ao ponto (máx 5-6 linhas)
 - Terminar com uma pergunta aberta ou call-to-action suave
-- NUNCA usar: "cura", "trata", "alivia dor", "stem cell activation", "ativa células estaminais", "clinicamente provado", "detox", "milagre", "resultado garantido"
-- Usar APENAS linguagem aprovada: "suporta", "promove", "pode ajudar a manter", "fotomodulação", "bem-estar geral"
 ${fase === 'primeiro_contacto' ? '- IMPORTANTE: menciona explicitamente "LifeWave" e/ou "X39" logo nesta primeira mensagem — não escondas a marca atrás de frases vagas como "uma oportunidade" ou "algo que descobri". Ser direto e transparente desde o início atrai pessoas realmente interessadas na área e constrói confiança; esconder a marca só gera desconfiança quando ela aparecer mais tarde.' : ''}
 ${getRevistaContextoIA()}
-${LW_COMPLIANCE}
-
 Responde APENAS com o texto do template, em Português de Portugal. Sem explicações.`;
   document.getElementById('tmpl-ia-loader').style.display = 'block';
   document.getElementById('tmpl-ia-resultado').style.display = 'none';
@@ -32954,11 +33529,8 @@ A mensagem deve:
 - Mencionar a urgência se aplicável
 - Incluir uma pergunta final suave para continuar a conversa
 - Máximo 6 linhas
-- NUNCA usar: "cura", "trata", "alivia dor", "stem cell activation", "clinicamente provado", "detox", "milagre", "resultado garantido", "sem dor"
 - Focar no valor da oportunidade (poupança, acesso ao produto) — NÃO em claims de saúde
 ${getRevistaContextoIA()}
-${LW_COMPLIANCE}
-
 Em Português de Portugal. Responde APENAS com o texto da mensagem.`;
   document.getElementById('promo-ia-loader').style.display = 'block';
   document.getElementById('promo-urgencia-resultado').style.display = 'none';
@@ -35531,6 +36103,131 @@ function calcularSimuladorPIB() {
 
 
 // ===== EXPORTAR CSV =====
+// ===================================================
+// RELATÓRIO FISCAL ANUAL — resumo de vendas/comissões/despesas por ano civil
+// para facilitar a entrega de números ao contabilista/IRS. Usa só dados já
+// existentes na app (vendas, despesas); não calcula nem sugere nenhum valor
+// de imposto — isso depende do enquadramento fiscal de cada pessoa.
+// ===================================================
+function _rfAnosDisponiveis() {
+  const anos = new Set();
+  (typeof vendas !== 'undefined' ? vendas : []).forEach(v => { if (v.data) anos.add(v.data.slice(0,4)); });
+  (typeof despesas !== 'undefined' ? despesas : []).forEach(d => { if (d.data) anos.add(d.data.slice(0,4)); });
+  anos.add(String(new Date().getFullYear()));
+  return Array.from(anos).sort((a,b) => b - a); // mais recente primeiro
+}
+
+function abrirRelatorioFiscal() {
+  const sel = document.getElementById('rf-ano');
+  const anos = _rfAnosDisponiveis();
+  sel.innerHTML = anos.map(a => `<option value="${a}">${a}</option>`).join('');
+  openModal('modal-relatorio-fiscal');
+  renderRelatorioFiscal();
+}
+
+function _rfCalcular(ano) {
+  const anoStr = String(ano);
+  const vendasAno = (typeof vendas !== 'undefined' ? vendas : []).filter(v => v.data && v.data.slice(0,4) === anoStr);
+  const despesasAno = (typeof despesas !== 'undefined' ? despesas : []).filter(d => d.data && d.data.slice(0,4) === anoStr);
+
+  const totalFaturado = vendasAno.reduce((s,v) => s + (parseFloat(v.valor) || 0), 0);
+  const totalComissoes = vendasAno.reduce((s,v) => s + (parseFloat(v.comissao) || 0), 0);
+  const totalDespesas = despesasAno.reduce((s,d) => s + (parseFloat(d.valor) || 0), 0);
+
+  const despesasPorCategoria = {};
+  despesasAno.forEach(d => {
+    const cat = d.categoria || 'outro';
+    despesasPorCategoria[cat] = (despesasPorCategoria[cat] || 0) + (parseFloat(d.valor) || 0);
+  });
+
+  return {
+    ano: anoStr,
+    nVendas: vendasAno.length,
+    nDespesas: despesasAno.length,
+    totalFaturado,
+    totalComissoes,
+    totalDespesas,
+    despesasPorCategoria,
+    lucroLiquido: totalComissoes - totalDespesas,
+    vendasAno,
+    despesasAno,
+  };
+}
+
+function renderRelatorioFiscal() {
+  const anoSel = document.getElementById('rf-ano').value || new Date().getFullYear();
+  const r = _rfCalcular(anoSel);
+  const cont = document.getElementById('rf-conteudo');
+
+  const linhasCategorias = Object.entries(r.despesasPorCategoria)
+    .sort((a,b) => b[1] - a[1])
+    .map(([cat, val]) => `
+      <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);font-size:12.5px;">
+        <span style="color:var(--text2);">${DESPESA_CATEGORIAS[cat] || cat}</span>
+        <span style="color:var(--text);font-weight:600;">${fmtMoeda(val)}</span>
+      </div>`).join('');
+
+  cont.innerHTML = `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;">
+      <div class="card" style="padding:12px;text-align:center;">
+        <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;">Total Faturado</div>
+        <div style="font-size:18px;font-weight:800;color:var(--accent2);margin-top:2px;">${fmtMoeda(r.totalFaturado)}</div>
+        <div style="font-size:10px;color:var(--text3);margin-top:2px;">${r.nVendas} venda${r.nVendas!==1?'s':''}</div>
+      </div>
+      <div class="card" style="padding:12px;text-align:center;">
+        <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;">Comissões Recebidas</div>
+        <div style="font-size:18px;font-weight:800;color:var(--accent);margin-top:2px;">${fmtMoeda(r.totalComissoes)}</div>
+      </div>
+      <div class="card" style="padding:12px;text-align:center;">
+        <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;">Total Despesas</div>
+        <div style="font-size:18px;font-weight:800;color:#ff6b6b;margin-top:2px;">${fmtMoeda(r.totalDespesas)}</div>
+        <div style="font-size:10px;color:var(--text3);margin-top:2px;">${r.nDespesas} registo${r.nDespesas!==1?'s':''}</div>
+      </div>
+      <div class="card" style="padding:12px;text-align:center;border:1px solid ${r.lucroLiquido>=0?'rgba(0,212,170,0.3)':'rgba(255,107,107,0.3)'};">
+        <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;">Lucro Líquido*</div>
+        <div style="font-size:18px;font-weight:800;color:${r.lucroLiquido>=0?'var(--accent)':'#ff6b6b'};margin-top:2px;">${fmtMoeda(r.lucroLiquido)}</div>
+      </div>
+    </div>
+    ${linhasCategorias ? `
+    <div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;">Despesas por categoria</div>
+    <div style="margin-bottom:12px;">${linhasCategorias}</div>
+    ` : ''}
+    <div style="font-size:10.5px;color:var(--text3);">*Comissões recebidas menos despesas registadas. Não considera impostos, contribuições, nem exclui despesas eventualmente não dedutíveis — confirma sempre com o teu contabilista.</div>
+  `;
+}
+
+function exportarRelatorioFiscalCSV() {
+  const anoSel = document.getElementById('rf-ano').value || new Date().getFullYear();
+  const r = _rfCalcular(anoSel);
+  const limpar = s => String(s == null ? '' : s).replace(/\r?\n/g, ' ');
+  const toCSV = rows => rows.map(row =>
+    row.map(c => '"' + String(c == null ? '' : c).replace(/"/g, '""') + '"').join(',')
+  ).join('\n');
+
+  const resumoCSV = toCSV([
+    ['Ano', 'Total Faturado EUR', 'Total Comissoes EUR', 'Total Despesas EUR', 'Lucro Liquido EUR'],
+    [r.ano, r.totalFaturado.toFixed(2), r.totalComissoes.toFixed(2), r.totalDespesas.toFixed(2), r.lucroLiquido.toFixed(2)],
+  ]);
+
+  const vendasCSV = toCSV([
+    ['Data','Cliente','Produto','Valor EUR','Pct Comissao','Comissao EUR','Estado'],
+    ...r.vendasAno.map(v => [v.data, v.cliente, v.produto, v.valor, v.pctComissao, v.comissao, v.estado]),
+  ]);
+
+  const despesasCSV = toCSV([
+    ['Data','Descricao','Categoria','Valor EUR','Fonte','Notas'],
+    ...r.despesasAno.map(d => [d.data, limpar(d.descricao), DESPESA_CATEGORIAS[d.categoria] || d.categoria, d.valor, d.fonte||'', limpar(d.notas)]),
+  ]);
+
+  const conteudo = 'RESUMO ' + r.ano + '\n' + resumoCSV + '\n\nVENDAS\n' + vendasCSV + '\n\nDESPESAS\n' + despesasCSV;
+  const blob = new Blob([conteudo], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'relatorio-fiscal-' + r.ano + '.csv';
+  a.click(); URL.revokeObjectURL(url);
+  showToast('🧾 Relatório fiscal de ' + r.ano + ' exportado');
+}
+
 function exportarCSV() {
   const uk = typeof getUserStorageKey === 'function' ? getUserStorageKey : (k => k);
   const limpar = s => String(s == null ? '' : s).replace(/\r?\n/g, ' ');
@@ -37858,9 +38555,62 @@ function habHoje() {
 function habLoad() {
   try {
     var d = JSON.parse(localStorage.getItem(habKey()) || '{}');
-    if (d.data !== habHoje()) return { data: habHoje(), feitos: {} };
+    if (d.data !== habHoje()) d = { data: habHoje(), feitos: {} };
+    if (!d.feitos) d.feitos = {};
+    // Deteção automática: se os dados da app já mostram que a ação de hoje
+    // aconteceu, marca o hábito como feito sem exigir o clique manual.
+    // Só marca (nunca desmarca) — se o utilizador desmarcar manualmente por
+    // engano ter contado, respeitamos essa escolha e não voltamos a marcar
+    // sozinhos no mesmo dia (guardado em detetadosAuto).
+    if (!d.detetadosAuto) d.detetadosAuto = {};
+    var autoHoje = habDetetarFeitosHoje();
+    Object.keys(autoHoje).forEach(function(id) {
+      if (autoHoje[id] && !d.detetadosAuto[id]) {
+        d.feitos[id] = true;
+        d.detetadosAuto[id] = true;
+      }
+    });
     return d;
-  } catch(e){ return { data: habHoje(), feitos: {} }; }
+  } catch(e){ return { data: habHoje(), feitos: {}, detetadosAuto: {} }; }
+}
+
+// Verifica, a partir dos dados reais da app, quais hábitos do dia já foram
+// cumpridos hoje — sem exigir que o utilizador os assinale à mão.
+// 'aprendi' e 'gratidao' ficam de fora: não há um dado equivalente na app
+// para os confirmar automaticamente, por isso continuam manuais.
+function habDetetarFeitosHoje() {
+  var hojeStr = habHoje(); // "YYYY-MM-DD"
+  var resultado = { contacto:false, followup:false, post:false };
+  try {
+    var todosLeads = (typeof leads !== 'undefined') ? leads : [];
+
+    // 'contacto': criei pelo menos 1 lead novo hoje (data de criação = hoje)
+    resultado.contacto = todosLeads.some(function(l) {
+      var d = _parseDataPT(l.data);
+      return d && d.toISOString().slice(0,10) === hojeStr;
+    });
+
+    // 'followup': há um evento de chamada/mensagem/mudança de estado hoje no
+    // histórico de algum lead já existente (não o próprio lead_criado, que é
+    // o evento de 'contacto' acima).
+    resultado.followup = todosLeads.some(function(l) {
+      return (l.historico || []).some(function(h) {
+        if (!h.data || (h.tipo !== 'chamada' && h.tipo !== 'mensagem' && h.tipo !== 'estado')) return false;
+        var soData = String(h.data).split(',')[0].trim();
+        var d = _parseDataPT(soData);
+        return d && d.toISOString().slice(0,10) === hojeStr;
+      });
+    });
+
+    // 'post': há um post agendado/criado para hoje
+    var todosPosts = (typeof posts !== 'undefined') ? posts : [];
+    resultado.post = todosPosts.some(function(p) {
+      if (!p.data) return false;
+      var d = new Date(p.data);
+      return !isNaN(d.getTime()) && d.toISOString().slice(0,10) === hojeStr;
+    });
+  } catch(e) { /* em caso de erro, não marca nada automaticamente — fica manual */ }
+  return resultado;
 }
 
 function habSave(state) {
@@ -37904,12 +38654,17 @@ function habRender() {
   if (celebEl) celebEl.style.display = done === total ? 'block' : 'none';
 
   if (listaEl) {
+    var detetadosAuto = state.detetadosAuto || {};
     listaEl.innerHTML = HAB_DEF.map(function(h) {
       var isFeito = !!feitos[h.id];
+      var foiAuto = isFeito && !!detetadosAuto[h.id];
       return '<div onclick="habToggle(\'' + h.id + '\')" style="display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:10px;cursor:pointer;border:1px solid ' + (isFeito ? h.cor.replace(')',',0.3)').replace('var(--','rgba(0,212,170,') : 'var(--border)') + ';background:' + (isFeito ? h.cor.replace('var(--accent)','rgba(0,212,170,0.08)').replace('var(--gold)','rgba(245,200,66,0.08)').replace('var(--accent2)','rgba(0,132,255,0.08)').replace('#b47aff','rgba(180,122,255,0.08)').replace('#a3e635','rgba(163,230,53,0.08)') : 'transparent') + ';transition:all .2s;">'
         + '<div style="width:28px;height:28px;border-radius:50%;border:2px solid ' + (isFeito ? h.cor : 'var(--border)') + ';display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;transition:all .2s;">'
         + (isFeito ? '✅' : h.icon) + '</div>'
-        + '<div style="flex:1;font-size:12.5px;color:' + (isFeito ? 'var(--text3)' : 'var(--text)') + ';' + (isFeito ? 'text-decoration:line-through;' : '') + 'transition:all .2s;">' + h.label + '</div>'
+        + '<div style="flex:1;">'
+        + '<div style="font-size:12.5px;color:' + (isFeito ? 'var(--text3)' : 'var(--text)') + ';' + (isFeito ? 'text-decoration:line-through;' : '') + 'transition:all .2s;">' + h.label + '</div>'
+        + (foiAuto ? '<div style="font-size:10px;color:var(--text3);text-decoration:none;margin-top:2px;">🤖 Detetado automaticamente</div>' : '')
+        + '</div>'
         + '</div>';
     }).join('');
   }
@@ -39364,6 +40119,8 @@ function calcSaudeRede() {
   var semFollowup14 = 0;
   var leadsQuentes = 0;
   var leadsAtivos = 0;
+  var negociacaoParada = 0; // leads em negociação sem contacto há 48h+ — janela curta,
+                            // porque é a etapa onde um lead esfria mais depressa
 
   todosLeads.forEach(function(l) {
     if (l.estado === 'perdido' || l.estado === 'cliente') return;
@@ -39374,6 +40131,16 @@ function calcSaudeRede() {
       var dias = Math.floor((hoje - new Date(ultimo).getTime()) / 864e5);
       if (dias >= 7)  semFollowup7++;
       if (dias >= 14) semFollowup14++;
+    }
+    if (l.estado === 'negociacao') {
+      // Base de contagem: último contacto se existir, senão a data em que entrou
+      // em negociação — assim um lead movido para negociação e nunca mais
+      // contactado também é apanhado, não só os que já tiveram contacto antes.
+      var baseNegociacao = l.ultimoContacto || l.dataEntradaNegociacao || null;
+      if (baseNegociacao) {
+        var horasParado = (hoje - new Date(baseNegociacao).getTime()) / 36e5;
+        if (horasParado >= 48) negociacaoParada++;
+      }
     }
   });
 
@@ -39408,6 +40175,9 @@ function calcSaudeRede() {
 
   // --- CALCULAR SCORE 0-100 ---
   var score = 100;
+  // Penalizar negociações paradas — o peso mais alto de todos, porque cada uma
+  // representa uma venda quase fechada a esfriar por falta de contacto.
+  if (negociacaoParada > 0) score -= Math.min(negociacaoParada * 8, 25); // max -25
   // Penalizar leads sem follow-up
   if (leadsAtivos > 0) {
     var pctSemFollowup = semFollowup14 / Math.max(leadsAtivos, 1);
@@ -39439,6 +40209,8 @@ function calcSaudeRede() {
 
   // --- ALERTAS PRIORITÁRIOS ---
   var alertas = [];
+  // Prioridade máxima: negociações paradas são vendas quase fechadas a esfriar.
+  if (negociacaoParada > 0) alertas.push({ icon:'🚨', msg: negociacaoParada + ' negociaç' + (negociacaoParada>1?'ões':'ão') + ' parada' + (negociacaoParada>1?'s':'') + ' há +48h — fecha antes que esfrie!', cor:'#ef4444', page:'funil' });
   if (semFollowup14 > 0)  alertas.push({ icon:'⏰', msg: semFollowup14 + ' lead' + (semFollowup14>1?'s':'') + ' sem contacto há +14 dias', cor:'#f97316', page:'acoes' });
   else if (semFollowup7 > 0) alertas.push({ icon:'🔔', msg: semFollowup7 + ' lead' + (semFollowup7>1?'s':'') + ' sem contacto há +7 dias', cor:'var(--gold)', page:'acoes' });
   if (clientesRisco > 0)  alertas.push({ icon:'🔄', msg: clientesRisco + ' cliente' + (clientesRisco>1?'s':'') + ' renova' + (clientesRisco>1?'m':'') + ' em menos de 5 dias', cor:'var(--accent2)', page:'retencao' });
@@ -39446,7 +40218,7 @@ function calcSaudeRede() {
   if (leadsQuentes > 0)   alertas.push({ icon:'🔥', msg: leadsQuentes + ' lead' + (leadsQuentes>1?'s':'') + ' quente' + (leadsQuentes>1?'s':'') + ' — não percas o momentum!', cor:'var(--accent)', page:'funil' });
   if (!alertas.length)    alertas.push({ icon:'🎉', msg: 'Tudo em ordem! Continua assim.', cor:'var(--accent)', page:null });
 
-  return { score, cor, label, emoji, bg, border, alertas, totalLeads, leadsAtivos, leadsQuentes, semFollowup7, semFollowup14, totalMembros, membrosAtivos, membrosInativos, clientesRisco };
+  return { score, cor, label, emoji, bg, border, alertas, totalLeads, leadsAtivos, leadsQuentes, semFollowup7, semFollowup14, negociacaoParada, totalMembros, membrosAtivos, membrosInativos, clientesRisco };
 }
 
 // Navega a partir de um alerta do widget "Saúde da Rede", aplicando uma
@@ -39482,7 +40254,9 @@ function renderSaudeRede() {
 
   var kpisHtml = [
     { label:'Leads activos', val: d.leadsAtivos, cor:'var(--accent)' },
-    { label:'Sem follow-up', val: d.semFollowup7, cor: d.semFollowup7>0?'#f97316':'var(--text2)' },
+    d.negociacaoParada > 0
+      ? { label:'Negociações paradas', val: d.negociacaoParada, cor:'#ef4444' }
+      : { label:'Sem follow-up', val: d.semFollowup7, cor: d.semFollowup7>0?'#f97316':'var(--text2)' },
     { label:'Equipa activa', val: d.membrosAtivos + '/' + d.totalMembros, cor:'var(--accent2)' },
   ].map(function(k) {
     return '<div style="flex:1;min-width:0;background:var(--surface2);border-radius:8px;padding:9px 10px;text-align:center;">'
