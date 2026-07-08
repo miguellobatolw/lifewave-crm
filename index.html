@@ -4061,6 +4061,19 @@ var QRCode=function(t){"use strict";var r,e=function(){return"function"==typeof 
         <div id="digest-itens" style="display:flex;flex-direction:column;gap:8px;"></div>
       </div>
 
+      <!-- RESUMO DE FIM DE DIA — retrospetivo (o que já fizeste hoje),
+           complementar ao Digest acima (que é prospetivo, o que falta fazer) -->
+      <div id="resumo-dia-card" style="display:none;margin-bottom:16px;background:var(--surface2);border:1px solid var(--border);border-radius:14px;padding:16px 18px;">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">
+          <span style="font-size:20px;">📊</span>
+          <div>
+            <div style="font-size:14px;font-weight:700;color:var(--text);">O teu dia em números</div>
+            <div style="font-size:11.5px;color:var(--text2);">Resumo do que já trataste hoje</div>
+          </div>
+        </div>
+        <div id="resumo-dia-itens" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:10px;"></div>
+      </div>
+
       <!-- LEMBRETE DE BACKUP SEMANAL -->
       <div id="backup-reminder-banner" style="display:none;margin-bottom:16px;background:rgba(245,200,66,0.07);border:1px solid rgba(245,200,66,0.3);border-radius:14px;padding:14px 18px;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
         <div style="display:flex;align-items:center;gap:10px;">
@@ -4336,6 +4349,7 @@ var QRCode=function(t){"use strict";var r,e=function(){return"function"==typeof 
           <div class="page-sub" id="acoes-sub">O teu plano de ação diário — quem contactar, quando e como</div>
         </div>
         <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <button class="btn btn-primary btn-sm" onclick="iniciarModoSequencia()">▶️ Modo Sequência</button>
           <button class="btn btn-secondary btn-sm" onclick="marcarTodasConcluidas()">✅ Marcar todas concluídas</button>
           <button class="btn btn-primary btn-sm" onclick="renderAcoes()">🔄 Atualizar</button>
         </div>
@@ -4389,6 +4403,7 @@ var QRCode=function(t){"use strict";var r,e=function(){return"function"==typeof 
         </div>
         <button class="btn btn-primary" onclick="openModal('modal-lead')">＋ Novo Lead</button>
       </div>
+      <div id="funil-analytics-container"></div>
       <div class="funnel-grid" id="funil-container"></div>
     </div>
 
@@ -9043,6 +9058,131 @@ const FUNIL_ETAPAS = [
   { key:'cliente',     label:'✅ Cliente' },
 ];
 
+// =====================================================================
+// ANALYTICS DO FUNIL DE VENDAS — taxa de conversão entre etapas, tempo
+// médio parado em cada etapa e destaque do gargalo real. Mesmo padrão do
+// Funil de Recrutamento (ver renderRecrutAnalytics). Usa o estado ATUAL de
+// cada lead para "chegou a esta etapa ou mais longe". 'Frio'/'Perdido'
+// ficam fora das barras de % (saíram do funil ativo), mas o motivo de perda
+// (ver MOTIVOS_PERDA) entra num resumo à parte, complementar às barras.
+// =====================================================================
+function calcularTemposEtapaFunil() {
+  const tempos = {};
+  FUNIL_ETAPAS.forEach(e => { tempos[e.key] = { somaMs: 0, count: 0 }; });
+
+  leads.filter(l => (l.objetivo || 'cliente') !== 'parceiro').forEach(l => {
+    const eventos = (l.historico || [])
+      .filter(h => h && h.tipo === 'estado' && /^Funil:/.test(h.msg || ''))
+      .map(h => {
+        const m = h.msg.match(/Funil: "(.+?)" → "(.+?)"/);
+        if (!m) return null;
+        const de = FUNIL_ETAPAS.find(e => estadoLabel(e.key) === m[1]);
+        const para = FUNIL_ETAPAS.find(e => estadoLabel(e.key) === m[2]);
+        const data = parseDataContactoLead(h.data);
+        if (!de || !para || !data || isNaN(data.getTime())) return null;
+        return { deKey: de.key, paraKey: para.key, data };
+      })
+      .filter(Boolean)
+      .sort((a, b) => a.data - b.data);
+
+    if (!eventos.length) return;
+
+    const criado = getLeadAddedDate(l);
+    if (criado && !isNaN(criado.getTime())) {
+      const dur = eventos[0].data - criado;
+      if (dur > 0) { tempos[eventos[0].deKey].somaMs += dur; tempos[eventos[0].deKey].count++; }
+    }
+    for (let i = 1; i < eventos.length; i++) {
+      const dur = eventos[i].data - eventos[i - 1].data;
+      if (dur > 0) { tempos[eventos[i].deKey].somaMs += dur; tempos[eventos[i].deKey].count++; }
+    }
+  });
+
+  return tempos;
+}
+
+function renderFunilAnalytics() {
+  const el = document.getElementById('funil-analytics-container');
+  if (!el) return;
+  const todos = leads.filter(l => (l.objetivo || 'cliente') !== 'parceiro');
+  if (todos.length < 3) { el.innerHTML = ''; return; } // poucos dados para um funil ter sentido
+
+  const ordemKeys = FUNIL_ETAPAS.map(e => e.key); // já exclui 'frio'/'perdido' por não estarem em FUNIL_ETAPAS
+  const ativos = todos.filter(l => ordemKeys.includes(l.estado));
+  const foraDoFunil = todos.length - ativos.length; // frio + perdido
+  const topo = ativos.length;
+  const tempos = calcularTemposEtapaFunil();
+
+  let linhas = [];
+  let maiorQuedaIdx = -1, maiorQueda = 0;
+  if (topo >= 3) {
+    linhas = ordemKeys.map((key, idx) => {
+      const etapa = FUNIL_ETAPAS.find(e => e.key === key);
+      const chegaram = ativos.filter(l => ordemKeys.indexOf(l.estado) >= idx).length;
+      const pct = topo > 0 ? Math.round((chegaram / topo) * 100) : 0;
+      return { key, label: etapa.label, chegaram, pct };
+    });
+    for (let i = 1; i < linhas.length; i++) {
+      const queda = linhas[i - 1].pct - linhas[i].pct;
+      if (queda > maiorQueda) { maiorQueda = queda; maiorQuedaIdx = i; }
+    }
+  }
+
+  // Etapa onde os leads ficam mais tempo antes de avançar (ou desistir)
+  let etapaMaisLenta = null, maiorMedia = 0;
+  FUNIL_ETAPAS.forEach(e => {
+    const t = tempos[e.key];
+    if (t.count >= 2 && t.somaMs / t.count > maiorMedia) { maiorMedia = t.somaMs / t.count; etapaMaisLenta = e; }
+  });
+
+  // Resumo de motivos de perda (complementar, só se houver dados suficientes)
+  const perdidosComMotivo = todos.filter(l => l.estado === 'perdido' && l.motivoPerda);
+  let motivoTopo = null;
+  if (perdidosComMotivo.length >= 3) {
+    const contagens = {};
+    perdidosComMotivo.forEach(l => { contagens[l.motivoPerda] = (contagens[l.motivoPerda] || 0) + 1; });
+    const maisFrequente = Object.entries(contagens).sort((a, b) => b[1] - a[1])[0];
+    if (maisFrequente) {
+      const def = MOTIVOS_PERDA.find(m => m.id === maisFrequente[0]);
+      motivoTopo = { label: def ? def.label : maisFrequente[0], count: maisFrequente[1], total: perdidosComMotivo.length };
+    }
+  }
+
+  el.innerHTML = `
+    <div style="background:var(--surface2);border:1px solid var(--border);border-radius:14px;padding:16px 18px;margin-bottom:18px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:6px;">
+        <div style="font-size:14px;font-weight:700;color:var(--text);">📊 Funil de Conversão — Vendas</div>
+        <div style="font-size:11px;color:var(--text2);">${topo} leads ativos${foraDoFunil ? ' · ' + foraDoFunil + ' frios/perdidos (fora do funil)' : ''}</div>
+      </div>
+      ${linhas.length ? linhas.map((l, i) => `
+        <div style="margin-bottom:${i === linhas.length - 1 ? 0 : 12}px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+            <span style="font-size:12.5px;color:var(--text);">${l.label}</span>
+            <span style="font-size:12px;color:var(--text2);">${l.chegaram} · <strong style="color:var(--text);">${l.pct}%</strong>${tempos[l.key].count ? ' · média ' + formatarDuracaoDias(tempos[l.key].somaMs / tempos[l.key].count) + ' na etapa' : ''}</span>
+          </div>
+          <div style="background:var(--surface3);border-radius:20px;height:7px;overflow:hidden;">
+            <div style="width:${l.pct}%;height:100%;background:${i === maiorQuedaIdx ? '#ff6b6b' : 'var(--accent)'};border-radius:20px;transition:width .5s;"></div>
+          </div>
+        </div>
+      `).join('') : '<div style="font-size:12px;color:var(--text2);">Poucos dados ainda para calcular taxas de conversão.</div>'}
+      ${maiorQuedaIdx > 0 ? `
+        <div style="margin-top:14px;padding:10px 12px;background:rgba(255,107,107,0.08);border:1px solid rgba(255,107,107,0.2);border-radius:8px;font-size:12px;color:var(--text2);">
+          🔻 Maior perda: de <strong style="color:var(--text);">${linhas[maiorQuedaIdx-1].label}</strong> para <strong style="color:var(--text);">${linhas[maiorQuedaIdx].label}</strong> (−${maiorQueda} pontos percentuais).
+        </div>
+      ` : ''}
+      ${etapaMaisLenta ? `
+        <div style="margin-top:${maiorQuedaIdx > 0 ? 8 : 14}px;padding:10px 12px;background:rgba(245,200,66,0.08);border:1px solid rgba(245,200,66,0.25);border-radius:8px;font-size:12px;color:var(--text2);">
+          ⏳ Gargalo de tempo: os leads ficam em média <strong style="color:var(--text);">${formatarDuracaoDias(maiorMedia)}</strong> em <strong style="color:var(--text);">${etapaMaisLenta.label}</strong> antes de avançar (ou desistir). É aí que vale mais a pena apertar o follow-up.
+        </div>
+      ` : ''}
+      ${motivoTopo ? `
+        <div style="margin-top:${maiorQuedaIdx > 0 || etapaMaisLenta ? 8 : 14}px;padding:10px 12px;background:rgba(139,92,246,0.08);border:1px solid rgba(139,92,246,0.25);border-radius:8px;font-size:12px;color:var(--text2);">
+          💔 Motivo de perda mais comum: <strong style="color:var(--text);">${motivoTopo.label}</strong> (${motivoTopo.count} de ${motivoTopo.total} leads perdidos com motivo registado).
+        </div>
+      ` : ''}
+    </div>`;
+}
+
 function abrirMenuMoverLead(leadId, etapaAtual) {
   const lead = leads.find(l => l.id === leadId);
   if (!lead) return;
@@ -9069,7 +9209,29 @@ function moverLeadParaEtapa(leadId, novaEtapa) {
   const lead = leads.find(l => l.id === leadId);
   if (!lead) return;
   const estadoAnterior = lead.estado;
+  // Lead a passar a "perdido" pela 1ª vez nesta transição: pede o motivo antes
+  // de concluir a mudança. Não bloqueia o fluxo — se o utilizador fechar sem
+  // escolher, a mudança de etapa prossegue igual, só sem o motivo registado.
+  if (novaEtapa === 'perdido' && estadoAnterior !== 'perdido') {
+    abrirMotivoPerda(leadId, () => _moverLeadParaEtapaExecutar(leadId, novaEtapa));
+    return;
+  }
+  _moverLeadParaEtapaExecutar(leadId, novaEtapa);
+}
+
+function _moverLeadParaEtapaExecutar(leadId, novaEtapa) {
+  const lead = leads.find(l => l.id === leadId);
+  if (!lead) return;
+  const estadoAnterior = lead.estado;
   lead.estado = novaEtapa;
+  // Regista a transição no formato "De → Para" (mesmo padrão do funil de
+  // recrutamento) — alimenta o cálculo de tempo médio por etapa no analytics
+  // do funil de vendas, sem duplicar o registo "Estado alterado para..." já
+  // usado noutros pontos da app para outros efeitos.
+  if (!lead.historico) lead.historico = [];
+  if (estadoAnterior !== novaEtapa) {
+    lead.historico.unshift({ tipo: 'estado', msg: `Funil: "${estadoLabel(estadoAnterior)}" → "${estadoLabel(novaEtapa)}"`, data: new Date().toLocaleString('pt-PT') });
+  }
   // Regista quando entrou em negociação (para o alerta de "negociação parada" —
   // etapa mais sensível ao tempo, onde um lead esfria rapidamente sem follow-up).
   if (novaEtapa === 'negociacao' && estadoAnterior !== 'negociacao') {
@@ -9096,6 +9258,63 @@ function moverLeadParaEtapa(leadId, novaEtapa) {
   if (novaEtapa === 'cliente' && estadoAnterior !== 'cliente') {
     setTimeout(() => sugerirRegistarVenda(lead), 400);
   }
+}
+
+// ---- MOTIVO DE PERDA ----
+// Regista porque um lead se perdeu, para dar dados reais (não intuição) sobre
+// onde e porquê os leads morrem no funil. Categorias fixas para ser rápido de
+// preencher (1 toque) — texto livre é só um extra opcional.
+const MOTIVOS_PERDA = [
+  { id: 'preco',      label: '💰 Preço' },
+  { id: 'ceticismo',  label: '🤔 Ceticismo' },
+  { id: 'timing',     label: '⏰ Timing/Não é a altura' },
+  { id: 'sem_resposta', label: '📵 Deixou de responder' },
+  { id: 'ja_mlm',     label: '🔄 Já está noutro MLM' },
+  { id: 'sem_interesse', label: '🚫 Sem interesse real' },
+  { id: 'outro',      label: '❓ Outro' },
+];
+
+let _motivoPerdaLeadId = null;
+let _motivoPerdaCallback = null;
+
+function abrirMotivoPerda(leadId, callback) {
+  _motivoPerdaLeadId = leadId;
+  _motivoPerdaCallback = callback;
+  const lead = leads.find(l => l.id === leadId);
+  const nomeEl = document.getElementById('motivo-perda-nome');
+  if (nomeEl) nomeEl.textContent = lead ? lead.nome : '';
+  const notaEl = document.getElementById('motivo-perda-nota');
+  if (notaEl) notaEl.value = '';
+  const grid = document.getElementById('motivo-perda-grid');
+  if (grid) {
+    grid.innerHTML = MOTIVOS_PERDA.map(m =>
+      `<button class="btn btn-secondary btn-sm" style="text-align:left;" onclick="confirmarMotivoPerda('${m.id}')">${m.label}</button>`
+    ).join('');
+  }
+  openModal('modal-motivo-perda');
+}
+
+function confirmarMotivoPerda(motivoId) {
+  const lead = leads.find(l => l.id === _motivoPerdaLeadId);
+  if (lead) {
+    const nota = (document.getElementById('motivo-perda-nota')?.value || '').trim();
+    lead.motivoPerda = motivoId;
+    lead.motivoPerdaNota = nota;
+    lead.motivoPerdaData = new Date().toISOString();
+  }
+  closeModal('modal-motivo-perda');
+  const cb = _motivoPerdaCallback;
+  _motivoPerdaLeadId = null;
+  _motivoPerdaCallback = null;
+  if (typeof cb === 'function') cb();
+}
+
+function pularMotivoPerda() {
+  closeModal('modal-motivo-perda');
+  const cb = _motivoPerdaCallback;
+  _motivoPerdaLeadId = null;
+  _motivoPerdaCallback = null;
+  if (typeof cb === 'function') cb();
 }
 
 function sugerirRegistarVenda(lead) {
@@ -9774,7 +9993,52 @@ function renderAlertaObjecaoLead(l) {
 }
 
 // ===================================================
-// PROVÁVEL MOTIVO — lead frio/parado (v79)
+// OBJEÇÕES PROVÁVEIS POR FASE DO FUNIL — preparação proativa
+// Complementa renderAlertaObjecaoLead (que só reage a texto já escrito pelo
+// lead): aqui, mesmo sem nenhuma pista textual, sugere-se as categorias de
+// objeção mais comuns nesta fase do funil, para o utilizador se preparar
+// ANTES de ligar/escrever. Só aparece quando não há já uma objeção detetada
+// no histórico (para não duplicar o alerta acima) e não em 'cliente'/'perdido'/
+// 'frio' (fases onde já não faz sentido preparar objeção de venda).
+// ===================================================
+const FASE_FUNIL_OBJECOES = {
+  novo:         ['ceticismo', 'mlm'],
+  contactado:   ['tempo', 'adiamento'],
+  interessado:  ['ceticismo', 'produto'],
+  negociacao:   ['preco', 'adiamento'],
+};
+
+function renderObjecoesFaseLead(l) {
+  const el = document.getElementById('lead-objecoes-fase');
+  if (!el) return;
+
+  // Não duplica com o alerta de objeção já detetada no texto do lead
+  if (detetarObjecaoNoHistorico(l)) { el.innerHTML = ''; return; }
+
+  const cats = FASE_FUNIL_OBJECOES[l.estado];
+  if (!cats) { el.innerHTML = ''; return; }
+
+  const sugestoes = cats
+    .map(cat => OBJECOES_DB.find(o => o.cat === cat))
+    .filter(Boolean);
+  if (!sugestoes.length) { el.innerHTML = ''; return; }
+
+  el.innerHTML = `
+    <div style="margin-bottom:14px;padding:12px;background:rgba(0,132,255,0.06);border:1px solid rgba(0,132,255,0.18);border-radius:10px;">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+        <span style="font-size:16px;">🧭</span>
+        <div style="font-size:12px;font-weight:700;color:var(--accent2);">Objeções comuns nesta fase (${estadoLabel(l.estado)})</div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:6px;">
+        ${sugestoes.map(obj => `
+          <button class="btn btn-secondary btn-sm" style="text-align:left;justify-content:flex-start;" onclick="abrirObjDetalhe('${obj.id}')">${obj.emoji} ${obj.titulo}</button>
+        `).join('')}
+      </div>
+    </div>
+  `;
+}
+
+
 // Só aparece quando o lead esfriou de facto (estado "frio" ou 14+ dias
 // parado num estado ativo). Reutiliza detetarObjecaoNoHistorico (mesma
 // deteção do alerta acima) para sugerir o "porquê" mais provável; quando
@@ -9909,6 +10173,7 @@ function verLead(id) {
       <div class="score-bar-value" style="color:${cor}">${score}/10</div>
     </div>
     <div id="lead-obj-alerta"></div>
+    <div id="lead-objecoes-fase"></div>
     <div id="lead-motivo-frio-alerta"></div>
     <div id="lead-prob-fecho"></div>
     <details style="margin-bottom:14px;">
@@ -9975,6 +10240,10 @@ function verLead(id) {
   _renderConversaFiltro('todos','');
   renderTagsLeadModal(id);
   document.getElementById('ver-lead-actions').innerHTML = `
+    ${_modoSequenciaAtivo ? `
+      <button class="btn btn-primary btn-sm" style="background:linear-gradient(135deg,#00d4aa,#0084ff);width:100%;font-weight:700;" onclick="marcarAcaoConcluidaSequencia('${id}')">✅ Feito → Próximo (${_modoSequenciaFila.length} restantes)</button>
+      <button class="btn btn-secondary btn-sm" onclick="sairModoSequencia()">⏸ Sair da Sequência</button>
+    ` : ''}
     <button class="btn btn-ai btn-sm" onclick="abrirGuiaoIA('${id}')">🎯 Guião IA</button>
     <button class="btn btn-secondary btn-sm" onclick="avancarEstado('${id}')">⏩ Avançar Estado</button>
     <button class="btn btn-secondary btn-sm" onclick="editarLead('${id}')">✏️ Editar</button>
@@ -9986,6 +10255,7 @@ function verLead(id) {
     <button class="btn btn-secondary btn-sm" onclick="partilharLeadWA('${id}')" title="Partilhar resumo deste lead via WhatsApp com um membro da equipa">📤 Partilhar Lead</button>
   `;
   renderAlertaObjecaoLead(l);
+  renderObjecoesFaseLead(l);
   renderMotivoFrioLead(l);
   renderProbabilidadeFechoLead(l);
   openModal('modal-ver-lead');
@@ -10425,7 +10695,7 @@ function eliminarTodosContactos() {
 // saveleads() defined below in AUTH section (user-scoped)
 
 function estadoLabel(e) {
-  return { novo:'Novo', contactado:'Contactado', interessado:'Interessado', negociacao:'Negociação', cliente:'Cliente', frio:'Frio' }[e] || e;
+  return { novo:'Novo', contactado:'Contactado', interessado:'Interessado', negociacao:'Negociação', cliente:'Cliente', frio:'Frio', perdido:'Perdido' }[e] || e;
 }
 
 // ===== DASHBOARD =====
@@ -11042,6 +11312,7 @@ function renderDashboard() {
   if (typeof renderAtividadeHabitos === 'function') renderAtividadeHabitos();
   if (typeof renderConquistas === 'function') renderConquistas();
   if (typeof renderDigestDiario === 'function') renderDigestDiario();
+  if (typeof renderResumoDia === 'function') renderResumoDia();
   if (typeof renderSaudeRede === 'function') renderSaudeRede();
   const tbody = document.getElementById('tbody-recentes');
   if (!leads.length) {
@@ -11183,6 +11454,8 @@ function renderFunil() {
       </div>
     `;
   }).join('');
+
+  renderFunilAnalytics();
 }
 
 // =====================================================
@@ -20638,18 +20911,77 @@ function enviarMensagemAcaoIA(leadId, telWA) {
 let _pfLeadIdAtual = null;
 
 
-function marcarAcaoConcluida(leadId) {
+// ===================================================
+// MODO SEQUÊNCIA — percorre os leads de Ações do Dia um a seguir ao outro,
+// sem voltar à lista entre cada contacto. Reaproveita window._acoesData (a
+// mesma fila já usada por navLead) e marcarAcaoConcluida (mesma lógica de
+// sempre) — não duplica nada, só encadeia as chamadas automaticamente.
+// ===================================================
+let _modoSequenciaAtivo = false;
+let _modoSequenciaFila = [];
+
+function iniciarModoSequencia() {
+  if (!window._acoesData || !window._acoesData.length) {
+    showToast('🎉 Sem ações pendentes para percorrer!');
+    return;
+  }
+  _modoSequenciaFila = window._acoesData.map(a => a.l.id);
+  _modoSequenciaAtivo = true;
+  showToast(`▶️ Modo Sequência: ${_modoSequenciaFila.length} leads na fila`);
+  _modoSequenciaAbrirProximo();
+}
+
+function _modoSequenciaAbrirProximo() {
+  if (!_modoSequenciaFila.length) {
+    _modoSequenciaAtivo = false;
+    showToast('🎉 Sequência concluída — todas as ações tratadas!');
+    renderAcoes();
+    return;
+  }
+  const proximoId = _modoSequenciaFila.shift();
+  // Lead pode já ter sido tratado entretanto (ex: eliminado) — salta para o seguinte
+  if (!leads.find(l => l.id === proximoId)) { _modoSequenciaAbrirProximo(); return; }
+  verLead(proximoId);
+}
+
+function sairModoSequencia() {
+  _modoSequenciaAtivo = false;
+  _modoSequenciaFila = [];
+  closeModal('modal-ver-lead');
+  showToast('⏸ Modo Sequência interrompido');
+  renderAcoes();
+}
+
+// Versão do "Feito" usada dentro do Modo Sequência: grava a conclusão (mesmo
+// núcleo de sempre) mas sem o modal de agendar follow-up — no Modo Sequência
+// o ritmo é rápido e previsível; o follow-up pode sempre ser agendado depois,
+// a partir da ficha do lead, fora deste modo.
+function marcarAcaoConcluidaSequencia(leadId) {
+  _registarAcaoConcluida(leadId);
+  vibrarConfirmacao();
+  showToast('✅ Feito!');
+  _modoSequenciaAbrirProximo();
+}
+
+// Núcleo partilhado: grava a conclusão da ação e o histórico. Usado tanto no
+// fluxo normal (marcarAcaoConcluida) como no Modo Sequência — mantém a mesma
+// gravação em ambos os casos, sem duplicar a lógica de dados.
+function _registarAcaoConcluida(leadId) {
   const key = getUserStorageKey('lw_acoes_concluidas');
   const concluidas = JSON.parse(localStorage.getItem(key) || '{}');
   concluidas[leadId] = new Date().toISOString();
   localStorage.setItem(key, JSON.stringify(concluidas));
-  // Regista no histórico do lead
   const l = leads.find(x => x.id === leadId);
   if (l) {
     l.historico = l.historico || [];
     l.historico.push({ tipo: 'nota', msg: '✅ Ação diária marcada como concluída', data: new Date().toLocaleString('pt-PT') });
     saveleads();
   }
+  return l;
+}
+
+function marcarAcaoConcluida(leadId) {
+  const l = _registarAcaoConcluida(leadId);
   // Animar saída
   const el = document.getElementById('acao-' + leadId);
   if (el) {
@@ -21586,6 +21918,68 @@ function renderStreak() {
 // Consolida: leads urgentes/aviso, aniversários próximos,
 // streak, progresso da meta mensal, e leads movidos para Frio hoje.
 // ===================================================
+// ===================================================
+// RESUMO DE FIM DE DIA — retrospetivo (o que já foi feito hoje).
+// Complementa o Digest Diário acima (prospetivo — o que falta fazer).
+// Só aparece quando há pelo menos 1 número > 0, para não mostrar um cartão
+// vazio logo de manhã. Reaproveita dados já existentes (lw_acoes_concluidas,
+// histórico "Funil: X → Y" criado para o analytics do funil) — não introduz
+// nenhum tracking novo.
+// ===================================================
+function renderResumoDia() {
+  const card = document.getElementById('resumo-dia-card');
+  const itensEl = document.getElementById('resumo-dia-itens');
+  if (!card || !itensEl) return;
+
+  const hojeStr = new Date().toLocaleDateString('pt-PT');
+
+  // Contactos feitos hoje (Ações do Dia marcadas como concluídas)
+  let contactosFeitos = 0;
+  try {
+    const concluidas = JSON.parse(localStorage.getItem(getUserStorageKey('lw_acoes_concluidas')) || '{}');
+    contactosFeitos = Object.values(concluidas).filter(dataIso => {
+      const d = new Date(dataIso);
+      return !isNaN(d.getTime()) && d.toLocaleDateString('pt-PT') === hojeStr;
+    }).length;
+  } catch(e) {}
+
+  // Leads que avançaram de etapa hoje + novos clientes hoje (usa o histórico
+  // "Funil: X → Y" registado em _moverLeadParaEtapaExecutar)
+  let avancaramHoje = 0, novosClientesHoje = 0;
+  leads.forEach(l => {
+    const eventosHoje = (l.historico || []).filter(h =>
+      h && h.tipo === 'estado' && /^Funil:/.test(h.msg || '') && h.data && h.data.startsWith(hojeStr)
+    );
+    if (eventosHoje.length > 0) {
+      avancaramHoje++;
+      if (eventosHoje.some(h => /→ "Cliente"/.test(h.msg))) novosClientesHoje++;
+    }
+  });
+
+  // Novos leads adicionados hoje
+  const novosLeadsHoje = leads.filter(l => {
+    const criado = getLeadAddedDate(l);
+    return criado && !isNaN(criado.getTime()) && criado.toLocaleDateString('pt-PT') === hojeStr;
+  }).length;
+
+  const itens = [
+    { num: contactosFeitos, label: 'Contactos feitos', icon: '✅', cor: 'var(--accent)' },
+    { num: avancaramHoje, label: 'Leads avançaram', icon: '📈', cor: 'var(--accent2)' },
+    { num: novosClientesHoje, label: 'Novos clientes', icon: '🎉', cor: '#00d4aa' },
+    { num: novosLeadsHoje, label: 'Novos leads', icon: '🆕', cor: 'var(--gold)' },
+  ].filter(i => i.num > 0);
+
+  if (!itens.length) { card.style.display = 'none'; return; }
+  card.style.display = '';
+
+  itensEl.innerHTML = itens.map(i => `
+    <div style="background:var(--surface3);border-radius:10px;padding:10px 8px;text-align:center;">
+      <div style="font-size:20px;font-weight:800;color:${i.cor};">${i.icon} ${i.num}</div>
+      <div style="font-size:10.5px;color:var(--text2);margin-top:2px;">${i.label}</div>
+    </div>
+  `).join('');
+}
+
 function renderDigestDiario() {
   const card = document.getElementById('digest-diario-card');
   const itensEl = document.getElementById('digest-itens');
@@ -28263,6 +28657,23 @@ function renderPrevisaoComissao() {
 </div>
 
 <!-- MODAL: NOVA VENDA -->
+<!-- MODAL: MOTIVO DE PERDA — pequeno, rápido (1 toque), sem fricção -->
+<div class="modal-overlay" id="modal-motivo-perda">
+  <div class="modal" style="max-width:420px;">
+    <div class="modal-title">
+      <span>💔 Porque se perdeu <span id="motivo-perda-nome"></span>?</span>
+      <button class="modal-close" onclick="pularMotivoPerda()">✕</button>
+    </div>
+    <div style="font-size:12px;color:var(--text2);margin-bottom:12px;">Ajuda-te a perceber padrões ao longo do tempo. Opcional, mas rápido.</div>
+    <div id="motivo-perda-grid" style="display:flex;flex-direction:column;gap:8px;margin-bottom:14px;"></div>
+    <div class="form-group">
+      <label class="form-label">Nota (opcional)</label>
+      <input class="form-input" id="motivo-perda-nota" placeholder="Detalhe rápido, se quiseres...">
+    </div>
+    <button class="btn btn-secondary" style="width:100%;" onclick="pularMotivoPerda()">Saltar por agora</button>
+  </div>
+</div>
+
 <div class="modal-overlay" id="modal-nova-venda">
   <div class="modal" style="max-width:500px;">
     <div class="modal-title">
