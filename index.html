@@ -8417,7 +8417,28 @@ var QRCode=function(t){"use strict";var r,e=function(){return"function"==typeof 
         </select>
         <div style="font-size:11px;color:var(--text2);margin-top:4px;">Define se aparece no Funil de Leads (clientes) ou no Funil de Recrutamento (parceiros).</div>
       </div>
-      <div class="form-group"></div>
+      <div class="form-group">
+        <label class="form-label">💊 Produto de interesse (opcional)</label>
+        <select class="form-select" id="f-produto">
+          <option value="">— Ainda não definido —</option>
+          <option value="x39">LifeWave X39®</option>
+          <option value="x49">LifeWave X49®</option>
+          <option value="icewave">IceWave®</option>
+          <option value="energy">Energy Enhancer®</option>
+          <option value="silent">Silent Nights®</option>
+          <option value="aeon">Y-Age Aeon®</option>
+          <option value="gluta">Y-Age® Glutathione</option>
+          <option value="carno">Y-Age® Carnosine</option>
+          <option value="sp6">SP6® Complete</option>
+          <option value="alavida">Alavida®</option>
+          <option value="aculife">AcuLife®</option>
+          <option value="y-age-kit">Y-Age® System Kit</option>
+          <option value="x39x49-bundle">X39® + X49™ Bundle</option>
+          <option value="alavida-trio">Alavida® Regenerating Trio</option>
+          <option value="oportunidade">🧲 Oportunidade de negócio (sem produto específico)</option>
+        </select>
+        <div style="font-size:11px;color:var(--text2);margin-top:4px;">Usado para veres que produtos convertem melhor em "Ações → Conversão".</div>
+      </div>
     </div>
     <div class="form-row">
       <div class="form-group">
@@ -9461,6 +9482,7 @@ function salvarLead() {
     mercado: document.getElementById('f-mercado').value,
     estado: novoEstado,
     objetivo: document.getElementById('f-objetivo')?.value || 'cliente',
+    produtoInteresse: document.getElementById('f-produto')?.value || '',
     fonte: document.getElementById('f-fonte').value,
     indicadoPor: document.getElementById('f-indicado-por')?.value.trim() || '',
     notas: document.getElementById('f-notas').value.trim(),
@@ -9527,6 +9549,7 @@ function editarLead(id) {
   document.getElementById('f-mercado').value = l.mercado;
   document.getElementById('f-estado').value = l.estado;
   const fObjEl = document.getElementById('f-objetivo'); if (fObjEl) fObjEl.value = l.objetivo || 'cliente';
+  const fProdEl = document.getElementById('f-produto'); if (fProdEl) fProdEl.value = l.produtoInteresse || '';
   document.getElementById('f-fonte').value = l.fonte;
   const fIndEl = document.getElementById('f-indicado-por'); if (fIndEl) fIndEl.value = l.indicadoPor || '';
   document.getElementById('f-notas').value = l.notas;
@@ -10903,6 +10926,67 @@ function renderFunilConversao() {
           </div>
         </div>
       ` : ''}
+    </div>
+    ${renderConversaoPorProdutoHTML()}`;
+}
+
+// Mapa de rótulos amigáveis dos produtos (mesmos slugs usados no campo
+// f-produto do formulário de lead e no simulador de comissões).
+const PRODUTOS_LABELS = {
+  'x39': 'LifeWave X39®', 'x49': 'LifeWave X49®', 'icewave': 'IceWave®',
+  'energy': 'Energy Enhancer®', 'silent': 'Silent Nights®', 'aeon': 'Y-Age Aeon®',
+  'gluta': 'Y-Age® Glutathione', 'carno': 'Y-Age® Carnosine', 'sp6': 'SP6® Complete',
+  'alavida': 'Alavida®', 'aculife': 'AcuLife®', 'y-age-kit': 'Y-Age® System Kit',
+  'x39x49-bundle': 'X39® + X49™ Bundle', 'alavida-trio': 'Alavida® Regenerating Trio',
+  'oportunidade': '🧲 Oportunidade de negócio'
+};
+
+// Taxa de conversão (→ Cliente) segmentada por produto de interesse — mostra
+// que produtos convertem melhor, para ajustar a abordagem de vendas por produto.
+function renderConversaoPorProdutoHTML() {
+  const comProduto = leads.filter(l => l.produtoInteresse && l.estado !== 'frio');
+  if (comProduto.length < 3) {
+    return `<div style="margin-top:14px;padding:12px 14px;background:var(--surface2);border:1px solid var(--border);border-radius:12px;font-size:12px;color:var(--text2);">
+      💊 Define o <strong style="color:var(--text);">produto de interesse</strong> nos leads (ao criar/editar) para veres aqui que produtos convertem melhor.
+    </div>`;
+  }
+  const porProduto = {};
+  comProduto.forEach(l => {
+    const key = l.produtoInteresse;
+    if (!porProduto[key]) porProduto[key] = { total: 0, clientes: 0 };
+    porProduto[key].total++;
+    if (l.estado === 'cliente') porProduto[key].clientes++;
+  });
+  const linhasProduto = Object.entries(porProduto)
+    .map(([key, d]) => ({ key, label: PRODUTOS_LABELS[key] || key, total: d.total, clientes: d.clientes, pct: Math.round((d.clientes / d.total) * 100) }))
+    .filter(p => p.total >= 2) // ignora produtos com amostra demasiado pequena para ser fiável
+    .sort((a, b) => b.pct - a.pct);
+
+  if (linhasProduto.length === 0) {
+    return `<div style="margin-top:14px;padding:12px 14px;background:var(--surface2);border:1px solid var(--border);border-radius:12px;font-size:12px;color:var(--text2);">
+      💊 Ainda há poucos leads por produto para uma comparação fiável (mínimo 2 por produto).
+    </div>`;
+  }
+
+  const melhor = linhasProduto[0];
+  return `
+    <div style="margin-top:14px;background:var(--surface2);border:1px solid var(--border);border-radius:14px;padding:16px 18px;">
+      <div style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:4px;">💊 Conversão por Produto de Interesse</div>
+      <div style="font-size:11px;color:var(--text2);margin-bottom:14px;">% de leads com este produto que já se tornaram Cliente</div>
+      ${linhasProduto.map(p => `
+        <div style="margin-bottom:10px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+            <span style="font-size:12.5px;color:var(--text);">${p.label}</span>
+            <span style="font-size:12px;color:var(--text2);">${p.clientes}/${p.total} · <strong style="color:${p.key===melhor.key?'#22c55e':'var(--text)'};">${p.pct}%</strong></span>
+          </div>
+          <div style="background:var(--surface3);border-radius:20px;height:7px;overflow:hidden;">
+            <div style="width:${p.pct}%;height:100%;background:${p.key===melhor.key?'#22c55e':'var(--accent)'};border-radius:20px;transition:width .5s;"></div>
+          </div>
+        </div>
+      `).join('')}
+      <div style="margin-top:8px;padding:10px 12px;background:rgba(34,197,94,0.08);border:1px solid rgba(34,197,94,0.2);border-radius:8px;font-size:12px;color:var(--text2);">
+        🏆 <strong style="color:var(--text);">${melhor.label}</strong> converte melhor (${melhor.pct}%) — vale a pena liderar com este produto nas próximas conversas com leads indecisos.
+      </div>
     </div>`;
 }
 
@@ -13893,7 +13977,14 @@ async function callGeminiModel(model, prompt, imageBase64, imageMediaType) {
   );
   const data = await res.json();
   if (data.error) throw new Error(data.error.message || 'Erro Gemini');
-  return data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+  // Quando thinkingBudget > 0, a API devolve várias "parts": as de raciocínio
+  // interno vêm marcadas com thought:true e NUNCA devem ser mostradas ao
+  // utilizador — só a(s) part(s) de resposta final (sem thought) é que
+  // formam o texto do post. Usar sempre parts[0] estava a apanhar o
+  // raciocínio em vez da resposta quando o thinking estava ativo.
+  const allParts = data.candidates?.[0]?.content?.parts || [];
+  const respostaFinal = allParts.filter(p => !p.thought && p.text).map(p => p.text).join('');
+  return respostaFinal || '';
 }
 
 // =====================================================
@@ -14386,20 +14477,32 @@ Regras CRÍTICAS — segue-as todas:
 4. Não uses palavras "compra", "urgente", "oportunidade imperdível".
 5. Baseia-te em benefícios reais: energia, bem-estar, recuperação, sono, fotomodulação.
 6. NÃO faças promessas médicas ou de cura.
-7. Para Instagram: o CORPO do post (sem contar hashtags) deve ficar dentro de ${limiteInstagram} caracteres${isEducativo ? ' (tema educativo — podes desenvolver um pouco mais, com estrutura clara)' : ' (a maioria das legendas converte melhor CURTA: gancho forte na 1ª linha, 1-3 frases no corpo, sem enrolar)'}. Estrutura: gancho de 1 linha (a parte visível antes do "ver mais") → 1-2 frases de desenvolvimento → 1 pergunta ou CTA leve para gerar comentários. Depois do corpo, num bloco separado, adiciona EXATAMENTE 5 hashtags (nunca mais) SEMPRE NO MESMO IDIOMA do post (português → hashtags em português, inglês → hashtags em inglês, etc), escolhidas da lista de HASHTAGS SEGUROS acima. IMPORTANTE: as 5 hashtags devem ser só sobre o TEMA/estilo de vida (ex: bem-estar, energia, rotina, hábitos saudáveis) — NUNCA uses hashtags de marca ou produto (ex: #LifeWave, #PatchBemEstar, #naotransdermico, #LifeWaveParceiroIndependente, #parceiroindependente ou equivalentes noutros idiomas). As hashtags contam à parte do limite de caracteres do corpo.
-8. Para WhatsApp: trata-se de uma mensagem 1-para-1 ou para grupo pessoal, NÃO um post de rede social. Escreve como escreverias a um amigo — 2 a 4 frases curtas, no máximo. Tom pessoal, direto, conversacional. NUNCA um parágrafo longo tipo "carta" — mensagens longas no WhatsApp são ignoradas ou lidas por alto. Se houver uma pergunta ou CTA, que seja simples e fácil de responder num toque (ex: "Queres que te explique melhor?"). Sem hashtags.
-9. Para Facebook: público mais velho que Instagram, tom conversacional e pessoal, 2-3 frases curtas com quebras de linha (este limite não inclui hashtags). Uma pergunta direta no fim gera mais comentários do que uma afirmação. No Facebook hashtags em excesso prejudicam o alcance — usa no máximo 2 a 3, da lista de HASHTAGS SEGUROS, ou nenhuma se não acrescentar valor.
-10. Para TikTok, cria um GUIÃO de vídeo curto (30-60 seg): começa com um gancho de impacto nos primeiros 3 segundos, usa frases muito curtas, linguagem jovem e dinâmica, termina com call-to-action claro. Estrutura: [GANCHO] → [PROBLEMA] → [SOLUÇÃO X39] → [PROVA] → [CTA]. Indica as secções entre parênteses retos. Depois do guião, numa linha à parte, sugere 4 a 5 hashtags da lista de HASHTAGS SEGUROS para a legenda do vídeo.
-11. Para LinkedIn, tom profissional e sério: partilha dados, faz referência à tecnologia de fotobiomodulação, foca no potencial de negócio e qualidade de vida executiva. Sem emojis excessivos. Parágrafo de abertura forte (a única parte visível antes do "ver mais" — tem de prender à primeira linha), 2-3 parágrafos curtos de corpo (este limite não inclui hashtags), encerra com pergunta de engagement. No final, no máximo 3 a 5 hashtags profissionais da lista de HASHTAGS SEGUROS.
+7. A plataforma-alvo desta geração é UNICAMENTE: ${currentPlatform}. Aplica APENAS a regra abaixo correspondente a ${currentPlatform} e ignora completamente as regras das outras plataformas — elas existem só como referência interna tua, nunca para gerar múltiplas versões. Nunca escrevas etiquetas como "Para WhatsApp:", "Para Facebook:", "Para Instagram:", etc., nem gerês mais do que UM post no total.
+7.1 Regra Instagram (aplica só se ${currentPlatform} for Instagram): o CORPO do post (sem contar hashtags) deve ficar dentro de ${limiteInstagram} caracteres${isEducativo ? ' (tema educativo — podes desenvolver um pouco mais, com estrutura clara)' : ' (a maioria das legendas converte melhor CURTA: gancho forte na 1ª linha, 1-3 frases no corpo, sem enrolar)'}. Estrutura: gancho de 1 linha (a parte visível antes do "ver mais") → 1-2 frases de desenvolvimento → 1 pergunta ou CTA leve para gerar comentários. Depois do corpo, num bloco separado, adiciona EXATAMENTE 5 hashtags (nunca mais) SEMPRE NO MESMO IDIOMA do post (português → hashtags em português, inglês → hashtags em inglês, etc), escolhidas da lista de HASHTAGS SEGUROS acima. IMPORTANTE: as 5 hashtags devem ser só sobre o TEMA/estilo de vida (ex: bem-estar, energia, rotina, hábitos saudáveis) — NUNCA uses hashtags de marca ou produto (ex: #LifeWave, #PatchBemEstar, #naotransdermico, #LifeWaveParceiroIndependente, #parceiroindependente ou equivalentes noutros idiomas). As hashtags contam à parte do limite de caracteres do corpo.
+7.2 Regra WhatsApp (aplica só se ${currentPlatform} for WhatsApp): trata-se de uma mensagem 1-para-1 ou para grupo pessoal, NÃO um post de rede social. Escreve como escreverias a um amigo — 2 a 4 frases curtas, no máximo. Tom pessoal, direto, conversacional. NUNCA um parágrafo longo tipo "carta" — mensagens longas no WhatsApp são ignoradas ou lidas por alto. Se houver uma pergunta ou CTA, que seja simples e fácil de responder num toque (ex: "Queres que te explique melhor?"). Sem hashtags.
+7.3 Regra Facebook (aplica só se ${currentPlatform} for Facebook): público mais velho que Instagram, tom conversacional e pessoal, 2-3 frases curtas com quebras de linha (este limite não inclui hashtags). Uma pergunta direta no fim gera mais comentários do que uma afirmação. No Facebook hashtags em excesso prejudicam o alcance — usa no máximo 2 a 3, da lista de HASHTAGS SEGUROS, ou nenhuma se não acrescentar valor.
+7.4 Regra TikTok (aplica só se ${currentPlatform} for TikTok): cria um GUIÃO de vídeo curto (30-60 seg): começa com um gancho de impacto nos primeiros 3 segundos, usa frases muito curtas, linguagem jovem e dinâmica, termina com call-to-action claro. Estrutura: [GANCHO] → [PROBLEMA] → [SOLUÇÃO X39] → [PROVA] → [CTA]. Indica as secções entre parênteses retos. Depois do guião, numa linha à parte, sugere 4 a 5 hashtags da lista de HASHTAGS SEGUROS para a legenda do vídeo.
+7.5 Regra LinkedIn (aplica só se ${currentPlatform} for LinkedIn): tom profissional e sério: partilha dados, faz referência à tecnologia de fotobiomodulação, foca no potencial de negócio e qualidade de vida executiva. Sem emojis excessivos. Parágrafo de abertura forte (a única parte visível antes do "ver mais" — tem de prender à primeira linha), 2-3 parágrafos curtos de corpo (este limite não inclui hashtags), encerra com pergunta de engagement. No final, no máximo 3 a 5 hashtags profissionais da lista de HASHTAGS SEGUROS.
 ${getRevistaContextoIA()}
 ${LW_COMPLIANCE}
 
-IMPORTANTE: Responde APENAS com o texto final do post, pronto a publicar tal como está — nunca reproduzas etiquetas de instruções (ex: "Contexto adicional:", "Tema:"), nunca uses separadores como "---", nunca escrevas introdução, título, comentário sobre o que vais fazer, ou explicação. O post deve ser auto-suficiente, respeitar o comprimento indicado para o canal, e terminar de forma natural e completa.`;
+IMPORTANTE: Responde APENAS com o texto final de UM ÚNICO post para ${currentPlatform}, pronto a publicar tal como está — nunca gerês versões para outras plataformas, nunca reproduzas etiquetas de instruções (ex: "Contexto adicional:", "Tema:", "Para WhatsApp:", "Para Facebook:"), nunca uses separadores como "---", nunca escrevas introdução, título, comentário sobre o que vais fazer, ou explicação. O post deve ser auto-suficiente, respeitar o comprimento indicado para o canal, e terminar de forma natural e completa.`;
 
 
 
   try {
-    const texto = await callAI('posts', textoPrompt, postImageBase64 || null, postImageBase64 ? postImageMediaType : null, cacheContext);
+    let texto = await callAI('posts', textoPrompt, postImageBase64 || null, postImageBase64 ? postImageMediaType : null, cacheContext);
+    // Rede de segurança: caso a IA ainda assim devolva várias versões
+    // (ex.: "Para WhatsApp: ... Para Facebook: ..."), fica só com a
+    // primeira secção e remove qualquer cabeçalho "Para <Plataforma>:"
+    // solto no início do texto.
+    const nomesPlataforma = ['WhatsApp', 'Facebook', 'Instagram', 'TikTok', 'LinkedIn'];
+    const regexCabecalho = new RegExp('\\n\\s*(?:Para\\s+)?(?:' + nomesPlataforma.join('|') + ')\\s*:\\s*\\n', 'i');
+    const corte = texto.search(regexCabecalho);
+    if (corte !== -1) {
+      texto = texto.slice(0, corte).trim();
+    }
+    texto = texto.replace(new RegExp('^\\s*(?:Para\\s+)?(?:' + nomesPlataforma.join('|') + ')\\s*:\\s*\\n+', 'i'), '').trim();
     lastGeneratedPost = texto;
     textEl.textContent = texto;
     textEl.style.display = 'block';
@@ -14408,6 +14511,7 @@ IMPORTANTE: Responde APENAS com o texto final do post, pronto a publicar tal com
     charCount.textContent = `${len} caracteres`;
     charCount.className = 'char-count' + (len > limite ? ' over' : len > limite * 0.85 ? ' warn' : '');
     mostrarAvisoComplianceAuto(texto, document.getElementById('post-compliance-aviso'));
+  } catch (e) {
     if (e.message === 'GROK_NO_KEY') {
       textEl.textContent = '⚠️ Falta a chave API do Grok.\n\n👉 Introduz a tua API Key do Grok (xai-...) no campo abaixo do seletor de IA.\n\n🔑 Obter chave: console.x.ai';
     } else if (e.message === 'GROK_LOCAL_FILE' || e.message === 'GROK_CORS') {
@@ -16494,6 +16598,7 @@ function openModal(id) {
     ['f-nome','f-tel','f-email','f-notas','f-aniversario','f-indicado-por'].forEach(f => document.getElementById(f).value = '');
     document.getElementById('f-estado').value = 'novo';
     const fObjNovoEl = document.getElementById('f-objetivo'); if (fObjNovoEl) fObjNovoEl.value = 'cliente';
+    const fProdNovoEl = document.getElementById('f-produto'); if (fProdNovoEl) fProdNovoEl.value = '';
   }
   if (id === 'modal-lead') {
     const av = document.getElementById('f-duplicado-aviso');
@@ -24912,7 +25017,14 @@ const COMPLIANCE_REGRAS = [
   { categoria: 'Alegação de saúde/cura', risco: 'alto',
     termos: ['cura', 'curar', 'cura a', 'trata a', 'tratamento para', 'elimina a dor', 'anti-cancro', 'anticancro', 'cura o cancro', 'combate doenças', 'sara', 'medicamento'] },
   { categoria: 'Termos LifeWave não aprovados nesta região', risco: 'alto',
-    termos: ['célula estaminal', 'células estaminais', 'stem cell', 'ativa células estaminais', 'saúde celular', 'regeneração celular', 'péptido', 'peptídeo', 'peptide', 'péptido de cobre', 'copper peptide', 'ghk-cu', 'clinicamente provado', 'comprovado clinicamente', 'desintoxica', 'detox', 'acelera o metabolismo', 'queima gordura', 'milagre', 'cura milagrosa', 'resultado garantido', 'sem dor'] },
+    // NOTA: 'celular'/'cellular'/'célula'/'células' isolados foram adicionados
+    // a pedido — cobre o caso de a IA transcrever texto de embalagem (ex:
+    // "CELLULAR PERFORMANCE SYSTEM") e reproduzir a palavra proibida no post.
+    // \b...\b já impede confusão com "Cellergize" (nome de produto aprovado):
+    // "cellergize" não contém a palavra "cellular" nem "celular" com limites
+    // de palavra próprios, por isso não dispara este termo. Ver EXCECOES_COMPLIANCE
+    // mais abaixo para a salvaguarda explícita adicional.
+    termos: ['célula estaminal', 'células estaminais', 'stem cell', 'ativa células estaminais', 'saúde celular', 'regeneração celular', 'celular', 'cellular', 'célula', 'células', 'péptido', 'peptídeo', 'peptide', 'péptido de cobre', 'copper peptide', 'ghk-cu', 'clinicamente provado', 'comprovado clinicamente', 'desintoxica', 'detox', 'acelera o metabolismo', 'queima gordura', 'milagre', 'cura milagrosa', 'resultado garantido', 'sem dor'] },
   { categoria: 'Promessa de rendimento', risco: 'alto',
     termos: ['rendimento garantido', 'lucro garantido', 'ganhos garantidos', 'fica rico', 'ficas rico', 'dinheiro fácil', 'sem esforço vais ganhar', 'garanto que vais ganhar', 'renda passiva garantida'] },
   { categoria: 'Urgência/pressão excessiva', risco: 'médio',
@@ -24920,6 +25032,21 @@ const COMPLIANCE_REGRAS = [
   { categoria: 'Superlativos não comprovados', risco: 'médio',
     termos: ['o melhor do mundo', 'nº1 absoluto', 'revolucionário e comprovado cientificamente', '100% garantido', 'resultados imediatos garantidos'] },
 ];
+
+// Nomes de produto/marca aprovados que contêm a raiz "cell" mas NÃO são o
+// termo proibido "célula/celular/cellular" — evita falso positivo quando o
+// termo detetado aparece colado ou imediatamente junto a um destes nomes.
+// Ex: "Cellergize Morning" nunca deve disparar o aviso de "célula(s)".
+const EXCECOES_COMPLIANCE_PRODUTO = ['cellergize'];
+
+// Verifica se a ocorrência do termo (posição match.index, comprimento do
+// termo) faz na verdade parte de um nome de produto aprovado, olhando para
+// a janela de texto imediatamente antes/depois da ocorrência.
+function _ocorrenciaEhNomeDeProduto(textoNorm, matchIndex, termoLength) {
+  const janelaAntes = textoNorm.substring(Math.max(0, matchIndex - 12), matchIndex);
+  const janelaDepois = textoNorm.substring(matchIndex, Math.min(textoNorm.length, matchIndex + termoLength + 12));
+  return EXCECOES_COMPLIANCE_PRODUTO.some(nome => janelaAntes.includes(nome) || janelaDepois.includes(nome));
+}
 
 // Nome da categoria usada quando se deteta um valor monetário associado a uma
 // recorrência (ex: "3000€ por mês") — sinal de alegação de rendimento que, em
@@ -25007,7 +25134,10 @@ function detetarTermosCompliance(texto) {
         // Olha para as ~4 palavras antes do termo à procura de negação
         const antes = textoNorm.substring(Math.max(0, match.index - 40), match.index).trim().split(/\s+/).slice(-4);
         const negado = antes.some(p => NEGACOES.includes(p));
-        if (!negado) {
+        // Ignora se a ocorrência faz parte de um nome de produto aprovado
+        // (ex: "Cellergize" não deve contar como o termo proibido "célula(s)").
+        const ehNomeProduto = _ocorrenciaEhNomeDeProduto(textoNorm, match.index, termoNorm.length);
+        if (!negado && !ehNomeProduto) {
           encontrados.push({ termo, categoria: regra.categoria, risco: regra.risco });
         }
       }
@@ -25064,7 +25194,8 @@ function gerarPreviewComplianceHTML(textoOriginal) {
       while ((match = regexTermo.exec(norm)) !== null) {
         const antes = norm.substring(Math.max(0, match.index - 40), match.index).trim().split(/\s+/).slice(-4);
         const negado = antes.some(p => NEGACOES.includes(p));
-        if (!negado) intervalos.push({ inicio: match.index, fim: match.index + match[0].length, risco: regra.risco });
+        const ehNomeProduto = _ocorrenciaEhNomeDeProduto(norm, match.index, termoNorm.length);
+        if (!negado && !ehNomeProduto) intervalos.push({ inicio: match.index, fim: match.index + match[0].length, risco: regra.risco });
       }
     });
   });
@@ -28449,16 +28580,18 @@ const LW_PROMOCOES_BASE = [
 ];
 
 function getLW_PROMOCOES() {
-  const custom = carregarPromosCustom().map(p => ({
-    ...p,
-    inicio: new Date(p.inicio),
-    fim: new Date(p.fim),
-    isCustom: true
-  }));
+  const custom = carregarPromosCustom().map(p => {
+    let inicio = p.inicio ? new Date(p.inicio) : null;
+    let fim = p.fim ? new Date(p.fim) : null;
+    // Protecção: se a IA devolveu datas inválidas/vazias/nulas, usa fallback em vez de esconder a promoção
+    if (!inicio || isNaN(inicio.getTime())) inicio = new Date();
+    if (!fim || isNaN(fim.getTime())) fim = new Date(Date.now() + 30*86400000);
+    return { ...p, inicio, fim, isCustom: true };
+  });
   return [...LW_PROMOCOES_BASE, ...custom];
 }
 
-let promoExpandido = false;
+let promoExpandidoSet = new Set();
 let promoUploadBase64 = null;
 let promoUploadMediaType = null;
 let promoUploadIsPdf = false;
@@ -28494,56 +28627,64 @@ function renderPromoBanner() {
   const agora = new Date();
   const ativas = LW_PROMOCOES.filter(p => agora >= p.inicio && agora <= p.fim);
   const proximas = LW_PROMOCOES.filter(p => agora < p.inicio);
+  // Promoções terminadas não geram banner — desaparecem automaticamente
   const todas = [...ativas, ...proximas];
 
-  const principal = ativas.length ? ativas[0] : (proximas.length ? proximas[0] : null);
-  const isPrincipalAtiva = ativas.length > 0;
+  if (!todas.length) {
+    wrap.innerHTML = `
+      <div class="promo-banner">
+        <div class="promo-banner-header" onclick="goTo('promocoes')">
+          <div class="promo-banner-left">
+            <div class="promo-banner-icon">📢</div>
+            <div>
+              <div class="promo-banner-title">📢 Promoções LifeWave</div>
+              <div class="promo-banner-sub">Adiciona uma promoção via upload de PDF ou imagem</div>
+            </div>
+          </div>
+        </div>
+      </div>`;
+    return;
+  }
 
-  const badge = ativas.length > 0
-    ? `<span style="background:rgba(0,212,170,0.15);color:var(--accent);font-size:10px;font-weight:700;padding:3px 9px;border-radius:20px;white-space:nowrap;flex-shrink:0;">🟢 ${ativas.length} ATIVA${ativas.length>1?'S':''}</span>`
-    : proximas.length
-      ? `<span style="background:rgba(245,200,66,0.12);color:var(--gold);font-size:10px;font-weight:700;padding:3px 9px;border-radius:20px;white-space:nowrap;flex-shrink:0;">⏳ EM BREVE</span>`
-      : '';
+  wrap.innerHTML = todas.map(p => renderPromoBannerCard(p, agora)).join('');
+  iniciarCountdownTick();
+}
 
-  const cdHtml = principal ? buildCountdownHtml(isPrincipalAtiva ? principal.fim : principal.inicio, principal.id) : '';
+// --- Um banner completo (header + corpo expansível) por promoção ---
+function renderPromoBannerCard(p, agora) {
+  const isAtiva = agora >= p.inicio && agora <= p.fim;
+  const expandido = promoExpandidoSet.has(p.id);
+  const cdHtml = buildCountdownHtml(isAtiva ? p.fim : p.inicio, p.id);
+  const itemHtml = renderPromoItem(p, agora);
+  const ativaPillHtml = isAtiva
+    ? `<span style="background:rgba(0,212,170,0.15);color:var(--accent);font-size:10px;font-weight:700;padding:3px 9px;border-radius:20px;white-space:nowrap;">🟢 ATIVA</span>`
+    : `<span style="background:rgba(245,200,66,0.12);color:var(--gold);font-size:10px;font-weight:700;padding:3px 9px;border-radius:20px;white-space:nowrap;">⏳ EM BREVE</span>`;
 
-  const itemsHtml = LW_PROMOCOES.map(p => renderPromoItem(p, agora)).join('');
-
-  const semPromos = !todas.length;
-
-  wrap.innerHTML = `
-    <div class="promo-banner">
-      <div class="promo-banner-header" onclick="togglePromoExpand()">
+  return `
+    <div class="promo-banner" style="margin-bottom:14px;">
+      <div class="promo-banner-header" onclick="togglePromoExpand('${p.id}')">
         <div class="promo-banner-left">
-          <div class="promo-banner-icon">${principal ? principal.icone : '📢'}</div>
+          <div class="promo-banner-icon">${p.icone || '📢'}</div>
           <div>
             <div class="promo-banner-title">
-              ${principal
-                ? (isPrincipalAtiva ? '🔥 Promoção Ativa Agora!' : '⏳ Promoção Em Breve')
-                : '📢 Promoções LifeWave'
-              } &nbsp;${badge}
+              ${isAtiva ? '🔥 Promoção Ativa Agora!' : '⏳ Promoção Em Breve'}
             </div>
-            <div class="promo-banner-sub">
-              ${principal ? principal.nome.replace(/^.{2}\s/,'') + (isPrincipalAtiva ? ' — Não percas!' : '') : 'Adiciona uma promoção via upload de PDF ou imagem'}
+            <div class="promo-banner-sub" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+              ${ativaPillHtml}
+              <span>${p.nome.replace(/^.{2}\s/,'')}${isAtiva ? ' — Não percas!' : ''}</span>
             </div>
           </div>
         </div>
         <div class="promo-banner-right">
           ${cdHtml}
-          <button class="promo-toggle-btn" onclick="event.stopPropagation();togglePromoExpand()">${promoExpandido ? '▲ Fechar' : '▼ Ver detalhes'}</button>
+          <button class="promo-toggle-btn" onclick="event.stopPropagation();togglePromoExpand('${p.id}')">${expandido ? '▲ Fechar' : '▼ Ver detalhes'}</button>
         </div>
       </div>
-      <div class="promo-banner-body ${promoExpandido ? 'open' : ''}">
-        ${semPromos ? '<div class="promo-no-active">Sem promoções activas. <span style="color:var(--accent);cursor:pointer;" onclick="goTo(\'promocoes\')">Adiciona uma →</span></div>' : `<div class="promo-items-grid">${itemsHtml}</div>`}
-
-        <div style="margin-top:14px;text-align:center;">
-          <button class="btn btn-secondary btn-sm" onclick="goTo('promocoes')">📢 Ver todas / Adicionar nova promoção</button>
-        </div>
+      <div class="promo-banner-body ${expandido ? 'open' : ''}" data-promo-id="${p.id}">
+        <div class="promo-items-grid">${itemHtml}</div>
       </div>
     </div>
   `;
-
-  iniciarCountdownTick();
 }
 
 function renderPromoItem(p, agora) {
@@ -28614,12 +28755,14 @@ function renderPromoItem(p, agora) {
 }
 
 // --- TOGGLE ---
-function togglePromoExpand() {
-  promoExpandido = !promoExpandido;
-  const body = document.querySelector('.promo-banner-body');
-  const btn = document.querySelector('.promo-toggle-btn');
-  if (body) body.classList.toggle('open', promoExpandido);
-  if (btn) btn.textContent = promoExpandido ? '▲ Fechar' : '▼ Ver detalhes';
+function togglePromoExpand(id) {
+  if (promoExpandidoSet.has(id)) promoExpandidoSet.delete(id);
+  else promoExpandidoSet.add(id);
+  const body = document.querySelector(`.promo-banner-body[data-promo-id="${id}"]`);
+  const btn = body ? body.previousElementSibling.querySelector('.promo-toggle-btn') : null;
+  const expandido = promoExpandidoSet.has(id);
+  if (body) body.classList.toggle('open', expandido);
+  if (btn) btn.textContent = expandido ? '▲ Fechar' : '▼ Ver detalhes';
 }
 
 function toggleEstrategia(id) {
@@ -28826,6 +28969,9 @@ Responde em português europeu, tom motivador mas realista.`;
     custom.push(novaPromo);
     guardarPromosCustom(custom);
 
+    // Atualiza o banner imediatamente, mesmo antes de o utilizador clicar em "Atualizar painel"
+    renderPromoBanner();
+
     // Mostrar resultado
     statusBox.style.display = 'none';
     resultBox.style.display = 'block';
@@ -28914,9 +29060,9 @@ Gera uma estratégia PRÁTICA e CONCRETA em português europeu:
 
     renderPromoBanner();
     // Re-abrir expandido e mostrar estratégia
-    if (!promoExpandido) { promoExpandido = true; }
+    promoExpandidoSet.add(promoId);
     setTimeout(() => {
-      const body = document.querySelector('.promo-banner-body');
+      const body = document.querySelector(`.promo-banner-body[data-promo-id="${promoId}"]`);
       if (body) body.classList.add('open');
       toggleEstrategia(promoId);
     }, 100);
