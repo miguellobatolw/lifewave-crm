@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="pt">
 <head>
+<script>window.__lwT0 = performance.now();</script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, interactive-widget=resizes-content">
 <title>LifeWave CRM v79 — Gestão de Leads & Posts</title>
@@ -40916,13 +40917,14 @@ function renderSaudeRede() {
       // MEDIÇÃO DO TEMPO DE ARRANQUE (só leitura, zero risco)
       // Não altera nenhuma função existente — só regista quanto tempo
       // o telemóvel demorou a carregar e a analisar este ficheiro.
-      // Ver no log: liga o telemóvel ao PC por USB, abre chrome://inspect
-      // no Chrome do PC, e vê a consola deste separador.
+      // Usa performance.now() próprio (marcado em __lwT0 logo no topo do
+      // <head>) em vez da Navigation Timing API — essa deu 0ms de forma
+      // persistente em teste real (possivelmente cache/service worker/
+      // bfcache), por isso passámos para uma medição autocontida.
       // ===================================================
       window.addEventListener('load', function() {
         try {
-          const nav = performance.getEntriesByType('navigation')[0];
-          const tempoMs = nav ? Math.round(nav.loadEventEnd) : null;
+          const tempoMs = (typeof window.__lwT0 === 'number') ? Math.round(performance.now() - window.__lwT0) : null;
           const kbHtml = Math.round(document.documentElement.outerHTML.length / 1024);
           if (tempoMs !== null) {
             console.log(`⏱️ App carregada em ${tempoMs}ms · ${kbHtml}KB de HTML · ${document.querySelectorAll('script').length} blocos <script>`);
