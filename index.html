@@ -3633,6 +3633,7 @@ var QRCode=function(t){"use strict";var r,e=function(){return"function"==typeof 
   <div class="login-footer">
     Ao continuar, concordas com os Termos de Utilização.<br>Os teus dados ficam guardados neste dispositivo.<br>
     <button onclick="abrirConfigSupabase()" style="background:none;border:none;color:rgba(255,255,255,0.25);font-size:10.5px;cursor:pointer;text-decoration:underline;margin-top:6px;font-family:'DM Sans',sans-serif;">⚙️ Configurar backend (avançado)</button>
+    <span id="perf-badge" style="display:block;margin-top:4px;font-size:9px;color:rgba(255,255,255,0.18);"></span>
   </div>
 </div>
 
@@ -40909,4 +40910,26 @@ function renderSaudeRede() {
       </div>
     </div>
     <!-- ==================== FIM ASSISTENTE CRIAR CHAVE ==================== -->
+
+    <script>
+      // ===================================================
+      // MEDIÇÃO DO TEMPO DE ARRANQUE (só leitura, zero risco)
+      // Não altera nenhuma função existente — só regista quanto tempo
+      // o telemóvel demorou a carregar e a analisar este ficheiro.
+      // Ver no log: liga o telemóvel ao PC por USB, abre chrome://inspect
+      // no Chrome do PC, e vê a consola deste separador.
+      // ===================================================
+      window.addEventListener('load', function() {
+        try {
+          const nav = performance.getEntriesByType('navigation')[0];
+          const tempoMs = nav ? Math.round(nav.loadEventEnd) : null;
+          const kbHtml = Math.round(document.documentElement.outerHTML.length / 1024);
+          if (tempoMs !== null) {
+            console.log(`⏱️ App carregada em ${tempoMs}ms · ${kbHtml}KB de HTML · ${document.querySelectorAll('script').length} blocos <script>`);
+            const badge = document.getElementById('perf-badge');
+            if (badge) badge.textContent = `⏱️ ${tempoMs}ms · ${kbHtml}KB`;
+          }
+        } catch(e) { /* nunca deve quebrar nada por causa de uma métrica */ }
+      });
+    </script>
 </body>
