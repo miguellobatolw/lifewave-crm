@@ -69,3 +69,42 @@ self.addEventListener('fetch', (event) => {
     })
   );
 });
+
+// ===== PUSH NOTIFICATIONS =====
+// Aditivo (v2 → continua a ser a mesma CACHE_NAME, isto não mexe em cache
+// nenhuma). Permite receber notificações reais mesmo com a app fechada ou
+// o telemóvel bloqueado — o que o Notification API sozinho não conseguia.
+
+self.addEventListener('push', (event) => {
+  let dados = {};
+  try {
+    dados = event.data ? event.data.json() : {};
+  } catch (e) {
+    dados = { titulo: 'LifeWave CRM', corpo: event.data ? event.data.text() : 'Tens um lembrete pendente.' };
+  }
+
+  const titulo = dados.titulo || '🔔 LifeWave CRM';
+  const opcoes = {
+    body: dados.corpo || 'Tens um lembrete pendente.',
+    icon: dados.icon || './icon-192.png',
+    badge: dados.icon || './icon-192.png',
+    tag: dados.tag || 'lifewave-crm-lembrete',
+    requireInteraction: true,
+    data: { url: dados.url || './' }
+  };
+
+  event.waitUntil(self.registration.showNotification(titulo, opcoes));
+});
+
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  const url = (event.notification.data && event.notification.data.url) || './';
+  event.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
+      for (const client of clientList) {
+        if (client.url.includes(url) && 'focus' in client) return client.focus();
+      }
+      if (clients.openWindow) return clients.openWindow(url);
+    })
+  );
+});
