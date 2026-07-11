@@ -38647,16 +38647,28 @@ async function acAnalisar() {
 
     // Resume o histórico de um lead num bloco de texto compacto para o prompt,
     // preservando as interações mais recentes primeiro (mais relevantes).
+    // Inclui explicitamente o resultado da ÚLTIMA sugestão da IA (se houver),
+    // para o prompt saber com certeza se aquela sugestão funcionou ou não,
+    // em vez de ter de adivinhar isso dentro do texto livre do histórico —
+    // é isto que fecha o ciclo de conversão ao longo de várias análises.
     function acResumirHistoricoLead(lead) {
       var hist = (lead && Array.isArray(lead.historico)) ? lead.historico : [];
-      if (!hist.length) return '';
+      var sugestaoLbl = { positiva: 'RESULTOU — o lead avançou depois desta sugestão',
+        sem_resposta_ou_negativa: 'NÃO RESULTOU — o lead não avançou ou piorou depois desta sugestão',
+        neutra: 'sem sinal claro de evolução', pendente: 'ainda não avaliada (é a análise mais recente)' };
+      var linhaSugestao = '';
+      if (lead && lead.ultimaSugestaoIA && lead.ultimaSugestaoIA.mensagemSugerida) {
+        var s = lead.ultimaSugestaoIA;
+        linhaSugestao = 'ÚLTIMA SUGESTÃO DE MENSAGEM JÁ FEITA A ESTE LEAD (' + (sugestaoLbl[s.resultado] || s.resultado) + '): "' + s.mensagemSugerida.slice(0, 250) + (s.mensagemSugerida.length > 250 ? '…' : '') + '"\n';
+      }
+      if (!hist.length) return linhaSugestao;
       var linhas = hist.slice(0, 15).map(function(h) {
         var data = h.data || '';
         var msg = (h.msg || '').toString().replace(/\s+/g, ' ').trim();
         if (msg.length > 300) msg = msg.slice(0, 300) + '…';
         return '- [' + data + '] ' + msg;
       });
-      return linhas.join('\n');
+      return linhaSugestao + linhas.join('\n');
     }
 
     var _acLeadMatchInicial = _acLeadsDisponiveis.length
@@ -38699,9 +38711,32 @@ async function acAnalisar() {
       + ' 8) UNRELATED CONTENT RULE (critical): a screenshot or pasted conversation may contain messages that have nothing to do with LifeWave — personal chit-chat, work topics, family matters, an entirely different business/project/opportunity, or an unrelated subject mixed into the same thread. IGNORE all such unrelated messages completely when producing resumo, objecoes, pontos_positivos, erros_cometidos, proximo_passo, probabilidade_conversao and proxima_mensagem. Base the ENTIRE analysis only on messages that EXPLICITLY reference LifeWave, X39 or other named LifeWave products/patches, phototherapy/photobiomodulation, or an unambiguous LifeWave business/compensation-plan opportunity. Do NOT assume something is LifeWave-related just because it is generically about "a business opportunity", "a project", "a video to watch" or "money" — those words alone are not evidence. If the name, brand or product is not identifiable and nothing in the visible text ties it to LifeWave, treat it as UNRELATED, even if it looks superficially similar (e.g. another company\'s pre-launch project, a different MLM, a generic investment pitch). NEVER speculate or stretch an ambiguous or unrelated item into a LifeWave interpretation (e.g. do not write things like "in a LifeWave context this could be interpreted as..." — if it is not explicitly LifeWave, it is not part of this analysis). If there are multiple separate LifeWave-related exchanges at different points in the thread, focus on the MOST RECENT one — that is the current live opportunity. If, after excluding unrelated content, there is no LifeWave-related material left at all, set "fase" to "sem_contexto", leave objecoes/pontos_positivos/erros_cometidos as empty arrays, set probabilidade_conversao to 0, and explain in "resumo" that no LifeWave-related conversation was found in the screenshot/text provided — do not describe or summarize the unrelated content instead.'
       + (_acLinksStr ? ' 9) LINK INCLUSION RULE (mandatory, not optional): if "fase" is "pronto_para_comprar" or "interesse", the "proxima_mensagem" field MUST include one of the distributor\'s personal links below — this is a hard requirement, not a suggestion. Use the produto link if the prospect is leaning toward the product/wellness angle, or the negocio link if they are leaning toward the business/partnership angle; use registo if neither is available. Weave the link naturally into the message (e.g. "Aqui tens o link com toda a informação: [link]"), never omit it in these two phases. If "fase" is "descoberta" or "consideracao", do NOT include any link yet — keep the conversation going first.' + _acLinksStr : '')
       + ' 9b) TEMPLATE DETECTION RULE: compare the distributor\'s messages in this conversation against the reference list below (id, title, opening words of each app template). If one of them is a clear match — even if the distributor personalized it (changed the name, added/removed a sentence, reworded slightly) — return its exact id in "template_detectado". Judge by structure and core intent, not exact wording. If no template is a reasonably close match, or the distributor wrote something clearly original, return an empty string. Never guess a weak match just to fill the field.\n\nREFERENCE TEMPLATES:\n' + JSON.stringify(getListaReferenciaTemplates())
-      + ' 10) PROXIMA_MENSAGEM QUALITY RULES (critical — write it like an experienced LifeWave distributor who has closed real sales, not like a generic marketing bot): a) NAME THE BRAND — say "LifeWave" and/or "X39" explicitly; never hide behind vague phrases like "o projeto que te falei", "esta oportunidade incrível", "algo que partilho". Hiding the name reads as evasive and increases suspicion, especially in Portugal where network marketing already carries stigma — naming it plainly builds trust and lets the prospect research it themselves. b) NO EMPTY HYPE — cut filler enthusiasm like "tenho a certeza que vais adorar", "é incrível", "vai mudar a tua vida". Replace it with one concrete, specific reason tied to what THIS prospect said or asked (energy, sleep, recovery, skin, the business/income side) — specificity converts, generic excitement does not. c) GIVE A REAL REASON THE MESSAGE IS RELEVANT TO THEM — briefly say why you thought of them or why it fits what they mentioned, instead of a one-size-fits-all pitch. d) END WITH A CONCRETE NEXT STEP, NOT A PASSIVE ONE — avoid vague closers like "depois podemos falar" or "quando quiseres, diz". Propose something specific and low-friction (a suggested day/time for a quick call, or a direct question they can answer in one tap, e.g. "Quando vires, diz-me o que achaste — quinta à noite fica bem para uma chamada rápida?"). e) Keep it warm and human, never pushy or salesy — this is relationship-based selling, not a cold pitch. f) LINK FRAMING (important): the distributor\'s links use a third-party domain that does not visibly say "LifeWave" in the URL itself — so whenever a link is included in the message, frame it explicitly in the surrounding text so the prospect knows what they are clicking, e.g. "Aqui tens o meu link oficial com toda a informação sobre a LifeWave/X39: [link]" or "Este é o link com tudo sobre o X39 e a LifeWave: [link]" — never paste the link with no framing or with only a vague "aqui tens mais info", since the domain alone will not reassure the prospect that it is LifeWave-related. g) TEAM SUPPORT MENTION (only when relevant): if the prospect\'s objection or hesitation is about lack of time, a bad prior experience with another MLM/network-marketing company, feeling unsupported, or not knowing how to get started, include ONE brief, natural sentence in "proxima_mensagem" noting that the distributor is not working alone — there is a team behind them with its own support system/app that helps automate and organize the work (e.g. "não estás por tua conta, tenho uma equipa e um sistema de apoio que facilita muito o arranque"). Do NOT invent this angle when the objection is about price, skepticism, product mechanism, or doctor consultation — it only fits time/support/prior-MLM-failure objections. NEVER reveal the name of the app/tool itself to a prospect who has not yet joined the business — refer to it only generically ("um sistema/app de apoio", "ferramentas que uso"), never by its actual name.'
-      + (_acHistoricoResumoInicial ? ' 11) LEAD HISTORY RULE (critical): below is the prior interaction history already recorded for this prospect in the CRM, most recent first. Use it as background context to inform "sentimento", "fase", "objecoes", "pontos_positivos", "erros_cometidos", "probabilidade_conversao", "proximo_passo" and especially "proxima_mensagem" — e.g. do not repeat an objection they already resolved, do not re-introduce something already explained before, and reference earlier commitments or promises naturally if relevant. The history is background only: the CURRENT conversation/audio/image being analyzed now still defines "fase" and "sentimento" primarily. If the current message contradicts the historical pattern (e.g. they were warm before but are cold now), trust the CURRENT signal.\n\nHISTÓRICO DO LEAD (mais recente primeiro):\n' + _acHistoricoResumoInicial : '')
-      + ' Respond ONLY in valid JSON with this exact structure: {"nome_detectado":"Maria Silva","tel_detectado":"+351912345678","email_detectado":"maria@email.com","sentimento":"positivo","fase":"interesse","resumo":"texto","objecoes":["obj1"],"pontos_positivos":["p1"],"erros_cometidos":["e1"],"proxima_mensagem":"msg exacta no idioma do prospecto","proximo_passo":"accao","probabilidade_conversao":60,"dica_extra":"dica","idioma_prospecto":"fr","template_detectado":"tb1"' + (isAudio ? ',"transcricao":"texto exacto dito no audio","tom_voz":"analise do tom de voz"' : '') + '}';
+      + '\n\n10) PROXIMA_MENSAGEM QUALITY RULES (critical — write it like an experienced LifeWave distributor who has closed real sales, not like a generic marketing bot):'
+      + '\n\nTOM E CONTEÚDO:'
+      + '\n• NAME THE BRAND — say "LifeWave" and/or "X39" explicitly; never hide behind vague phrases like "o projeto que te falei", "esta oportunidade incrível", "algo que partilho". Hiding the name reads as evasive and increases suspicion, especially in Portugal where network marketing already carries stigma — naming it plainly builds trust and lets the prospect research it themselves.'
+      + '\n• NO EMPTY HYPE — cut filler enthusiasm like "tenho a certeza que vais adorar", "é incrível", "vai mudar a tua vida". Replace it with one concrete, specific reason tied to what THIS prospect said or asked (energy, sleep, recovery, skin, the business/income side) — specificity converts, generic excitement does not.'
+      + '\n• GIVE A REAL REASON THE MESSAGE IS RELEVANT TO THEM — briefly say why you thought of them or why it fits what they mentioned, instead of a one-size-fits-all pitch.'
+      + '\n• Keep it warm and human, never pushy or salesy — this is relationship-based selling, not a cold pitch.'
+      + '\n• GENUINE URGENCY ONLY WHEN IT ACTUALLY EXISTS — do not invent scarcity or fake deadlines. Only mention a time-sensitive reason to act now (e.g. an ongoing promotion, an upcoming team event/webinar the prospect could join, limited slots in a group start) if the "Contexto" field, the conversation, or the distributor\'s own links/notes actually mention one; a fabricated sense of urgency reads as manipulative and damages trust long-term. When no genuine urgency exists, rely on warmth and specificity instead of pressure.'
+      + '\n\nESTRUTURA E FORMATO DA MENSAGEM:'
+      + '\n• END WITH A CONCRETE NEXT STEP, NOT A PASSIVE ONE — avoid vague closers like "depois podemos falar" or "quando quiseres, diz". Propose something specific and low-friction (a suggested day/time for a quick call, or a direct question they can answer in one tap, e.g. "Quando vires, diz-me o que achaste — quinta à noite fica bem para uma chamada rápida?").'
+      + '\n• CLOSE WITH ONE QUESTION ONLY, NEVER MULTIPLE — a message that ends on a single, specific, easy-to-answer question (yes/no, or a choice between two options) gets far more replies than one ending on a statement; but asking two or more questions in the same message (e.g. one open question mid-message AND another closing question at the end, or offering two separate paths to choose between) makes the prospect do more mental work and lowers the reply rate — always cut it down to exactly ONE question, the single most important one, and delete or fold in any other question into a statement instead. Prefer this over a passive closing unless the fase is "pronto_para_comprar" and a direct call-to-action to complete the purchase/registration is clearly more appropriate than a question.'
+      + '\n• LENGTH AND PACING BY CHANNEL AND FASE — for WhatsApp/Instagram DM/Messenger keep "proxima_mensagem" SHORT (roughly 2-5 short sentences or a few short lines) — long paragraphs get skimmed or ignored on chat apps; for Email it can be longer and more structured. Separately, respect the fase: in "descoberta" the message should stay curious and low-key, asking a qualifying question or sharing one small relevant fact — NEVER pitch the business/product hard or push a link at this stage; in "consideracao" it can go a little deeper into specifics they asked about; only in "interesse", "objecao" (once answered) and "pronto_para_comprar" is a clearer call-to-action or link appropriate. Pushing too hard too early is a common conversion killer just as much as being too passive later.'
+      + '\n• ONE SINGLE OFFER, NEVER A MENU — never present the product (X39/wellness) and the business/partnership opportunity as two parallel options for the prospect to pick between in the same message (e.g. never write something like "queres experimentar só o produto ou também conheceres o negócio?"). Presenting a menu of choices increases the prospect\'s mental effort and lowers response rate — a good distributor leads with ONE clear angle, chosen from the strongest signal in the conversation (what they already asked about, complained about, or showed curiosity in); if truly nothing points either way, default to the lighter, lower-commitment product/wellness angle rather than the business angle, and let the business conversation emerge naturally later if they respond well.'
+      + '\n\nLINKS E APOIO DE EQUIPA:'
+      + '\n• LINK FRAMING (important): the distributor\'s links use a third-party domain that does not visibly say "LifeWave" in the URL itself — so whenever a link is included in the message, frame it explicitly in the surrounding text so the prospect knows what they are clicking, e.g. "Aqui tens o meu link oficial com toda a informação sobre a LifeWave/X39: [link]" or "Este é o link com tudo sobre o X39 e a LifeWave: [link]" — never paste the link with no framing or with only a vague "aqui tens mais info", since the domain alone will not reassure the prospect that it is LifeWave-related.'
+      + '\n• TEAM SUPPORT MENTION (only when relevant): if the prospect\'s objection or hesitation is about lack of time, a bad prior experience with another MLM/network-marketing company, feeling unsupported, or not knowing how to get started, include ONE brief, natural sentence in "proxima_mensagem" noting that the distributor is not working alone — there is a team behind them with its own support system/app that helps automate and organize the work (e.g. "não estás por tua conta, tenho uma equipa e um sistema de apoio que facilita muito o arranque"). Do NOT invent this angle when the objection is about price, skepticism, product mechanism, or doctor consultation — it only fits time/support/prior-MLM-failure objections. NEVER reveal the name of the app/tool itself to a prospect who has not yet joined the business — refer to it only generically ("um sistema/app de apoio", "ferramentas que uso"), never by its actual name.'
+      + '\n\nLIDAR COM OBJEÇÕES (a parte com mais impacto na conversão — uma objeção mal respondida é a maior causa de perda de lead):'
+      + '\n• ANSWER THE SPECIFIC OBJECTION FIRST, THEN MOVE FORWARD — if an objection was detected (see "objecoes"), "proxima_mensagem" must address that EXACT objection concretely before proposing any next step; never skip past it straight to a pitch or a link, since an unanswered objection is the single biggest conversion killer. Match the response to the objection type: price → reframe around value/cost-per-day or point to a starter option, never just repeat the price; skepticism about how it works → one plain-language mechanism explanation (e.g. phototherapy stimulating the body\'s own processes), not a hype claim; "already tried/heard about network marketing before" or bad past experience → acknowledge it honestly, differentiate briefly (e.g. product-first, no pressure), do not dismiss their experience; "no time" → acknowledge briefly then offer the lowest-friction option (short message answer instead of a call, or a specific short time slot); "need to ask spouse/partner/doctor" → respect it explicitly, offer to send something they can share with that person, do not pressure for an immediate answer. If no objection was detected, skip this and go straight to the "concrete next step" guidance below. EXCEPTION — read the "hidden objection behind a literal excuse" guidance right below before applying the generic "no time" branch above: it overrides this specific case whenever it applies.'
+      + '\n• HIDDEN OBJECTION BEHIND A LITERAL EXCUSE (critical — this pattern generalizes beyond just "no time", apply the same reasoning whenever the stated objection and the observed behaviour do not add up): sometimes the objection the prospect states in words is not the real blocker — it is a socially-easy excuse standing in for a deeper, unstated hesitation. Before answering any objection at face value, check whether the stated reason actually matches the surrounding behaviour and context. The most common case: "no time" from an OLD or DORMANT contact being reopened after a long gap (e.g. they say "já conheço há anos", "um amigo já me tinha falado nisto", "tinha esquecido isto", or the lead history shows a long silence before this message) is almost never a literal empty calendar — it is much more likely unresolved doubt about whether it is worth their time at all (a value/priority objection wearing a "no time" disguise). Other examples of the same pattern: "não tenho dinheiro" arriving right after they asked detailed questions about how the product works (more likely lingering skepticism than an actual budget constraint); "vou pensar" arriving immediately after a question about refunds or commitment terms (more likely fear of being locked in than genuine indecision). Whenever the stated and behavioural signals diverge like this, treat the BEHAVIOURAL signal as the real objection, and say so plainly in "dica_extra" (e.g. "a objeção real aqui não é bem o dinheiro, é a dúvida sobre X"). For the specific old-contact "no time" case: do NOT offer a shorter call or any other low-friction time slot (that is the right move for a genuinely busy new contact, and it is the wrong move here). Do NOT restart with a fresh full pitch as if they know nothing either. Instead, acknowledge the gap briefly and naturally (e.g. "sei que já ouviste falar disto há uns anos"), then ask ONE curious, non-pushy question about what they actually experienced or what stopped them back then (e.g. "o que é que te fez parar na altura?") — to surface the real hesitation before offering anything concrete. Do not push a link or propose a call in the same message when this applies; doing so reads as ignoring what they just said, and costs more replies than it gains.'
+      + ' 12) PROBABILIDADE_CONVERSAO CALIBRATION (mandatory — use this rubric instead of a subjective guess, so scores stay consistent across analyses): 0-10 = prospect explicitly said no / not interested / asked to stop contact (like this example: "não estou interessada", "não me interessa"); 11-30 = cold or passive — vague/one-word replies, long delays, or a firm objection with no opening left; 31-50 = neutral/early — curious but noncommittal, asking basic questions, fase is typically "descoberta"; 51-70 = warm — engaging back and forth, asking specific questions about price/how it works/how to start, fase typically "consideracao" or "interesse"; 71-90 = hot — expressed clear intent to move forward, only logistics or a minor objection left unresolved, fase typically "interesse" or "objecao"; 91-100 = ready to close — explicitly asked how to pay/join/order or agreed to a next concrete step, fase "pronto_para_comprar". Anchor the number to the MOST RECENT signal from the prospect, not the overall history of the relationship — a prospect who was hot last month but is cold today scores low today.'
+      + ' 12b) PROBABILIDADE_RACIONAL (mandatory companion field to probabilidade_conversao): write ONE short sentence (max ~20 words, in ' + uiLangName + ') naming the SINGLE most concrete, most recent signal that the score is anchored to — not a summary of the whole conversation, just the specific fact or quote that justifies the number. This exists so the distributor never has to blindly trust a bare percentage, especially when a lot of the analysis is inferred rather than stated outright (e.g. distinguish "abriu o link mas ainda não respondeu ao conteúdo" — a fact — from "provavelmente já foi Brand Partner" — an inference from a system email, weaker evidence). Good example: "Abriu o link mas a resposta é uma objeção firme, sem pergunta de volta." Bad example (too vague, do not do this): "O sentimento geral é morno."'
+      + (_acHistoricoResumoInicial ? ' 13) LEAD HISTORY RULE (critical): below is the prior interaction history already recorded for this prospect in the CRM, most recent first. Use it as background context to inform "sentimento", "fase", "objecoes", "pontos_positivos", "erros_cometidos", "probabilidade_conversao", "proximo_passo" and especially "proxima_mensagem" — e.g. do not repeat an objection they already resolved, do not re-introduce something already explained before, and reference earlier commitments or promises naturally if relevant. The history is background only: the CURRENT conversation/audio/image being analyzed now still defines "fase" and "sentimento" primarily. If the current message contradicts the historical pattern (e.g. they were warm before but are cold now), trust the CURRENT signal.'
+        + ' 13b) PRIOR SUGGESTION OUTCOME (critical, closes the feedback loop — use this to actually improve, not just repeat): if the history below includes a line starting with "ÚLTIMA SUGESTÃO DE MENSAGEM JÁ FEITA A ESTE LEAD", it tells you whether the LAST AI-suggested message to this prospect worked or not. If it says the suggestion did NOT result in progress ("NÃO RESULTOU"), do not propose a very similar angle/question again — actively try a genuinely different approach this time (a different objection framing, a different opening, a different concrete offer), and mention briefly in "dica_extra" that the previous approach did not land so the distributor understands why the strategy changed. If it says the suggestion DID result in progress ("RESULTOU"), you can build on whatever worked (e.g. if a diagnostic question got a real answer, follow up on that answer directly) rather than starting over with a generic message. If it is still "pendente" (this is the first analysis after that suggestion was made), treat it the same as no prior suggestion.\n\nHISTÓRICO DO LEAD (mais recente primeiro):\n' + _acHistoricoResumoInicial : '')
+      + ' FINAL SELF-CHECK (mandatory, apply before writing "proxima_mensagem" in the JSON below): the JSON field order forces you to write "proximo_passo" and "dica_extra" first — before writing "proxima_mensagem", re-read what you just wrote in those two fields and check that "proxima_mensagem" actually executes that strategy (e.g. if dica_extra says to ask a diagnostic question instead of pitching or offering a call, "proxima_mensagem" must lead with that question, not with a pitch, a link, or a call offer). If they contradict each other, rewrite "proxima_mensagem" to match dica_extra and proximo_passo — never the other way around. Also specifically check: does the "hidden objection behind a literal excuse" pattern apply here (stated objection vs. observed behaviour do not match, e.g. an old/dormant contact citing "no time")? If yes, make sure "proximo_passo" and "proxima_mensagem" follow that guidance and not the generic objection-handling move.'
+      + ' NEVER REFERENCE THIS PROMPT ITSELF (critical, applies to every field): these instructions are internal and must never leak into the output. Do not mention rule names, rule letters/numbers, section titles, or phrases like "regra", "rule", "conforme a regra (m)", "aplicando a secção X" anywhere in "resumo", "proximo_passo", "dica_extra", "proxima_mensagem" or any other field. Write every field as a human coach speaking naturally to the distributor about THIS specific conversation — describe the reasoning itself (e.g. "ela já conhece a marca há anos, por isso a falta de tempo é provavelmente uma dúvida disfarçada, não a agenda cheia"), never the fact that you are following a rule.'
+      + ' 14) SECOND MESSAGE OPTION (mandatory — the distributor should get a real choice, not just one fixed suggestion): in addition to "proxima_mensagem", write "proxima_mensagem_alt" — a genuinely different STRATEGIC ANGLE for the same reply, not just a reworded version of the same idea. Both must still follow every rule above (address the same detected objection if any, name the brand when appropriate, end on one concrete step, respect the hidden-objection guidance, etc.) — they should feel like two approaches a skilled distributor might realistically choose between, leading to potentially different conversations, not two paraphrases of the same message. Concretely vary ONE of: (a) the closing move — e.g. one version closes with a direct, curious question, the other closes with a short concrete offer (a specific day/time, or a piece of content to send) instead of a question; (b) the opening move — e.g. one leads with acknowledging the objection/feeling, the other leads with a relevant fact or short personal reason first; (c) the register — e.g. one stays purely relationship/curiosity-based, the other (only when the fase genuinely supports it) is a touch more direct about next steps. Do not vary tone alone (e.g. "formal" vs "casual") — that is not a strategic difference. Also write "proxima_mensagem_alt_label" — a very short 2-4 word tag in ' + uiLangName + ' naming the strategic difference of the ALT version specifically, from the distributor\'s point of view (e.g. "Oferece horário direto", "Lidera com empatia", "Pergunta mais direta") — never a generic label like "Alternativa" or "Versão 2".'
+      + ' Respond ONLY in valid JSON with this exact structure (note the field order — write them in this order): {"nome_detectado":"Maria Silva","tel_detectado":"+351912345678","email_detectado":"maria@email.com","sentimento":"positivo","fase":"interesse","resumo":"texto","objecoes":["obj1"],"pontos_positivos":["p1"],"erros_cometidos":["e1"],"proximo_passo":"accao","dica_extra":"dica","proxima_mensagem":"msg exacta no idioma do prospecto","proxima_mensagem_alt":"segunda opcao com angulo estrategico diferente, mesmo idioma","proxima_mensagem_alt_label":"tag curta 2-4 palavras","probabilidade_conversao":60,"probabilidade_racional":"frase curta com o sinal concreto mais recente","idioma_prospecto":"fr","template_detectado":"tb1"' + (isAudio ? ',"transcricao":"texto exacto dito no audio","tom_voz":"analise do tom de voz"' : '') + '}';
     var acDescricaoInput = isAudio && isImg ? '. Vê a imagem E ouve o áudio (nota de voz do prospecto) em conjunto, como partes da mesma conversa, e transcreve o áudio.'
       : isAudio ? '. Ouve o áudio (nota de voz do prospecto) e transcreve-o.'
       : isImg ? '. Vê a imagem.'
@@ -38732,27 +38767,58 @@ async function acAnalisar() {
 
     if (!raw || !raw.trim()) throw new Error('Resposta vazia da IA');
 
+    // Repara quebras de linha/tabs LITERAIS que fiquem dentro de valores de string
+    // no JSON devolvido pela IA (JSON válido exige "\n" escapado, mas o Gemini às
+    // vezes devolve uma quebra de linha real dentro de campos de texto longo como
+    // "proxima_mensagem" — isso é ilegal em JSON e faz o JSON.parse falhar com
+    // "Bad control character in string literal", mesmo que o resto do JSON esteja
+    // perfeito). Percorre caracter a caracter e só escapa dentro de strings.
+    function acEscaparControlCharsEmStrings(str) {
+      var out = '';
+      var dentroString = false;
+      for (var i = 0; i < str.length; i++) {
+        var c = str[i];
+        if (c === '"' && str[i - 1] !== '\\') {
+          dentroString = !dentroString;
+          out += c;
+          continue;
+        }
+        if (dentroString) {
+          if (c === '\n') { out += '\\n'; continue; }
+          if (c === '\r') { continue; }
+          if (c === '\t') { out += '\\t'; continue; }
+        }
+        out += c;
+      }
+      return out;
+    }
+
     var parsed;
     try {
       // 1. Remove markdown fences
       var cleanRaw = raw.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim();
       // 2. Tenta parse direto
       try { parsed = JSON.parse(cleanRaw); }
-      catch(e1) {
-        // 3. Extrai o bloco JSON mais interno (do primeiro { ao último })
+      catch(e0) {
+        // 2b. Tenta de novo já com quebras de linha literais escapadas
+        try { parsed = JSON.parse(acEscaparControlCharsEmStrings(cleanRaw)); }
+        catch(e1) {
+        // 3. Extrai o bloco JSON mais interno (do primeiro { ao último )
         var s = cleanRaw.indexOf('{');
         var e = cleanRaw.lastIndexOf('}');
         if (s !== -1 && e > s) {
-          try { parsed = JSON.parse(cleanRaw.slice(s, e + 1)); }
+          var bloco = acEscaparControlCharsEmStrings(cleanRaw.slice(s, e + 1));
+          try { parsed = JSON.parse(bloco); }
           catch(e2) {
             // 4. Tenta reparar: remove vírgulas a mais antes de } ou ]
-            var repaired = cleanRaw.slice(s, e + 1)
+            var repaired = bloco
               .replace(/,\s*([}\]])/g, '$1')
               .replace(/([{,]\s*)(\w+)\s*:/g, '$1"$2":');
             parsed = JSON.parse(repaired);
           }
         } else {
           throw new Error('no_json');
+        }
         }
       }
     } catch(pe) {
@@ -38783,8 +38849,11 @@ async function acAnalisar() {
         pontos_positivos: [],
         erros_cometidos: [],
         proxima_mensagem: mensagemExtraida || textoLegivel || 'Não foi possível extrair a mensagem. Tenta novamente.',
+        proxima_mensagem_alt: '',
+        proxima_mensagem_alt_label: '',
         proximo_passo: 'Tenta novamente ou usa texto em vez de imagem.',
         probabilidade_conversao: 30,
+        probabilidade_racional: '',
         dica_extra: 'Dica: certifica-te de que a chave API está corretamente configurada.',
         template_detectado: ''
       };
@@ -38810,7 +38879,7 @@ async function acAnalisar() {
       try {
         var promptTextComHistorico = promptText.replace(
           "Respond ONLY in valid JSON",
-          "LEAD HISTORY RULE (critical): below is the prior interaction history already recorded for this prospect in the CRM, most recent first. Use it as background context to inform \"sentimento\", \"fase\", \"objecoes\", \"pontos_positivos\", \"erros_cometidos\", \"probabilidade_conversao\", \"proximo_passo\" and especially \"proxima_mensagem\" — do not repeat an objection they already resolved, reference earlier commitments naturally if relevant, and trust the CURRENT conversation over the history if they contradict each other.\n\nHISTÓRICO DO LEAD (mais recente primeiro):\n" + _acHistoricoResumoFinal + "\n\nRespond ONLY in valid JSON"
+          "LEAD HISTORY RULE (critical): below is the prior interaction history already recorded for this prospect in the CRM, most recent first. Use it as background context to inform \"sentimento\", \"fase\", \"objecoes\", \"pontos_positivos\", \"erros_cometidos\", \"probabilidade_conversao\", \"proximo_passo\" and especially \"proxima_mensagem\" — do not repeat an objection they already resolved, reference earlier commitments naturally if relevant, and trust the CURRENT conversation over the history if they contradict each other. If the history includes a line starting with \"ÚLTIMA SUGESTÃO DE MENSAGEM JÁ FEITA A ESTE LEAD\" marked as NÃO RESULTOU, do not repeat a similar angle — try a genuinely different approach this time. If marked RESULTOU, build on what worked instead of starting over.\n\nHISTÓRICO DO LEAD (mais recente primeiro):\n" + _acHistoricoResumoFinal + "\n\nRespond ONLY in valid JSON"
         );
         var rawComHistorico = temMedia
           ? await callGemini(
@@ -38826,8 +38895,14 @@ async function acAnalisar() {
           var parsedComHist = null;
           try { parsedComHist = JSON.parse(cleanComHist); }
           catch(e1) {
-            var m2 = cleanComHist.match(/\{[\s\S]*\}/);
-            if (m2) { try { parsedComHist = JSON.parse(m2[0]); } catch(e2){} }
+            try { parsedComHist = JSON.parse(acEscaparControlCharsEmStrings(cleanComHist)); }
+            catch(e1b) {
+              var m2 = cleanComHist.match(/\{[\s\S]*\}/);
+              if (m2) {
+                var blocoComHist = acEscaparControlCharsEmStrings(m2[0]);
+                try { parsedComHist = JSON.parse(blocoComHist); } catch(e2){}
+              }
+            }
           }
           if (parsedComHist && typeof parsedComHist === 'object') parsed = parsedComHist;
         }
@@ -38835,6 +38910,37 @@ async function acAnalisar() {
         // Falha na re-análise com histórico não deve bloquear o resultado já obtido —
         // mantém o "parsed" da 1ª chamada e segue em frente silenciosamente.
       }
+    }
+
+    // ---------------------------------------------------------------
+    // SANEAMENTO DEFENSIVO DA MENSAGEM (rede de segurança, não substitui a
+    // regra "CLOSE WITH ONE QUESTION ONLY" do prompt) — a IA nem sempre
+    // segue a instrução de "uma pergunta só" na perfeição; se uma mensagem
+    // acabar por conter mais do que uma "?", isso tipicamente sinaliza duas
+    // ou mais perguntas encadeadas (às vezes até a oferecer um "menu" de
+    // opções), o que reduz a taxa de resposta. Em vez de cortar conteúdo
+    // (arriscado — pode eliminar a assinatura, um emoji, ou o link final),
+    // convertemos todas as interrogações EXCETO A ÚLTIMA em pontos finais —
+    // a última costuma ser a pergunta de fecho, mais intencional e mais
+    // próxima da ação pretendida, e as anteriores tornam-se afirmações em
+    // vez de perguntas extra a que o prospect teria de responder.
+    // Aplica-se a ambas as variantes (proxima_mensagem e proxima_mensagem_alt),
+    // já que a mesma falha ocasional da IA pode ocorrer em qualquer uma.
+    function acSanearPerguntasExtra(msg) {
+      var numPerguntas = (msg.match(/\?/g) || []).length;
+      if (numPerguntas <= 1) return msg;
+      var posUltimaPergunta = msg.lastIndexOf('?');
+      var msgSaneada = '';
+      for (var _i = 0; _i < msg.length; _i++) {
+        msgSaneada += (msg[_i] === '?' && _i !== posUltimaPergunta) ? '.' : msg[_i];
+      }
+      return msgSaneada;
+    }
+    if (parsed && typeof parsed.proxima_mensagem === 'string') {
+      parsed.proxima_mensagem = acSanearPerguntasExtra(parsed.proxima_mensagem);
+    }
+    if (parsed && typeof parsed.proxima_mensagem_alt === 'string') {
+      parsed.proxima_mensagem_alt = acSanearPerguntasExtra(parsed.proxima_mensagem_alt);
     }
 
     acReset(false);
@@ -38888,7 +38994,13 @@ function acMostrarResultado(r) {
   var pontosHtml = (r.pontos_positivos && r.pontos_positivos.length) ? '<div style="background:rgba(0,212,170,0.07);border:1px solid rgba(0,212,170,0.2);border-radius:var(--radius);padding:12px;"><div style="font-size:12px;font-weight:700;color:var(--accent);margin-bottom:8px;">Pontos positivos</div>' + r.pontos_positivos.map(function(p){ return '<div style="font-size:11.5px;color:var(--text2);margin-bottom:5px;">• ' + p + '</div>'; }).join('') + '</div>' : '<div></div>';
   var errosHtml = (r.erros_cometidos && r.erros_cometidos.length) ? '<div style="background:rgba(239,68,68,0.07);border:1px solid rgba(239,68,68,0.2);border-radius:var(--radius);padding:12px;"><div style="font-size:12px;font-weight:700;color:var(--danger);margin-bottom:8px;">A melhorar</div>' + r.erros_cometidos.map(function(e){ return '<div style="font-size:11.5px;color:var(--text2);margin-bottom:5px;">• ' + e + '</div>'; }).join('') + '</div>' : '<div></div>';
   var _acMsgOriginal = r.proxima_mensagem || '';
-  var msgHtml = _acMsgOriginal ? '<div style="background:linear-gradient(135deg,rgba(0,212,170,0.1),rgba(0,132,255,0.07));border:1px solid rgba(0,212,170,0.3);border-radius:var(--radius);padding:16px;"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:8px;"><div style="font-size:13px;font-weight:700;color:var(--accent);">Mensagem a enviar agora</div><div style="display:flex;gap:6px;flex-wrap:wrap;"><button id="ac-traduzir-btn" class="btn btn-secondary btn-sm" onclick="acTraduzirMsg()">🌐 Traduzir</button><button class="btn btn-secondary btn-sm" onclick="acCopiarMsg()">Copiar</button></div></div><pre id="ac-msg-copy" style="font-size:12.5px;color:var(--text);white-space:pre-wrap;line-height:1.65;font-family:DM Sans,sans-serif;margin:0;">' + _acMsgOriginal + '</pre><div id="ac-traducao-wrap" style="display:none;margin-top:12px;border-top:1px solid rgba(0,212,170,0.2);padding-top:12px;"><div id="ac-traducao-label" style="font-size:11px;font-weight:700;color:var(--text2);margin-bottom:6px;">🌐 Tradução</div><pre id="ac-traducao-text" style="font-size:12.5px;color:var(--text);white-space:pre-wrap;line-height:1.65;font-family:DM Sans,sans-serif;margin:0;"></pre><button class="btn btn-secondary btn-sm" style="margin-top:8px;" onclick="acCopiarTraducao()">Copiar tradução</button></div></div>' : '';
+  var _acMsgAlt = (r.proxima_mensagem_alt || '').trim();
+  var _acMsgAltLabel = (r.proxima_mensagem_alt_label || '').trim() || 'Opção alternativa';
+  // Guarda as duas variantes em atributos data-* (não no textContent visível) para
+  // acUsarMsgAlt() poder trocar o conteúdo principal sem precisar de re-renderizar
+  // tudo nem de guardar estado global extra.
+  var altHtml = (_acMsgAlt && _acMsgAlt !== _acMsgOriginal) ? '<div style="margin-top:12px;border-top:1px dashed rgba(0,212,170,0.25);padding-top:12px;"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;flex-wrap:wrap;gap:8px;"><div style="font-size:11.5px;font-weight:700;color:var(--text2);">🔀 Outra opção: ' + escapeHtml(_acMsgAltLabel) + '</div><button class="btn btn-secondary btn-sm" onclick="acUsarMsgAlt(this)">Usar esta em vez</button></div><pre id="ac-msg-alt-copy" style="font-size:12.5px;color:var(--text2);white-space:pre-wrap;line-height:1.65;font-family:DM Sans,sans-serif;margin:0;">' + _acMsgAlt + '</pre></div>' : '';
+  var msgHtml = _acMsgOriginal ? '<div style="background:linear-gradient(135deg,rgba(0,212,170,0.1),rgba(0,132,255,0.07));border:1px solid rgba(0,212,170,0.3);border-radius:var(--radius);padding:16px;"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:8px;"><div style="font-size:13px;font-weight:700;color:var(--accent);">Mensagem a enviar agora</div><div style="display:flex;gap:6px;flex-wrap:wrap;"><button id="ac-traduzir-btn" class="btn btn-secondary btn-sm" onclick="acTraduzirMsg()">🌐 Traduzir</button><button class="btn btn-secondary btn-sm" onclick="acCopiarMsg()">Copiar</button></div></div><pre id="ac-msg-copy" style="font-size:12.5px;color:var(--text);white-space:pre-wrap;line-height:1.65;font-family:DM Sans,sans-serif;margin:0;">' + _acMsgOriginal + '</pre><div id="ac-traducao-wrap" style="display:none;margin-top:12px;border-top:1px solid rgba(0,212,170,0.2);padding-top:12px;"><div id="ac-traducao-label" style="font-size:11px;font-weight:700;color:var(--text2);margin-bottom:6px;">🌐 Tradução</div><pre id="ac-traducao-text" style="font-size:12.5px;color:var(--text);white-space:pre-wrap;line-height:1.65;font-family:DM Sans,sans-serif;margin:0;"></pre><button class="btn btn-secondary btn-sm" style="margin-top:8px;" onclick="acCopiarTraducao()">Copiar tradução</button></div>' + altHtml + '</div>' : '';
   var passoHtml = r.proximo_passo ? '<div style="background:rgba(245,200,66,0.08);border:1px solid rgba(245,200,66,0.25);border-radius:var(--radius);padding:14px;display:flex;align-items:flex-start;gap:12px;"><span style="font-size:22px;flex-shrink:0;">🎯</span><div><div style="font-size:12px;font-weight:700;color:var(--gold);margin-bottom:4px;">Proximo passo</div><div style="font-size:13px;color:var(--text);line-height:1.5;">' + r.proximo_passo + '</div></div></div>' : '';
   var dicaHtml = r.dica_extra ? '<div style="background:rgba(180,122,255,0.07);border:1px solid rgba(180,122,255,0.2);border-radius:var(--radius);padding:14px;display:flex;align-items:flex-start;gap:12px;"><span style="font-size:22px;flex-shrink:0;">💡</span><div><div style="font-size:12px;font-weight:700;color:#b47aff;margin-bottom:4px;">Dica estrategica</div><div style="font-size:12.5px;color:var(--text2);line-height:1.6;">' + r.dica_extra + '</div></div></div>' : '';
 
@@ -38969,7 +39081,8 @@ function acMostrarResultado(r) {
     + '<div style="text-align:right;"><div style="font-size:11px;color:var(--text2);margin-bottom:2px;">Fase</div><div style="font-size:13px;font-weight:700;color:var(--text);">' + (fLbl[fase]||fase) + '</div></div></div>'
     + '<div style="font-size:12.5px;color:var(--text2);line-height:1.6;margin-bottom:12px;">' + (r.resumo||'') + '</div>'
     + '<div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text2);margin-bottom:5px;"><span>Probabilidade de conversao</span><span style="font-weight:700;color:' + probCor + ';">' + prob + '%</span></div>'
-    + '<div style="background:var(--surface3);border-radius:20px;height:7px;overflow:hidden;"><div style="width:' + prob + '%;height:100%;background:' + probCor + ';border-radius:20px;transition:width .5s;"></div></div></div>'
+    + '<div style="background:var(--surface3);border-radius:20px;height:7px;overflow:hidden;"><div style="width:' + prob + '%;height:100%;background:' + probCor + ';border-radius:20px;transition:width .5s;"></div></div>'
+    + (r.probabilidade_racional ? '<div style="font-size:11px;color:var(--text2);margin-top:6px;line-height:1.5;">↳ ' + escapeHtml(r.probabilidade_racional) + '</div>' : '') + '</div>'
     + leadAssocHtml
     + tomVozHtml
     + objecoesHtml
@@ -39137,6 +39250,26 @@ function acGuardarNoLead() {
     entrada.faseDetectada = r.fase || '';
   }
 
+  // ---------------------------------------------------------------
+  // FECHO DO CICLO DE CONVERSÃO — guarda a sugestão desta análise de forma
+  // ESTRUTURADA (não só achatada em prosa no "msg" acima), para a próxima
+  // análise deste mesmo lead conseguir saber COM CERTEZA qual foi a última
+  // sugestão feita e comparar com a resposta real do prospect, em vez de
+  // depender de reconhecer isso dentro de texto livre resumido. Sem isto,
+  // o prompt está sempre "às cegas" quanto a se uma sugestão anterior
+  // funcionou ou não — esta é a base de dados que falta para medir e
+  // melhorar a conversão ao longo do tempo, não só analisar cada
+  // conversa isoladamente.
+  var sugestaoParaHistorico = {
+    data: new Date().toISOString(),
+    fase: r.fase || '',
+    probabilidade: (typeof r.probabilidade_conversao === 'number') ? r.probabilidade_conversao : null,
+    mensagemSugerida: r.proxima_mensagem || '',
+    // 'pendente' até a próxima análise deste lead conseguir inferir o que aconteceu
+    // a seguir (ver acResumirHistoricoLead) — nunca é editado à mão pelo utilizador.
+    resultado: 'pendente'
+  };
+
   var lead;
   if (leadIdEscolhido) {
     lead = leads.find(function(x) { return x.id === leadIdEscolhido; });
@@ -39178,6 +39311,25 @@ function acGuardarNoLead() {
   lead.historico = lead.historico || [];
   lead.historico.unshift(entrada);
   lead.ultimoContacto = new Date().toISOString();
+
+  // Se já havia uma sugestão anterior por avaliar, esta NOVA análise (que só
+  // acontece porque o distribuidor voltou a esta conversa) é o sinal mais
+  // fiável que temos sobre se aquela sugestão resultou. Não perguntamos
+  // nada ao utilizador — inferimos automaticamente a partir da evolução de
+  // fase/sentimento/probabilidade entre as duas análises. Isto é o que
+  // fecha o ciclo: sem isto, cada análise seria sempre um ponto isolado,
+  // nunca aprendemos se as sugestões passadas de facto converteram.
+  var FASES_ORDEM_AC = ['sem_contexto','perdido','descoberta','consideracao','objecao','interesse','pronto_para_comprar'];
+  if (lead.ultimaSugestaoIA && lead.ultimaSugestaoIA.resultado === 'pendente') {
+    var idxFaseAntes = FASES_ORDEM_AC.indexOf(lead.ultimaSugestaoIA.fase);
+    var idxFaseDepois = FASES_ORDEM_AC.indexOf(r.fase || '');
+    var progrediu = (idxFaseDepois > idxFaseAntes) ||
+      (typeof r.probabilidade_conversao === 'number' && typeof lead.ultimaSugestaoIA.probabilidade === 'number' && r.probabilidade_conversao - lead.ultimaSugestaoIA.probabilidade >= 15);
+    var regrediu = (idxFaseDepois >= 0 && idxFaseAntes >= 0 && idxFaseDepois < idxFaseAntes) ||
+      r.sentimento === 'negativo' || r.sentimento === 'muito_negativo' || r.fase === 'perdido';
+    lead.ultimaSugestaoIA.resultado = progrediu ? 'positiva' : (regrediu ? 'sem_resposta_ou_negativa' : 'neutra');
+  }
+  lead.ultimaSugestaoIA = sugestaoParaHistorico;
 
   // Extrai e acumula o padrão de horário (dia da semana + hora) das
   // mensagens do LEAD nesta conversa — nunca o conteúdo do texto, só
@@ -39306,6 +39458,24 @@ function acMostrarSugestaoContacto(lead, sugestoes) {
 function acCopiarMsg() {
   var txt = (document.getElementById('ac-msg-copy') || {}).textContent || '';
   copiarTextoSeguro(txt, 'Mensagem copiada!');
+}
+
+// Troca o conteúdo do bloco "Mensagem a enviar agora" pela variante alternativa,
+// e vice-versa — permite ao distribuidor alternar entre as duas propostas de
+// ângulo estratégico sem perder nenhuma nem duplicar os botões de copiar/traduzir.
+function acUsarMsgAlt(btn) {
+  var principal = document.getElementById('ac-msg-copy');
+  var alt = document.getElementById('ac-msg-alt-copy');
+  if (!principal || !alt) return;
+  var textoPrincipal = principal.textContent || '';
+  var textoAlt = alt.textContent || '';
+  principal.textContent = textoAlt;
+  alt.textContent = textoPrincipal;
+  // Se havia uma tradução visível, já não corresponde ao novo texto principal — esconde-a.
+  var traducaoWrap = document.getElementById('ac-traducao-wrap');
+  if (traducaoWrap) traducaoWrap.style.display = 'none';
+  if (btn) { var orig = btn.textContent; btn.textContent = '✓ Trocado'; setTimeout(function(){ btn.textContent = orig; }, 1400); }
+  showToast('🔀 Mensagens trocadas');
 }
 
 function acCopiarTraducao() {
