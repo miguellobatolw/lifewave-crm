@@ -11116,7 +11116,9 @@ function renderProximaAcao() {
     escolhido = esfriar[0].l;
     motivo = `Está em "${estadoLabel(escolhido.estado)}" há ${esfriar[0].dias} dias sem contacto — risco de perder o interesse.`;
   } else {
-    const porScore = ativos
+    const candidatosScore = ativos.filter(l => diasSemContacto(l) !== 0);
+    const poolScore = candidatosScore.length > 0 ? candidatosScore : ativos;
+    const porScore = poolScore
       .map(l => ({ l, sc: calcularScore(l).score }))
       .sort((a, b) => b.sc - a.sc);
     if (!porScore.length) { el.innerHTML = ''; return; }
@@ -22241,7 +22243,12 @@ function renderDigestDiario() {
   const ativos = leads.filter(l => l.estado !== 'cliente' && l.estado !== 'perdido' && l.estado !== 'frio');
   let leadDiaHtml = '';
   if (ativos.length > 0) {
-    const melhor = ativos
+    // Não sugerir como "Lead do Dia" alguém já contactado hoje — a pessoa já fez a ação
+    // sugerida, por isso o cartão deve avançar para o próximo lead prioritário. Só volta a
+    // mostrar um lead "0d sem contacto" se, mesmo assim, não houver mais ninguém por contactar.
+    const candidatos = ativos.filter(l => diasSemContacto(l) !== 0);
+    const pool = candidatos.length > 0 ? candidatos : ativos;
+    const melhor = pool
       .map(l => ({ l, sc: calcularScore(l).score, dias: diasSemContacto(l) }))
       .sort((a, b) => b.sc - a.sc)[0];
     const { l, sc, dias } = melhor;
