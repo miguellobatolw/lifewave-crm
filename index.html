@@ -1,10 +1,9 @@
 <!DOCTYPE html>
 <html lang="pt">
 <head>
-<script>window.__lwT0 = performance.now();</script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, interactive-widget=resizes-content">
-<title>LifeWave CRM v79 — Gestão de Leads & Posts</title>
+<title>LifeWave CRM v82 — Gestão de Leads & Posts</title>
 
 <!-- ===== PWA: manifest, ícones e meta tags ===== -->
 <link rel="manifest" href="manifest.json">
@@ -3634,7 +3633,6 @@ var QRCode=function(t){"use strict";var r,e=function(){return"function"==typeof 
   <div class="login-footer">
     Ao continuar, concordas com os Termos de Utilização.<br>Os teus dados ficam guardados neste dispositivo.<br>
     <button onclick="abrirConfigSupabase()" style="background:none;border:none;color:rgba(255,255,255,0.25);font-size:10.5px;cursor:pointer;text-decoration:underline;margin-top:6px;font-family:'DM Sans',sans-serif;">⚙️ Configurar backend (avançado)</button>
-    <span id="perf-badge" style="display:block;margin-top:4px;font-size:9px;color:rgba(255,255,255,0.18);"></span>
   </div>
 </div>
 
@@ -7483,13 +7481,15 @@ var QRCode=function(t){"use strict";var r,e=function(){return"function"==typeof 
       <div class="page-header">
         <div>
           <div class="page-title">💬 Análise de Conversa</div>
-          <div class="page-sub">Cola a conversa ou faz upload de screenshot — a IA analisa e diz-te exactamente o que fazer</div>
+          <div class="page-sub">Cola a conversa, faz upload de screenshot e/ou anexa uma nota de voz — podes combinar tudo na mesma análise. A IA tenta identificar o lead automaticamente e usa o histórico já registado</div>
         </div>
       </div>
       <div style="display:flex;gap:0;margin-bottom:20px;border-bottom:2px solid var(--border);">
         <button id="ac-input-btn-texto" onclick="acInputTab('texto')" style="padding:10px 18px;border:none;background:none;color:var(--accent);font-family:'DM Sans',sans-serif;font-size:13px;font-weight:700;cursor:pointer;border-bottom:2px solid var(--accent);margin-bottom:-2px;">💬 Colar texto</button>
         <button id="ac-input-btn-imagem" onclick="acInputTab('imagem')" style="padding:10px 18px;border:none;background:none;color:var(--text2);font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;">📷 Screenshot</button>
+        <button id="ac-input-btn-audio" onclick="acInputTab('audio')" style="padding:10px 18px;border:none;background:none;color:var(--text2);font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;">🎤 Áudio</button>
       </div>
+      <div style="font-size:11px;color:var(--text2);margin:-14px 0 14px;">💡 Podes preencher mais do que um separador (ex: colar texto E anexar um áudio) — a IA analisa tudo junto.</div>
       <div id="ac-input-texto">
         <div class="form-group" style="margin-bottom:12px;">
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
@@ -7528,6 +7528,32 @@ var QRCode=function(t){"use strict";var r,e=function(){return"function"==typeof 
         <div class="form-group" style="margin-bottom:16px;">
           <label class="form-label">Contexto adicional (opcional)</label>
           <input class="form-input" id="ac-contexto-imagem" placeholder="Ex: Prospecto 45 anos, professora, hesitante no preco">
+        </div>
+      </div>
+      <div id="ac-input-audio" style="display:none;">
+        <div style="margin-bottom:12px;min-height:130px;display:flex;flex-direction:column;align-items:center;justify-content:center;border:2px dashed var(--border);border-radius:var(--radius);padding:20px;">
+          <input type="file" accept="audio/*" id="ac-audio-file" onchange="acHandleAudio(this)" style="display:none;">
+          <div id="ac-audio-placeholder" style="text-align:center;width:100%;">
+            <div style="font-size:30px;margin-bottom:8px;">🎤</div>
+            <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:12px;">Nota de voz do lead</div>
+            <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;">
+              <button type="button" class="btn btn-secondary btn-sm" onclick="document.getElementById('ac-audio-file').click()">📁 Upload de ficheiro</button>
+              <button type="button" class="btn btn-secondary btn-sm" id="ac-audio-rec-btn" onclick="acToggleGravacao()">⏺️ Gravar agora</button>
+            </div>
+            <div style="font-size:11px;color:var(--text3);margin-top:8px;">Áudio exportado do WhatsApp (.opus/.mp3/.m4a) ou grava diretamente</div>
+          </div>
+          <div id="ac-audio-preview" style="display:none;width:100%;text-align:center;">
+            <div style="font-size:28px;margin-bottom:6px;">🎵</div>
+            <audio id="ac-audio-player" controls style="width:100%;max-width:280px;margin-bottom:8px;"></audio>
+            <div id="ac-audio-filename" style="font-size:11.5px;color:var(--text2);"></div>
+          </div>
+        </div>
+        <div id="ac-audio-remove" style="display:none;margin-bottom:12px;">
+          <button class="btn btn-danger btn-sm" onclick="acRemoverAudio()">🗑️ Remover áudio</button>
+        </div>
+        <div class="form-group" style="margin-bottom:16px;">
+          <label class="form-label">Contexto adicional (opcional)</label>
+          <input class="form-input" id="ac-contexto-audio" placeholder="Ex: Prospecto 45 anos, professora, hesitante no preco">
         </div>
       </div>
       <!-- Plataforma -->
@@ -14230,16 +14256,25 @@ function mensagemErroIA(err) {
   return 'Não foi possível gerar a resposta agora. Tenta novamente dentro de momentos.';
 }
 
-async function callGeminiModel(model, prompt, imageBase64, imageMediaType) {
+async function callGeminiModel(model, prompt, imageBase64, imageMediaType, extraMedia) {
   const parts = [];
   if (imageBase64) {
     parts.push({ inline_data: { mime_type: imageMediaType || 'image/jpeg', data: imageBase64 } });
   }
+  // extraMedia permite anexar itens adicionais (ex: áudio + imagem em simultâneo)
+  // sem quebrar as chamadas existentes que só usam imageBase64/imageMediaType.
+  // Formato: [{ data: base64, mimeType: 'audio/webm' }, ...]
+  if (Array.isArray(extraMedia)) {
+    extraMedia.forEach(function(m) {
+      if (m && m.data) parts.push({ inline_data: { mime_type: m.mimeType || 'application/octet-stream', data: m.data } });
+    });
+  }
   parts.push({ text: prompt });
-  // Quando há imagem, deixamos o Gemini "pensar" (thinkingBudget maior) para ler bem
+  var temMedia = !!imageBase64 || (Array.isArray(extraMedia) && extraMedia.length > 0);
+  // Quando há imagem/áudio, deixamos o Gemini "pensar" (thinkingBudget maior) para ler bem
   // texto/detalhe visual em cartazes, gráficos e imagens compostas — com thinkingBudget:0
   // o modelo tende a responder de forma genérica em vez de citar factos concretos da imagem.
-  const generationConfig = imageBase64
+  const generationConfig = temMedia
     ? { maxOutputTokens: 4096, temperature: 0.8, thinkingConfig: { thinkingBudget: 512 } }
     : { maxOutputTokens: 4096, temperature: 0.8, thinkingConfig: { thinkingBudget: 0 } };
   const body = {
@@ -14300,9 +14335,10 @@ function setCacheRespostaIA(prompt, resposta) {
   }
 }
 
-async function callGemini(prompt, imageBase64, imageMediaType, cacheContext) {
+async function callGemini(prompt, imageBase64, imageMediaType, cacheContext, extraMedia) {
   const cachePrefix = cacheContext ? `gemini::${cacheContext}::` : 'gemini::';
-  if (!imageBase64) {
+  const temMedia = !!imageBase64 || (Array.isArray(extraMedia) && extraMedia.length > 0);
+  if (!temMedia) {
     const cache = getCacheRespostaIA(cachePrefix + prompt);
     if (cache !== null) return cache;
   }
@@ -14311,8 +14347,8 @@ async function callGemini(prompt, imageBase64, imageMediaType, cacheContext) {
   let lastError = null;
   for (const model of GEMINI_MODELS) {
     try {
-      const resposta = await callGeminiModel(model, prompt, imageBase64, imageMediaType);
-      if (!imageBase64) setCacheRespostaIA(cachePrefix + prompt, resposta);
+      const resposta = await callGeminiModel(model, prompt, imageBase64, imageMediaType, extraMedia);
+      if (!temMedia) setCacheRespostaIA(cachePrefix + prompt, resposta);
       return resposta;
     } catch(e) {
       lastError = e;
@@ -19770,6 +19806,10 @@ guiaoTipoAtivo === 'fechar-venda' ? `
       const listaObj = l.objecoes.map(o => OBJECOES_LABELS[o] || o).join(', ');
       partes.push(`- TODAS as objeções já levantadas por esta pessoa (responde-lhes todas, não só à última): ${listaObj}`);
       partes.push(`- NÃO repitas a mesma resposta que provavelmente já foi dada antes — traz um ângulo novo (prova social, garantia, urgência legítima, ou uma pergunta que a ajude a decidir-se)`);
+      const objecoesTexto = l.objecoes.join(' ').toLowerCase();
+      if (/tempo|mlm|pirâmide|piramide|já tentei/.test(objecoesTexto)) {
+        partes.push(`- Esta pessoa já mostrou receio sobre tempo disponível ou más experiências anteriores em MLM: usa isso para mencionar, de forma natural e breve (1 frase, não um pitch), que a equipa tem um sistema próprio de apoio — uma app de gestão com IA que automatiza tarefas (posts, follow-ups, organização de contactos) — para que ela perceba que não estaria sozinha nem dependente só do seu próprio esforço manual. IMPORTANTE: nunca reveles o nome da app/ferramenta a um lead que ainda não entrou no negócio — refere-a apenas de forma genérica ("um sistema/app que a equipa usa")`);
+      }
     }
     return partes.length ? '\n' + partes.join('\n') : '';
   })()}` :
@@ -32402,7 +32442,7 @@ const OBJECOES_DB = [
     emoji:'💸',
     contexto:'A pessoa adia a decisão por razões financeiras sem dizer claramente que não.',
     resposta_curta:'Faz sentido. Só quero partilhar que os preços e promoções mudam. Queres que eu te avise se houver uma oportunidade pontual?',
-    resposta_longa:`Entendo que a gestão do dinheiro é importante e respeito isso.\n\nSó quero partilhar algo que pode ser útil: a LifeWave tem promoções sazonais que surgem e desaparecem rapidamente. Além disso, o teu link de registo fica disponível — se algum conhecido teu entrar, já contas como a tua equipa.\n\nUma opção que muita gente usa: começa apenas como cliente com o pack mais acessível, experimentas o produto, e depois decides com mais informação. Sem pressão nenhuma.\n\nPosso guardar o teu contacto e avisar-te quando houver uma promoção especial?`,
+    resposta_longa:`Entendo que a gestão do dinheiro é importante e respeito isso.\n\nSó quero partilhar algo que pode ser útil: a LifeWave tem promoções sazonais que surgem e desaparecem rapidamente. Além disso, o teu link de registo fica disponível — se algum conhecido teu entrar, já contas como a tua equipa.\n\nUma opção que muita gente usa: começa apenas como cliente com o pack mais acessível, experimentas o produto, e depois decides com mais informação. Sem pressão nenhuma.\n\nE quando decidires avançar, não começas do zero sozinho — a equipa tem um sistema de apoio próprio, com uma app de gestão e IA, para te ajudar desde o primeiro dia.\n\nPosso guardar o teu contacto e avisar-te quando houver uma promoção especial?`,
     tags:['esperar','dinheiro','depois','mais tarde','quando tiver'],
     dica:'Deixa sempre uma porta aberta. Nunca empurres — pergunta se podes acompanhar.',
     script_wa:'[Nome], sem problema nenhum! Deixa-me só guardar o teu contacto para te avisar quando houver uma promoção — às vezes surgem condições especiais por tempo limitado. Está bem assim? 😊'
@@ -32459,7 +32499,7 @@ const OBJECOES_DB = [
     emoji:'😔',
     contexto:'A pessoa teve experiência negativa com outra empresa de network marketing.',
     resposta_curta:'Quero perceber o que aconteceu — foi o produto, a equipa de suporte, ou a falta de formação? Porque o que falha quase sempre é o sistema, não a pessoa.',
-    resposta_longa:`Agradeço muito a honestidade. Essa experiência é mais comum do que pensas, e é importante perceber porquê.\n\nNa maioria dos casos, o MLM anterior falhou por:\n1. Produto fraco que as pessoas não compravam por convicção própria\n2. Falta de formação e sistema duplicável\n3. Empresa instável ou sem história comprovada\n4. Foco excessivo no recrutamento em vez de vendas reais\n\nO que eu faço diferente: tens esta app, um plano de 30 dias estruturado, e acompanhamento direto meu. Não estás sozinho.\n\nO produto X39 tem uma proposta clara e baseada em ciência — não precisas de "convencer" ninguém de algo sem fundamento.\n\nNão te peço que acredites às cegas. Peço apenas que passes 30 dias comigo com um método diferente. O que tens a perder?`,
+    resposta_longa:`Agradeço muito a honestidade. Essa experiência é mais comum do que pensas, e é importante perceber porquê.\n\nNa maioria dos casos, o MLM anterior falhou por:\n1. Produto fraco que as pessoas não compravam por convicção própria\n2. Falta de formação e sistema duplicável\n3. Empresa instável ou sem história comprovada\n4. Foco excessivo no recrutamento em vez de vendas reais\n\nO que eu faço diferente: a equipa construiu um sistema próprio de apoio — uma app de gestão com IA que ajuda a organizar contactos, criar conteúdo e não deixar ninguém esquecido no meio do caminho. Junta-se a isso um plano de 30 dias estruturado e acompanhamento direto meu. Não estás sozinho, e não dependes só da tua memória ou boa vontade para o negócio funcionar.\n\nO produto X39 tem uma proposta clara e baseada em ciência — não precisas de "convencer" ninguém de algo sem fundamento.\n\nNão te peço que acredites às cegas. Peço apenas que passes 30 dias comigo com um método diferente. O que tens a perder?`,
     tags:['tentei','não funcionou','falhei','desisti','outras empresas','experiência má'],
     dica:'Escuta primeiro. Não minimizes a experiência deles. Depois diferencia com base no suporte e no produto.',
     script_wa:'[Nome], obrigado por partilhares isso comigo 🙏 Posso perguntar o que correu mal? Porque muitas vezes é o sistema (ou a falta dele) que falha, não a pessoa. O que ofereço é diferente — e provo-o com ações, não palavras.'
@@ -32471,7 +32511,7 @@ const OBJECOES_DB = [
     emoji:'⏰',
     contexto:'A pessoa sente que o negócio exige muito tempo que não tem disponível.',
     resposta_curta:'Percebo. A pergunta é: quantas horas por semana precisarias para isto mudar a tua situação financeira? Para começar, 5 a 7 horas por semana chegam. É menos do que uma série na Netflix.',
-    resposta_longa:`A falta de tempo é real — e é exatamente por isso que muita gente precisa de uma fonte de rendimento extra que não exija 40 horas por semana.\n\nQuando começas, precisas de:\n• 1h por dia nos primeiros 30 dias para aprender\n• 5-7h por semana depois, para criar conteúdo e falar com pessoas\n• A partir daí, é escalável — quanto mais a equipa cresce, menos precisas de fazer tudo tu\n\nTem esta app para automatizar follow-ups, criar posts e gerir os leads. Muitas coisas que antes levavam horas, agora levam minutos.\n\nUma pergunta honesta: tens tempo para um café de 20 minutos onde te mostro como giro o meu tempo? Só 20 minutos — e depois decides tu.`,
+    resposta_longa:`A falta de tempo é real — e é exatamente por isso que muita gente precisa de uma fonte de rendimento extra que não exija 40 horas por semana.\n\nQuando começas, precisas de:\n• 1h por dia nos primeiros 30 dias para aprender\n• 5-7h por semana depois, para criar conteúdo e falar com pessoas\n• A partir daí, é escalável — quanto mais a equipa cresce, menos precisas de fazer tudo tu\n\nTens acesso ao sistema da equipa — uma app com IA que automatiza follow-ups, cria posts e organiza os leads por ti. Muitas coisas que antes levavam horas, agora levam minutos, porque não fazes tudo sozinho nem à mão.\n\nUma pergunta honesta: tens tempo para um café de 20 minutos onde te mostro como giro o meu tempo? Só 20 minutos — e depois decides tu.`,
     tags:['tempo','ocupado','não consigo','horário','trabalho','família'],
     dica:'Concretiza sempre em horas reais. Abstrato ("pouco tempo") não convence — específico ("5h/semana") sim.',
     script_wa:'[Nome], entendo totalmente! Posso dizer-te honestamente: a maioria das pessoas começa com 5-7h por semana. Menos do que uma série 😄 Podes dar-me 20 minutos num café para te mostrar como organizo o meu tempo? Sem pressão nenhuma.'
@@ -32517,7 +32557,7 @@ const OBJECOES_DB = [
     emoji:'📅',
     contexto:'A pessoa adia por razões de timing — pode ser genuíno ou desculpa.',
     resposta_curta:'Respeito. Posso perguntar quando é que seria o momento certo? Assim posso marcar no calendário e contactar-te nessa altura — sem chatear antes.',
-    resposta_longa:`Percebo perfeitamente — há fases da vida em que a cabeça não está para novas coisas.\n\nSó quero deixar-te com um pensamento: a razão mais comum para "não é o momento" na saúde é que as pessoas esperam por sentir mais dor, mais cansaço ou mais problemas antes de agir. E aí o momento já passou.\n\nNão te estou a pressionar — estou a partilhar o que ouço de clientes que dizem "devia ter começado antes".\n\nQue tal fazemos assim: diz-me quando seria o momento certo, e eu contacto-te nessa altura. Sem mensagens antes, sem pressão. Combinado?`,
+    resposta_longa:`Percebo perfeitamente — há fases da vida em que a cabeça não está para novas coisas.\n\nSó quero deixar-te com um pensamento: a razão mais comum para "não é o momento" na saúde é que as pessoas esperam por sentir mais dor, mais cansaço ou mais problemas antes de agir. E aí o momento já passou.\n\nNão te estou a pressionar — estou a partilhar o que ouço de clientes que dizem "devia ter começado antes".\n\nE quando o momento chegar, sabes que não vais estar por tua conta: temos um sistema de equipa com app e IA de apoio que facilita imenso o arranque.\n\nQue tal fazemos assim: diz-me quando seria o momento certo, e eu contacto-te nessa altura. Sem mensagens antes, sem pressão. Combinado?`,
     tags:['momento','agora não','depois','altura','ocupado','mais tarde'],
     dica:'Pede sempre uma data concreta. Se a pessoa não consegue dar uma data, "agora não" é provavelmente "nunca".',
     script_wa:'[Nome], totalmente compreensível! 😊 Só me diz quando seria o momento certo — março? depois do verão? — e eu marco no calendário para te contactar então. Sem chatear antes, prometido 🤝'
@@ -38166,6 +38206,11 @@ function escapeHtml(str) {
 <script>
 // ANALISE DE CONVERSA IA - LifeWave CRM v32
 var _acImagemB64 = null;
+var _acAudioB64 = null;
+var _acAudioMediaType = null;
+var _acMediaRecorder = null;
+var _acRecChunks = [];
+var _acRecStream = null;
 var _acInputTab = 'texto';
 
 // Limpa o cabeçalho/linhas de sistema de um .txt exportado do WhatsApp. Reutilizável (upload simples ou .zip).
@@ -38383,7 +38428,7 @@ function acFecharBarraFila() {
 
 function acInputTab(tab) {
   _acInputTab = tab;
-  ['texto','imagem'].forEach(function(t) {
+  ['texto','imagem','audio'].forEach(function(t) {
     var p = document.getElementById('ac-input-'+t);
     var b = document.getElementById('ac-input-btn-'+t);
     if (p) p.style.display = t===tab ? 'block' : 'none';
@@ -38423,6 +38468,91 @@ function acRemoverImagem() {
   if (inp) inp.value = '';
 }
 
+// ===================================================
+// ÁUDIO — upload de ficheiro ou gravação direta (nota de voz do lead)
+// Gemini é o único provider da cadeia de fallback com suporte nativo a
+// áudio (inline_data + mime_type audio/*), por isso a análise por áudio
+// força sempre Gemini — ver validação em acAnalisar().
+// ===================================================
+function _acMostrarPreviewAudio(dataUrl, mediaType, nomeFicheiro) {
+  _acAudioMediaType = mediaType;
+  var preview = document.getElementById('ac-audio-preview');
+  var placeholder = document.getElementById('ac-audio-placeholder');
+  var rem = document.getElementById('ac-audio-remove');
+  var player = document.getElementById('ac-audio-player');
+  var nomeEl = document.getElementById('ac-audio-filename');
+  if (player) player.src = dataUrl;
+  if (nomeEl) nomeEl.textContent = nomeFicheiro || '';
+  if (preview) preview.style.display = 'block';
+  if (placeholder) placeholder.style.display = 'none';
+  if (rem) rem.style.display = 'block';
+}
+
+function acHandleAudio(input) {
+  var file = input.files[0];
+  if (!file) return;
+  if (!file.type.startsWith('audio/')) { showToast('⚠️ Escolhe um ficheiro de áudio'); return; }
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    _acAudioB64 = e.target.result.split(',')[1];
+    _acMostrarPreviewAudio(e.target.result, file.type || 'audio/mpeg', file.name);
+  };
+  reader.readAsDataURL(file);
+}
+
+async function acToggleGravacao() {
+  var btn = document.getElementById('ac-audio-rec-btn');
+  // Já a gravar — para a gravação
+  if (_acMediaRecorder && _acMediaRecorder.state === 'recording') {
+    _acMediaRecorder.stop();
+    if (btn) { btn.textContent = '⏺️ Gravar agora'; btn.classList.remove('btn-danger'); }
+    return;
+  }
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    showToast('⚠️ O teu navegador não suporta gravação de áudio'); return;
+  }
+  try {
+    _acRecStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+  } catch(e) {
+    showToast('⚠️ Não foi possível aceder ao microfone (permissão negada?)');
+    return;
+  }
+  _acRecChunks = [];
+  var mimeType = MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm'
+    : MediaRecorder.isTypeSupported('audio/mp4') ? 'audio/mp4' : '';
+  _acMediaRecorder = mimeType ? new MediaRecorder(_acRecStream, { mimeType: mimeType }) : new MediaRecorder(_acRecStream);
+  _acMediaRecorder.ondataavailable = function(e) { if (e.data && e.data.size > 0) _acRecChunks.push(e.data); };
+  _acMediaRecorder.onstop = function() {
+    var tipo = (_acMediaRecorder && _acMediaRecorder.mimeType) || 'audio/webm';
+    var blob = new Blob(_acRecChunks, { type: tipo });
+    var reader = new FileReader();
+    reader.onload = function(e) {
+      _acAudioB64 = e.target.result.split(',')[1];
+      _acMostrarPreviewAudio(e.target.result, tipo, 'Gravação — ' + new Date().toLocaleTimeString('pt-PT'));
+    };
+    reader.readAsDataURL(blob);
+    if (_acRecStream) { _acRecStream.getTracks().forEach(function(t){ t.stop(); }); _acRecStream = null; }
+  };
+  _acMediaRecorder.start();
+  if (btn) { btn.textContent = '⏹️ Parar gravação'; btn.classList.add('btn-danger'); }
+  showToast('🔴 A gravar... toca outra vez para parar');
+}
+
+function acRemoverAudio() {
+  _acAudioB64 = null;
+  _acAudioMediaType = null;
+  var preview = document.getElementById('ac-audio-preview');
+  var placeholder = document.getElementById('ac-audio-placeholder');
+  var rem = document.getElementById('ac-audio-remove');
+  var player = document.getElementById('ac-audio-player');
+  var inp = document.getElementById('ac-audio-file');
+  if (player) player.src = '';
+  if (preview) preview.style.display = 'none';
+  if (placeholder) placeholder.style.display = 'block';
+  if (rem) rem.style.display = 'none';
+  if (inp) inp.value = '';
+}
+
 // AC usa o sistema central de fallback automático — sem seleção manual de IA
 
 var _acUltimaAnalise = null; // { resultado, plataforma, platLabel, textoOriginal, meuNome } — usado para associar a um lead
@@ -38444,22 +38574,95 @@ async function acAnalisar() {
     var claudeKey = localStorage.getItem(uk('lw_claudeKey')) || localStorage.getItem('lw_claudeKey') || '';
 
     var isImg = (!!_acImagemB64);
+    var isAudio = (!!_acAudioB64);
+    var temMedia = isImg || isAudio;
     var texto = '';
     try { texto = (document.getElementById('ac-texto').value || '').trim(); } catch(x){}
+    // Junta o contexto opcional escrito em qualquer um dos separadores (texto/imagem/áudio),
+    // já que agora podem ser combinados numa única análise.
     var ctx = '';
-    try { ctx = (document.getElementById(isImg ? 'ac-contexto-imagem' : 'ac-contexto-texto').value || '').trim(); } catch(x){}
+    try {
+      var ctxCampos = ['ac-contexto-texto','ac-contexto-imagem','ac-contexto-audio'];
+      var ctxPartes = ctxCampos.map(function(id){ var el = document.getElementById(id); return el ? (el.value||'').trim() : ''; }).filter(Boolean);
+      ctx = ctxPartes.join(' | ');
+    } catch(x){}
     var plat = 'whatsapp';
     try { plat = document.getElementById('ac-plataforma').value || 'whatsapp'; } catch(x){}
 
-    if (!isImg && !texto) { acErr('Cola o texto ou faz upload de screenshot.'); return; }
+    if (!isImg && !isAudio && !texto) { acErr('Cola o texto, faz upload de screenshot ou anexa um áudio.'); return; }
 
-    var temChave = isImg
+    // Gemini é o único provider da cadeia com suporte nativo a áudio e a
+    // combinação de vários media (texto+imagem+áudio) na mesma chamada —
+    // sem chave Gemini configurada, não há forma de analisar a nota de voz.
+    if (isAudio && !geminiKey) { acMostrarErroChave('gemini'); return; }
+
+    var temChave = temMedia
       ? !!(geminiKey || claudeKey || grokKey || mistralKey || openrouterKey)
       : !!(geminiKey || claudeKey || grokKey || groqKey || mistralKey || openrouterKey);
     if (!temChave) { acMostrarErroChave('qualquer'); return; }
 
     var perfNome = '';
     try { var pp = JSON.parse(localStorage.getItem(getUserStorageKey('lw_perfil'))||'{}'); perfNome = pp.nomeDisplay||''; } catch(x){}
+
+    // ---------------------------------------------------------------
+    // MATCH AUTOMÁTICO DE LEAD (antes da 1ª chamada à IA)
+    // Tenta identificar de que lead se trata a partir de qualquer pista já
+    // disponível localmente sem custo de IA: o texto colado (nome no
+    // cabeçalho de export do WhatsApp, ex. "Nome: mensagem"), o campo de
+    // contexto opcional, ou um telefone/nome escrito em qualquer um deles.
+    // Isto cobre o caso mais comum (texto colado) sem gastar uma chamada
+    // extra. Para imagem/áudio puros (sem texto), o match só é possível
+    // depois da IA devolver nome_detectado/tel_detectado — nesse caso
+    // fazemos uma 2ª chamada leve já com o histórico, ver mais abaixo.
+    // ---------------------------------------------------------------
+    var _acLeadsDisponiveis = [];
+    try { _acLeadsDisponiveis = (typeof leads !== 'undefined' && Array.isArray(leads)) ? leads : []; } catch(x){}
+
+    function acNormaliza(s) { return (s||'').toString().trim().toLowerCase(); }
+
+    function acEncontrarLeadPorPistas(pistas) {
+      var pistaNorm = acNormaliza(pistas);
+      if (!pistaNorm) return null;
+      // Match exato de telefone (só dígitos, últimos 9) tem prioridade — é o identificador mais fiável
+      var soDigitos = pistaNorm.replace(/[^\d]/g, '');
+      if (soDigitos.length >= 9) {
+        var telSufixo = soDigitos.slice(-9);
+        var porTel = _acLeadsDisponiveis.find(function(l) {
+          var lt = (l.tel||'').replace(/[^\d]/g, '');
+          return lt.length >= 9 && lt.slice(-9) === telSufixo;
+        });
+        if (porTel) return porTel;
+      }
+      // Match exato de nome
+      var porNomeExato = _acLeadsDisponiveis.find(function(l) { return l.nome && acNormaliza(l.nome) === pistaNorm; });
+      if (porNomeExato) return porNomeExato;
+      // Match parcial: nome do lead aparece dentro do texto fornecido (ex: cabeçalho de export, contexto)
+      var porNomeParcial = _acLeadsDisponiveis.filter(function(l) {
+        return l.nome && l.nome.trim().length >= 3 && pistaNorm.indexOf(acNormaliza(l.nome)) !== -1;
+      });
+      // Se houver mais do que um candidato parcial, é ambíguo demais para confiar — não arrisca
+      if (porNomeParcial.length === 1) return porNomeParcial[0];
+      return null;
+    }
+
+    // Resume o histórico de um lead num bloco de texto compacto para o prompt,
+    // preservando as interações mais recentes primeiro (mais relevantes).
+    function acResumirHistoricoLead(lead) {
+      var hist = (lead && Array.isArray(lead.historico)) ? lead.historico : [];
+      if (!hist.length) return '';
+      var linhas = hist.slice(0, 15).map(function(h) {
+        var data = h.data || '';
+        var msg = (h.msg || '').toString().replace(/\s+/g, ' ').trim();
+        if (msg.length > 300) msg = msg.slice(0, 300) + '…';
+        return '- [' + data + '] ' + msg;
+      });
+      return linhas.join('\n');
+    }
+
+    var _acLeadMatchInicial = _acLeadsDisponiveis.length
+      ? (acEncontrarLeadPorPistas(texto) || acEncontrarLeadPorPistas(ctx))
+      : null;
+    var _acHistoricoResumoInicial = _acLeadMatchInicial ? acResumirHistoricoLead(_acLeadMatchInicial) : '';
 
     document.getElementById('ac-empty').style.display = 'none';
     document.getElementById('ac-resultado').style.display = 'none';
@@ -38490,18 +38693,42 @@ async function acAnalisar() {
       + ' 5) If a phone number or email address is visible in the conversation (e.g. shared by the prospect), extract it; otherwise return empty string.'
       + ' 6) ROLE DEFINITION (critical, applies to the entire analysis, both image and text): there are exactly two roles in this conversation — the DISTRIBUTOR (the app owner, "Tu"/"You"' + (perfNome ? ', "' + perfNome + '"' : '') + ', the LifeWave business owner who is requesting this analysis) and the PROSPECT (the destinatário — the contact/lead/customer receiving the distributor\'s outreach, whose name may appear in the "Contexto" field, an imported file name, or a chat header). Never invert these two roles. Every coaching field ("resumo", "pontos_positivos", "erros_cometidos", "dica_extra") and "proxima_mensagem" must be written strictly FROM the distributor\'s point of view and addressed TO the prospect — the distributor is always "I/me" in this analysis, the prospect is always "them".'
       + ' 6a) SCREENSHOT SENDER/RECEIVER RULE (critical, only applies when analyzing an image): identify who sent each message by visual position and styling — in WhatsApp, Messenger and Instagram, messages sent by the distributor appear on the RIGHT side in a colored bubble (blue/green), while messages from the prospect appear on the LEFT in a gray/white bubble. The chat header name at the top of the screenshot is the PROSPECT, not the distributor.'
+      + (isAudio ? ' 6c) AUDIO VOICE-NOTE RULE (critical, only applies when analyzing an audio clip): the audio is a voice note recorded and sent by the PROSPECT to the distributor (never the other way around) — analyze it entirely as the prospect speaking. First, produce a verbatim transcript of exactly what is said, in the field "transcricao", in the ORIGINAL language spoken (do not translate the transcript itself). Second, analyze vocal tone/delivery — hesitation, pauses, speed, confidence, enthusiasm, irritation, warmth — and summarize it in the field "tom_voz" (in ' + uiLangName + '), noting anything the words alone would not convey (e.g. "fala devagar e hesita antes de mencionar o preço, sugerindo desconforto real, não apenas educação"). Use both the transcript AND the vocal delivery together to inform "sentimento", "fase", "objecoes" and the rest of the analysis — a hesitant or reluctant tone can contradict polite words and should be weighted accordingly.' : '')
       + ' 6b) PASTED/EXPORTED TEXT SENDER RULE (critical, only applies when analyzing pasted or imported text, including WhatsApp exports in the format "dd/mm/yyyy, hh:mm - Nome: mensagem" or simple "Nome: mensagem" lines): the label before the colon on each line is the real author of that specific line — it is NOT automatically the distributor just because it appears first, most often, or looks like a business name. Identify the DISTRIBUTOR by comparing each label against' + (perfNome ? ' "' + perfNome + '"' : ' the distributor\'s configured profile name') + ' and against the literal words "Tu"/"You"/"Eu", allowing for nicknames, first-name-only forms, or minor spelling variations. Whichever OTHER author label appears in the conversation is the PROSPECT — a 1:1 conversation only ever has these two authors, no matter how many times each label repeats. If the "Contexto" field names the contact (e.g. "Conversa com Maria"), use it to confirm which label is the prospect. If the distributor cannot be confidently matched by name, fall back to conversational cues (whoever is presenting/pitching LifeWave or X39 is the distributor; whoever is asking questions, raising objections, or reacting to the pitch is the prospect), and if real ambiguity remains, note it briefly in "resumo" instead of silently guessing wrong.'
       + ' 7) NESTED/FORWARDED SCREENSHOT RULE (critical): if the screenshot shows a forwarded message or a screenshot-within-a-screenshot (e.g. the prospect forwarded a message they received from someone else, or shared a screenshot of a different conversation), do NOT confuse the participants of the inner forwarded screenshot with the participants of the outer conversation. The person who forwarded/shared that inner screenshot to the distributor is the actual prospect in this conversation — analyze their reaction and intent (e.g. "I think your account was hacked", suspicion, confusion) as the prospect\'s message, not as if the distributor sent the inner content. Always determine the real sender of each visible message based on bubble side and context, never assume the most recent or central text bubble belongs to the distributor by default.'
       + ' 8) UNRELATED CONTENT RULE (critical): a screenshot or pasted conversation may contain messages that have nothing to do with LifeWave — personal chit-chat, work topics, family matters, an entirely different business/project/opportunity, or an unrelated subject mixed into the same thread. IGNORE all such unrelated messages completely when producing resumo, objecoes, pontos_positivos, erros_cometidos, proximo_passo, probabilidade_conversao and proxima_mensagem. Base the ENTIRE analysis only on messages that EXPLICITLY reference LifeWave, X39 or other named LifeWave products/patches, phototherapy/photobiomodulation, or an unambiguous LifeWave business/compensation-plan opportunity. Do NOT assume something is LifeWave-related just because it is generically about "a business opportunity", "a project", "a video to watch" or "money" — those words alone are not evidence. If the name, brand or product is not identifiable and nothing in the visible text ties it to LifeWave, treat it as UNRELATED, even if it looks superficially similar (e.g. another company\'s pre-launch project, a different MLM, a generic investment pitch). NEVER speculate or stretch an ambiguous or unrelated item into a LifeWave interpretation (e.g. do not write things like "in a LifeWave context this could be interpreted as..." — if it is not explicitly LifeWave, it is not part of this analysis). If there are multiple separate LifeWave-related exchanges at different points in the thread, focus on the MOST RECENT one — that is the current live opportunity. If, after excluding unrelated content, there is no LifeWave-related material left at all, set "fase" to "sem_contexto", leave objecoes/pontos_positivos/erros_cometidos as empty arrays, set probabilidade_conversao to 0, and explain in "resumo" that no LifeWave-related conversation was found in the screenshot/text provided — do not describe or summarize the unrelated content instead.'
       + (_acLinksStr ? ' 9) LINK INCLUSION RULE (mandatory, not optional): if "fase" is "pronto_para_comprar" or "interesse", the "proxima_mensagem" field MUST include one of the distributor\'s personal links below — this is a hard requirement, not a suggestion. Use the produto link if the prospect is leaning toward the product/wellness angle, or the negocio link if they are leaning toward the business/partnership angle; use registo if neither is available. Weave the link naturally into the message (e.g. "Aqui tens o link com toda a informação: [link]"), never omit it in these two phases. If "fase" is "descoberta" or "consideracao", do NOT include any link yet — keep the conversation going first.' + _acLinksStr : '')
       + ' 9b) TEMPLATE DETECTION RULE: compare the distributor\'s messages in this conversation against the reference list below (id, title, opening words of each app template). If one of them is a clear match — even if the distributor personalized it (changed the name, added/removed a sentence, reworded slightly) — return its exact id in "template_detectado". Judge by structure and core intent, not exact wording. If no template is a reasonably close match, or the distributor wrote something clearly original, return an empty string. Never guess a weak match just to fill the field.\n\nREFERENCE TEMPLATES:\n' + JSON.stringify(getListaReferenciaTemplates())
-      + ' 10) PROXIMA_MENSAGEM QUALITY RULES (critical — write it like an experienced LifeWave distributor who has closed real sales, not like a generic marketing bot): a) NAME THE BRAND — say "LifeWave" and/or "X39" explicitly; never hide behind vague phrases like "o projeto que te falei", "esta oportunidade incrível", "algo que partilho". Hiding the name reads as evasive and increases suspicion, especially in Portugal where network marketing already carries stigma — naming it plainly builds trust and lets the prospect research it themselves. b) NO EMPTY HYPE — cut filler enthusiasm like "tenho a certeza que vais adorar", "é incrível", "vai mudar a tua vida". Replace it with one concrete, specific reason tied to what THIS prospect said or asked (energy, sleep, recovery, skin, the business/income side) — specificity converts, generic excitement does not. c) GIVE A REAL REASON THE MESSAGE IS RELEVANT TO THEM — briefly say why you thought of them or why it fits what they mentioned, instead of a one-size-fits-all pitch. d) END WITH A CONCRETE NEXT STEP, NOT A PASSIVE ONE — avoid vague closers like "depois podemos falar" or "quando quiseres, diz". Propose something specific and low-friction (a suggested day/time for a quick call, or a direct question they can answer in one tap, e.g. "Quando vires, diz-me o que achaste — quinta à noite fica bem para uma chamada rápida?"). e) Keep it warm and human, never pushy or salesy — this is relationship-based selling, not a cold pitch. f) LINK FRAMING (important): the distributor\'s links use a third-party domain that does not visibly say "LifeWave" in the URL itself — so whenever a link is included in the message, frame it explicitly in the surrounding text so the prospect knows what they are clicking, e.g. "Aqui tens o meu link oficial com toda a informação sobre a LifeWave/X39: [link]" or "Este é o link com tudo sobre o X39 e a LifeWave: [link]" — never paste the link with no framing or with only a vague "aqui tens mais info", since the domain alone will not reassure the prospect that it is LifeWave-related.'
-      + ' Respond ONLY in valid JSON with this exact structure: {"nome_detectado":"Maria Silva","tel_detectado":"+351912345678","email_detectado":"maria@email.com","sentimento":"positivo","fase":"interesse","resumo":"texto","objecoes":["obj1"],"pontos_positivos":["p1"],"erros_cometidos":["e1"],"proxima_mensagem":"msg exacta no idioma do prospecto","proximo_passo":"accao","probabilidade_conversao":60,"dica_extra":"dica","idioma_prospecto":"fr","template_detectado":"tb1"}';
-    var promptText = sys + '\n\nTemperatura do lead: ' + acTemp + '. Analisa esta conversa de ' + platLabel + (isImg ? '. Vê a imagem.' : ':\n\n' + texto) + (ctx ? '\n\nContexto: ' + ctx : '') + '\n\nResponde APENAS com JSON valido.';
+      + ' 10) PROXIMA_MENSAGEM QUALITY RULES (critical — write it like an experienced LifeWave distributor who has closed real sales, not like a generic marketing bot): a) NAME THE BRAND — say "LifeWave" and/or "X39" explicitly; never hide behind vague phrases like "o projeto que te falei", "esta oportunidade incrível", "algo que partilho". Hiding the name reads as evasive and increases suspicion, especially in Portugal where network marketing already carries stigma — naming it plainly builds trust and lets the prospect research it themselves. b) NO EMPTY HYPE — cut filler enthusiasm like "tenho a certeza que vais adorar", "é incrível", "vai mudar a tua vida". Replace it with one concrete, specific reason tied to what THIS prospect said or asked (energy, sleep, recovery, skin, the business/income side) — specificity converts, generic excitement does not. c) GIVE A REAL REASON THE MESSAGE IS RELEVANT TO THEM — briefly say why you thought of them or why it fits what they mentioned, instead of a one-size-fits-all pitch. d) END WITH A CONCRETE NEXT STEP, NOT A PASSIVE ONE — avoid vague closers like "depois podemos falar" or "quando quiseres, diz". Propose something specific and low-friction (a suggested day/time for a quick call, or a direct question they can answer in one tap, e.g. "Quando vires, diz-me o que achaste — quinta à noite fica bem para uma chamada rápida?"). e) Keep it warm and human, never pushy or salesy — this is relationship-based selling, not a cold pitch. f) LINK FRAMING (important): the distributor\'s links use a third-party domain that does not visibly say "LifeWave" in the URL itself — so whenever a link is included in the message, frame it explicitly in the surrounding text so the prospect knows what they are clicking, e.g. "Aqui tens o meu link oficial com toda a informação sobre a LifeWave/X39: [link]" or "Este é o link com tudo sobre o X39 e a LifeWave: [link]" — never paste the link with no framing or with only a vague "aqui tens mais info", since the domain alone will not reassure the prospect that it is LifeWave-related. g) TEAM SUPPORT MENTION (only when relevant): if the prospect\'s objection or hesitation is about lack of time, a bad prior experience with another MLM/network-marketing company, feeling unsupported, or not knowing how to get started, include ONE brief, natural sentence in "proxima_mensagem" noting that the distributor is not working alone — there is a team behind them with its own support system/app that helps automate and organize the work (e.g. "não estás por tua conta, tenho uma equipa e um sistema de apoio que facilita muito o arranque"). Do NOT invent this angle when the objection is about price, skepticism, product mechanism, or doctor consultation — it only fits time/support/prior-MLM-failure objections. NEVER reveal the name of the app/tool itself to a prospect who has not yet joined the business — refer to it only generically ("um sistema/app de apoio", "ferramentas que uso"), never by its actual name.'
+      + (_acHistoricoResumoInicial ? ' 11) LEAD HISTORY RULE (critical): below is the prior interaction history already recorded for this prospect in the CRM, most recent first. Use it as background context to inform "sentimento", "fase", "objecoes", "pontos_positivos", "erros_cometidos", "probabilidade_conversao", "proximo_passo" and especially "proxima_mensagem" — e.g. do not repeat an objection they already resolved, do not re-introduce something already explained before, and reference earlier commitments or promises naturally if relevant. The history is background only: the CURRENT conversation/audio/image being analyzed now still defines "fase" and "sentimento" primarily. If the current message contradicts the historical pattern (e.g. they were warm before but are cold now), trust the CURRENT signal.\n\nHISTÓRICO DO LEAD (mais recente primeiro):\n' + _acHistoricoResumoInicial : '')
+      + ' Respond ONLY in valid JSON with this exact structure: {"nome_detectado":"Maria Silva","tel_detectado":"+351912345678","email_detectado":"maria@email.com","sentimento":"positivo","fase":"interesse","resumo":"texto","objecoes":["obj1"],"pontos_positivos":["p1"],"erros_cometidos":["e1"],"proxima_mensagem":"msg exacta no idioma do prospecto","proximo_passo":"accao","probabilidade_conversao":60,"dica_extra":"dica","idioma_prospecto":"fr","template_detectado":"tb1"' + (isAudio ? ',"transcricao":"texto exacto dito no audio","tom_voz":"analise do tom de voz"' : '') + '}';
+    var acDescricaoInput = isAudio && isImg ? '. Vê a imagem E ouve o áudio (nota de voz do prospecto) em conjunto, como partes da mesma conversa, e transcreve o áudio.'
+      : isAudio ? '. Ouve o áudio (nota de voz do prospecto) e transcreve-o.'
+      : isImg ? '. Vê a imagem.'
+      : '';
+    var promptText = sys + '\n\nTemperatura do lead: ' + acTemp + '. Analisa esta conversa de ' + platLabel + acDescricaoInput + (texto ? ':\n\n' + texto : '') + (ctx ? '\n\nContexto: ' + ctx : '') + '\n\nResponde APENAS com JSON valido.';
 
-    // Sistema central de fallback automático — cobre texto e imagem,
+    // Sistema central de fallback automático para texto puro sem media —
     // tentando Gemini → Claude → Grok → Mistral → OpenRouter (conforme chaves configuradas).
-    var raw = await callAI('posts', promptText, isImg ? _acImagemB64 : null, isImg ? 'image/jpeg' : null, isImg ? null : 'analise_conversa');
+    // Assim que há QUALQUER media (imagem e/ou áudio, isolados ou em conjunto),
+    // força-se sempre o Gemini: é o único provider da cadeia com suporte nativo
+    // a inline_data (imagem/áudio) e o único capaz de receber vários media na
+    // mesma chamada (ex: screenshot + nota de voz analisados em conjunto).
+    var _acExtraMedia = [];
+    if (isImg && isAudio) {
+      // Quando ambos existem, a imagem vai como extraMedia e o áudio como o
+      // media "principal" da chamada (mantém a assinatura de callGemini simples).
+      _acExtraMedia.push({ data: _acImagemB64, mimeType: 'image/jpeg' });
+    }
+    var raw = temMedia
+      ? await callGemini(
+          promptText,
+          isAudio ? _acAudioB64 : _acImagemB64,
+          isAudio ? (_acAudioMediaType || 'audio/webm') : 'image/jpeg',
+          null,
+          _acExtraMedia
+        )
+      : await callAI('posts', promptText, null, null, 'analise_conversa');
 
     if (!raw || !raw.trim()) throw new Error('Resposta vazia da IA');
 
@@ -38563,8 +38790,55 @@ async function acAnalisar() {
       };
     }
 
+    // ---------------------------------------------------------------
+    // MATCH AUTOMÁTICO DE LEAD (pós-1ª chamada) + RE-ANÁLISE COM HISTÓRICO
+    // Cobre o caso em que o match só foi possível depois de a IA identificar
+    // nome/telefone (ex: imagem ou áudio puros, sem nome no texto/contexto
+    // colado). Se encontrarmos agora um lead com histórico que NÃO tínhamos
+    // usado na 1ª chamada, refazemos a análise uma única vez já com esse
+    // histórico incluído, para o resultado final beneficiar sempre do
+    // contexto do CRM sem exigir qualquer seleção manual do utilizador.
+    // ---------------------------------------------------------------
+    var _acLeadMatchFinal = _acLeadMatchInicial;
+    if (!_acLeadMatchFinal && _acLeadsDisponiveis.length) {
+      var pistaPosIa = [(parsed.nome_detectado||''), (parsed.tel_detectado||'')].filter(Boolean).join(' ');
+      _acLeadMatchFinal = acEncontrarLeadPorPistas(pistaPosIa);
+    }
+    var _acHistoricoResumoFinal = _acLeadMatchFinal ? acResumirHistoricoLead(_acLeadMatchFinal) : '';
+
+    if (_acHistoricoResumoFinal && !_acHistoricoResumoInicial) {
+      try {
+        var promptTextComHistorico = promptText.replace(
+          "Respond ONLY in valid JSON",
+          "LEAD HISTORY RULE (critical): below is the prior interaction history already recorded for this prospect in the CRM, most recent first. Use it as background context to inform \"sentimento\", \"fase\", \"objecoes\", \"pontos_positivos\", \"erros_cometidos\", \"probabilidade_conversao\", \"proximo_passo\" and especially \"proxima_mensagem\" — do not repeat an objection they already resolved, reference earlier commitments naturally if relevant, and trust the CURRENT conversation over the history if they contradict each other.\n\nHISTÓRICO DO LEAD (mais recente primeiro):\n" + _acHistoricoResumoFinal + "\n\nRespond ONLY in valid JSON"
+        );
+        var rawComHistorico = temMedia
+          ? await callGemini(
+              promptTextComHistorico,
+              isAudio ? _acAudioB64 : _acImagemB64,
+              isAudio ? (_acAudioMediaType || 'audio/webm') : 'image/jpeg',
+              null,
+              _acExtraMedia
+            )
+          : await callAI('posts', promptTextComHistorico, null, null, 'analise_conversa');
+        if (rawComHistorico && rawComHistorico.trim()) {
+          var cleanComHist = rawComHistorico.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim();
+          var parsedComHist = null;
+          try { parsedComHist = JSON.parse(cleanComHist); }
+          catch(e1) {
+            var m2 = cleanComHist.match(/\{[\s\S]*\}/);
+            if (m2) { try { parsedComHist = JSON.parse(m2[0]); } catch(e2){} }
+          }
+          if (parsedComHist && typeof parsedComHist === 'object') parsed = parsedComHist;
+        }
+      } catch(eHist) {
+        // Falha na re-análise com histórico não deve bloquear o resultado já obtido —
+        // mantém o "parsed" da 1ª chamada e segue em frente silenciosamente.
+      }
+    }
+
     acReset(false);
-    _acUltimaAnalise = { resultado: parsed, plataforma: plat, platLabel: platLabel, textoOriginal: (!isImg ? texto : ''), meuNome: perfNome };
+    _acUltimaAnalise = { resultado: parsed, plataforma: plat, platLabel: platLabel, textoOriginal: (!isImg && !isAudio ? texto : ''), meuNome: perfNome, leadIdentificado: (_acLeadMatchFinal ? _acLeadMatchFinal.id : '') };
     acMostrarResultado(parsed);
 
   } catch(err) {
@@ -38609,6 +38883,8 @@ function acMostrarResultado(r) {
   if (r.objecoes && r.objecoes.length) {
     objecoesHtml = '<div style="background:rgba(249,115,22,0.07);border:1px solid rgba(249,115,22,0.25);border-radius:var(--radius);padding:14px;"><div style="font-size:12.5px;font-weight:700;color:#f97316;margin-bottom:10px;">Objecoes detectadas</div>' + r.objecoes.map(function(o){ return '<div style="font-size:12.5px;color:var(--text2);margin-bottom:6px;">• ' + o + '</div>'; }).join('') + '</div>';
   }
+  var transcricaoHtml = (r.transcricao || '').trim() ? '<div style="background:rgba(0,132,255,0.07);border:1px solid rgba(0,132,255,0.2);border-radius:var(--radius);padding:14px;"><div style="font-size:12.5px;font-weight:700;color:var(--info,#0084ff);margin-bottom:8px;">🎤 Transcrição do áudio</div><div style="font-size:12.5px;color:var(--text);line-height:1.6;white-space:pre-wrap;font-style:italic;">"' + r.transcricao + '"</div></div>' : '';
+  var tomVozHtml = (r.tom_voz || '').trim() ? '<div style="background:rgba(180,122,255,0.07);border:1px solid rgba(180,122,255,0.2);border-radius:var(--radius);padding:14px;display:flex;align-items:flex-start;gap:12px;"><span style="font-size:20px;flex-shrink:0;">🗣️</span><div><div style="font-size:12px;font-weight:700;color:#b47aff;margin-bottom:4px;">Tom de voz</div><div style="font-size:12.5px;color:var(--text2);line-height:1.6;">' + r.tom_voz + '</div></div></div>' : '';
   var pontosHtml = (r.pontos_positivos && r.pontos_positivos.length) ? '<div style="background:rgba(0,212,170,0.07);border:1px solid rgba(0,212,170,0.2);border-radius:var(--radius);padding:12px;"><div style="font-size:12px;font-weight:700;color:var(--accent);margin-bottom:8px;">Pontos positivos</div>' + r.pontos_positivos.map(function(p){ return '<div style="font-size:11.5px;color:var(--text2);margin-bottom:5px;">• ' + p + '</div>'; }).join('') + '</div>' : '<div></div>';
   var errosHtml = (r.erros_cometidos && r.erros_cometidos.length) ? '<div style="background:rgba(239,68,68,0.07);border:1px solid rgba(239,68,68,0.2);border-radius:var(--radius);padding:12px;"><div style="font-size:12px;font-weight:700;color:var(--danger);margin-bottom:8px;">A melhorar</div>' + r.erros_cometidos.map(function(e){ return '<div style="font-size:11.5px;color:var(--text2);margin-bottom:5px;">• ' + e + '</div>'; }).join('') + '</div>' : '<div></div>';
   var _acMsgOriginal = r.proxima_mensagem || '';
@@ -38637,9 +38913,16 @@ function acMostrarResultado(r) {
   };
   var estadoSugerido = FASE_PARA_ESTADO[r.fase] || '';
 
-  // Tenta saber o estado atual do lead pré-selecionado (se a IA/match já apontou um existente)
+  // Tenta saber o estado atual do lead pré-selecionado. Prioridade ao match
+  // já confirmado em acAnalisar (por telefone e/ou nome, incluindo o
+  // histórico usado na re-análise); só cai para um match simples por nome
+  // aqui como rede de segurança se por algum motivo aquele não existir.
   var leadPreSelecionado = null;
-  if (nomeDetectado && typeof leads !== 'undefined') {
+  var leadIdConfirmado = (_acUltimaAnalise && _acUltimaAnalise.leadIdentificado) || '';
+  if (leadIdConfirmado && typeof leads !== 'undefined') {
+    leadPreSelecionado = leads.find(function(l) { return l.id === leadIdConfirmado; }) || null;
+  }
+  if (!leadPreSelecionado && nomeDetectado && typeof leads !== 'undefined') {
     var nomeNormPre = nomeDetectado.trim().toLowerCase();
     leadPreSelecionado = leads.find(function(l) { return l.nome && l.nome.trim().toLowerCase() === nomeNormPre; }) || null;
   }
@@ -38656,8 +38939,12 @@ function acMostrarResultado(r) {
   // mais tarde, reutilizando o mesmo id do checkbox — nunca há dois no DOM ao mesmo
   // tempo (o segundo bloco substitui este via innerHTML), por isso é seguro.
 
+  var leadHistoricoUsadoHtml = (leadPreSelecionado && leadPreSelecionado.historico && leadPreSelecionado.historico.length)
+    ? '<div style="font-size:11.5px;color:var(--accent);margin-bottom:10px;display:flex;align-items:center;gap:6px;">🧠 Lead identificado automaticamente — histórico com ' + leadPreSelecionado.historico.length + ' interação(ões) foi tido em conta nesta análise.</div>'
+    : '';
   var leadAssocHtml = '<div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px;">'
     + '<div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:10px;">👤 Associar a um Lead</div>'
+    + leadHistoricoUsadoHtml
     + (nomeDetectado
         ? '<div style="font-size:12px;color:var(--text2);margin-bottom:10px;">Nome detetado na conversa: <strong style="color:var(--text);">' + nomeDetectado + '</strong></div>'
         : '<div style="font-size:12px;color:var(--text2);margin-bottom:10px;">Não foi possível detetar um nome automaticamente — escolhe ou cria o lead manualmente.</div>')
@@ -38675,6 +38962,7 @@ function acMostrarResultado(r) {
     + '</div>';
 
   var html = '<div style="display:flex;flex-direction:column;gap:14px;">'
+    + transcricaoHtml
     + '<div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px;">'
     + '<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:12px;">'
     + '<div style="display:flex;align-items:center;gap:10px;"><span style="font-size:28px;">' + (sIcon[sent]||'😐') + '</span><div><div style="font-size:11px;color:var(--text2);margin-bottom:2px;">Sentimento</div><div style="font-size:14px;font-weight:700;color:' + (sCor[sent]||'var(--text)') + ';">' + sent.replace('_',' ') + '</div></div></div>'
@@ -38683,6 +38971,7 @@ function acMostrarResultado(r) {
     + '<div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text2);margin-bottom:5px;"><span>Probabilidade de conversao</span><span style="font-weight:700;color:' + probCor + ';">' + prob + '%</span></div>'
     + '<div style="background:var(--surface3);border-radius:20px;height:7px;overflow:hidden;"><div style="width:' + prob + '%;height:100%;background:' + probCor + ';border-radius:20px;transition:width .5s;"></div></div></div>'
     + leadAssocHtml
+    + tomVozHtml
     + objecoesHtml
     + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">' + pontosHtml + errosHtml + '</div>'
     + templateDetectadoHtml
@@ -38718,19 +39007,23 @@ function acMostrarResultado(r) {
     });
     selEl.innerHTML = opts.join('');
 
-    if (nomeDetectado) {
+    var match = null;
+    if (leadIdConfirmado) {
+      match = leads.find(function(l) { return l.id === leadIdConfirmado; }) || null;
+    }
+    if (!match && nomeDetectado) {
       var nomeNorm = nomeDetectado.trim().toLowerCase();
-      var match = leads.find(function(l) { return l.nome && l.nome.trim().toLowerCase() === nomeNorm; });
+      match = leads.find(function(l) { return l.nome && l.nome.trim().toLowerCase() === nomeNorm; });
       if (!match) {
         match = leads.find(function(l) {
           return l.nome && (l.nome.toLowerCase().indexOf(nomeNorm) !== -1 || nomeNorm.indexOf(l.nome.toLowerCase()) !== -1);
         });
       }
-      if (match) {
-        selEl.value = match.id;
-        var buscaPre = document.getElementById('ac-lead-busca');
-        if (buscaPre) buscaPre.value = match.nome + (match.tel ? ' · ' + match.tel : '');
-      }
+    }
+    if (match) {
+      selEl.value = match.id;
+      var buscaPre = document.getElementById('ac-lead-busca');
+      if (buscaPre) buscaPre.value = match.nome + (match.tel ? ' · ' + match.tel : '');
     }
   }
 }
@@ -39068,7 +39361,9 @@ function acNovaAnalise() {
   var t = document.getElementById('ac-texto'); if(t) t.value = '';
   var c1 = document.getElementById('ac-contexto-texto'); if(c1) c1.value = '';
   var c2 = document.getElementById('ac-contexto-imagem'); if(c2) c2.value = '';
+  var c3 = document.getElementById('ac-contexto-audio'); if(c3) c3.value = '';
   acRemoverImagem();
+  acRemoverAudio();
   acInputTab('texto');
 }
 
@@ -40911,27 +41206,6 @@ function renderSaudeRede() {
       </div>
     </div>
     <!-- ==================== FIM ASSISTENTE CRIAR CHAVE ==================== -->
-
-    <script>
-      // ===================================================
-      // MEDIÇÃO DO TEMPO DE ARRANQUE (só leitura, zero risco)
-      // Não altera nenhuma função existente — só regista quanto tempo
-      // o telemóvel demorou a carregar e a analisar este ficheiro.
-      // Usa performance.now() próprio (marcado em __lwT0 logo no topo do
-      // <head>) em vez da Navigation Timing API — essa deu 0ms de forma
-      // persistente em teste real (possivelmente cache/service worker/
-      // bfcache), por isso passámos para uma medição autocontida.
-      // ===================================================
-      window.addEventListener('load', function() {
-        try {
-          const tempoMs = (typeof window.__lwT0 === 'number') ? Math.round(performance.now() - window.__lwT0) : null;
-          const kbHtml = Math.round(document.documentElement.outerHTML.length / 1024);
-          if (tempoMs !== null) {
-            console.log(`⏱️ App carregada em ${tempoMs}ms · ${kbHtml}KB de HTML · ${document.querySelectorAll('script').length} blocos <script>`);
-            const badge = document.getElementById('perf-badge');
-            if (badge) badge.textContent = `⏱️ ${tempoMs}ms · ${kbHtml}KB`;
-          }
-        } catch(e) { /* nunca deve quebrar nada por causa de uma métrica */ }
-      });
-    </script>
 </body>
+</html>
+
