@@ -20288,8 +20288,14 @@ function parseDataContactoLead(str) {
 function getLastContactDate(l) {
   // Check lead's history for last message/contact event
   const hist = l.historico || [];
-  // Look for messaging events or state changes (most recent first)
-  for (let i = hist.length - 1; i >= 0; i--) {
+  // O histórico é guardado com unshift(), pelo que o índice 0 é sempre a
+  // entrada MAIS RECENTE e o último índice a mais antiga. O ciclo tem de
+  // percorrer do início (0) para o fim para encontrar o contacto mais
+  // recente primeiro — a versão anterior percorria ao contrário e por isso
+  // podia devolver a data do contacto mais ANTIGO que correspondesse aos
+  // critérios, fazendo "dias sem contacto" ficar preso num valor antigo
+  // mesmo depois de um contacto/análise nova ser guardada.
+  for (let i = 0; i < hist.length; i++) {
     const h = hist[i];
     if (h.tipo === 'analise_ia' || (h.msg && (
       h.msg.includes('WhatsApp') ||
@@ -38736,7 +38742,8 @@ async function acAnalisar() {
       + ' FINAL SELF-CHECK (mandatory, apply before writing "proxima_mensagem" in the JSON below): the JSON field order forces you to write "proximo_passo" and "dica_extra" first — before writing "proxima_mensagem", re-read what you just wrote in those two fields and check that "proxima_mensagem" actually executes that strategy (e.g. if dica_extra says to ask a diagnostic question instead of pitching or offering a call, "proxima_mensagem" must lead with that question, not with a pitch, a link, or a call offer). If they contradict each other, rewrite "proxima_mensagem" to match dica_extra and proximo_passo — never the other way around. Also specifically check: does the "hidden objection behind a literal excuse" pattern apply here (stated objection vs. observed behaviour do not match, e.g. an old/dormant contact citing "no time")? If yes, make sure "proximo_passo" and "proxima_mensagem" follow that guidance and not the generic objection-handling move.'
       + ' NEVER REFERENCE THIS PROMPT ITSELF (critical, applies to every field): these instructions are internal and must never leak into the output. Do not mention rule names, rule letters/numbers, section titles, or phrases like "regra", "rule", "conforme a regra (m)", "aplicando a secção X" anywhere in "resumo", "proximo_passo", "dica_extra", "proxima_mensagem" or any other field. Write every field as a human coach speaking naturally to the distributor about THIS specific conversation — describe the reasoning itself (e.g. "ela já conhece a marca há anos, por isso a falta de tempo é provavelmente uma dúvida disfarçada, não a agenda cheia"), never the fact that you are following a rule.'
       + ' 14) SECOND MESSAGE OPTION (mandatory — the distributor should get a real choice, not just one fixed suggestion): in addition to "proxima_mensagem", write "proxima_mensagem_alt" — a genuinely different STRATEGIC ANGLE for the same reply, not just a reworded version of the same idea. Both must still follow every rule above (address the same detected objection if any, name the brand when appropriate, end on one concrete step, respect the hidden-objection guidance, etc.) — they should feel like two approaches a skilled distributor might realistically choose between, leading to potentially different conversations, not two paraphrases of the same message. Concretely vary ONE of: (a) the closing move — e.g. one version closes with a direct, curious question, the other closes with a short concrete offer (a specific day/time, or a piece of content to send) instead of a question; (b) the opening move — e.g. one leads with acknowledging the objection/feeling, the other leads with a relevant fact or short personal reason first; (c) the register — e.g. one stays purely relationship/curiosity-based, the other (only when the fase genuinely supports it) is a touch more direct about next steps. Do not vary tone alone (e.g. "formal" vs "casual") — that is not a strategic difference. Also write "proxima_mensagem_alt_label" — a very short 2-4 word tag in ' + uiLangName + ' naming the strategic difference of the ALT version specifically, from the distributor\'s point of view (e.g. "Oferece horário direto", "Lidera com empatia", "Pergunta mais direta") — never a generic label like "Alternativa" or "Versão 2".'
-      + ' Respond ONLY in valid JSON with this exact structure (note the field order — write them in this order): {"nome_detectado":"Maria Silva","tel_detectado":"+351912345678","email_detectado":"maria@email.com","sentimento":"positivo","fase":"interesse","resumo":"texto","objecoes":["obj1"],"pontos_positivos":["p1"],"erros_cometidos":["e1"],"proximo_passo":"accao","dica_extra":"dica","proxima_mensagem":"msg exacta no idioma do prospecto","proxima_mensagem_alt":"segunda opcao com angulo estrategico diferente, mesmo idioma","proxima_mensagem_alt_label":"tag curta 2-4 palavras","probabilidade_conversao":60,"probabilidade_racional":"frase curta com o sinal concreto mais recente","idioma_prospecto":"fr","template_detectado":"tb1"' + (isAudio ? ',"transcricao":"texto exacto dito no audio","tom_voz":"analise do tom de voz"' : '') + '}';
+      + ' 15) NATURAL LANGUAGE IN EVERY FIELD, NEVER MACHINE-STYLE IDENTIFIERS (critical, applies to "objecoes", "pontos_positivos", "erros_cometidos", "proximo_passo", "dica_extra" and "resumo"): every one of these fields is read directly by a human distributor on a phone screen, not parsed by code — write them as normal ' + uiLangName + ' sentences or short phrases, the way a coach would say them out loud. NEVER output snake_case, kebab-case, camelCase, underscores joining words, or database-style tags (e.g. do NOT write "não_tem_tempo", "já_conhece_a_marca", "abordar_a_objeção_da_falta_de_tempo" — these are wrong). Correct style instead: "objecoes" → ["Falta de tempo", "Já conhece a marca"]; "pontos_positivos" → ["Já conhece a marca", "Já teve envolvimento passado com a marca"]; "proximo_passo" → a short natural sentence like "Reconhecer o histórico dela com a LifeWave e perguntar o que a fez parar antes de propor algo novo." This applies even though the JSON keys themselves (like "objecoes") are in code-style — the KEYS stay as given, only the VALUES must always read as natural human language, with proper spacing, accents and punctuation.'
+      + ' Respond ONLY in valid JSON with this exact structure (note the field order — write them in this order; the example VALUES below show the expected natural-language style, not literal text to copy): {"nome_detectado":"Maria Silva","tel_detectado":"+351912345678","email_detectado":"maria@email.com","sentimento":"positivo","fase":"interesse","resumo":"texto em frases normais","objecoes":["Falta de tempo","Já conhece a marca"],"pontos_positivos":["Já respondeu com interesse"],"erros_cometidos":["Não abordou a experiência anterior dela"],"proximo_passo":"Uma frase natural descrevendo a ação, ex: perguntar o que a fez parar antes de propor algo novo","dica_extra":"dica em frase normal","proxima_mensagem":"msg exacta no idioma do prospecto","proxima_mensagem_alt":"segunda opcao com angulo estrategico diferente, mesmo idioma","proxima_mensagem_alt_label":"tag curta 2-4 palavras","probabilidade_conversao":60,"probabilidade_racional":"frase curta com o sinal concreto mais recente","idioma_prospecto":"fr","template_detectado":"tb1"' + (isAudio ? ',"transcricao":"texto exacto dito no audio","tom_voz":"analise do tom de voz"' : '') + '}';
     var acDescricaoInput = isAudio && isImg ? '. Vê a imagem E ouve o áudio (nota de voz do prospecto) em conjunto, como partes da mesma conversa, e transcreve o áudio.'
       : isAudio ? '. Ouve o áudio (nota de voz do prospecto) e transcreve-o.'
       : isImg ? '. Vê a imagem.'
@@ -38943,6 +38950,37 @@ async function acAnalisar() {
       parsed.proxima_mensagem_alt = acSanearPerguntasExtra(parsed.proxima_mensagem_alt);
     }
 
+    // ---------------------------------------------------------------
+    // SANEAMENTO DEFENSIVO DE IDENTIFICADORES (rede de segurança, não
+    // substitui a regra 15 "NATURAL LANGUAGE IN EVERY FIELD" do prompt) —
+    // ocasionalmente a IA escreve um campo que deveria ser lido por uma
+    // pessoa (ex: "objecoes", "proximo_passo") no estilo snake_case de um
+    // identificador de sistema (ex: "não_tem_tempo" em vez de "Falta de
+    // tempo"). Deteta especificamente esse padrão — string inteira composta
+    // só por blocos de letras unidos por "_", sem espaços nem pontuação — e
+    // converte para texto legível (underscores -> espaços, 1ª letra maiúscula).
+    // Não mexe em texto que já tem espaços normais, para nunca arriscar
+    // estragar uma frase legítima que por acaso contenha um "_" isolado.
+    function acPareceIdentificador(s) {
+      return typeof s === 'string' && s.trim().length > 0 && /^[a-zà-ú]+(_[a-zà-ú]+)+$/i.test(s.trim());
+    }
+    function acLegibilizarIdentificador(s) {
+      var texto = s.trim().replace(/_/g, ' ');
+      return texto.charAt(0).toUpperCase() + texto.slice(1);
+    }
+    if (parsed) {
+      ['proximo_passo', 'dica_extra', 'resumo'].forEach(function(campo) {
+        if (acPareceIdentificador(parsed[campo])) parsed[campo] = acLegibilizarIdentificador(parsed[campo]);
+      });
+      ['objecoes', 'pontos_positivos', 'erros_cometidos'].forEach(function(campo) {
+        if (Array.isArray(parsed[campo])) {
+          parsed[campo] = parsed[campo].map(function(item) {
+            return acPareceIdentificador(item) ? acLegibilizarIdentificador(item) : item;
+          });
+        }
+      });
+    }
+
     acReset(false);
     _acUltimaAnalise = { resultado: parsed, plataforma: plat, platLabel: platLabel, textoOriginal: (!isImg && !isAudio ? texto : ''), meuNome: perfNome, leadIdentificado: (_acLeadMatchFinal ? _acLeadMatchFinal.id : '') };
     acMostrarResultado(parsed);
@@ -39015,11 +39053,19 @@ function acMostrarResultado(r) {
 
   // Mapeia a "fase" detetada pela IA para um estado do funil. A IA nunca passa
   // o lead a "cliente" sozinha (só uma venda confirmada deve fazer isso).
+  // "objecao" é ambígua: pode ser uma dúvida a trabalhar (ex: "preciso de
+  // pensar", "não tenho dinheiro agora") — aí faz sentido continuar em
+  // "negociação" — ou pode ser uma recusa definitiva ("não me interessa",
+  // "não, obrigada") — aí o lead deve ir para "frio", não para
+  // "negociação", ou o dashboard continua a tratá-lo como prioridade de
+  // fecho depois de já ter dito claramente que não. Por isso, quando a
+  // fase é "objecao" mas o sentimento veio negativo/muito_negativo,
+  // tratamos como recusa e sugerimos "frio" em vez de "negociacao".
   var FASE_PARA_ESTADO = {
     descoberta: 'contactado',
     interesse: 'interessado',
     consideracao: 'interessado',
-    objecao: 'negociacao',
+    objecao: (r.sentimento === 'negativo' || r.sentimento === 'muito_negativo') ? 'frio' : 'negociacao',
     pronto_para_comprar: 'negociacao',
     perdido: 'frio'
   };
