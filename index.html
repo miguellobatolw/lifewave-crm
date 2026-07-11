@@ -9259,6 +9259,14 @@ function _moverLeadParaEtapaExecutar(leadId, novaEtapa) {
   if (!lead.historico) lead.historico = [];
   if (estadoAnterior !== novaEtapa) {
     lead.historico.unshift({ tipo: 'estado', msg: `Funil: "${estadoLabel(estadoAnterior)}" → "${estadoLabel(novaEtapa)}"`, data: new Date().toLocaleString('pt-PT') });
+    // Mudar de etapa no funil é, na prática, um contacto/interação com o
+    // lead — vários outros sítios da app (lembretes automáticos, automações
+    // por "dias sem contacto", estatísticas de saúde de rede) leem
+    // lead.ultimoContacto diretamente em vez de recalcular a partir do
+    // histórico, por isso este campo tem de ser mantido em sincronia aqui
+    // também, ou esses alertas ficam desatualizados mesmo com o histórico
+    // correto.
+    lead.ultimoContacto = new Date().toISOString();
   }
   // Regista quando entrou em negociação (para o alerta de "negociação parada" —
   // etapa mais sensível ao tempo, onde um lead esfria rapidamente sem follow-up).
@@ -9737,6 +9745,27 @@ function salvarLead() {
     data: new Date().toLocaleDateString('pt-PT'),
     historico: editingLeadId ? (leads.find(l => l.id === editingLeadId)?.historico || []) : []
   };
+  // O formulário reconstrói o lead do zero, o que apagava silenciosamente
+  // campos "derivados" geridos por outras partes da app (lembretes
+  // automáticos, automações por dias-sem-contacto, análise de conversa IA,
+  // motivo de perda, etapa de recrutamento) sempre que o utilizador editava
+  // e guardava um lead manualmente. Preserva-os do lead existente.
+  if (leadExistente) {
+    if (leadExistente.ultimoContacto) lead.ultimoContacto = leadExistente.ultimoContacto;
+    if (leadExistente.estadoRecrut) lead.estadoRecrut = leadExistente.estadoRecrut;
+    if (leadExistente.padraoHorario) lead.padraoHorario = leadExistente.padraoHorario;
+    if (leadExistente.ultimaSugestaoIA) lead.ultimaSugestaoIA = leadExistente.ultimaSugestaoIA;
+    // motivoPerda* só é preservado se o lead continuar como "perdido" —
+    // o fluxo dedicado de "marcar como perdido" é responsável por definir
+    // estes campos quando o estado muda para "perdido" pela primeira vez.
+    if (leadExistente.motivoPerda && novoEstado === 'perdido') {
+      lead.motivoPerda = leadExistente.motivoPerda;
+      lead.motivoPerdaNota = leadExistente.motivoPerdaNota;
+      lead.motivoPerdaData = leadExistente.motivoPerdaData;
+    }
+  }
+  // (dataEntradaNegociacao é tratado pelo bloco dedicado logo a seguir, que já
+  // lê leadExistente.dataEntradaNegociacao quando necessário — não duplicar aqui.)
   // Regista/preserva quando o lead entrou em negociação (usado no alerta de
   // "negociação parada" — só marca a data quando entra de novo nesse estado).
   if (novoEstado === 'negociacao') {
@@ -9754,6 +9783,7 @@ function salvarLead() {
     const idx = leads.findIndex(l => l.id === editingLeadId);
     if (lead.estado !== leads[idx].estado) {
       lead.historico.push({ tipo: 'estado', msg: `Estado alterado para "${estadoLabel(lead.estado)}"`, data: new Date().toLocaleString('pt-PT') });
+      lead.ultimoContacto = new Date().toISOString();
     }
     leads[idx] = lead;
   } else {
@@ -10327,6 +10357,7 @@ function avancarEstado(id) {
     l.estado = estados[idx + 1];
     l.historico = l.historico || [];
     l.historico.push({ tipo: 'estado', msg: `Avançou para "${estadoLabel(l.estado)}"`, data: new Date().toLocaleString('pt-PT') });
+    l.ultimoContacto = new Date().toISOString();
     saveleads();
     verLead(id);
     renderDashboard();
@@ -11025,6 +11056,7 @@ function registarResultadoEvento(eventoId, resultado) {
       ? `📞 "${ev.titulo}" realizada — correu bem`
       : `📞 "${ev.titulo}" — sem resposta/não atendeu`;
     leadObj.historico.push({ tipo: 'chamada', msg, data: new Date().toLocaleString('pt-PT') });
+    leadObj.ultimoContacto = new Date().toISOString();
     if (resultado === 'bem' && ['novo','contactado'].includes(leadObj.estado)) {
       leadObj.estado = 'interessado';
       leadObj.historico.push({ tipo: 'estado', msg: `Estado alterado para "${estadoLabel(leadObj.estado)}"`, data: new Date().toLocaleString('pt-PT') });
@@ -11532,6 +11564,16 @@ function kbDrop(e, targetCol) {
   if (!lead) return;
   const estadoAnterior = lead.estado;
   lead.estado = targetCol;
+  // Arrastar o cartão entre colunas é uma mudança de estado como outra
+  // qualquer e tem de ficar registada no histórico + ultimoContacto, tal
+  // como acontece em _moverLeadParaEtapaExecutar (menu "Mover") — sem isto,
+  // o lead muda de coluna mas "dias sem contacto" e os lembretes/automações
+  // que dependem do histórico não se apercebem de que houve interação.
+  lead.historico = lead.historico || [];
+  if (estadoAnterior !== targetCol) {
+    lead.historico.unshift({ tipo: 'estado', msg: `Funil: "${estadoLabel(estadoAnterior)}" → "${estadoLabel(targetCol)}"`, data: new Date().toLocaleString('pt-PT') });
+    lead.ultimoContacto = new Date().toISOString();
+  }
   saveleads();
   renderFunil();
   if (targetCol === 'cliente') vibrarConfirmacao();
@@ -11591,6 +11633,11 @@ function kbTouchEnd(e, originCol) {
     if (lead) {
       const estadoAnterior = lead.estado;
       lead.estado = targetCol;
+      lead.historico = lead.historico || [];
+      if (estadoAnterior !== targetCol) {
+        lead.historico.unshift({ tipo: 'estado', msg: `Funil: "${estadoLabel(estadoAnterior)}" → "${estadoLabel(targetCol)}"`, data: new Date().toLocaleString('pt-PT') });
+        lead.ultimoContacto = new Date().toISOString();
+      }
       saveleads();
       renderFunil();
       showToast('✅ ' + lead.nome + ' → ' + targetCol);
@@ -11838,6 +11885,7 @@ function moverLeadParaEtapaRecrutamento(leadId, novaEtapa) {
   lead.estadoRecrut = novaEtapa;
   lead.historico = lead.historico || [];
   lead.historico.unshift({ tipo: 'estado', msg: `Recrutamento: "${recrutEtapaLabel(anterior)}" → "${recrutEtapaLabel(novaEtapa)}"`, data: new Date().toLocaleString('pt-PT') });
+  lead.ultimoContacto = new Date().toISOString();
   saveleads();
   renderFunilRecrutamento();
   if (novaEtapa === 'ativo') vibrarConfirmacao();
@@ -20273,8 +20321,9 @@ function scoreBadgeHtml(l) {
 // browser NÃO interpreta este último formato e devolve "Invalid Date" em
 // silêncio, o que fazia diasSemContacto() falhar sempre que o evento mais
 // recente do histórico fosse um destes registos.
-// (Distinta de parseDataHistorico() mais abaixo, que devolve timestamp em vez
-// de Date e é usada só por calcularAutoTags — mantida para não alterar esse comportamento.)
+// (parseDataHistorico() mais abaixo faz algo parecido mas só entende pt-PT
+// e devolve timestamp em vez de Date; já não é usada — calcularAutoTags foi
+// migrada para esta função para também reconhecer datas em formato ISO.)
 function parseDataContactoLead(str) {
   if (!str) return null;
   if (typeof str !== 'string') return new Date(str);
@@ -20286,15 +20335,19 @@ function parseDataContactoLead(str) {
 }
 
 function getLastContactDate(l) {
-  // Check lead's history for last message/contact event
+  // Check lead's history for last message/contact event.
+  //
+  // IMPORTANTE: o histórico do lead é escrito em ~25 sítios diferentes da
+  // app. A maioria usa historico.push() (mais recente no FIM do array),
+  // mas vários outros (ex: acGuardarNoLead, moverLeadParaEtapaRecrutamento,
+  // mudanças de estado no funil) usam historico.unshift() (mais recente no
+  // INÍCIO). Não há garantia de ordem consistente no array — por isso não
+  // percorremos por posição (nem do início nem do fim): comparamos as
+  // DATAS reais de todas as entradas relevantes e devolvemos a mais
+  // recente. Isto é imune a qualquer futura função que adicione entradas
+  // com push ou unshift.
   const hist = l.historico || [];
-  // O histórico é guardado com unshift(), pelo que o índice 0 é sempre a
-  // entrada MAIS RECENTE e o último índice a mais antiga. O ciclo tem de
-  // percorrer do início (0) para o fim para encontrar o contacto mais
-  // recente primeiro — a versão anterior percorria ao contrário e por isso
-  // podia devolver a data do contacto mais ANTIGO que correspondesse aos
-  // critérios, fazendo "dias sem contacto" ficar preso num valor antigo
-  // mesmo depois de um contacto/análise nova ser guardada.
+  let maisRecente = null;
   for (let i = 0; i < hist.length; i++) {
     const h = hist[i];
     if (h.tipo === 'analise_ia' || (h.msg && (
@@ -20305,9 +20358,13 @@ function getLastContactDate(l) {
       h.msg.includes('Estado alterado') ||
       h.msg.includes('contactado')
     ))) {
-      return parseDataContactoLead(h.data);
+      const d = parseDataContactoLead(h.data);
+      if (d && !isNaN(d.getTime()) && (!maisRecente || d > maisRecente)) {
+        maisRecente = d;
+      }
     }
   }
+  if (maisRecente) return maisRecente;
   // Fall back to lead creation date
   if (l.data) return parseDataContactoLead(l.data);
   return null;
@@ -20421,26 +20478,37 @@ function calcularAutoTags(l) {
   const tags = [];
   const hist = l.historico || [];
 
+  // O histórico é escrito com push() OU unshift() consoante a função (ver
+  // getLastContactDate para o levantamento completo) — por isso não se pode
+  // assumir que "as últimas posições do array" ou "a primeira ao inverter"
+  // correspondem de facto às entradas mais recentes/mais antigas. Ordenamos
+  // sempre pela data real de cada entrada antes de qualquer lógica aqui.
+  const histOrdenado = hist
+    .map(h => { const d = parseDataContactoLead(h.data); return { h, ts: (d && !isNaN(d.getTime())) ? d.getTime() : null }; })
+    .filter(x => x.ts !== null)
+    .sort((a, b) => a.ts - b.ts) // mais antigo → mais recente
+    .map(x => x.h);
+
   // 🔇 Sem resposta: 3+ últimas entradas tipo mensagem/chamada, sem nota/estado entre elas
-  if (hist.length >= 3) {
-    const ultimas3 = hist.slice(-3);
+  if (histOrdenado.length >= 3) {
+    const ultimas3 = histOrdenado.slice(-3);
     const todasContacto = ultimas3.every(h => h.tipo === 'mensagem' || h.tipo === 'chamada');
     if (todasContacto) tags.push({ key: 'sem_resposta', label: '🔇 Sem resposta', cor: '#ff8c42' });
   }
 
   // 🔥 Quente: mudou de estado (tipo 'estado') nos últimos 5 dias
-  const ultimaMudancaEstado = [...hist].reverse().find(h => h.tipo === 'estado');
+  const ultimaMudancaEstado = [...histOrdenado].reverse().find(h => h.tipo === 'estado');
   if (ultimaMudancaEstado && ultimaMudancaEstado.data) {
-    const dataM = parseDataHistorico(ultimaMudancaEstado.data);
-    if (dataM && (Date.now() - dataM) / 86400000 <= 5) {
+    const dataM = parseDataContactoLead(ultimaMudancaEstado.data);
+    if (dataM && !isNaN(dataM.getTime()) && (Date.now() - dataM.getTime()) / 86400000 <= 5) {
       tags.push({ key: 'quente', label: '🔥 Quente', cor: '#ff6b35' });
     }
   }
 
   // 🧊 Estagnado: na mesma etapa há 30+ dias (desde a última mudança de estado, ou desde a criação)
   if (!tags.some(t => t.key === 'quente')) {
-    const refData = ultimaMudancaEstado ? parseDataHistorico(ultimaMudancaEstado.data) : null;
-    const refTs = refData || new Date(l.data || l.criadoEm || Date.now()).getTime();
+    const refData = ultimaMudancaEstado ? parseDataContactoLead(ultimaMudancaEstado.data) : null;
+    const refTs = (refData && !isNaN(refData.getTime())) ? refData.getTime() : new Date(l.data || l.criadoEm || Date.now()).getTime();
     if (refTs && (Date.now() - refTs) / 86400000 >= 30) {
       tags.push({ key: 'estagnado', label: '🧊 Estagnado', cor: '#6b7a8f' });
     }
@@ -22686,15 +22754,18 @@ function renderStats() {
   }
 
   // --- Leads a precisar de atenção (sem contacto há mais de 7 dias) ---
+  // Reutiliza diasSemContacto() (função partilhada, imune à ordem
+  // push/unshift do histórico) em vez de assumir que a última posição do
+  // array é a entrada mais recente — essa suposição estava errada aqui
+  // (mesma causa do bug em que "dias sem contacto" ficava desatualizado
+  // no dashboard depois de guardar uma nova análise/contacto).
   const urgentes = leads
     .filter(l => l.estado !== 'cliente')
     .map(l => {
-      const ult = l.historico?.length ? l.historico[l.historico.length - 1].data : l.data;
-      const d = parsePTDate(ult) || parsePTDate(l.data);
-      const dias = d ? Math.round((agora - d) / 86400000) : null;
+      const dias = diasSemContacto(l);
       return { ...l, diasSemContacto: dias };
     })
-    .filter(l => l.diasSemContacto >= 5)
+    .filter(l => l.diasSemContacto !== null && l.diasSemContacto >= 5)
     .sort((a,b) => b.diasSemContacto - a.diasSemContacto)
     .slice(0, 6);
 
@@ -39321,6 +39392,15 @@ function acGuardarNoLead() {
     lead = leads.find(function(x) { return x.id === leadIdEscolhido; });
     if (!lead) { showToast('❌ Lead não encontrado.'); return; }
     if (nome && nome !== lead.nome) lead.nome = nome; // permite corrigir o nome ao associar
+    // Atualiza a "Nota Rápida" com o resumo desta nova análise — sem isto, a nota
+    // ficava sempre presa ao resumo da conversa que criou o lead originalmente,
+    // mesmo depois de várias análises mais recentes serem guardadas por cima,
+    // o que causa confusão sobre o que se passou na conversa mais recente.
+    if (r.resumo) {
+      var notasAtualizadasAC = r.resumo;
+      if (r.objecoes && r.objecoes.length) notasAtualizadasAC += '\nObjeções: ' + r.objecoes.join('; ');
+      lead.notas = notasAtualizadasAC;
+    }
   } else {
     // Bloqueia duplicado exato por nome, tal como ao criar manualmente
     var duplicado = leads.find(function(l) { return l.nome && l.nome.trim().toLowerCase() === nome.toLowerCase(); });
@@ -39329,6 +39409,11 @@ function acGuardarNoLead() {
         return;
       }
       lead = duplicado;
+      if (r.resumo) {
+        var notasAtualizadasDupAC = r.resumo;
+        if (r.objecoes && r.objecoes.length) notasAtualizadasDupAC += '\nObjeções: ' + r.objecoes.join('; ');
+        lead.notas = notasAtualizadasDupAC;
+      }
     } else {
       // P3 — Preencher campos com dados já detetados pela IA
       var r0 = _acUltimaAnalise.resultado || {};
@@ -39392,10 +39477,26 @@ function acGuardarNoLead() {
     }
   }
 
-  // Aplica a mudança de estado sugerida pela IA, se o utilizador a confirmou na checkbox.
+  // Aplica a mudança de estado sugerida pela IA, se o utilizador a confirmou na checkbox —
+  // EXCETO no caso de uma recusa clara (fase "objecao" + sentimento negativo/muito_negativo),
+  // que passa a ser aplicada automaticamente para "frio". Este caso é inequívoco (o prospect
+  // disse "não" e o sentimento confirma) e não deve depender de o utilizador reparar numa
+  // checkbox — deixar um lead que já disse claramente que não está interessado a aparecer
+  // como prioridade de fecho é pior do que aplicar a mudança sem pedir confirmação extra.
+  var recusaClaraAC = r.fase === 'objecao' && (r.sentimento === 'negativo' || r.sentimento === 'muito_negativo');
   var checkboxEstado = document.getElementById('ac-lead-mudar-estado');
   var estadoInputEl = document.getElementById('ac-estado-sugerido');
-  if (checkboxEstado && checkboxEstado.checked && estadoInputEl && estadoInputEl.value && estadoInputEl.value !== lead.estado) {
+  var estadoSugeridoVal = estadoInputEl ? estadoInputEl.value : '';
+  if (recusaClaraAC && estadoSugeridoVal === 'frio' && lead.estado !== 'frio') {
+    var estadoAnteriorRec = lead.estado;
+    lead.estado = 'frio';
+    lead.historico.unshift({
+      tipo: 'estado',
+      msg: '🤖 Estado alterado automaticamente de "' + estadoLabel(estadoAnteriorRec) + '" para "Frio" — a conversa mostra uma recusa clara (sentimento negativo detetado pela Análise de Conversa IA)',
+      data: new Date().toLocaleString('pt-PT')
+    });
+    if (typeof executarAutomacoes === 'function') executarAutomacoes(lead, estadoAnteriorRec, 'frio');
+  } else if (checkboxEstado && checkboxEstado.checked && estadoInputEl && estadoInputEl.value && estadoInputEl.value !== lead.estado) {
     var estadoAnterior = lead.estado;
     var novoEstado = estadoInputEl.value;
     lead.estado = novoEstado;
