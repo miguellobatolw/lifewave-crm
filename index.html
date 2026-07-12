@@ -3514,24 +3514,6 @@ var QRCode=function(t){"use strict";var r,e=function(){return"function"==typeof 
     <div id="google-login-local-aviso" style="display:none;font-size:11px;color:var(--text2);text-align:center;margin-top:8px;padding:8px 10px;background:var(--surface2);border-radius:8px;">
       🔒 Login com Google disponível só na versão online desta app.
     </div>
-    <script>
-      // Login Google só faz sentido quando a app está hospedada num link
-      // https:// — localmente (file:// ou content://, ex: ficheiro guardado
-      // no telemóvel) o OAuth do Google tende a falhar (origem não
-      // autorizada). Esconde o botão cedo (execução inline, antes de
-      // DOMContentLoaded) para não mostrar uma opção que ia ser bloqueada
-      // de qualquer forma em iniciarGoogleLoginComClientId(), que é a
-      // proteção real — isto aqui é só a camada visual.
-      (function() {
-        const isLocal = location.protocol === 'file:' || location.protocol === 'content:';
-        if (isLocal) {
-          const btn = document.getElementById('btn-login-google');
-          const aviso = document.getElementById('google-login-local-aviso');
-          if (btn) btn.style.display = 'none';
-          if (aviso) aviso.style.display = 'block';
-        }
-      })();
-    </script>
     <div id="google-client-missing-warn" style="display:none;font-size:11px;color:#ff9800;text-align:center;margin-top:6px;padding:6px 10px;background:rgba(255,152,0,0.1);border-radius:6px;">
       ⚠️ Client ID do Google não configurado no código.<br>
       Segue o guia de configuração para activar o login com Google.
@@ -3619,23 +3601,59 @@ var QRCode=function(t){"use strict";var r,e=function(){return"function"==typeof 
       })();
     </script>
 
-    <div class="login-divider"><span>OU</span></div>
+    <div id="login-email-secao">
+      <div class="login-divider"><span>OU</span></div>
 
-    <input class="login-email-input" id="login-email" type="email" placeholder="Digite o teu email" onkeydown="loginEmailKeydown(event)" oninput="loginEmailInput()" autocomplete="email"/>
-    <div class="login-password-wrap" id="login-pass-wrap">
-      <input class="login-password-input" id="login-password" type="password" placeholder="Palavra-passe" onkeydown="loginPassKeydown(event)" autocomplete="current-password"/>
-    </div>
+      <input class="login-email-input" id="login-email" type="email" placeholder="Digite o teu email" onkeydown="loginEmailKeydown(event)" oninput="loginEmailInput()" autocomplete="email"/>
+      <div class="login-password-wrap" id="login-pass-wrap">
+        <input class="login-password-input" id="login-password" type="password" placeholder="Palavra-passe" onkeydown="loginPassKeydown(event)" autocomplete="current-password"/>
+      </div>
 
-    <button class="btn-login-email visible" id="btn-continuar-step1" onclick="loginEmailStep()">Continuar com email</button>
-    <button class="btn-continuar-email" id="btn-entrar-step2" onclick="loginComEmail()">Entrar →</button>
-    
-    <div style="text-align:center;margin-top:12px;">
-      <button onclick="mostrarRecuperarPassword()" style="background:none;border:none;color:rgba(0,212,170,0.7);font-size:12px;cursor:pointer;text-decoration:underline;font-family:'DM Sans',sans-serif;transition:color 0.2s;" onmouseover="this.style.color='#00d4aa'" onmouseout="this.style.color='rgba(0,212,170,0.7)'">
-        Esqueci a palavra-passe
-      </button>
+      <button class="btn-login-email visible" id="btn-continuar-step1" onclick="loginEmailStep()">Continuar com email</button>
+      <button class="btn-continuar-email" id="btn-entrar-step2" onclick="loginComEmail()">Entrar →</button>
+
+      <div style="text-align:center;margin-top:12px;">
+        <button onclick="mostrarRecuperarPassword()" style="background:none;border:none;color:rgba(0,212,170,0.7);font-size:12px;cursor:pointer;text-decoration:underline;font-family:'DM Sans',sans-serif;transition:color 0.2s;" onmouseover="this.style.color='#00d4aa'" onmouseout="this.style.color='rgba(0,212,170,0.7)'">
+          Esqueci a palavra-passe
+        </button>
+      </div>
     </div>
 
     <div class="login-error" id="login-error"></div>
+
+    <div id="login-email-oculta-aviso" style="display:none;font-size:11px;color:var(--text2);text-align:center;margin-top:4px;padding:8px 10px;background:var(--surface2);border-radius:8px;">
+      🔒 Nesta versão online, o acesso é só com Google.
+    </div>
+
+    <script>
+      // Controla quais opções de login aparecem, consoante o contexto:
+      //
+      // LOCAL (file:// ou content://, ex: ficheiro guardado no telemóvel):
+      // esconde Google (o OAuth do Google tende a falhar por origem não
+      // autorizada fora de um link https://) e mantém email — a proteção
+      // real para Google está em iniciarGoogleLoginComClientId(), isto é
+      // só a camada visual.
+      //
+      // HOSPEDADO (https://, o link público/publicado): esconde a secção
+      // de email por completo e mantém só Google — pedido explícito para
+      // a versão online ter uma única porta de entrada. A proteção real
+      // para email está em loginEmailStep()/loginComEmail(), abaixo.
+      (function() {
+        const isLocal = location.protocol === 'file:' || location.protocol === 'content:';
+        const btnGoogle = document.getElementById('btn-login-google');
+        const avisoGoogleLocal = document.getElementById('google-login-local-aviso');
+        const secaoEmail = document.getElementById('login-email-secao');
+        const avisoEmailOculta = document.getElementById('login-email-oculta-aviso');
+
+        if (isLocal) {
+          if (btnGoogle) btnGoogle.style.display = 'none';
+          if (avisoGoogleLocal) avisoGoogleLocal.style.display = 'block';
+        } else {
+          if (secaoEmail) secaoEmail.style.display = 'none';
+          if (avisoEmailOculta) avisoEmailOculta.style.display = 'block';
+        }
+      })();
+    </script>
 
     <!-- MODO LOCAL: botão visível apenas quando aberto de ficheiro local -->
     <div id="local-mode-banner" style="display:none;margin-top:18px;border-top:1px solid rgba(255,255,255,0.1);padding-top:16px;">
@@ -17418,6 +17436,15 @@ function loginPassKeydown(e) {
 }
 
 function loginEmailStep() {
+  // Nesta versão hospedada (https://, o link público), o acesso é só por
+  // Google — bloqueia aqui mesmo que a secção de email tenha ficado
+  // acessível por algum caminho fora do esconder visual acima.
+  const isLocal = location.protocol === 'file:' || location.protocol === 'content:';
+  if (!isLocal) {
+    mostrarErroLogin('Nesta versão, o login é só com Google.');
+    return;
+  }
+
   const email = document.getElementById('login-email').value.trim();
   if (!email || !email.includes('@')) {
     mostrarErroLogin('Por favor insere um email válido.');
@@ -17436,6 +17463,12 @@ function loginEmailStep() {
 }
 
 function loginComEmail() {
+  const isLocal = location.protocol === 'file:' || location.protocol === 'content:';
+  if (!isLocal) {
+    mostrarErroLogin('Nesta versão, o login é só com Google.');
+    return;
+  }
+
   const email = document.getElementById('login-email').value.trim().toLowerCase();
   const password = document.getElementById('login-password').value;
 
