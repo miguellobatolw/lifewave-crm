@@ -457,7 +457,7 @@ var QRCode=function(t){"use strict";var r,e=function(){return"function"==typeof 
     justify-content: space-between;
   }
   .modal-close { background: none; border: none; color: var(--text2); font-size: 20px; cursor: pointer; }
-  .modal-actions { display: flex; gap: 10px; margin-top: 20px; justify-content: flex-end; }
+  .modal-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 20px; justify-content: flex-end; }
 
   /* POSTS AREA */
   .posts-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
@@ -3502,7 +3502,7 @@ var QRCode=function(t){"use strict";var r,e=function(){return"function"==typeof 
     <div class="login-tagline">O CRM para o teu<br>negócio LifeWave</div>
 
     <!-- Google login -->
-    <button class="btn-google-login" onclick="loginComGoogle()">
+    <button class="btn-google-login" id="btn-login-google" onclick="loginComGoogle()">
       <svg class="google-g" viewBox="0 0 24 24">
         <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
         <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
@@ -3511,6 +3511,27 @@ var QRCode=function(t){"use strict";var r,e=function(){return"function"==typeof 
       </svg>
       Continuar com Google
     </button>
+    <div id="google-login-local-aviso" style="display:none;font-size:11px;color:var(--text2);text-align:center;margin-top:8px;padding:8px 10px;background:var(--surface2);border-radius:8px;">
+      🔒 Login com Google disponível só na versão online desta app.
+    </div>
+    <script>
+      // Login Google só faz sentido quando a app está hospedada num link
+      // https:// — localmente (file:// ou content://, ex: ficheiro guardado
+      // no telemóvel) o OAuth do Google tende a falhar (origem não
+      // autorizada). Esconde o botão cedo (execução inline, antes de
+      // DOMContentLoaded) para não mostrar uma opção que ia ser bloqueada
+      // de qualquer forma em iniciarGoogleLoginComClientId(), que é a
+      // proteção real — isto aqui é só a camada visual.
+      (function() {
+        const isLocal = location.protocol === 'file:' || location.protocol === 'content:';
+        if (isLocal) {
+          const btn = document.getElementById('btn-login-google');
+          const aviso = document.getElementById('google-login-local-aviso');
+          if (btn) btn.style.display = 'none';
+          if (aviso) aviso.style.display = 'block';
+        }
+      })();
+    </script>
     <div id="google-client-missing-warn" style="display:none;font-size:11px;color:#ff9800;text-align:center;margin-top:6px;padding:6px 10px;background:rgba(255,152,0,0.1);border-radius:6px;">
       ⚠️ Client ID do Google não configurado no código.<br>
       Segue o guia de configuração para activar o login com Google.
@@ -9624,14 +9645,41 @@ window.addEventListener('popstate', function(ev) {
 
 
 // ===== MODAL =====
+// Contador de modais abertos — os botões flutuantes (lupa de pesquisa
+// global e o mapa/tutorial) têm z-index 1000, acima do modal-overlay
+// (z-index 200), por isso ficavam sempre visíveis por cima de qualquer
+// modal, incluindo por cima da barra de ações no fundo. Como alguns
+// modais abrem outros por cima (ex: Guião IA a partir do Ver Lead),
+// usamos uma contagem em vez de um simples on/off, para só reaparecerem
+// quando o último modal for mesmo fechado.
+let _modaisAbertosCount = 0;
+function _atualizarVisibilidadeFabs() {
+  const lupa = document.getElementById('btn-global-search');
+  const mapa = document.getElementById('btn-reopen-welcome');
+  const esconder = _modaisAbertosCount > 0;
+  if (lupa) lupa.style.display = esconder ? 'none' : '';
+  if (mapa) mapa.style.display = esconder ? 'none' : '';
+}
+
 function closeModal(id) {
   const el = document.getElementById(id);
   if (!el) return;
+  const estavaAberto = el.classList.contains('open');
   el.classList.remove('open');
   el.style.display = '';
+  if (estavaAberto) {
+    _modaisAbertosCount = Math.max(0, _modaisAbertosCount - 1);
+    _atualizarVisibilidadeFabs();
+  }
 }
 document.querySelectorAll('.modal-overlay').forEach(m => {
-  m.addEventListener('click', e => { if (e.target === m) m.classList.remove('open'); });
+  m.addEventListener('click', e => {
+    if (e.target === m && m.classList.contains('open')) {
+      m.classList.remove('open');
+      _modaisAbertosCount = Math.max(0, _modaisAbertosCount - 1);
+      _atualizarVisibilidadeFabs();
+    }
+  });
 });
 
 // ===== LEADS =====
@@ -12650,7 +12698,7 @@ function renderCalendario() {
         <div>
           <div class="scheduled-text">${escapeHtml(p.texto.slice(0,80))}${p.texto.length > 80 ? '…' : ''}</div>
           <div class="scheduled-meta">📘 ${p.plataforma} · ${label} às ${hora}
-            <button onclick="copiarPostAgendado('${p.id}')" style="background:none;border:none;color:var(--accent);cursor:pointer;font-size:11px;margin-left:8px;">📋 Copiar</button>
+            <button onclick="copiarPostAgendado('${p.id}')" style="background:none;border:none;color:var(--accent);cursor:pointer;font-size:11px;margin-left:8px;">📋 Copiar e abrir</button>
             <button onclick="eliminarPost('${p.id}')" style="background:none;border:none;color:#ff6b6b;cursor:pointer;font-size:11px;margin-left:8px;">✕ Remover</button>
           </div>
         </div>
@@ -12659,10 +12707,100 @@ function renderCalendario() {
   }).join('');
 }
 
-function copiarPostAgendado(id) {
+// ── Publicação de posts agendados ────────────────────────────────
+// FASE 1 (activa): copia o texto e abre a app/site certo — poupa o
+// passo de "trocar de app, encontrar o sítio certo, colar", mas o
+// toque final de publicar continua a ser da pessoa. Não usa nenhuma
+// API da Meta; é só clipboard + deep link, tal como partilharPost().
+//
+// FASE 2 (preparada, INACTIVA): quando houver uma integração real
+// (API directa da Meta ou um serviço intermediário como o Blotato),
+// activa-se trocando LW_AUTO_PUBLICAR_ATIVO para true e implementando
+// lwPublicarViaAPI(). Até lá, essa função nunca é chamada.
+const LW_AUTO_PUBLICAR_ATIVO = false; // 🔒 manter false até haver integração real
+
+async function copiarPostAgendado(id) {
   const p = posts.find(x => x.id === id);
   if (!p) { showToast('❌ Post não encontrado'); return; }
-  copiarTextoSeguro(p.texto, '📋 Texto do post copiado!');
+  if (!_confirmarSeRisco(p.texto)) return;
+
+  // Ponto de extensão para a Fase 2 — hoje nunca entra aqui.
+  if (LW_AUTO_PUBLICAR_ATIVO && typeof lwPublicarViaAPI === 'function') {
+    try {
+      await lwPublicarViaAPI(p);
+      return;
+    } catch (e) {
+      showToast('⚠️ Publicação automática falhou — a copiar texto para publicares manualmente.');
+      // Cai para o fluxo manual abaixo em vez de bloquear a pessoa.
+    }
+  }
+
+  lwAbrirAppParaPublicar(p);
+}
+
+// Copia o texto e tenta abrir a app/site certo da plataforma-alvo deste
+// post, reaproveitando a mesma abordagem de partilharPost() (Web Share
+// API onde existe, deep link nativo com fallback para o site). Aceita
+// tanto os valores capitalizados guardados pelos posts agendados
+// ('Facebook','Instagram','WhatsApp') como os minúsculos usados noutros
+// pontos da app, para não depender de nenhum deles ficar sempre igual.
+async function lwAbrirAppParaPublicar(p) {
+  const plataforma = (p.plataforma || '').toLowerCase();
+  const texto = p.texto || '';
+
+  if (plataforma === 'whatsapp') {
+    if (navigator.share) {
+      try { await navigator.share({ text: texto }); return; }
+      catch (e) { if (e.name === 'AbortError') return; }
+    }
+    copiarTextoSeguro(texto, '📋 Texto copiado!');
+    window.open('https://wa.me/?text=' + encodeURIComponent(texto), '_blank');
+
+  } else if (plataforma === 'facebook') {
+    copiarTextoSeguro(texto, '📋 Texto copiado! Cola no Facebook que vai abrir.');
+    setTimeout(() => window.open('https://www.facebook.com/', '_blank'), 800);
+
+  } else if (plataforma === 'instagram') {
+    copiarTextoSeguro(texto, '📋 Texto copiado! Cola no Instagram que vai abrir.');
+    const iframe = document.createElement('iframe');
+    iframe.style.display = 'none';
+    iframe.src = 'instagram://camera';
+    document.body.appendChild(iframe);
+    setTimeout(() => {
+      iframe.remove();
+      window.open('https://www.instagram.com/', '_blank');
+    }, 1200);
+
+  } else {
+    // Plataforma desconhecida/futura — não bloqueia, só copia.
+    copiarTextoSeguro(texto, '📋 Texto do post copiado!');
+  }
+}
+
+// ── FASE 2 (esqueleto, não implementado) ─────────────────────────
+// Quando houver uma integração real de publicação automática — via um
+// serviço intermediário já aprovado pela Meta (ex: Blotato), que evita
+// cada conta ter de passar pela Verificação de Negócio directa da Meta —
+// este é o sítio onde entra a chamada. Chamada apenas se
+// LW_AUTO_PUBLICAR_ATIVO === true, o que hoje nunca acontece.
+//
+// Para activar no futuro:
+//   1. Preencher o corpo desta função com a chamada real ao serviço
+//      escolhido (endpoint, autenticação, formato do payload variam
+//      por fornecedor — consultar a documentação deles nessa altura).
+//   2. Usar `autoPublishKey` (já guardada via saveAutoPublishKey, com
+//      UI própria a preparar no Perfil) para autenticar o pedido.
+//   3. Mudar LW_AUTO_PUBLICAR_ATIVO para true.
+//   4. Testar com um post real antes de confiar na equipa toda nisto —
+//      um erro aqui falha visivelmente (lança exceção), nunca falha em
+//      silêncio, e copiarPostAgendado já trata esse erro caindo de volta
+//      para o fluxo manual (lwAbrirAppParaPublicar) em vez de bloquear
+//      a pessoa.
+async function lwPublicarViaAPI(post) {
+  if (!autoPublishKey) {
+    throw new Error('lwPublicarViaAPI: falta configurar a chave do serviço de publicação (autoPublishKey).');
+  }
+  throw new Error('lwPublicarViaAPI: por implementar — ainda não há integração real ligada.');
 }
 
 function eliminarPost(id) {
@@ -14050,6 +14188,17 @@ let grokKey       = localStorage.getItem('lw_grokKey')       || '';
 let groqKey       = localStorage.getItem('lw_groqKey')       || '';
 let mistralKey    = localStorage.getItem('lw_mistralKey')    || '';
 let openrouterKey = localStorage.getItem('lw_openrouterKey') || '';
+
+// Chave para um futuro serviço de publicação automática (ex: Blotato ou
+// similar — um intermediário que já tem aprovação da Meta, para não
+// depender de cada conta passar pela revisão directa da Meta). Preparada
+// mas não usada em lado nenhum enquanto LW_AUTO_PUBLICAR_ATIVO for false.
+let autoPublishKey = localStorage.getItem('lw_autoPublishKey') || '';
+
+function saveAutoPublishKey(val) {
+  autoPublishKey = (val || '').trim();
+  localStorage.setItem('lw_autoPublishKey', autoPublishKey);
+}
 
 // Migração: versões antigas guardavam as chaves noutras localStorage keys
 if (!claudeKey) {
@@ -16430,6 +16579,11 @@ function enviarMensagem() {
     saveleads();
   }
 
+  // Refresh imediato do "Lead do Dia" — sem isto, o card continuava a
+  // mostrar este lead até o utilizador sair e voltar ao Dashboard, mesmo
+  // já tendo sido contactado agora mesmo.
+  if (typeof renderResumoDia === 'function') renderResumoDia();
+
   closeModal('modal-mensagem');
   showToast(msgCanal === 'whatsapp' ? '💬 A abrir WhatsApp...' : '📱 A abrir SMS...');
 }
@@ -16443,6 +16597,9 @@ function ligar(leadId) {
   l.historico.push({ tipo: 'chamada', msg: `📞 Chamada iniciada`, data: new Date().toLocaleString('pt-PT') });
   l.ultimoContacto = new Date().toISOString();
   saveleads();
+  // Mesmo refresh do "Lead do Dia" que enviarMensagem() já faz — uma
+  // chamada telefónica conta como contacto de hoje tal como uma mensagem.
+  if (typeof renderResumoDia === 'function') renderResumoDia();
 }
 
 function ligarAtual() {
@@ -17003,10 +17160,15 @@ function openModal(id) {
   }
   const _el = document.getElementById(id);
   if (_el) {
+    const jaEstavaAberto = _el.classList.contains('open');
     _el.style.pointerEvents = 'all';
     _el.classList.add('open');
     _el.offsetHeight;
     requestAnimationFrame(() => { _el.style.opacity = '1'; });
+    if (!jaEstavaAberto) {
+      _modaisAbertosCount++;
+      _atualizarVisibilidadeFabs();
+    }
   }
 }
 
@@ -17396,6 +17558,19 @@ function fecharConfigGoogle() {
 }
 
 function iniciarGoogleLoginComClientId() {
+  // Login Google só é permitido quando a app corre num link https:// hospedado.
+  // Aberta localmente (file:// ou content://, ex: ficheiro guardado no telemóvel),
+  // o OAuth do Google tende a falhar de forma confusa (origem não autorizada),
+  // por isso bloqueia-se aqui de forma explícita em vez de deixar o Google
+  // Identity Services falhar sozinho. Login por email/palavra-passe continua
+  // disponível em ambos os contextos — não é afetado por esta verificação.
+  const isLocal = location.protocol === 'file:' || location.protocol === 'content:';
+  if (isLocal) {
+    fecharConfigGoogle();
+    mostrarErroLogin('O login com Google só está disponível quando abres a app através do link online. Neste ficheiro local, usa "Entrar com Email" abaixo.');
+    return;
+  }
+
   const clientId = getGoogleClientId()
     || document.getElementById('google-oauth-client-id')?.value.trim()
     || localStorage.getItem(GOOGLE_CLIENT_ID_KEY);
@@ -18040,7 +18215,9 @@ async function driveEscreverComprasNaPastaEquipa() {
     nome: perfil.nomeDisplay || currentUser.name || '',
     slug: perfil.slug || '',
     compras: JSON.parse(localStorage.getItem(getUserStorageKey('lw_minhas_compras')) || '[]'),
-    pv: perfil.pv || 0, qdv: perfil.qdv || 0, categoria: (typeof calcularCategoria === 'function')
+    pv: perfil.pv || 0, qdv: perfil.qdv || 0,
+    secL: perfil.secL || 0, secR: perfil.secR || 0, olxl: perfil.olxl || 0,
+    categoria: (typeof calcularCategoria === 'function')
       ? calcularCategoria({ pv: perfil.pv, qdv: perfil.qdv, secL: perfil.secL, secR: perfil.secR, olxl: perfil.olxl }).cat
       : null,
     leads: resumirMeusLeadsParaPartilha(),
@@ -18049,7 +18226,7 @@ async function driveEscreverComprasNaPastaEquipa() {
     // desta pessoa) — é isto que permite o roll-up subir mais do que 1 nível.
     downlinesDiretos: (typeof membros !== 'undefined' ? membros : [])
       .filter(m => (m.nivel || 1) === 1)
-      .map(m => ({ nome: m.nome, email: m.email || '', estado: m.estado, pv: m.pv || 0, categoria: m.categoria || null, clientes: m.clientes || 0 })),
+      .map(m => ({ nome: m.nome, email: m.email || '', estado: m.estado, pv: m.pv || 0, secL: m.secL || 0, secR: m.secR || 0, olxl: m.olxl || 0, categoria: m.categoria || null, clientes: m.clientes || 0 })),
     atualizadoEm: new Date().toISOString(),
   };
 
@@ -18099,15 +18276,18 @@ async function driveLerComprasDaEquipa(silencioso) {
     const d = await res.json();
     const ficheiros = d.files || [];
     if (!ficheiros.length) {
+      window._lwEquipaNuncaSincronizados = membros.filter(m => (m.nivel || 1) === 1 && m.email);
       if (!silencioso) showToast('Nenhum membro da equipa sincronizou ainda.');
       return;
     }
 
     let membrosAtualizados = 0;
+    const emailsEncontrados = new Set();
     for (const f of ficheiros) {
       const contentRes = await fetch('https://www.googleapis.com/drive/v3/files/' + f.id + '?alt=media', { headers: { Authorization: 'Bearer ' + token } });
       const dados = await contentRes.json().catch(() => null);
       if (!dados || !dados.email) continue;
+      emailsEncontrados.add(dados.email.toLowerCase());
 
       let membro = membros.find(m => (m.email || '').toLowerCase() === dados.email.toLowerCase());
       if (!membro) {
@@ -18126,6 +18306,9 @@ async function driveLerComprasDaEquipa(silencioso) {
       membro.compras = dados.compras || [];
       if (typeof dados.pv === 'number') membro.pv = dados.pv;
       if (typeof dados.qdv === 'number') membro.qdv = dados.qdv;
+      if (typeof dados.secL === 'number') membro.secL = dados.secL;
+      if (typeof dados.secR === 'number') membro.secR = dados.secR;
+      if (typeof dados.olxl === 'number') membro.olxl = dados.olxl;
       if (dados.categoria) membro.categoria = dados.categoria;
       if (Array.isArray(dados.leads)) membro.leadsPartilhados = dados.leads;
       if (dados.atividadeSemana) membro.atividadeSemana = dados.atividadeSemana;
@@ -18147,7 +18330,7 @@ async function driveLerComprasDaEquipa(silencioso) {
             neto = {
               id: gerarId(), nome: dl.nome || dl.email, tel: '', email: dl.email || '',
               nivel: nivelFilho, estado: dl.estado || 'ativo', clientes: dl.clientes || 0, recrutados: 0,
-              slug: '', notas: '', pv: dl.pv || 0, qdv: 0, secL: 0, secR: 0, olxl: 0,
+              slug: '', notas: '', pv: dl.pv || 0, qdv: 0, secL: dl.secL || 0, secR: dl.secR || 0, olxl: dl.olxl || 0,
               categoria: dl.categoria || null, historico: [{ tipo:'sistema', msg:`Detetado via roll-up de ${membro.nome}`, data:new Date().toLocaleString('pt-PT') }],
               ultimoContacto: null, compras: [], data: new Date().toISOString().split('T')[0],
             };
@@ -18156,6 +18339,9 @@ async function driveLerComprasDaEquipa(silencioso) {
             // Só atualiza o nível se ainda não tiver um nível mais "raso" definido manualmente
             if (!neto.nivel || neto.nivel > nivelFilho) neto.nivel = nivelFilho;
             if (typeof dl.pv === 'number') neto.pv = dl.pv;
+            if (typeof dl.secL === 'number') neto.secL = dl.secL;
+            if (typeof dl.secR === 'number') neto.secR = dl.secR;
+            if (typeof dl.olxl === 'number') neto.olxl = dl.olxl;
             if (dl.categoria) neto.categoria = dl.categoria;
             if (typeof dl.clientes === 'number') neto.clientes = dl.clientes;
           }
@@ -18167,7 +18353,24 @@ async function driveLerComprasDaEquipa(silencioso) {
       saveMembros();
       renderEquipa();
     }
-    if (!silencioso) showToast(`🔄 ${membrosAtualizados} membro${membrosAtualizados !== 1 ? 's' : ''} sincronizado${membrosAtualizados !== 1 ? 's' : ''} da equipa partilhada`);
+
+    // Membros diretos (Nível 1, com email registado) que nunca apareceram
+    // num ficheiro da pasta partilhada — sinal de que a pasta não está
+    // configurada do lado deles, ou está configurada mas ainda não
+    // gravaram nada desde então. Guardado para consulta (ex: mostrar na
+    // página de Equipa), sem interromper o arranque silencioso da app.
+    const nuncaSincronizados = membros.filter(m =>
+      (m.nivel || 1) === 1 && m.email && !emailsEncontrados.has(m.email.toLowerCase())
+    );
+    window._lwEquipaNuncaSincronizados = nuncaSincronizados; // consulta posterior, ex: renderEquipa()
+
+    if (!silencioso) {
+      let msg = `🔄 ${membrosAtualizados} membro${membrosAtualizados !== 1 ? 's' : ''} sincronizado${membrosAtualizados !== 1 ? 's' : ''} da equipa partilhada`;
+      if (nuncaSincronizados.length > 0) {
+        msg += `. ⚠️ ${nuncaSincronizados.length} membro${nuncaSincronizados.length !== 1 ? 's' : ''} direto${nuncaSincronizados.length !== 1 ? 's' : ''} nunca apareceu${nuncaSincronizados.length !== 1 ? 'ram' : ''} na pasta partilhada (${nuncaSincronizados.map(m => m.nome).join(', ')}) — verifica se têm a pasta configurada.`;
+      }
+      showToast(msg);
+    }
   } catch(e) {
     if (!silencioso) showToast('❌ Erro ao sincronizar: ' + e.message);
   }
@@ -20909,7 +21112,14 @@ function renderAcoesLista() {
     const mercadoCurto = (l.mercado || '').split(' ')[0];
     const tel = l.tel ? limparTelefone(l.tel) : '';
 
-    return `<div class="acao-card ${prioridade}" id="acao-${l.id}">
+    return `<div class="swipe-row-wrap" data-lead-id="${l.id}">
+      <div class="swipe-row-actions" id="swipe-actions-${l.id}">
+        ${tel ? `<button class="swipe-action-btn swipe-wa" onclick="fecharSwipe('${l.id}');abrirMensagem('${l.id}','whatsapp')">💬<span>WhatsApp</span></button>` : ''}
+        <button class="swipe-action-btn swipe-edit" onclick="fecharSwipe('${l.id}');editarLead('${l.id}')">✏️<span>Editar</span></button>
+        <button class="swipe-action-btn swipe-ver" onclick="fecharSwipe('${l.id}');verLead('${l.id}')">👁<span>Ver</span></button>
+      </div>
+      <div class="swipe-row-inner" id="swipe-inner-${l.id}">
+      <div class="acao-card ${prioridade}" id="acao-${l.id}">
       <div class="acao-top">
         <div class="acao-avatar av-${prioridade}">${iniciais}</div>
         <div class="acao-info">
@@ -20937,8 +21147,12 @@ function renderAcoesLista() {
         <button class="btn-acao-snooze" onclick="snoozeAcao('${l.id}',3)">⏸ +3d</button>
         <button class="btn-acao-snooze" onclick="snoozeAcao('${l.id}',7)">⏸ +7d</button>
       </div>
+    </div>
+      </div>
     </div>`;
   }).join('');
+
+  if (typeof initSwipeRows === 'function') initSwipeRows();
 }
 
 function abrirGuiaoIAdiretamente(leadId, tipoSugerido) {
@@ -21600,7 +21814,7 @@ function renderRetencao() {
         ${c.tel ? `<button class="btn btn-sm" style="background:rgba(37,211,102,0.15);color:#25d366;border:1px solid rgba(37,211,102,0.3);" onclick="retWADireto('${encodeURIComponent(c.tel)}','${encodeURIComponent(c.nome)}')">📲 WhatsApp</button>` : ''}
         <button class="btn btn-sm btn-secondary" onclick="abrirRetIAModal('${idSafe}','${encodeURIComponent(c.nome)}','${encodeURIComponent(prodLabel)}','${encodeURIComponent(c.tel||'')}','${c.estado}',${c.dias})">🤖 Msg IA</button>
         <button class="btn btn-sm btn-secondary" onclick="abrirNovaVenda('${c.nome.replace(/'/g,"\\'")}')" title="Registar nova compra">💰 Renovação</button>
-        ${c.leadId ? `<button class="btn btn-sm btn-secondary" onclick="abrirLead('${c.leadId}')" title="Ver perfil">👤 Perfil</button>` : ''}
+        ${c.leadId ? `<button class="btn btn-sm btn-secondary" onclick="verLead('${c.leadId}')" title="Ver perfil">👤 Perfil</button>` : ''}
       </div>
     </div>`;
   }).join('');
@@ -28516,6 +28730,24 @@ function renderPrevisaoComissao() {
       </div>
     </div>
 
+    <!-- ==================== PUBLICAÇÃO AUTOMÁTICA (em preparação) ==================== -->
+    <div style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px;margin-bottom:14px;opacity:0.75;">
+      <div style="font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:0.7px;margin-bottom:12px;">🔒 Publicação Automática — Em Preparação</div>
+      <div style="font-size:11.5px;color:var(--text2);margin-bottom:10px;line-height:1.6;">
+        Hoje, os posts agendados copiam o texto e abrem a app certa — o toque final de publicar continua a ser teu.
+        Este campo é o sítio já preparado para, no futuro, ligar um serviço de publicação automática
+        (um intermediário já aprovado pela Meta, para não teres de passar tu pela revisão deles).
+        Ainda não está ligado a nada — guardar aqui uma chave não activa nenhuma publicação automática.
+      </div>
+      <div class="form-group" style="margin-bottom:0;">
+        <label class="form-label" style="display:flex;align-items:center;gap:6px;">🔌 Chave do serviço de publicação (brevemente)</label>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <input class="form-input" type="password" id="perfil-autopublish-key" placeholder="Disponível em breve" style="flex:1;" disabled oninput="saveAutoPublishKey(this.value)">
+          <span id="perfil-autopublish-status" style="font-size:11px;color:var(--text3);white-space:nowrap;"></span>
+        </div>
+      </div>
+    </div>
+
     <!-- ==================== ASSISTENTE: CRIAR CHAVE DE IA (v78) ==================== -->
     <div style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px;margin-bottom:14px;">
       <div style="font-size:11px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:0.7px;margin-bottom:4px;">📱 Os Teus Links Pessoais</div>
@@ -29689,6 +29921,12 @@ function formatDataPromo(d) {
 }
 
 // --- INICIALIZAÇÃO ---
+// ⚠️ ATENÇÃO: window.renderDashboard é sobrescrita aqui E no bloco
+// "lwBridge" (GATILHO 3, mais abaixo no ficheiro). Ambas seguem o padrão
+// seguro _orig = window.X / window.X = function(){ _orig(); ... } — por
+// isso encadeiam-se sem se anularem, seja qual for a ordem de carregamento.
+// Se voltares a mexer em renderDashboard, mantém este padrão (nunca
+// sobrescrever sem guardar a versão anterior primeiro).
 document.addEventListener('DOMContentLoaded', () => {
   // Patch renderDashboard para incluir promoções
   const origRD = window.renderDashboard;
@@ -31525,9 +31763,12 @@ function fecharNotifToast(btn) {
 // ===== AVISO DE POSTS AGENDADOS (v21) =====
 // Mesmo padrão de verificarEventosProximos: corre no mesmo intervalo de 30s,
 // dispara quando a hora agendada chega (ou já passou há pouco), evita repetir.
-// A app não publica automaticamente nas redes sociais — isso exigiria integração
-// com a API de cada plataforma — por isso o aviso vem com um botão para copiar
-// o texto, para o utilizador colar e publicar manualmente.
+// A app ainda não publica sozinha nas redes sociais (isso exigiria integração
+// com a API de cada plataforma, e há um ponto de extensão preparado para isso
+// em copiarPostAgendado/LW_AUTO_PUBLICAR_ATIVO) — por isso o aviso vem com um
+// botão que copia o texto E já abre a app/site certo, para poupar o passo de
+// trocar de app e encontrar o sítio certo; o toque final de publicar continua
+// a ser do utilizador.
 function verificarPostsAgendados() {
   try {
     if (typeof posts === 'undefined' || !Array.isArray(posts)) return;
@@ -31543,7 +31784,7 @@ function verificarPostsAgendados() {
         p._avisoDisparado = true;
         disparouAlgum = true;
         const plataformaIcon = { Facebook:'📘', Instagram:'📸', WhatsApp:'💬' }[p.plataforma] || '📱';
-        const acaoHtml = `<button onclick="copiarPostAgendado('${p.id}');fecharNotifToast(this)" style="margin-top:6px;background:var(--accent);color:var(--bg);border:none;border-radius:8px;padding:6px 12px;font-size:12px;font-weight:700;cursor:pointer;">📋 Copiar texto do post</button>`;
+        const acaoHtml = `<button onclick="copiarPostAgendado('${p.id}');fecharNotifToast(this)" style="margin-top:6px;background:var(--accent);color:var(--bg);border:none;border-radius:8px;padding:6px 12px;font-size:12px;font-weight:700;cursor:pointer;">📋 Copiar e abrir ${p.plataforma||'app'}</button>`;
         dispararNotificacao(
           plataformaIcon + ' Está na hora de publicar!',
           (p.texto||'').slice(0,90) + ((p.texto||'').length > 90 ? '…' : ''),
@@ -41099,6 +41340,9 @@ function _setBadge(id, n) {
 // GATILHO 3: Meta atingida → Celebração no Diário + Percurso
 // Quando: renderDashboard() corre e deteta meta atingida
 // Dispara: entrada no Diário (1x por mês)
+// ⚠️ Esta é a 2ª sobrescrita de window.renderDashboard no ficheiro
+// (a 1ª é o patch do banner de promoções, dentro de DOMContentLoaded,
+// bem mais acima). Mantém o padrão _orig = window.X antes de reatribuir.
 // ═══════════════════════════════════════════════════════════════
 (function() {
   const _orig = window.renderDashboard;
