@@ -10188,15 +10188,18 @@ function toggleDitadoVoz(textareaId, btnEl) {
   btnEl.textContent = '⏹️';
   btnEl.title = 'Parar ditado';
 
-  // Texto final "selado", acumulado FORA do array ev.results desta sessão.
-  // No Chrome/Android, em modo contínuo, o array ev.results por vezes deixa
-  // de se comportar como cumulativo e estável: o motor reavalia e reemite
-  // frases já ouvidas como novos resultados "finais", causando repetição e
-  // fragmentação (ex: "Rui vaio Rui vaio Rui vai mudaro..."). A forma
-  // fiável de evitar isto é nunca deixar uma sessão de reconhecimento viver
-  // muito tempo — cada vez que chega um resultado final, fechamos essa
-  // sessão e abrimos uma nova (array limpo, resultIndex 0 outra vez), sem
-  // o utilizador notar (o botão continua "a ditar" o tempo todo).
+  // Texto final "selado", acumulado ENTRE sessões de reconhecimento.
+  // IMPORTANTE: usamos continuous=false (não true). No Android, o modo
+  // continuous=true faz o motor emitir vários resultados "isFinal:true"
+  // parciais e mal formados ao longo da fala — cada pequena pausa gera um
+  // "final" novo, muitas vezes uma transcrição ainda a meio de ser
+  // corrigida (ex: "Rui vaio", depois "Rui vai", depois "Rui vai mudar"),
+  // e um final não substitui o anterior, por isso concatenar todos dá
+  // texto repetido e fragmentado. Com continuous=false, cada sessão faz UM
+  // reconhecimento completo e só devolve o resultado quando está pronto —
+  // fiável e sem essa fragmentação. Para simular ditado contínuo,
+  // reiniciamos uma sessão nova automaticamente sempre que uma termina,
+  // até o utilizador carregar em parar.
   const estadoDitado = { recognition: null, textareaId, paradoPeloUtilizador: false };
   let textoFinalAcumulado = '';
 
@@ -10204,12 +10207,12 @@ function toggleDitadoVoz(textareaId, btnEl) {
     const recognition = new SR();
     recognition.lang = 'pt-PT';
     recognition.interimResults = true;
-    recognition.continuous = true;
+    recognition.continuous = false;
 
     recognition.onresult = (ev) => {
       let textoInterim = '';
       let novoFinal = '';
-      for (let i = ev.resultIndex; i < ev.results.length; i++) {
+      for (let i = 0; i < ev.results.length; i++) {
         const resultado = ev.results[i];
         if (resultado.isFinal) novoFinal += resultado[0].transcript;
         else textoInterim += resultado[0].transcript;
@@ -10236,10 +10239,9 @@ function toggleDitadoVoz(textareaId, btnEl) {
         if (_ditadoAtivo === estadoDitado) _ditadoAtivo = null;
         return;
       }
-      // O motor terminou sozinho (ex: pausa detetada, ou limite interno de
-      // uma sessão) mas o utilizador não pediu para parar — reabre uma
-      // sessão nova e limpa, mantendo o botão ativo. O texto já dito fica
-      // em textoFinalAcumulado, por isso nada se perde nem duplica.
+      // Sessão terminou (normal em continuous=false, acontece após cada
+      // "take"). Como o utilizador não pediu para parar, reabre uma sessão
+      // nova de imediato para continuar a ditar sem interrupção percetível.
       try {
         novaSessao();
       } catch (e) {
