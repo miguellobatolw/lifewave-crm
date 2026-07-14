@@ -269,6 +269,10 @@ var QRCode=function(t){"use strict";var r,e=function(){return"function"==typeof 
   .btn-danger { background: rgba(255,70,70,0.15); color: #ff6b6b; border: 1px solid rgba(255,70,70,0.2); }
   .btn-danger:hover { background: rgba(255,70,70,0.25); }
   .btn-sm { padding: 6px 12px; font-size: 12px; }
+  .btn-ditado { background: var(--surface3); border: 1px solid var(--border); color: var(--text2); width: 34px; height: 34px; min-width: 34px; border-radius: var(--radius-sm); cursor: pointer; display: inline-flex; align-items: center; justify-content: center; font-size: 15px; flex-shrink: 0; transition: all 0.18s; }
+  .btn-ditado:hover { border-color: var(--accent); color: var(--accent); }
+  .btn-ditado.ditado-ativo { background: #ff5555; border-color: #ff5555; color: #fff; animation: ditadoPulse 1.4s infinite; }
+  @keyframes ditadoPulse { 0%,100% { box-shadow: 0 0 0 0 rgba(255,85,85,0.55); } 50% { box-shadow: 0 0 0 7px rgba(255,85,85,0); } }
 
   /* CARDS */
   .card {
@@ -3671,9 +3675,26 @@ var QRCode=function(t){"use strict";var r,e=function(){return"function"==typeof 
 
   <div class="login-footer">
     Ao continuar, concordas com os Termos de Utilização.<br>Os teus dados ficam guardados neste dispositivo.<br>
-    <button onclick="abrirConfigSupabase()" style="background:none;border:none;color:rgba(255,255,255,0.25);font-size:10.5px;cursor:pointer;text-decoration:underline;margin-top:6px;font-family:'DM Sans',sans-serif;">⚙️ Configurar backend (avançado)</button>
+    <button id="btn-config-backend" onclick="abrirConfigSupabase()" style="background:none;border:none;color:rgba(255,255,255,0.25);font-size:10.5px;cursor:pointer;text-decoration:underline;margin-top:6px;font-family:'DM Sans',sans-serif;">⚙️ Configurar backend (avançado)</button>
   </div>
 </div>
+
+<script>
+  // O backend Supabase só serve contas de email/palavra-passe (ver
+  // supabaseConfigurado()/supabaseAtivo(), ambas condicionadas a
+  // method === 'email'). Nesta versão hospedada (https://), login por
+  // email já não existe (ver login-email-secao acima) — por isso a
+  // opção de configurar este backend deixa de fazer sentido aqui e
+  // esconde-se também, para não sobrar um link que leva a uma modal
+  // sem utilidade real no contexto em que a pessoa está.
+  (function() {
+    const isLocal = location.protocol === 'file:' || location.protocol === 'content:';
+    if (!isLocal) {
+      const btn = document.getElementById('btn-config-backend');
+      if (btn) btn.style.display = 'none';
+    }
+  })();
+</script>
 
 <!-- Supabase Backend Config Modal (aditivo — só afeta contas email/palavra-passe) -->
 <div id="modal-supabase-config" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:9999;align-items:center;justify-content:center;">
@@ -4443,6 +4464,7 @@ var QRCode=function(t){"use strict";var r,e=function(){return"function"==typeof 
         <button class="btn btn-primary" onclick="openModal('modal-lead')">＋ Novo Lead</button>
       </div>
       <div id="funil-analytics-container"></div>
+      <div id="funil-pedir-indicacao-container"></div>
       <div class="funnel-grid" id="funil-container"></div>
     </div>
 
@@ -4584,6 +4606,9 @@ var QRCode=function(t){"use strict";var r,e=function(){return"function"==typeof 
               <option value="WhatsApp">💬 WhatsApp</option>
               <option value="Pessoal">🤝 Pessoal</option>
               <option value="Referência">⭐ Referência</option>
+              <option value="Hashtag">🔎 Hashtag</option>
+              <option value="Grupo Facebook">👥 Grupo Facebook</option>
+              <option value="Perfil/Comentário">💬 Perfil/Comentário</option>
               <option value="Google">🇬 Google</option>
               <option value="Importação">📂 Importação</option>
             </select>
@@ -8542,6 +8567,9 @@ var QRCode=function(t){"use strict";var r,e=function(){return"function"==typeof 
           <option>WhatsApp</option>
           <option>Pessoal</option>
           <option>Referência</option>
+          <option>Hashtag</option>
+          <option>Grupo Facebook</option>
+          <option>Perfil/Comentário</option>
           <option>Outro</option>
         </select>
       </div>
@@ -8691,6 +8719,7 @@ var QRCode=function(t){"use strict";var r,e=function(){return"function"==typeof 
     </div>
     <div id="guiao-compliance-aviso" style="display:none;"></div>
     <div class="guiao-actions" id="guiao-actions" style="display:none;">
+      <button class="btn btn-wa btn-sm" onclick="enviarGuiaoCanal()" id="btn-enviar-guiao">📤 Enviar</button>
       <button class="btn btn-secondary btn-sm" onclick="copiarGuiao()">📋 Copiar guião</button>
       <button class="btn btn-ai btn-sm" onclick="gerarGuiaoIA()">🔄 Gerar nova versão</button>
       <button class="btn btn-secondary btn-sm" id="btn-guardar-guiao" onclick="guardarGuiaoNoLead()">💾 Guardar no lead</button>
@@ -9168,6 +9197,54 @@ function calcularTemposEtapaFunil() {
   return tempos;
 }
 
+// ===================================================
+// MELHOR HORA PARA CONTACTAR
+// Reutiliza o histórico tipo 'mensagem' e a MESMA heurística de resposta de
+// calcularEstatsTemplates() (a entrada seguinte no histórico ser 'nota' ou
+// 'estado'), mas agrupada por período do dia em vez de por template. Também
+// reutiliza parseDataHistorico(), já existente, para ler a hora exata.
+// Não cria nenhum dado novo — só cruza o que já é guardado a cada mensagem.
+// ===================================================
+function calcularEstatsPorHora() {
+  const blocos = [
+    { id: 'madrugada', label: '🌙 Madrugada (0h–6h)', min: 0,  max: 6  },
+    { id: 'manha',     label: '🌅 Manhã (6h–12h)',      min: 6,  max: 12 },
+    { id: 'tarde',     label: '☀️ Tarde (12h–18h)',      min: 12, max: 18 },
+    { id: 'noite',     label: '🌆 Noite (18h–24h)',      min: 18, max: 24 },
+  ];
+  const stats = {};
+  blocos.forEach(b => { stats[b.id] = { enviados: 0, responderam: 0 }; });
+
+  (leads || []).forEach(l => {
+    const hist = l.historico || [];
+    hist.forEach((h, i) => {
+      if (h.tipo !== 'mensagem') return;
+      const ts = parseDataHistorico(h.data);
+      if (ts === null) return;
+      const hora = new Date(ts).getHours();
+      const bloco = blocos.find(b => hora >= b.min && hora < b.max);
+      if (!bloco) return;
+      stats[bloco.id].enviados++;
+      const seguinte = hist[i + 1];
+      if (seguinte && (seguinte.tipo === 'nota' || seguinte.tipo === 'estado')) {
+        stats[bloco.id].responderam++;
+      }
+    });
+  });
+
+  return blocos.map(b => {
+    const s = stats[b.id];
+    return {
+      id: b.id,
+      label: b.label,
+      enviados: s.enviados,
+      responderam: s.responderam,
+      // amostra mínima de 3 envios, igual ao selo "X% respondem" dos templates
+      pct: s.enviados >= 3 ? Math.round((s.responderam / s.enviados) * 100) : null,
+    };
+  });
+}
+
 function renderFunilAnalytics() {
   const el = document.getElementById('funil-analytics-container');
   if (!el) return;
@@ -9215,6 +9292,18 @@ function renderFunilAnalytics() {
     }
   }
 
+  // Melhor período do dia para contactar (só mostra se houver 2+ períodos
+  // com amostra suficiente E houver diferença real entre o melhor e o pior)
+  const blocosHora = calcularEstatsPorHora();
+  const comAmostraHora = blocosHora.filter(b => b.pct !== null);
+  let melhorHora = null, piorHora = null;
+  if (comAmostraHora.length >= 2) {
+    melhorHora = comAmostraHora.reduce((a, b) => b.pct > a.pct ? b : a);
+    piorHora = comAmostraHora.reduce((a, b) => b.pct < a.pct ? b : a);
+    if (melhorHora.pct === piorHora.pct) { melhorHora = null; piorHora = null; }
+  }
+  const algumInsightAnterior = (maiorQuedaIdx > 0 || !!etapaMaisLenta || !!motivoTopo);
+
   el.innerHTML = `
     <div style="background:var(--surface2);border:1px solid var(--border);border-radius:14px;padding:16px 18px;margin-bottom:18px;">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:6px;">
@@ -9247,8 +9336,86 @@ function renderFunilAnalytics() {
           💔 Motivo de perda mais comum: <strong style="color:var(--text);">${motivoTopo.label}</strong> (${motivoTopo.count} de ${motivoTopo.total} leads perdidos com motivo registado).
         </div>
       ` : ''}
+      ${melhorHora ? `
+        <div style="margin-top:${algumInsightAnterior ? 8 : 14}px;padding:10px 12px;background:rgba(0,212,170,0.08);border:1px solid rgba(0,212,170,0.25);border-radius:8px;font-size:12px;color:var(--text2);">
+          🕐 Melhor altura para contactar: <strong style="color:var(--text);">${melhorHora.label}</strong> — ${melhorHora.pct}% respondem, vs ${piorHora.pct}% em <strong style="color:var(--text);">${piorHora.label}</strong> (com base nas mensagens já registadas no histórico).
+        </div>
+      ` : ''}
     </div>`;
 }
+
+// ===================================================
+// CLIENTES PARA PEDIR INDICAÇÃO — complementa a automação "Pedir Indicação
+// 45 dias após Venda" (que só corre para clientes futuros, se a automação
+// estiver ativa). Aqui cobre TODOS os clientes, incluindo os antigos: mostra
+// quem já é cliente há 45+ dias e ainda não tem o pedido de indicação
+// registado (lead.indicacaoPedidaData). Marcação é manual (1 toque na ficha
+// do lead) — dá controlo total, sem depender de automações passarem ao lado.
+// ===================================================
+function renderFunilPedirIndicacao() {
+  const el = document.getElementById('funil-pedir-indicacao-container');
+  if (!el) return;
+
+  const candidatos = leads.filter(l => {
+    if (l.estado !== 'cliente' || l.indicacaoPedidaData) return false;
+    const criado = getLeadAddedDate(l);
+    if (!criado || isNaN(criado.getTime())) return false;
+    const diasComoLead = Math.floor((Date.now() - criado.getTime()) / 86400000);
+    return diasComoLead >= 45;
+  }).sort((a, b) => (getLeadAddedDate(a) || 0) - (getLeadAddedDate(b) || 0));
+
+  if (!candidatos.length) { el.innerHTML = ''; return; }
+
+  el.innerHTML = `
+    <div style="background:var(--surface2);border:1px solid var(--border);border-radius:14px;padding:16px 18px;margin-bottom:18px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+        <div style="font-size:14px;font-weight:700;color:var(--text);">🎁 Clientes para pedir indicação</div>
+        <div style="font-size:11px;color:var(--text2);">${candidatos.length}</div>
+      </div>
+      <div style="font-size:11.5px;color:var(--text2);margin-bottom:12px;">Clientes há 45+ dias que ainda não foram convidados a indicar alguém.</div>
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        ${candidatos.slice(0, 8).map(l => `
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;background:var(--surface3);border-radius:10px;padding:10px 12px;">
+            <span style="font-size:12.5px;color:var(--text);">${escapeHtml(l.nome)}</span>
+            <div style="display:flex;gap:6px;flex-shrink:0;">
+              ${l.tel ? `<button class="btn btn-secondary btn-sm" onclick="abrirMensagemPedirIndicacao('${l.id}')">💬 Pedir</button>` : ''}
+              <button class="btn btn-secondary btn-sm" onclick="marcarIndicacaoPedida('${l.id}')" title="Já pedi por outro meio">✓ Já pedi</button>
+            </div>
+          </div>
+        `).join('')}
+      </div>
+      ${candidatos.length > 8 ? `<div style="font-size:11px;color:var(--text2);margin-top:8px;">+ ${candidatos.length - 8} outro(s)</div>` : ''}
+    </div>`;
+}
+
+function marcarIndicacaoPedida(leadId) {
+  const l = leads.find(x => x.id === leadId);
+  if (!l) return;
+  l.indicacaoPedidaData = new Date().toISOString();
+  l.historico = l.historico || [];
+  l.historico.push({ tipo: 'nota', msg: '🎁 Pedido de indicação registado', data: new Date().toLocaleString('pt-PT') });
+  saveleads();
+  showToast('✅ Registado — obrigado por continuares a pedir indicações!');
+  renderFunilPedirIndicacao();
+}
+
+// Abre o modal de mensagem já preparado com um texto de pedido de indicação.
+// A marcação de "já pedi" continua manual (botão ✓ Já pedi), para não
+// assumir que o envio foi concluído com sucesso — mais simples e fiável do
+// que interceptar o fluxo genérico de enviarMensagem().
+function abrirMensagemPedirIndicacao(leadId) {
+  abrirMensagem(leadId, 'whatsapp');
+  setTimeout(() => {
+    const textoEl = document.getElementById('msg-texto');
+    const l = leads.find(x => x.id === leadId);
+    if (textoEl && l) {
+      const primeiroNome = (l.nome || '').split(' ')[0];
+      textoEl.value = `Olá ${primeiroNome}! 😊 Ainda bem que estás a gostar do produto! Já agora — conheces mais alguém que ache que podia beneficiar de mais energia e bem-estar no dia a dia? Adorava poder ajudar mais alguém como te ajudei a ti 🙏`;
+      updateMsgCount();
+    }
+  }, 200);
+}
+
 
 function abrirMenuMoverLead(leadId, etapaAtual) {
   const lead = leads.find(l => l.id === leadId);
@@ -9323,6 +9490,7 @@ function _moverLeadParaEtapaExecutar(leadId, novaEtapa) {
   saveleads();
   closeModal('modal-menu-mover');
   renderFunil();
+  if (typeof renderResumoDia === 'function') renderResumoDia();
   if (novaEtapa === 'cliente') vibrarConfirmacao();
   showToast('✅ ' + lead.nome + ' → ' + novaEtapa);
   executarAutomacoes(lead, estadoAnterior, novaEtapa);
@@ -9975,6 +10143,85 @@ function setTlTipo(key) {
   document.querySelectorAll('.tl-pill').forEach(p => p.classList.toggle('active', p.dataset.key === key));
 }
 
+// ===================================================
+// DITADO POR VOZ (Web Speech API) — nativo do browser, sem custo nem
+// dependências novas. Um botão 🎤 reutilizável, ligado a qualquer textarea
+// pelo id. Funciona bem em Chrome/Android; suporte limitado ou inexistente
+// no Safari/iOS e Firefox — por isso é sempre um EXTRA ao lado do campo de
+// texto normal, nunca a única forma de o preencher.
+// ===================================================
+function ditadoDisponivel() {
+  return !!(window.SpeechRecognition || window.webkitSpeechRecognition);
+}
+
+let _ditadoAtivo = null; // { recognition, textareaId } quando há um ditado em curso
+
+function toggleDitadoVoz(textareaId, btnEl) {
+  if (!ditadoDisponivel()) {
+    showToast('⚠️ O teu browser não suporta ditado por voz (funciona melhor em Chrome/Android).');
+    return;
+  }
+  // O microfone só é permitido em contexto seguro (HTTPS ou localhost).
+  // Se a app for aberta localmente (content:// ou file://, ex: ficheiro
+  // descarregado e aberto direto no telemóvel), o Chrome bloqueia o acesso
+  // ao microfone SEMPRE, mesmo com a permissão concedida — daí o erro
+  // "not-allowed" acontecer sistematicamente neste caso. Avisa antes de
+  // sequer tentar, para a mensagem ser clara em vez de um erro cru.
+  if (!window.isSecureContext) {
+    showToast('⚠️ Ditado por voz só funciona com a app aberta online (https://...). Abrir o ficheiro diretamente no telemóvel bloqueia o microfone — usa o link do GitHub Pages.');
+    return;
+  }
+  if (_ditadoAtivo && _ditadoAtivo.textareaId === textareaId) {
+    _ditadoAtivo.recognition.stop(); // toggle: já está a ditar aqui, para
+    return;
+  }
+  if (_ditadoAtivo) _ditadoAtivo.recognition.stop(); // só um ditado ativo de cada vez
+
+  const textarea = document.getElementById(textareaId);
+  if (!textarea) return;
+  const valorBase = textarea.value ? textarea.value.replace(/\s+$/, '') + ' ' : '';
+
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  const recognition = new SR();
+  recognition.lang = 'pt-PT';
+  recognition.interimResults = true;
+  recognition.continuous = true;
+
+  btnEl.classList.add('ditado-ativo');
+  btnEl.textContent = '⏹️';
+  btnEl.title = 'Parar ditado';
+
+  recognition.onresult = (ev) => {
+    let textoFinal = '', textoInterim = '';
+    for (let i = 0; i < ev.results.length; i++) {
+      if (ev.results[i].isFinal) textoFinal += ev.results[i][0].transcript;
+      else textoInterim += ev.results[i][0].transcript;
+    }
+    textarea.value = valorBase + textoFinal + textoInterim;
+  };
+  recognition.onerror = (ev) => {
+    if (ev.error === 'no-speech' || ev.error === 'aborted') return; // não são erros reais
+    if (ev.error === 'not-allowed') {
+      showToast('⚠️ Microfone bloqueado. Vai a Definições do Chrome → Definições do site → Microfone, e permite o acesso para esta app.');
+      return;
+    }
+    showToast('⚠️ Erro no ditado: ' + ev.error);
+  };
+  recognition.onend = () => {
+    btnEl.classList.remove('ditado-ativo');
+    btnEl.textContent = '🎤';
+    btnEl.title = 'Ditar por voz';
+    if (_ditadoAtivo && _ditadoAtivo.textareaId === textareaId) _ditadoAtivo = null;
+  };
+
+  try {
+    recognition.start();
+    _ditadoAtivo = { recognition, textareaId };
+  } catch (e) {
+    showToast('⚠️ Não foi possível iniciar o ditado.');
+  }
+}
+
 function adicionarNotaTimeline(leadId){
   const txt=document.getElementById('tl-nova-nota').value.trim();
   if(!txt){showToast('⚠️ Escreve uma nota primeiro');return;}
@@ -9987,7 +10234,7 @@ function adicionarNotaTimeline(leadId){
   if(resposta)entrada.resposta=resposta;
   l.historico.push(entrada);
   l.ultimoContacto=new Date().toISOString();
-  saveleads();showToast('✓ Interação guardada');verLead(leadId);}
+  saveleads();if(typeof renderResumoDia==='function')renderResumoDia();showToast('✓ Interação guardada');verLead(leadId);}
 
 // ===== TAGS LIVRES (etiquetas customizadas pelo utilizador) =====
 function todasTagsLivresUsadas() {
@@ -10316,7 +10563,8 @@ function verLead(id) {
     <div style="margin-bottom:16px;">
       <div style="font-size:12px;color:var(--text2);font-weight:600;margin-bottom:6px;">📝 Nota Rápida</div>
       <textarea id="nota-rapida-input" style="width:100%;background:var(--surface3);border:1px solid var(--border);border-radius:10px;color:var(--text);font-size:13px;padding:10px 12px;resize:vertical;min-height:72px;font-family:inherit;outline:none;box-sizing:border-box;" placeholder="Contexto rápido: ex. Tem dores nas costas, ficou de pensar até sexta...">${l.notas || ''}</textarea>
-      <div style="display:flex;justify-content:flex-end;margin-top:6px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px;">
+        <button type="button" class="btn-ditado" onclick="toggleDitadoVoz('nota-rapida-input', this)" title="Ditar por voz">🎤</button>
         <button class="btn btn-primary btn-sm" onclick="guardarNotaRapida('${id}')" style="font-size:12px;">💾 Guardar nota</button>
       </div>
     </div>
@@ -10335,6 +10583,7 @@ function verLead(id) {
       <div class="tl-type-pills">${pillsHTML}</div>
       <div class="tl-input-row">
         <textarea class="tl-input" id="tl-nova-nota" placeholder="Resumo: ex. Enviei WA — ficou de pensar..."></textarea>
+        <button type="button" class="btn-ditado" onclick="toggleDitadoVoz('tl-nova-nota', this)" title="Ditar por voz">🎤</button>
         <button class="btn btn-primary btn-sm btn-tl-add" onclick="adicionarNotaTimeline('${id}')">＋ Guardar</button>
       </div>
       <div style="margin-top:8px;">
@@ -11132,6 +11381,7 @@ function registarResultadoEvento(eventoId, resultado) {
 
   renderEventosPendentesWidget();
   if (typeof renderTopLeadsWidget === 'function') renderTopLeadsWidget();
+  if (typeof renderResumoDia === 'function') renderResumoDia();
   showToast(resultado === 'bem' ? '✅ Registado no histórico do lead' : '📝 Registado — podes agendar novo follow-up');
 }
 
@@ -11584,6 +11834,7 @@ function renderFunil() {
   }).join('');
 
   renderFunilAnalytics();
+  renderFunilPedirIndicacao();
 }
 
 // =====================================================
@@ -11644,6 +11895,7 @@ function kbDrop(e, targetCol) {
   }
   saveleads();
   renderFunil();
+  if (typeof renderResumoDia === 'function') renderResumoDia();
   if (targetCol === 'cliente') vibrarConfirmacao();
   showToast('✅ ' + lead.nome + ' → ' + targetCol);
   executarAutomacoes(lead, estadoAnterior, targetCol);
@@ -11708,6 +11960,7 @@ function kbTouchEnd(e, originCol) {
       }
       saveleads();
       renderFunil();
+      if (typeof renderResumoDia === 'function') renderResumoDia();
       showToast('✅ ' + lead.nome + ' → ' + targetCol);
       executarAutomacoes(lead, estadoAnterior, targetCol);
       mostrarMsgFunil(lead, targetCol);
@@ -11956,6 +12209,7 @@ function moverLeadParaEtapaRecrutamento(leadId, novaEtapa) {
   lead.ultimoContacto = new Date().toISOString();
   saveleads();
   renderFunilRecrutamento();
+  if (typeof renderResumoDia === 'function') renderResumoDia();
   if (novaEtapa === 'ativo') vibrarConfirmacao();
   showToast('✅ ' + lead.nome + ' → ' + recrutEtapaLabel(novaEtapa));
 
@@ -12984,11 +13238,31 @@ function getResumoNegocioParaIA() {
 
     const inativos = (membros||[]).filter(m => !m.ultimaAtividade || (Date.now() - new Date(m.ultimaAtividade).getTime())/86400000 >= 14).length;
 
+    // Rank atual + risco de o perder esta semana (rank LifeWave é recalculado
+    // semanalmente — ver riscoDescidaCategoria). Sem isto, o Coach podia
+    // sugerir "fala com mais leads" sem saber que o mais urgente esta semana
+    // é repor 40 PV antes de domingo para não perder o rank já alcançado.
+    let rankLinha = '';
+    try {
+      const perfilIA = (typeof getUserPerfil === 'function') ? getUserPerfil() : {};
+      if ((perfilIA.pv || perfilIA.qdv) && typeof calcularCategoria === 'function') {
+        const resIA = calcularCategoria({ pv: perfilIA.pv, qdv: perfilIA.qdv, secL: perfilIA.secL, secR: perfilIA.secR, olxl: perfilIA.olxl });
+        const proxIA = (typeof proximaCategoria === 'function') ? proximaCategoria(resIA.cat) : null;
+        rankLinha = `\n- Current rank: ${resIA.cat}${proxIA ? ` (next: ${proxIA.cat})` : ''}`;
+        if (typeof riscoDescidaCategoria === 'function') {
+          const riscoIA = riscoDescidaCategoria({ pv: perfilIA.pv, qdv: perfilIA.qdv, secL: perfilIA.secL, secR: perfilIA.secR, olxl: perfilIA.olxl });
+          if (riscoIA) {
+            rankLinha += `\n- ⚠️ RISK: may lose ${riscoIA.categoriaAtual} this week — weakest metric is ${riscoIA.metrica} at ${riscoIA.atual}/${riscoIA.minimo}${riscoIA.critico ? ' (critical, act now)' : ''}`;
+          }
+        }
+      }
+    } catch(e) {}
+
     return `
 CURRENT REAL BUSINESS DATA (use this to give specific, factual answers — not generic advice):
 - Total leads: ${leads.length} (Novo: ${porEstado.novo}, Contactado: ${porEstado.contactado}, Interessado: ${porEstado.interessado}, Negociação: ${porEstado.negociacao}, Cliente: ${porEstado.cliente})
 - Commission this month: €${totalComissaoMes.toFixed(0)}${meta > 0 ? ` of €${meta.toFixed(0)} goal (${pctMeta}%)` : ' (no monthly goal set)'}
-- Team members: ${(membros||[]).length}${inativos > 0 ? ` (${inativos} possibly inactive, 14+ days without activity)` : ''}
+- Team members: ${(membros||[]).length}${inativos > 0 ? ` (${inativos} possibly inactive, 14+ days without activity)` : ''}${rankLinha}
 When the distributor asks about their progress, what to focus on, or who to contact, base your answer on these real numbers instead of generic advice.`;
   } catch(e) { return ''; }
 }
@@ -13875,6 +14149,11 @@ function agFinalizarPedidoAposEvento(pedidoId) {
         });
         leadAssociado.ultimoContacto = new Date().toISOString();
         saveleads();
+        // Isto pode correr sem Miguel estar a olhar para o ecrã (é o lead a
+        // confirmar sozinho via link público) — o refresh aqui garante que
+        // o Dashboard já está correto quando ele abrir a app a seguir, em
+        // vez de continuar a mostrar este lead como "por contactar hoje".
+        if (typeof renderResumoDia === 'function') renderResumoDia();
       }
     }
 
@@ -14087,7 +14366,7 @@ DISTRIBUTOR CONTEXT:
 - LifeWave Affiliate Slug: ${slug}
 - Main product: X39 (photobiomodulation patch that elevates GHK-Cu)
 - Other products: X49, Aeon, Carnosine, Glutathione, Energy Enhancer, Silent Nights, IceWave
-- Business model: MLM/Network Marketing (Unilevel)
+- Business model: MLM/Network Marketing (Binary — two legs, left/right sections)
 - Main channels: WhatsApp, Instagram, Facebook, personal contact
 - Distributor links:
   • Registration: ${links.registo}
@@ -16139,7 +16418,17 @@ function abrirMensagem(leadId, canal) {
   atualizarMsgCategorias();
   const respostaLeadInput = document.getElementById('msg-resposta-lead');
   if (respostaLeadInput) respostaLeadInput.value = '';
-  document.getElementById('msg-ia-objetivo').value = 'primeiro';
+  // Pré-seleciona o objetivo mais adequado ao estado atual do lead, em vez
+  // de assumir sempre "Primeiro contacto" — poupa 1 escolha manual sempre
+  // que o lead já não é totalmente novo. O utilizador pode sempre mudar.
+  const OBJETIVO_POR_ESTADO = {
+    novo: 'primeiro',
+    contactado: 'followup',
+    interessado: 'ponte',
+    negociacao: 'followup',
+    cliente: 'cliente',
+  };
+  document.getElementById('msg-ia-objetivo').value = OBJETIVO_POR_ESTADO[l.estado] || 'primeiro';
   toggleCampoRespostaLead();
 
   // Fill number
@@ -16571,18 +16860,13 @@ function enviarMensagem() {
 
   const encodedTexto = encodeURIComponent(texto);
 
-  if (msgCanal === 'whatsapp') {
-    const telWA = telParaWaMe(tel);
-    const url = `https://wa.me/${telWA}?text=${encodedTexto}`;
-    const waWin = window.open(url, '_blank');
-    if (!waWin || waWin.closed || typeof waWin.closed === 'undefined') {
-      window.location.href = url;
-    }
-  } else if (msgCanal === 'sms') {
-    window.location.href = `sms:${tel}?body=${encodedTexto}`;
-  }
-
-  // Log in lead history
+  // Log in lead history — ANTES de qualquer navegação. Em Android Chrome,
+  // window.open('https://wa.me/...') é frequentemente bloqueado ou o wa.me
+  // redireciona a própria aba, caindo no fallback window.location.href
+  // abaixo — isso navega a página IMEDIATAMENTE e interrompe a execução do
+  // resto desta função a meio, antes de gravar o histórico. Por isso a
+  // gravação tem de acontecer primeiro, sempre, mesmo que a navegação a
+  // seguir corte tudo o resto.
   const l = leads.find(x => x.id === msgLeadId);
   if (l) {
     l.historico = l.historico || [];
@@ -16601,6 +16885,21 @@ function enviarMensagem() {
   // mostrar este lead até o utilizador sair e voltar ao Dashboard, mesmo
   // já tendo sido contactado agora mesmo.
   if (typeof renderResumoDia === 'function') renderResumoDia();
+  // Mesmo refresh para "Próxima Melhor Ação" — usa a mesma lógica de
+  // diasSemContacto() que o Lead do Dia, por isso sofria do mesmo
+  // problema: continuava a sugerir um lead já contactado agora mesmo.
+  if (typeof renderProximaAcao === 'function') renderProximaAcao();
+
+  if (msgCanal === 'whatsapp') {
+    const telWA = telParaWaMe(tel);
+    const url = `https://wa.me/${telWA}?text=${encodedTexto}`;
+    const waWin = window.open(url, '_blank');
+    if (!waWin || waWin.closed || typeof waWin.closed === 'undefined') {
+      window.location.href = url;
+    }
+  } else if (msgCanal === 'sms') {
+    window.location.href = `sms:${tel}?body=${encodedTexto}`;
+  }
 
   closeModal('modal-mensagem');
   showToast(msgCanal === 'whatsapp' ? '💬 A abrir WhatsApp...' : '📱 A abrir SMS...');
@@ -16618,6 +16917,7 @@ function ligar(leadId) {
   // Mesmo refresh do "Lead do Dia" que enviarMensagem() já faz — uma
   // chamada telefónica conta como contacto de hoje tal como uma mensagem.
   if (typeof renderResumoDia === 'function') renderResumoDia();
+  if (typeof renderProximaAcao === 'function') renderProximaAcao();
 }
 
 function ligarAtual() {
@@ -16743,6 +17043,27 @@ function selecionarComEmail() {
   atualizarContadorMassa();
 }
 
+// Atalho para campanhas de reativação: seleciona leads com estado 'frio' ou
+// sem contacto há 30+ dias (mesmo critério usado no guião "Reativar Lead
+// Frio" já existente) — poupa ter de marcar um a um antes de um envio em
+// massa de reativação. Ativa também o objetivo "Reativar lead frio" (conteúdo
+// que reconhece o silêncio prolongado). NÃO mexe no "Tipo de Lead" (Quente/
+// Morno/Frio) — esse campo é sobre o MERCADO da pessoa (desconhecido vs.
+// conhecido próximo), um conceito independente de "está sem contacto há
+// muito tempo"; um lead esfriado pode perfeitamente ser mercado quente.
+function selecionarLeadsFrios() {
+  leads.forEach((l, i) => {
+    const cb = document.getElementById(`massa-cb-${i}`);
+    if (!cb) return;
+    const dias = diasSemContacto(l);
+    const frioOuInativo = l.estado === 'frio' || (dias !== null && dias >= 30);
+    cb.checked = frioOuInativo && l.estado !== 'cliente' && l.estado !== 'perdido';
+  });
+  atualizarContadorMassa();
+  const selObjetivo = document.getElementById('massa-ia-objetivo');
+  if (selObjetivo) selObjetivo.value = 'reativacao';
+}
+
 function setMassaCanal(canal) {
   massaCanal = canal;
   ['whatsapp','sms','email'].forEach(c => {
@@ -16812,6 +17133,7 @@ async function gerarMsgIAMassa() {
   const objetivoInstrucao = {
     primeiro: 'É um PRIMEIRO CONTACTO — apresenta-te de forma natural, gera curiosidade, não sejas demasiado direto na venda.',
     followup: 'É um FOLLOW-UP — referencia que já falámos antes, retoma o interesse com suavidade, pergunta como está.',
+    reativacao: 'É uma REATIVAÇÃO — este contacto ficou sem resposta ou em silêncio há bastante tempo (semanas/meses). Reconhece isso com naturalidade e sem cobrança (ex: "há uns tempos que não falamos", "sei que ficámos por aqui"), sem pressão nem espanto por não teres tido resposta antes. Sugere retomar a conversa só se houver interesse, sem obrigação.',
     info: 'É para partilhar INFO DO PRODUTO X39 — foca nos benefícios, resultados, como funciona, sem pressão.',
     cliente: 'É uma mensagem de BEM-VINDO CLIENTE — celebra a decisão, dá boas-vindas à família LifeWave, oferece suporte.'
   }[objetivo] || '';
@@ -17004,6 +17326,11 @@ async function enviarMensagemMassa() {
 
   progressFill.style.width = enviados === total ? '100%' : progressFill.style.width;
   saveleads();
+  // Um único refresh no fim (não dentro do loop) — o envio em massa pode
+  // demorar minutos com delays entre contactos, e redesenhar o card a
+  // cada mensagem enviada não traria benefício, só faria o Lead do Dia
+  // mudar repetidamente enquanto o envio decorre.
+  if (typeof renderResumoDia === 'function') renderResumoDia();
 
   // Restaurar botões
   _setMassaBtnEnviar(false);
@@ -18841,6 +19168,12 @@ function supabaseConfigurado() {
 }
 
 function abrirConfigSupabase() {
+  const isLocal = location.protocol === 'file:' || location.protocol === 'content:';
+  if (!isLocal) {
+    showToast('⚙️ Configuração de backend não disponível nesta versão.');
+    return;
+  }
+
   const { url, key } = getSupabaseConfig();
   document.getElementById('supabase-config-url').value = url;
   document.getElementById('supabase-config-key').value = key;
@@ -19239,6 +19572,19 @@ function atualizarPerfilDatasPreview() {
   if (dataInscricao) {
     const diasDesde = -diasAteData(dataInscricao);
     html += `<div style="font-size:11.5px;color:var(--text2);margin-bottom:6px;">📝 Inscrito/a há <strong style="color:var(--text);">${diasDesde >= 0 ? diasDesde : 0} dias</strong> (${formatarDataPT(dataInscricao)})</div>`;
+
+    // Business Launch Bonus: janela das primeiras 9 semanas (semana de
+    // entrada + 8 seguintes) — mesmo cálculo já usado em calcSaudeBP() para
+    // os membros da equipa, aqui aplicado à própria pessoa que usa a app,
+    // que até agora só via "há quantos dias está inscrita" sem saber que
+    // esta janela de bónus está a decorrer.
+    const semanasDesde = Math.floor((diasDesde >= 0 ? diasDesde : 0) / 7);
+    if (semanasDesde < 9) {
+      const semanasRestantesBLB = 9 - semanasDesde;
+      html += `<div style="background:rgba(245,200,66,0.08);border:1px solid rgba(245,200,66,0.3);border-radius:8px;padding:8px 12px;font-size:12px;color:var(--gold);margin-bottom:6px;">
+        🚀 Business Launch Bonus ativo — faltam <strong>${semanasRestantesBLB} semana${semanasRestantesBLB!==1?'s':''}</strong> desta janela
+      </div>`;
+    }
   }
   if (dataProxima) {
     const dias = diasAteData(dataProxima);
@@ -19941,6 +20287,68 @@ function setGuiaoCanal(el) {
   });
   el.classList.add('active');
   el.style.borderColor = 'var(--accent)'; el.style.color = 'var(--accent)';
+  atualizarBotaoEnviarGuiao();
+}
+
+// Ajusta o rótulo do botão "Enviar" consoante o canal escolhido nas pills —
+// WhatsApp/SMS abrem diretamente com o texto preenchido; Instagram não tem
+// deep-link universal para pré-preencher DMs, por isso copia o texto e abre
+// o Instagram, deixando o utilizador colar manualmente.
+function atualizarBotaoEnviarGuiao() {
+  const btn = document.getElementById('btn-enviar-guiao');
+  if (!btn) return;
+  if (guiaoCanal === 'WhatsApp') btn.textContent = '📤 Enviar WhatsApp';
+  else if (guiaoCanal === 'SMS') btn.textContent = '📤 Enviar SMS';
+  else btn.textContent = '📤 Copiar e abrir Instagram';
+}
+
+// Envia o guião gerado diretamente pelo canal escolhido (WhatsApp/SMS/Instagram).
+// Regista o contacto no histórico do lead ANTES de qualquer navegação — a
+// mesma precaução já aplicada em enviarMensagem(): em Android Chrome, abrir
+// wa.me frequentemente cai no fallback window.location.href, que navega a
+// página de imediato e cortaria a execução a meio se a gravação viesse depois.
+function enviarGuiaoCanal() {
+  if (!guiaoTextoGerado || !guiaoLeadId) { showToast('⚠️ Gera primeiro o guião'); return; }
+  const l = leads.find(x => x.id === guiaoLeadId);
+  if (!l) { showToast('⚠️ Lead não encontrado'); return; }
+
+  const canalUsado = guiaoCanal;
+  const texto = guiaoTextoGerado;
+
+  // Regista o contacto primeiro
+  l.historico = l.historico || [];
+  const resumo = texto.slice(0, 60) + (texto.length > 60 ? '…' : '');
+  l.historico.push({
+    tipo: 'mensagem',
+    msg: `${canalUsado === 'WhatsApp' ? '💬 WhatsApp' : canalUsado === 'SMS' ? '📱 SMS' : '📸 Instagram DM'} enviado (Guião IA): "${resumo}"`,
+    data: new Date().toLocaleString('pt-PT')
+  });
+  l.ultimoContacto = new Date().toISOString();
+  saveleads();
+
+  if (typeof renderResumoDia === 'function') renderResumoDia();
+  if (typeof renderProximaAcao === 'function') renderProximaAcao();
+
+  const tel = l.tel ? limparTelefone(l.tel) : '';
+
+  if (canalUsado === 'WhatsApp') {
+    if (!tel) { showToast('⚠️ Sem número de telefone — texto copiado'); copiarGuiao(); return; }
+    const telWA = telParaWaMe(tel);
+    const url = `https://wa.me/${telWA}?text=${encodeURIComponent(texto)}`;
+    const waWin = window.open(url, '_blank');
+    if (!waWin || waWin.closed || typeof waWin.closed === 'undefined') {
+      window.location.href = url;
+    }
+  } else if (canalUsado === 'SMS') {
+    if (!tel) { showToast('⚠️ Sem número de telefone — texto copiado'); copiarGuiao(); return; }
+    window.location.href = `sms:${tel}?body=${encodeURIComponent(texto)}`;
+  } else {
+    // Instagram DM não tem deep-link universal para pré-preencher texto —
+    // copia o guião e abre o Instagram para o utilizador colar manualmente.
+    copiarGuiao();
+    showToast('📋 Guião copiado — cola na conversa do Instagram');
+    setTimeout(() => { window.open('https://www.instagram.com/direct/inbox/', '_blank'); }, 600);
+  }
 }
 
 function setGuiaoTipo(el) {
@@ -20136,6 +20544,7 @@ Escreve APENAS a mensagem + próximo passo. Sem explicações nem introduções.
 
     resultEl.innerHTML = mensagemTexto.replace(/\n/g, '<br>');
     document.getElementById('guiao-actions').style.display = 'flex';
+    atualizarBotaoEnviarGuiao();
     mostrarAvisoComplianceAuto(mensagemTexto, document.getElementById('guiao-compliance-aviso'));
 
   } catch(e) {
@@ -21844,8 +22253,8 @@ function renderRetencao() {
       </div>
       <!-- A??es -->
       <div style="display:flex;gap:6px;flex-wrap:wrap;">
-        ${c.tel ? `<button class="btn btn-sm" style="background:rgba(37,211,102,0.15);color:#25d366;border:1px solid rgba(37,211,102,0.3);" onclick="retWADireto('${encodeURIComponent(c.tel)}','${encodeURIComponent(c.nome)}')">📲 WhatsApp</button>` : ''}
-        <button class="btn btn-sm btn-secondary" onclick="abrirRetIAModal('${idSafe}','${encodeURIComponent(c.nome)}','${encodeURIComponent(prodLabel)}','${encodeURIComponent(c.tel||'')}','${c.estado}',${c.dias})">🤖 Msg IA</button>
+        ${c.tel ? `<button class="btn btn-sm" style="background:rgba(37,211,102,0.15);color:#25d366;border:1px solid rgba(37,211,102,0.3);" onclick="retWADireto('${encodeURIComponent(c.tel)}','${encodeURIComponent(c.nome)}','${c.leadId||''}')">📲 WhatsApp</button>` : ''}
+        <button class="btn btn-sm btn-secondary" onclick="abrirRetIAModal('${idSafe}','${encodeURIComponent(c.nome)}','${encodeURIComponent(prodLabel)}','${encodeURIComponent(c.tel||'')}','${c.estado}',${c.dias},'${c.leadId||''}')">🤖 Msg IA</button>
         <button class="btn btn-sm btn-secondary" onclick="abrirNovaVenda('${c.nome.replace(/'/g,"\\'")}')" title="Registar nova compra">💰 Renovação</button>
         ${c.leadId ? `<button class="btn btn-sm btn-secondary" onclick="verLead('${c.leadId}')" title="Ver perfil">👤 Perfil</button>` : ''}
       </div>
@@ -21853,15 +22262,33 @@ function renderRetencao() {
   }).join('');
 }
 
-function retWADireto(telEnc, nomeEnc) {
+function retWADireto(telEnc, nomeEnc, leadId) {
   const tel = decodeURIComponent(telEnc);
   const nome = decodeURIComponent(nomeEnc).split(' ')[0];
   const txt = `Olá ${nome}! 👋 Passei só para saber como estás com os teus patches. Está na altura de repor o teu pack mensal? 😊`;
+
+  // Regista o contacto no lead correspondente (quando encontrado por telefone/nome
+  // no cruzamento do Radar de Retenção) ANTES de navegar — sem isto, o Radar
+  // continuava a mostrar o cliente como "sem contacto" mesmo depois de o
+  // teres contactado por aqui, e o resto da app (Lead do Dia, Próxima Melhor
+  // Ação, auto-tags) nunca ficava a saber deste contacto.
+  if (leadId && typeof leads !== 'undefined') {
+    const l = leads.find(x => x.id === leadId);
+    if (l) {
+      l.historico = l.historico || [];
+      l.historico.push({ tipo: 'mensagem', msg: `💬 WhatsApp enviado (Radar de Retenção): "${txt.slice(0,60)}…"`, data: new Date().toLocaleString('pt-PT') });
+      l.ultimoContacto = new Date().toISOString();
+      if (typeof saveleads === 'function') saveleads();
+      if (typeof renderResumoDia === 'function') renderResumoDia();
+      if (typeof renderProximaAcao === 'function') renderProximaAcao();
+    }
+  }
+
   window.location.href = 'https://wa.me/' + tel + '?text=' + encodeURIComponent(txt);
 }
 
-function abrirRetIAModal(idSafe, nomeEnc, prodEnc, telEnc, estado, dias) {
-  _retIACliente = { idSafe, nome: decodeURIComponent(nomeEnc), produto: decodeURIComponent(prodEnc), tel: decodeURIComponent(telEnc), estado, dias };
+function abrirRetIAModal(idSafe, nomeEnc, prodEnc, telEnc, estado, dias, leadId) {
+  _retIACliente = { idSafe, nome: decodeURIComponent(nomeEnc), produto: decodeURIComponent(prodEnc), tel: decodeURIComponent(telEnc), estado, dias, leadId: leadId||'' };
   const modal = document.getElementById('ret-modal-ia');
   if (!modal) return;
   modal.style.display = 'flex';
@@ -21926,6 +22353,22 @@ function enviarRetIAWhatsApp() {
   if (!_retIACliente?.tel) { showToast('⚠️ Sem número de telefone para este cliente'); return; }
   const msg = document.getElementById('ret-modal-ia-texto')?.textContent || '';
   if (!msg || msg.startsWith('⏳') || msg.startsWith('🤖')) { showToast('⏳ Aguarda a mensagem ser gerada'); return; }
+
+  // Regista o contacto no lead correspondente ANTES de navegar (mesmo padrão
+  // aplicado em retWADireto/enviarWhatsAppParaLead) — evita que o Radar
+  // continue a mostrar o cliente como "sem contacto" depois de contactado.
+  if (_retIACliente.leadId && typeof leads !== 'undefined') {
+    const l = leads.find(x => x.id === _retIACliente.leadId);
+    if (l) {
+      l.historico = l.historico || [];
+      l.historico.push({ tipo: 'mensagem', msg: `💬 WhatsApp enviado (Radar de Retenção — Msg IA): "${msg.slice(0,60)}${msg.length>60?'…':''}"`, data: new Date().toLocaleString('pt-PT') });
+      l.ultimoContacto = new Date().toISOString();
+      if (typeof saveleads === 'function') saveleads();
+      if (typeof renderResumoDia === 'function') renderResumoDia();
+      if (typeof renderProximaAcao === 'function') renderProximaAcao();
+    }
+  }
+
   window.location.href = 'https://wa.me/' + _retIACliente.tel + '?text=' + encodeURIComponent(msg);
 }
 
@@ -22378,9 +22821,14 @@ function renderDigestDiario() {
     typeof calcularIndiceSaudeMembro === 'function' ? calcularIndiceSaudeMembro(m).nivel === 'Crítico' : getPrioridadeMembro(m) === 'urgente'
   );
   if (membrosUrgentes.length > 0) {
+    // Com poucos nomes (até 3), mostra quem é diretamente — poupa o clique de
+    // navegar até à Equipa só para descobrir isso. Com mais, a lista tornar-
+    // se-ia longa demais para este item; mantém-se só a contagem nesse caso.
+    const nomesUrgentes = membrosUrgentes.slice(0, 3).map(m => m.nome || 'Membro').join(', ');
+    const sufixoNomes = membrosUrgentes.length <= 3 ? ` (${nomesUrgentes})` : '';
     itens.push({
       icon: '👥', cor: '#ff5555',
-      texto: `${membrosUrgentes.length} membro${membrosUrgentes.length > 1 ? 's' : ''} da equipa em estado crítico`,
+      texto: `${membrosUrgentes.length} membro${membrosUrgentes.length > 1 ? 's' : ''} da equipa em estado crítico${sufixoNomes}`,
       fn: "goTo('equipa')"
     });
   }
@@ -22554,6 +23002,18 @@ function renderDigestDiario() {
     <div style="display:flex;align-items:center;gap:10px;padding:8px 10px;background:rgba(0,212,170,0.05);border-radius:10px;margin-top:8px;">
       <span style="font-size:16px;flex-shrink:0;">📦</span>
       <span style="font-size:13px;color:var(--text);flex:1;">Faltam ${pvFalta.toFixed(0)} PV para o mínimo do mês (${pvAtual.toFixed(0)}/55)</span>
+    </div>`;
+  })() + (function() {
+    // Meta semanal do método PAM (20-25 contactos/semana) — mesmo padrão do
+    // item de PV acima: calculado à parte, some quando a meta mínima é atingida.
+    const pamSemana = (typeof calcularKPIsAtividade === 'function') ? calcularKPIsAtividade(7).totais.pam : 0;
+    const pamMeta = 20;
+    if (pamSemana >= pamMeta) return '';
+    return `
+    <div onclick="goTo('lista')" style="cursor:pointer;display:flex;align-items:center;gap:10px;padding:8px 10px;background:rgba(255,159,67,0.06);border-radius:10px;margin-top:8px;">
+      <span style="font-size:16px;flex-shrink:0;">🔎</span>
+      <span style="font-size:13px;color:var(--text);flex:1;">PAM: ${pamSemana}/${pamMeta} contactos esta semana</span>
+      <span style="color:#ff9f43;font-size:11px;">→</span>
     </div>`;
   })() + `
     <div style="margin-top:10px;display:flex;justify-content:flex-end;">
@@ -23320,6 +23780,53 @@ function fmtMoeda(n) {
 function indiceCategoria(cat) {
   const idx = PERCURSO_SUCESSO.findIndex(n => n.cat === cat);
   return idx === -1 ? PERCURSO_SUCESSO.length : idx; // quanto menor, mais alto na hierarquia
+}
+
+// Identifica o risco de descer de Categoria de Pagamento esta semana.
+// Diferente de proximaCategoria() (que mede distância para SUBIR ao nível
+// seguinte), esta função mede a folga acima dos mínimos do rank ATUAL —
+// o rank é recalculado semanalmente (fecho ao domingo, ver
+// relatorioGetSemana), por isso perder a qualificação corta o bónus dessa
+// semana mesmo tendo já sido atingida anteriormente.
+//
+// secVal é comparado contra a secção mais fraca (Math.min(secL, secR)),
+// espelhando a mesma regra que calcularCategoria() já aplica para
+// qualificar o rank (nivel.secCount >= 2 exige as DUAS secções).
+//
+// Devolve null se a categoria atual não tiver nenhum mínimo>0 a monitorizar
+// (ex: 'Inativo' ou 'Brand Partner Ativo' sem QDV), ou se estiver a mais de
+// 20% de folga em todas as métricas (sem risco relevante esta semana).
+function riscoDescidaCategoria({ pv, qdv, secL, secR, olxl }) {
+  pv = pv || 0; qdv = qdv || 0; secL = secL || 0; secR = secR || 0; olxl = olxl || 0;
+  const res = calcularCategoria({ pv, qdv, secL, secR, olxl });
+  const nivel = PERCURSO_SUCESSO.find(n => n.cat === res.cat);
+  if (!nivel) return null; // 'Inativo (PV < 55)' não está em PERCURSO_SUCESSO
+
+  const secFraca = Math.min(secL, secR);
+  const metricas = [
+    { label: 'Volume Pessoal (PV)',      atual: pv,       minimo: nivel.pv },
+    { label: 'QDV',                       atual: qdv,      minimo: nivel.qdv },
+    { label: 'Secção mais fraca',         atual: secFraca, minimo: nivel.secCount >= 1 ? nivel.secVal : 0 },
+    { label: 'Volume Fora das Secções',   atual: olxl,     minimo: nivel.olxl },
+  ].filter(m => m.minimo > 0); // ignora métricas sem exigência neste rank
+
+  if (!metricas.length) return null; // rank sem mínimos a perder (ex: 1-Star Manager)
+
+  metricas.forEach(m => { m.folgaPct = (m.atual - m.minimo) / m.minimo; });
+  metricas.sort((a, b) => a.folgaPct - b.folgaPct);
+  const maisFraca = metricas[0];
+
+  const LIMIAR_RISCO = 0.20; // 20% de folga — abaixo disto, vale a pena avisar
+  if (maisFraca.folgaPct >= LIMIAR_RISCO) return null; // folga confortável em tudo
+
+  return {
+    categoriaAtual: res.cat,
+    metrica: maisFraca.label,
+    atual: maisFraca.atual,
+    minimo: maisFraca.minimo,
+    folgaPct: maisFraca.folgaPct, // pode ser negativo se já abaixo do mínimo (dados desatualizados ou semana já perdida)
+    critico: maisFraca.folgaPct < 0.05,
+  };
 }
 
 // --- BÓNUS DE GANHOS POR NÍVEL ---
@@ -24806,6 +25313,20 @@ function salvarMembro() {
   const cresceu = !membroExistente || clientesNovo > (membroExistente.clientes||0) || recrutadosNovo > (membroExistente.recrutados||0)
     || pv > (membroExistente.pv||0) || qdv > (membroExistente.qdv||0) || secL > (membroExistente.secL||0) || secR > (membroExistente.secR||0) || olxl > (membroExistente.olxl||0);
 
+  // Histórico mensal de PV (fundação para detetar "abrandamento" em membros,
+  // à semelhança do que já existe para clientes em calcularTendenciaCliente).
+  // Guarda 1 ponto por mês (YYYY-MM); se já existir um registo este mês,
+  // atualiza-o em vez de duplicar (o membro pode ser editado várias vezes
+  // no mesmo mês). Com histórico insuficiente (poucos meses), qualquer
+  // cálculo de tendência simplesmente não seria fiável — por isso este
+  // campo só recolhe dados por agora; a lógica de deteção vem depois,
+  // quando houver pelo menos 3 meses para comparar.
+  const mesAtual = new Date().toISOString().slice(0, 7); // "YYYY-MM"
+  const pvHistorico = Array.isArray(membroExistente?.pvHistorico) ? [...membroExistente.pvHistorico] : [];
+  const idxMesAtual = pvHistorico.findIndex(h => h.mes === mesAtual);
+  if (idxMesAtual >= 0) pvHistorico[idxMesAtual] = { mes: mesAtual, pv };
+  else pvHistorico.push({ mes: mesAtual, pv });
+
   const membro = {
     id: editingMembroId || gerarId(),
     nome,
@@ -24819,6 +25340,7 @@ function salvarMembro() {
     slug: document.getElementById('mb-slug').value.trim(),
     notas: document.getElementById('mb-notas').value.trim(),
     pv, qdv, secL, secR, olxl,
+    pvHistorico,
     categoria,
     historico: membroExistente?.historico || [],
     ultimoContacto: membroExistente?.ultimoContacto || null,
@@ -25145,6 +25667,31 @@ function calcSaudeBP(m) {
 // 14 dias" usado em renderEquipa/calcSaudeRede) em vez de os duplicar —
 // este módulo só combina esses sinais num único número com pesos.
 // ===================================================
+// Compara o PV do mês mais recente com a média dos meses anteriores do mesmo
+// membro (mesma técnica já usada em calcularTendenciaCliente, adaptada de
+// "intervalo entre compras" para "PV por mês"). Precisa de pelo menos 3
+// meses de histórico (m.pvHistorico, capturado em salvarMembro) para dar um
+// sinal fiável; com menos que isso devolve null — ainda não há dados
+// suficientes (normal nos primeiros meses após esta função ter sido criada).
+function calcularTendenciaPVMembro(m) {
+  const hist = Array.isArray(m.pvHistorico) ? [...m.pvHistorico].sort((a, b) => a.mes.localeCompare(b.mes)) : [];
+  if (hist.length < 3) return null;
+
+  const ultimoPV = hist[hist.length - 1].pv;
+  const anteriores = hist.slice(0, -1).map(h => h.pv);
+  const mediaAnterior = anteriores.reduce((a, b) => a + b, 0) / anteriores.length;
+
+  if (mediaAnterior <= 0) return null; // sem base de comparação fiável
+
+  const racio = ultimoPV / mediaAnterior;
+  let tipo;
+  if (racio <= 0.6)      tipo = 'abrandamento'; // este mês 40%+ mais baixo que a média anterior
+  else if (racio >= 1.4) tipo = 'aceleracao';
+  else                   tipo = 'estavel';
+
+  return { tipo, racio: Math.round(racio * 100) / 100, pvUltimoMes: ultimoPV, pvMediaAnterior: Math.round(mediaAnterior) };
+}
+
 function calcularIndiceSaudeMembro(m) {
   let score = 100;
   const motivos = [];
@@ -25260,6 +25807,7 @@ function verMembro(id) {
   document.getElementById('ver-membro-nome').textContent = m.nome;
   const saude = calcSaudeBP(m);
   const indiceSaude = calcularIndiceSaudeMembro(m);
+  const tendenciaPV = calcularTendenciaPVMembro(m);
   const indiceSaudeHtml = `
     <div style="background:${indiceSaude.cor}14;border:1px solid ${indiceSaude.cor}44;border-radius:10px;padding:12px 14px;margin-bottom:14px;">
       <div style="display:flex;justify-content:space-between;align-items:center;">
@@ -25267,6 +25815,10 @@ function verMembro(id) {
         <div style="font-size:20px;font-weight:800;color:${indiceSaude.cor};">${indiceSaude.score}<span style="font-size:11px;color:var(--text3);">/100</span></div>
       </div>
       ${indiceSaude.motivos.length ? `<div style="font-size:11px;color:var(--text2);margin-top:6px;">${indiceSaude.motivos.join(' · ')}</div>` : `<div style="font-size:11px;color:var(--text2);margin-top:6px;">Tudo em ordem com este membro.</div>`}
+      ${tendenciaPV?.tipo === 'abrandamento' ? `
+      <div style="font-size:11px;color:#f5c842;background:rgba(245,200,66,0.08);border:1px solid rgba(245,200,66,0.2);border-radius:8px;padding:5px 8px;margin-top:8px;">
+        📉 PV a abrandar — este mês ${tendenciaPV.pvUltimoMes} PV, vs. média anterior de ~${tendenciaPV.pvMediaAnterior} PV. Vale a pena falar com ${(m.nome||'').split(' ')[0]} antes que o estado desça.
+      </div>` : ''}
     </div>`;
   let categoriaHtml = '';
   if (m.categoria) {
@@ -25313,7 +25865,7 @@ function verMembro(id) {
   `;
   document.getElementById('ver-membro-actions').innerHTML = `
     <button class="btn btn-secondary btn-sm" onclick="editarMembro('${id}')">✏️ Editar</button>
-    ${m.tel ? `<button class="btn btn-sm btn-wa" onclick="abrirWAMembro('${id}')">💬 WhatsApp</button>` : ''}
+    ${m.tel ? `<button class="btn btn-sm btn-wa" onclick="abrirWAMembro('${id}', ${(() => { const t = tipoAlertaPrincipalMembro(m); return t ? `'${t}'` : 'null'; })()}, ${(() => { const s2 = calcSaudeBP(m); return s2.pvEmRisco ? Math.max(0, 55 - s2.pv) : 'null'; })()})">💬 WhatsApp</button>` : ''}
     <button class="btn btn-sm btn-ai" onclick="gerarMsgApoioMembro('${id}');closeModal('modal-ver-membro');">🤖 Msg IA</button>
     <button class="btn btn-danger btn-sm" onclick="eliminarMembro('${id}')">🗑 Remover</button>
   `;
@@ -25331,6 +25883,27 @@ const MSG_ALERTA_MEMBRO = {
   'blb-expira': (nome) => `Olá ${nome}! 👋 O teu período de arranque (BLB) está a chegar ao fim — esta é a fase decisiva para aproveitar os bónus. Vamos falar sobre o que falta fazer?`,
   'perto-rank': (nome, extra) => `Olá ${nome}! 🔥 Estás muito perto de subir para ${extra && extra.proximo ? extra.proximo : 'o próximo nível'}! Falta-te ${extra && extra.faltaTxt ? extra.faltaTxt : 'pouco'} — vamos fechar isso ainda este mês? Diz-me se precisares de ajuda para chegar lá. 💪`
 };
+
+// Traduz o problema de maior peso do Índice de Saúde no tipoAlerta certo de
+// MSG_ALERTA_MEMBRO — para o botão "💬 WhatsApp" da ficha do membro já vir
+// com a mensagem adequada ao problema real, em vez de abrir sempre vazio
+// (o utilizador via o diagnóstico no Índice de Saúde mas tinha de escrever
+// a mensagem do zero). Segue a mesma ordem de peso já usada no cálculo do
+// score: PV (35) > contacto (25) > duplicação (25) > rank (15).
+function tipoAlertaPrincipalMembro(m) {
+  const s = calcSaudeBP(m);
+  if (s.pv === 0) return 'sem-pv';
+  if (s.pvEmRisco) return 'pv-risco';
+  if (!s.statusAtivo) return 'inativo';
+
+  const prioridade = getPrioridadeMembro(m);
+  if (prioridade === 'urgente' || prioridade === 'aviso') return 'sem-duplicacao';
+
+  const semAtividadeReal = !!m.ultimaAtividade && (Date.now() - new Date(m.ultimaAtividade).getTime()) / 86400000 >= 14;
+  if (!m.ultimaAtividade || semAtividadeReal) return 'sem-duplicacao';
+
+  return null; // sem problema relevante — mensagem genérica normal
+}
 
 function abrirWAMembro(id, tipoAlerta, extra) {
   const m = membros.find(x => x.id === id);
@@ -27932,6 +28505,11 @@ function calcularChurnClientesPreferenciais() {
 
     if (!risco) return; // dentro do padrão normal — não aparece na lista
 
+    // Cruza com leads pelo nome (mesmo padrão já usado no Radar de Retenção)
+    // para poder registar o contacto no lead certo quando o utilizador
+    // contactar a partir daqui, e para obter o telefone quando disponível.
+    const leadMatch = (typeof leads !== 'undefined') ? leads.find(l => (l.nome||'').trim().toLowerCase() === nome.toLowerCase()) : null;
+
     resultado.push({
       nome,
       diasDesdeUltima,
@@ -27940,7 +28518,9 @@ function calcularChurnClientesPreferenciais() {
       nCompras: compras.length,
       ultimoProduto: ultima.produto || '',
       ultimaData: ultima.data,
-      risco
+      risco,
+      leadId: leadMatch?.id || '',
+      tel: leadMatch?.tel ? limparTelefone(leadMatch.tel) : ''
     });
   });
 
@@ -27983,8 +28563,7 @@ function renderChurnModule() {
       </div>
       <div style="display:flex;flex-direction:column;gap:8px;">
         ${lista.map(c => {
-          const tel = (typeof leads !== 'undefined') ? (leads.find(l => (l.nome||'').trim().toLowerCase() === c.nome.toLowerCase())?.tel || '') : '';
-          const telLimpo = tel ? limparTelefone(tel) : '';
+          const telLimpo = c.tel ? limparTelefone(c.tel) : '';
           return `
           <div class="followup-item" style="border-color:${c.risco.cor}40;">
             <div class="followup-item-urgency">${c.risco.label.split(' ')[0]}</div>
@@ -27996,7 +28575,7 @@ function renderChurnModule() {
             </div>
             <div class="followup-item-days urgent" style="color:${c.risco.cor};">${Math.round((c.diasDesdeUltima / c.intervaloMedio) * 100)}% do ciclo</div>
             <div class="followup-item-actions">
-              ${telLimpo ? `<button class="btn btn-sm btn-wa-sm" onclick="churnMensagemWA('${telLimpo}','${encodeURIComponent(c.nome)}')" title="WhatsApp">💬</button>` : ''}
+              ${telLimpo ? `<button class="btn btn-sm btn-wa-sm" onclick="churnMensagemWA('${telLimpo}','${encodeURIComponent(c.nome)}','${c.leadId||''}')" title="WhatsApp">💬</button>` : ''}
               <button class="btn btn-secondary btn-sm" onclick="abrirNovaVenda('${c.nome.replace(/'/g,"\\'")}')" title="Registar renovação">💰</button>
             </div>
           </div>`;
@@ -28005,9 +28584,24 @@ function renderChurnModule() {
     </div>`;
 }
 
-function churnMensagemWA(tel, nomeEncoded) {
+function churnMensagemWA(tel, nomeEncoded, leadId) {
   const nome = decodeURIComponent(nomeEncoded).split(' ')[0];
   const texto = `Olá ${nome}! 👋 Reparei que já não repões o teu patch há um tempinho — queres que te prepare já o próximo pedido para não ficares sem? 😊`;
+
+  // Regista o contacto no lead correspondente ANTES de navegar (mesmo padrão
+  // aplicado em retWADireto/enviarRetIAWhatsApp/enviarWhatsAppParaLead).
+  if (leadId && typeof leads !== 'undefined') {
+    const l = leads.find(x => x.id === leadId);
+    if (l) {
+      l.historico = l.historico || [];
+      l.historico.push({ tipo: 'mensagem', msg: `💬 WhatsApp enviado (Previsor de Churn): "${texto.slice(0,60)}…"`, data: new Date().toLocaleString('pt-PT') });
+      l.ultimoContacto = new Date().toISOString();
+      if (typeof saveleads === 'function') saveleads();
+      if (typeof renderResumoDia === 'function') renderResumoDia();
+      if (typeof renderProximaAcao === 'function') renderProximaAcao();
+    }
+  }
+
   window.location.href = 'https://wa.me/' + tel + '?text=' + encodeURIComponent(texto);
 }
 
@@ -28269,6 +28863,7 @@ function renderPrevisaoComissao() {
       <button class="btn btn-secondary btn-sm" onclick="selecionarTodosMassa(false)">✗ Nenhum</button>
       <button class="btn btn-secondary btn-sm" onclick="selecionarComTelefone()">📞 Só com tel.</button>
       <button class="btn btn-secondary btn-sm" onclick="selecionarComEmail()">📧 Só com email</button>
+      <button class="btn btn-secondary btn-sm" onclick="selecionarLeadsFrios()">🧊 Leads frios (30+ dias)</button>
       <span class="bulk-count-badge" id="massa-count-badge">0 selecionados</span>
     </div>
     <div class="bulk-lead-list" id="massa-lead-list"></div>
@@ -28301,6 +28896,7 @@ function renderPrevisaoComissao() {
           <select id="massa-ia-objetivo" style="background:var(--surface3);color:var(--text2);border:1px solid var(--border);border-radius:6px;padding:4px 8px;font-size:11.5px;cursor:pointer;">
             <option value="primeiro">👋 Primeiro contacto</option>
             <option value="followup">🔄 Follow-up</option>
+            <option value="reativacao">💫 Reativar lead frio</option>
             <option value="info">📦 Info produto</option>
             <option value="cliente">🎉 Bem-vindo cliente</option>
           </select>
@@ -29740,13 +30336,10 @@ Responde em português europeu, tom motivador mas realista.`;
 
     statusTxt.textContent = promoAI === 'gemini' ? '✦ Gemini a gerar estratégia...' : '🧠 Claude a gerar estratégia...';
 
-    // Gerar estratégia
-    let estrategia = '';
-    if (promoAI === 'gemini') {
-      estrategia = await callGemini(promptEstrategia(promoData));
-    } else {
-      estrategia = await callClaude(promptEstrategia(promoData));
-    }
+    // Gerar estratégia — reaproveita o mesmo wrapper com fallback da chamada
+    // anterior (extração dos dados), em vez de chamar callGemini/callClaude
+    // direto sem rede de segurança se a IA escolhida falhar a meio.
+    const estrategia = await chamarIADocumento({ ai: promoAI, prompt: promptEstrategia(promoData), maxTokens: 1200, fallback: true });
 
     // Montar objecto promoção
     const novaPromo = {
@@ -30477,6 +31070,7 @@ const FORMACAO_RECURSOS_DEFAULT = [
   { id:'r6', titulo:'Como Usar Instagram para LifeWave', tipo:'video', categoria:'redes', url:'https://www.youtube.com', descricao:'Estratégia de conteúdo, stories, reels e hashtags para crescer organicamente.', duracao:'30 min' },
   { id:'r7', titulo:'Plano de Compensação Oficial 2025', tipo:'pdf', categoria:'negocio', url:'https://lifewave.com', descricao:'Documento oficial com todas as categorias, bónus e incentivos.', duracao:'Leitura 20 min' },
   { id:'r8', titulo:'Mensagem de Boas-Vindas para Novos Membros', tipo:'guiao', categoria:'equipa', url:'', descricao:'Template de mensagem para receber e motivar novos parceiros da equipa.', duracao:'—' },
+  { id:'r9', titulo:'Método PAM — Procurar, Adicionar, Mensagem', tipo:'guiao', categoria:'redes', url:'', descricao:'Rotina diária gratuita para encontrar contactos novos e alinhados nas redes sociais: procura por hashtags/grupos, adiciona com critério e aquece a relação antes de qualquer pitch. Meta: 5 a 10 PAMs por dia, com follow-up — nunca scripts frios nem copy-cola.', duracao:'Leitura 10 min' },
 ];
 
 // ---- STORAGE ----
@@ -31477,7 +32071,8 @@ const NOTIF_TIPOS = {
   meta:      { icon: '🎯', label: 'Verificar Meta' },
   custom:    { icon: '✏️', label: 'Personalizado' },
   equipa:    { icon: '😴', label: 'Membro Inativo' },
-  encomenda: { icon: '📦', label: 'Encomenda' }
+  encomenda: { icon: '📦', label: 'Encomenda' },
+  rank:      { icon: '📉', label: 'Risco de Categoria' }
 };
 
 function loadLembretes() {
@@ -31966,6 +32561,43 @@ function gerarLembretesAutomaticos() {
         _auto: true
       });
     });
+  }
+
+  // ===== ALERTA: RISCO DE DESCER DE CATEGORIA ESTA SEMANA =====
+  // O rank LifeWave é recalculado semanalmente (fecho ao domingo) — perder
+  // a qualificação corta o bónus dessa semana mesmo tendo sido atingida
+  // antes. Só avisa de quarta-feira em diante: no início da semana a
+  // folga ainda está naturalmente larga (menos volume acumulado), e ao
+  // domingo já não há tempo útil para reagir. Mesmo padrão de "só um
+  // lembrete ativo por vez" dos blocos acima.
+  const diaSemanaHoje = new Date().getDay(); // 0=domingo
+  if (diaSemanaHoje >= 3) {
+    const perfilRisco = (typeof getUserPerfil === 'function') ? getUserPerfil() : {};
+    const risco = riscoDescidaCategoria({
+      pv: perfilRisco.pv, qdv: perfilRisco.qdv,
+      secL: perfilRisco.secL, secR: perfilRisco.secR, olxl: perfilRisco.olxl
+    });
+    if (risco) {
+      const { inicio } = (typeof relatorioGetSemana === 'function') ? relatorioGetSemana(0) : { inicio: new Date() };
+      const semanaChave = inicio.toISOString().slice(0,10);
+      const idLembreteRisco = 'notif_risco_rank_' + semanaChave;
+      const jaExisteRisco = lembretes.some(l => l.id === idLembreteRisco && !l.concluido);
+      if (!jaExisteRisco) {
+        const emoji = risco.critico ? '🔴' : '⚠️';
+        lembretes.push({
+          id: idLembreteRisco,
+          tipo: 'rank',
+          mensagem: `${emoji} Risco de perder ${risco.categoriaAtual} esta semana — ${risco.metrica} em ${fmtNum(risco.atual)}/${fmtNum(risco.minimo)}`,
+          proximoDisparo: new Date().toISOString(), // dispara já, não amanhã — a janela para agir é esta semana
+          repeticao: 'uma',
+          criado: new Date().toISOString(),
+          concluido: false,
+          disparadoCount: 0,
+          _riscoRankSemana: semanaChave,
+          _auto: true
+        });
+      }
+    }
   }
 
   saveLembretes();
@@ -34156,6 +34788,8 @@ const TEMPLATES_BASE = [
   { id:'tb15', fase:'primeiro_contacto', canal:'WhatsApp', titulo:'Pergunta aberta — curiosidade genuína', texto:'Olá {nome}, tudo bem?\nUma pergunta rápida: já ouviste falar da LifeWave? É uma marca de bem-estar com uma tecnologia chamada X39 que me tem impressionado.\nNão sei se é a tua área, mas se tiveres curiosidade digo-te com todo o gosto mais informação. Sem pressão nenhuma 😊', variaveis:['{nome}'] },
   { id:'tb16', fase:'primeiro_contacto', canal:'WhatsApp', titulo:'Pergunta aberta — foco em rendimento extra', texto:'Olá {nome}!\nUma pergunta rápida — estás aberto(a) a conhecer uma forma de gerar rendimento extra através da LifeWave, uma marca de bem-estar em crescimento?\nNão faz mal se não for a tua praia agora. Se quiseres saber mais até {dia_semana}, é só dizeres 🙂', variaveis:['{nome}','{dia_semana}'] },
   { id:'tb17', fase:'primeiro_contacto', canal:'WhatsApp', titulo:'Pergunta aberta — mais pessoal', texto:'Olá {nome}, espero que estejas bem.\nAndo a trabalhar com a LifeWave (X39) e tenho gostado bastante do que tenho visto — tanto a nível de bem-estar como de oportunidade de negócio.\nAchei que podia fazer sentido para ti. Interessa-te saber mais, ou não é o momento? Tudo bem de qualquer forma!', variaveis:['{nome}'] },
+  { id:'tb18', fase:'primeiro_contacto', canal:'Instagram DM', titulo:'PAM — Abertura genuína (sem pitch)', texto:'Olá {nome}! Vi que és de {cidade} — conectei-me por aqui 😊\nReparei que tens interesse em {interesse}, e é uma área que também valorizo bastante.\nComo é que começaste a interessar-te por isso?', variaveis:['{nome}','{cidade}','{interesse}'] },
+  { id:'tb19', fase:'primeiro_contacto', canal:'Instagram DM', titulo:'PAM — Interesse partilhado detetado', texto:'Olá {nome}! Vi que tens interesse em {interesse} — também é algo que acompanho de perto.\nTrabalho com uma tecnologia de fototerapia que muitas pessoas nessa área têm usado como apoio ao bem-estar e à energia.\nPosso enviar-te um vídeo curto? Pode ser que faça sentido para ti 🙂', variaveis:['{nome}','{interesse}'] },
   { id:'tb3', fase:'follow_up', canal:'WhatsApp', titulo:'Follow-up após primeiro contacto', texto:'Olá {nome}! Só queria dar seguimento à nossa conversa de {data_ultima}.\nSoubeste mais alguma coisa ou tens alguma questão? Fico aqui para ajudar 🙂', variaveis:['{nome}','{data_ultima}'] },
   { id:'tb4', fase:'follow_up', canal:'WhatsApp', titulo:'Follow-up após silêncio (5+ dias)', texto:'Olá {nome}! Percebi que talvez não seja o momento ideal — e está ótimo!\nSe um dia tiveres curiosidade sobre o que partilhei, estou por aqui. Cuida de ti! 😊', variaveis:['{nome}'] },
   { id:'tb5', fase:'apresentacao', canal:'WhatsApp', titulo:'Envio de apresentação/vídeo', texto:'Olá {nome}! Como combinado, deixo aqui o link com mais informação:\n{link}\nÉ uma tecnologia inovadora de fotobiomodulação que suporta o bem-estar e a energia. Vê com atenção e diz-me o que achaste! Se tiveres questões, estou aqui 😊', variaveis:['{nome}','{link}'] },
@@ -36042,12 +36676,7 @@ async function relatorioGerar() {
   const prompt = 'Analisa estes dados de negócio LifeWave de um distribuidor português e cria um relatório semanal motivador em Português de Portugal.\n\nDADOS (' + d.semana + '):\n- Novos leads: ' + d.leads_novos + '\n- Total leads: ' + d.total_leads + '\n- Clientes: ' + d.leads_clientes + '\n- Em negociação: ' + d.leads_negociacao + '\n- Leads frios: ' + d.leads_frios + '\n- Ações feitas: ' + d.acoes_feitas + '\n- Vendas: ' + d.vendas_semana + ' (' + d.total_euros + 'EUR)\n- Taxa conversão: ' + d.taxa_conversao + '%\n- Streak: ' + d.streak_dias + ' dias\n\nResponde APENAS em JSON válido sem markdown:\n{"nota_geral":7.5,"resumo":"texto","pontos_positivos":["p1","p2","p3"],"areas_melhorar":["a1","a2"],"acoes_proxima_semana":[{"prioridade":"alta","acao":"desc"},{"prioridade":"alta","acao":"desc"},{"prioridade":"media","acao":"desc"},{"prioridade":"media","acao":"desc"},{"prioridade":"baixa","acao":"desc"}],"frase_motivacao":"texto","insight_negocio":"texto"}';
   try {
     statusTxt.textContent = '🤖 IA a analisar...';
-    let respText = '';
-    if (claudeKey && claudeKey.length > 10) {
-      respText = await callClaude(prompt);
-    } else {
-      respText = await callGemini(prompt);
-    }
+    const respText = await chamarIADocumento({ ai: 'gemini', prompt, maxTokens: 1200, fallback: true });
     if (!respText.trim()) throw new Error('A IA não devolveu resposta. Tenta novamente.');
     let ia;
     try {
@@ -36292,12 +36921,7 @@ async function roleplayTerminar() {
   const conversa = rpHistorico.slice(1).map(m => ((m.role === 'lead' || m.role === 'assistant') ? rpCfg.nome : 'Distribuidor') + ': ' + m.content).join('\n');
   const prompt = 'Analisa esta simulação de vendas LifeWave. Perfil: ' + rpCfg.perfil.nome + '. Cenário: ' + rpCfg.cenario.titulo + '.\n\nCONVERSA:\n' + conversa + '\n\nALÉM da análise de vendas, verifica se o distribuidor usou linguagem não-conforme com as políticas LifeWave: "cura", "trata", "stem cell activation", "ativa células", "clinicamente provado", "detox", "elimina dor", "sem medicamentos", etc. Se usou, inclui isso nos pontos a melhorar.\n\nResponde APENAS em JSON válido sem markdown:\n{"nota":8,"titulo":"texto","resumo":"texto","pontos_fortes":["p1","p2"],"pontos_melhorar":["a1","a2"],"melhor_momento":"texto","dica_principal":"texto","resultado":"fechou"}';
   try {
-    let respText = '';
-    if (claudeKey && claudeKey.length > 10) {
-      respText = await callClaude(prompt);
-    } else {
-      respText = await callGemini(prompt);
-    }
+    const respText = await chamarIADocumento({ ai: 'gemini', prompt, maxTokens: 1200, fallback: true });
     const fb = JSON.parse(respText.replace(/```json|```/g,'').trim());
     const emojis = {fechou:'🏆',quase:'⚡',perdeu:'📚'};
     const cores  = {fechou:'#00d4aa',quase:'#f5c842',perdeu:'#ff6b35'};
@@ -36399,6 +37023,9 @@ const AUTO_BIBLIOTECA = [
     ] }, desc:'Cria 3 lembretes com mensagens prontas (Dia 1, 7 e 30) para acompanhares um novo cliente e apoiares a renovação.', tag:'Retenção' },
   { id:'lib_pedir_indicacao_45d', icon:'🎁', titulo:'Pedir Indicação 45 dias após Venda', trigger:{ tipo:'estado_muda', de:'*', para:'cliente' }, action:{ tipo:'criar_lembrete', dias:45, mensagem:'{nome} já é cliente há 45 dias e está satisfeito — ótimo momento para pedir uma indicação' }, desc:'Cria um lembrete 45 dias depois de um lead se tornar Cliente, para lhe pedires com naturalidade que indique alguém que possa beneficiar do produto.', tag:'Indicações' },
   { id:'lib_msg_pedir_indicacao', icon:'🎁', titulo:'Mensagem de Pedido de Indicação', trigger:{ tipo:'estado_muda', de:'*', para:'cliente' }, action:{ tipo:'copiar_mensagem', texto:'Olá {nome}! 😊 Ainda bem que estás a gostar do X39! Já agora — conheces mais alguém que ache que podia beneficiar de mais energia e bem-estar no dia a dia? Adorava poder ajudar mais alguém como te ajudei a ti 🙏' }, desc:'Quando um lead passa a Cliente, prepara também uma mensagem pronta a usar mais tarde para lhe pedires uma indicação.', tag:'Indicações' },
+  { id:'lib_followup_3d_silencio', icon:'🔄', titulo:'Follow-up após 3 dias de silêncio', trigger:{ tipo:'sem_contacto_dias', dias:3 }, action:{ tipo:'copiar_mensagem', texto:'Olá {nome}! Só queria dar seguimento à nossa conversa.\\nSoubeste mais alguma coisa ou tens alguma questão? Fico aqui para ajudar 🙂' }, desc:'Leads sem contacto há 3 dias recebem automaticamente uma mensagem de follow-up leve, pronta a enviar.', tag:'Follow-up' },
+  { id:'lib_followup_7d_silencio', icon:'❄️', titulo:'Reaquecer após 7 dias de silêncio', trigger:{ tipo:'sem_contacto_dias', dias:7 }, action:{ tipo:'copiar_mensagem', texto:'Olá {nome}! Percebi que talvez não seja o momento ideal — e está ótimo!\\nSe um dia tiveres curiosidade sobre o que partilhei, estou por aqui. Cuida de ti! 😊' }, desc:'Leads sem contacto há 7 dias recebem uma mensagem de reaquecimento sem pressão, pronta a enviar.', tag:'Follow-up' },
+  { id:'lib_reativar_14d_silencio', icon:'💤', titulo:'Reativar após 14 dias de silêncio', trigger:{ tipo:'sem_contacto_dias', dias:14 }, action:{ tipo:'copiar_mensagem', texto:'Olá {nome}! Há uns tempos que não falamos — espero que esteja tudo bem contigo 😊\\nSe um dia te apetecer retomar a conversa sobre o que partilhei, estou por aqui, sem qualquer pressão!' }, desc:'Leads inativos há 14 dias recebem uma mensagem de reativação natural, pronta a enviar.', tag:'Follow-up' },
 ];
 
 function getAutoRegras() { try { return JSON.parse(localStorage.getItem(getUserStorageKey('lw_automacao_regras')) || '[]'); } catch(e) { return []; } }
@@ -36630,7 +37257,7 @@ function executarAutomacoes(lead, estadoAnterior, novoEstado, ehNovoLead) {
   });
 }
 
-function executarAcaoRegra(regra, lead) {
+function executarAcaoRegra(regra, lead, ultimoContactoRef) {
   const a = regra.action;
   if (a.tipo === 'criar_lembrete') {
     const dataDisparo = new Date(); dataDisparo.setDate(dataDisparo.getDate() + (a.dias||1)); dataDisparo.setHours(9,0,0,0);
@@ -36638,22 +37265,22 @@ function executarAcaoRegra(regra, lead) {
       lembretes.push({ id:'auto_'+regra.id+'_'+lead.id+'_'+Date.now(), tipo:'followup', mensagem:substituirVariaveis(a.mensagem, lead), proximoDisparo:dataDisparo.toISOString(), repeticao:'uma', criado:new Date().toISOString(), concluido:false, disparadoCount:0, _leadId:lead.id, _auto:true, _regraId:regra.id });
       if (typeof saveLembretes === 'function') saveLembretes();
     }
-    registarAutoLogRegra(regra, '⏰', `Criou lembrete para <b>${escapeHtml(lead.nome)}</b> em ${a.dias} dia(s)`);
+    registarAutoLogRegra(regra, '⏰', `Criou lembrete para <b>${escapeHtml(lead.nome)}</b> em ${a.dias} dia(s)`, null, null, lead.id, ultimoContactoRef);
     showToast('⚙️ Automação: lembrete criado para ' + lead.nome);
   } else if (a.tipo === 'copiar_mensagem') {
     const texto = substituirVariaveis(a.texto, lead);
     copiarTextoSeguro(texto, '');
-    registarAutoLogRegra(regra, '📋', `Preparou mensagem para <b>${escapeHtml(lead.nome)}</b>: "${escapeHtml(texto.substring(0,50))}${texto.length>50?'…':''}"`, lead.id, texto);
+    registarAutoLogRegra(regra, '📋', `Preparou mensagem para <b>${escapeHtml(lead.nome)}</b>: "${escapeHtml(texto.substring(0,50))}${texto.length>50?'…':''}"`, lead.id, texto, lead.id, ultimoContactoRef);
     showToast('⚙️ Automação: mensagem copiada para ' + lead.nome + '!');
   } else if (a.tipo === 'mudar_estado') {
     setTimeout(() => { lead.estado = a.estado; if (typeof saveleads === 'function') saveleads(); if (typeof renderFunil === 'function') renderFunil(); if (typeof renderDashboard === 'function') renderDashboard(); }, 300);
-    registarAutoLogRegra(regra, '🔄', `Moveu <b>${escapeHtml(lead.nome)}</b> para "${estadoLabel(a.estado)}"`);
+    registarAutoLogRegra(regra, '🔄', `Moveu <b>${escapeHtml(lead.nome)}</b> para "${estadoLabel(a.estado)}"`, null, null, lead.id, ultimoContactoRef);
     showToast('⚙️ Automação: ' + lead.nome + ' → ' + estadoLabel(a.estado));
   } else if (a.tipo === 'notificar') {
     const texto = substituirVariaveis(a.texto, lead);
     if (typeof dispararNotificacao === 'function') dispararNotificacao('⚙️ Automação LifeWave CRM', texto, '⚙️');
     else showToast('⚙️ ' + texto);
-    registarAutoLogRegra(regra, '🔔', texto);
+    registarAutoLogRegra(regra, '🔔', texto, null, null, lead.id, ultimoContactoRef);
   } else if (a.tipo === 'iniciar_sequencia') {
     // Cria um lembrete por cada passo da sequência, já com o texto da mensagem
     // pronto a enviar (via enviarWhatsAppParaLead) quando o lembrete disparar.
@@ -36684,12 +37311,18 @@ function executarAcaoRegra(regra, lead) {
     showToast('🧵 Sequência iniciada para ' + lead.nome + ' (' + passos.length + ' mensagens agendadas)');
   }
 }
-function registarAutoLogRegra(regra, icon, texto, leadId, textoEnvio) {
+function registarAutoLogRegra(regra, icon, texto, leadId, textoEnvio, leadIdRef, ultimoContactoRef) {
   const log = getAutoLog();
   const entry = { id: 'log_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8), icon, texto, regraId: regra.id, data: new Date().toLocaleString('pt-PT') };
   // leadId + textoEnvio são opcionais: só existem quando a ação envolve uma mensagem
   // pronta a enviar a um lead concreto, para o log poder oferecer o botão "Enviar agora".
   if (leadId && textoEnvio) { entry.leadId = leadId; entry.textoEnvio = textoEnvio; }
+  // _leadId + _ultimoContactoRef são usados por verificarAutomacoesPeriodicas() para
+  // impedir que uma regra "sem_contacto_dias" dispare repetidamente todos os dias
+  // enquanto o silêncio continua — cada combinação lead+regra+ciclo de silêncio só
+  // dispara uma vez, mas pode voltar a disparar num ciclo de silêncio futuro.
+  if (leadIdRef) entry._leadId = leadIdRef;
+  if (ultimoContactoRef) entry._ultimoContactoRef = ultimoContactoRef;
   log.push(entry);
   saveAutoLog(log);
 }
@@ -36712,8 +37345,13 @@ function verificarAutomacoesPeriodicas() {
         if (lead.estado === 'cliente' || lead.estado === 'frio') return;
         const ultimo = lead.ultimoContacto ? new Date(lead.ultimoContacto).getTime() : (parseDataPtPT(lead.data)?.getTime() || agora);
         const dias = (agora - ultimo) / 86400000;
-        const jaExecutou = getAutoLog().some(l => l.regraId === r.id && l.texto.includes(lead.nome) && (agora - new Date(l.data.split(',')[0].split('/').reverse().join('-')).getTime()) < 86400000 * (r.trigger.dias||1));
-        if (dias >= (r.trigger.dias||14) && !jaExecutou && lead.estado !== r.action.estado) executarAcaoRegra(r, lead);
+        // Dispara uma única vez por lead+regra desde o ÚLTIMO contacto real —
+        // usamos o timestamp do último contacto como parte da comparação para
+        // que, se o lead voltar a ser contactado e depois voltar a ficar em
+        // silêncio, a mesma regra possa disparar de novo (novo ciclo), mas
+        // nunca repita todos os dias enquanto o silêncio continua.
+        const jaExecutou = getAutoLog().some(l => l.regraId === r.id && l._leadId === lead.id && l._ultimoContactoRef === ultimo);
+        if (dias >= (r.trigger.dias||14) && !jaExecutou) executarAcaoRegra(r, lead, ultimo);
       });
     }
     if (r.trigger.tipo === 'aniversario') {
@@ -37434,6 +38072,7 @@ function msgFunilEnviarWA() {
     });
     _msgFunilLead.ultimoContacto = new Date().toISOString();
     saveleads();
+    if (typeof renderResumoDia === 'function') renderResumoDia();
   }
 
   closeModal('modal-msg-funil');
@@ -37600,17 +38239,12 @@ function enviarWhatsAppInteligente(texto) {
 function enviarWhatsAppParaLead(leadId, texto, lembreteId) {
   const l = (typeof leads !== 'undefined') ? leads.find(x => x.id === leadId) : null;
   const textoFinal = substituirVariaveisWAI(texto, l);
-  if (l && l.tel) {
-    const telLimpo = telParaWaMe(l.tel);
-    window.location.href = `https://wa.me/${telLimpo}?text=${encodeURIComponent(textoFinal)}`;
-  } else {
-    window.location.href = `https://wa.me/?text=${encodeURIComponent(textoFinal)}`;
-  }
-
-  // Regista o contacto no lead — sem isto, "Ações de Hoje", a cadência de
-  // follow-up e as auto-tags (Estagnado/Sem resposta) continuavam a assumir
-  // que o lead não tinha sido contactado, mesmo depois de a mensagem da
-  // sequência ter sido enviada por aqui.
+  // Regista o contacto no lead ANTES de navegar — sem isto, "Ações de Hoje",
+  // a cadência de follow-up e as auto-tags (Estagnado/Sem resposta)
+  // continuavam a assumir que o lead não tinha sido contactado. Em Android
+  // Chrome, window.location.href navega a página IMEDIATAMENTE e interrompe
+  // a execução do resto da função a meio — por isso a gravação tem de
+  // acontecer sempre primeiro (mesma correção já aplicada em enviarMensagem()).
   if (l) {
     l.historico = l.historico || [];
     l.historico.push({
@@ -37620,6 +38254,15 @@ function enviarWhatsAppParaLead(leadId, texto, lembreteId) {
     });
     l.ultimoContacto = new Date().toISOString();
     if (typeof saveleads === 'function') saveleads();
+    if (typeof renderResumoDia === 'function') renderResumoDia();
+    if (typeof renderProximaAcao === 'function') renderProximaAcao();
+  }
+
+  if (l && l.tel) {
+    const telLimpo = telParaWaMe(l.tel);
+    window.location.href = `https://wa.me/${telLimpo}?text=${encodeURIComponent(textoFinal)}`;
+  } else {
+    window.location.href = `https://wa.me/?text=${encodeURIComponent(textoFinal)}`;
   }
 
   // Fecha o lembrete de origem automaticamente — a mensagem já foi enviada,
@@ -38180,39 +38823,48 @@ function parseHistoricoData(str) {
   return new Date(+m[3], +m[2] - 1, +m[1]);
 }
 
-// Classifica uma entrada de histórico numa categoria de atividade.
-// Devolve null se a entrada não for relevante para os KPIs de hábito
-// (ex: notas administrativas, fusões de duplicados, etc.)
-function classificarAtividade(h) {
-  if (!h || !h.msg) return null;
+// Classifica uma entrada de histórico em uma ou mais categorias de atividade.
+// Devolve um array de categorias (pode ter mais de uma — um lead PAM conta
+// tanto como 'contactos' como 'pam') ou [] se a entrada não for relevante
+// para os KPIs de hábito (ex: notas administrativas, fusões de duplicados).
+// `l` (o lead a que este histórico pertence) é opcional — só é necessário
+// para detetar 'pam' pela fonte do lead; sem ele, um contacto PAM ainda
+// conta corretamente como 'contactos' (comportamento anterior preservado).
+function classificarAtividade(h, l) {
+  if (!h || !h.msg) return [];
   const msg = h.msg;
-  if (h.tipo === 'sistema' && msg.includes('Lead adicionado')) return 'contactos';
-  if (h.tipo === 'mensagem' || h.tipo === 'chamada') return 'interacoes';
-  if (h.tipo === 'nota' && msg.includes('Guião IA gerado')) return 'apresentacoes';
-  if (h.tipo === 'sistema' && msg.includes('Convertido para cliente')) return 'conversoes';
-  if (h.tipo === 'estado' && msg.includes('"Cliente"')) return 'conversoes';
-  return null;
+  if (h.tipo === 'sistema' && msg.includes('Lead adicionado')) {
+    const fontesPam = ['Hashtag', 'Grupo Facebook', 'Perfil/Comentário'];
+    const cats = ['contactos'];
+    if (l && fontesPam.includes(l.fonte)) cats.push('pam');
+    return cats;
+  }
+  if (h.tipo === 'mensagem' || h.tipo === 'chamada') return ['interacoes'];
+  if (h.tipo === 'nota' && msg.includes('Guião IA gerado')) return ['apresentacoes'];
+  if (h.tipo === 'sistema' && msg.includes('Convertido para cliente')) return ['conversoes'];
+  if (h.tipo === 'estado' && msg.includes('"Cliente"')) return ['conversoes'];
+  return [];
 }
 
 // Agrega os KPIs de atividade dos últimos `numDias` dias (hoje incluído).
 function calcularKPIsAtividade(numDias) {
   const hoje = new Date();
   hoje.setHours(0,0,0,0);
-  const porDia = {}; // 'YYYY-MM-DD' -> { contactos, interacoes, apresentacoes, conversoes }
+  const porDia = {}; // 'YYYY-MM-DD' -> { contactos, interacoes, apresentacoes, conversoes, pam }
   for (let i = numDias - 1; i >= 0; i--) {
     const d = new Date(hoje.getTime() - i * 86400000);
-    porDia[d.toISOString().slice(0,10)] = { contactos:0, interacoes:0, apresentacoes:0, conversoes:0, data:d };
+    porDia[d.toISOString().slice(0,10)] = { contactos:0, interacoes:0, apresentacoes:0, conversoes:0, pam:0, data:d };
   }
   const limiteInicio = new Date(hoje.getTime() - (numDias - 1) * 86400000);
 
   (typeof leads !== 'undefined' ? leads : []).forEach(l => {
     (l.historico || []).forEach(h => {
-      const cat = classificarAtividade(h);
-      if (!cat) return;
+      const cats = classificarAtividade(h, l);
+      if (!cats || !cats.length) return;
       const dt = parseHistoricoData(h.data);
       if (!dt || dt < limiteInicio) return;
       const key = dt.toISOString().slice(0,10);
-      if (porDia[key]) porDia[key][cat]++;
+      if (porDia[key]) cats.forEach(cat => { porDia[key][cat]++; });
     });
   });
 
@@ -38220,11 +38872,13 @@ function calcularKPIsAtividade(numDias) {
   const totais = dias.reduce((acc,d) => {
     acc.contactos += d.contactos; acc.interacoes += d.interacoes;
     acc.apresentacoes += d.apresentacoes; acc.conversoes += d.conversoes;
+    acc.pam += d.pam;
     return acc;
-  }, { contactos:0, interacoes:0, apresentacoes:0, conversoes:0 });
+  }, { contactos:0, interacoes:0, apresentacoes:0, conversoes:0, pam:0 });
 
   return { dias, totais };
 }
+
 
 function renderAtividadeHabitos() {
   const el = document.getElementById('dash-atividade-widget');
@@ -38242,9 +38896,12 @@ function renderAtividadeHabitos() {
 
   el.innerHTML = `
     <div class="card" style="padding:14px 12px;cursor:pointer;" onclick="goTo('acoes')" title="Hábitos de prospeção dos últimos 7 dias">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;padding:0 4px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;padding:0 4px;flex-wrap:wrap;gap:4px;">
         <div style="font-size:12px;font-weight:700;color:var(--text2);">📈 Esta Semana — Atividade</div>
-        ${totais.contactos > 0 ? `<div style="font-size:10px;color:var(--text3);">Conversão: <span style="color:var(--accent);font-weight:700;">${taxaConversao}%</span></div>` : ''}
+        <div style="display:flex;align-items:center;gap:8px;">
+          ${totais.pam > 0 ? `<div style="font-size:10px;color:var(--text3);">🔎 PAM: <span style="color:#ff9f43;font-weight:700;">${totais.pam}</span></div>` : ''}
+          ${totais.contactos > 0 ? `<div style="font-size:10px;color:var(--text3);">Conversão: <span style="color:var(--accent);font-weight:700;">${taxaConversao}%</span></div>` : ''}
+        </div>
       </div>
       <div style="display:flex;align-items:stretch;">
         ${mkStat('👋', totais.contactos, 'Novos contactos', 'var(--accent2)')}
@@ -38268,6 +38925,7 @@ const CONQUISTAS_DEF = [
   { id:'dez_clientes',     icon:'👑', nome:'Campeão de Vendas',     desc:'10 clientes conquistados',        check:(l)=>l.filter(x=>x.estado==='cliente').length>=10 },
   { id:'negociacao_ativa', icon:'🎯', nome:'Negociador',            desc:'Lead em negociação',              check:(l)=>l.filter(x=>x.estado==='negociacao').length>=1 },
   { id:'followup_10',      icon:'📞', nome:'Mestre do Follow-up',   desc:'10+ interações registadas',       check:(l)=>l.reduce((s,x)=>s+(x.historico?x.historico.length:0),0)>=10 },
+  { id:'pam_10',           icon:'🔎', nome:'Caçador de Contactos',  desc:'10 contactos via PAM',            check:(l)=>l.filter(x=>['Hashtag','Grupo Facebook','Perfil/Comentário'].includes(x.fonte)).length>=10 },
   { id:'streak_3',         icon:'🔥', nome:'Em Chama',              desc:'3 dias seguidos no CRM',          check:(l,m,s)=>s>=3 },
   { id:'streak_7',         icon:'⚡', nome:'Imparável',             desc:'7 dias seguidos no CRM',          check:(l,m,s)=>s>=7 },
   { id:'streak_30',        icon:'🌟', nome:'Consistência Total',    desc:'30 dias seguidos',                check:(l,m,s)=>s>=30 },
@@ -39238,7 +39896,7 @@ async function acAnalisar() {
       try {
         var promptTextComHistorico = promptText.replace(
           "Respond ONLY in valid JSON",
-          "LEAD HISTORY RULE (critical): below is the prior interaction history already recorded for this prospect in the CRM, most recent first. Use it as background context to inform \"sentimento\", \"fase\", \"objecoes\", \"pontos_positivos\", \"erros_cometidos\", \"probabilidade_conversao\", \"proximo_passo\" and especially \"proxima_mensagem\" — do not repeat an objection they already resolved, reference earlier commitments naturally if relevant, and trust the CURRENT conversation over the history if they contradict each other. If the history includes a line starting with \"ÚLTIMA SUGESTÃO DE MENSAGEM JÁ FEITA A ESTE LEAD\" marked as NÃO RESULTOU, do not repeat a similar angle — try a genuinely different approach this time. If marked RESULTOU, build on what worked instead of starting over.\n\nHISTÓRICO DO LEAD (mais recente primeiro):\n" + _acHistoricoResumoFinal + "\n\nRespond ONLY in valid JSON"
+          "LEAD HISTORY RULE (critical): below is the prior interaction history already recorded for this prospect in the CRM, most recent first. Use it as background context to inform \"sentimento\", \"fase\", \"objecoes\", \"pontos_positivos\", \"erros_cometidos\", \"probabilidade_conversao\", \"proximo_passo\" and especially \"proxima_mensagem\" — do not repeat an objection they already resolved, reference earlier commitments naturally if relevant, and trust the CURRENT conversation over the history if they contradict each other. If the history includes a line starting with \"ÚLTIMA SUGESTÃO DE MENSAGEM JÁ FEITA A ESTE LEAD\" marked as NÃO RESULTOU, do not repeat a similar angle — actively try a genuinely different approach this time, and mention briefly in \"dica_extra\" that the previous approach did not land so the distributor understands why the strategy changed. If marked RESULTOU, build on what worked instead of starting over. If marked pendente, treat it the same as no prior suggestion.\n\nHISTÓRICO DO LEAD (mais recente primeiro):\n" + _acHistoricoResumoFinal + "\n\nRespond ONLY in valid JSON"
         );
         var rawComHistorico = temMedia
           ? await callGemini(
@@ -39986,6 +40644,7 @@ function acSetTemp(el, val) {
 // Sem alterar código existente
 
 const HAB_DEF = [
+  { id:'pam',       icon:'🔎', label:'Fiz o PAM (Procurar · Adicionar · Mensagem)',   cor:'#ff9f43'        },
   { id:'contacto',  icon:'📞', label:'Contactei pelo menos 1 pessoa nova',          cor:'var(--accent)'  },
   { id:'post',      icon:'✨', label:'Publiquei ou preparei conteúdo para as redes', cor:'#b47aff'        },
   { id:'followup',  icon:'🔄', label:'Fiz follow-up a um lead existente',            cor:'var(--accent2)' },
@@ -40028,8 +40687,10 @@ function habLoad() {
 
 // Verifica, a partir dos dados reais da app, quais hábitos do dia já foram
 // cumpridos hoje — sem exigir que o utilizador os assinale à mão.
-// 'aprendi' e 'gratidao' ficam de fora: não há um dado equivalente na app
-// para os confirmar automaticamente, por isso continuam manuais.
+// 'pam', 'aprendi' e 'gratidao' ficam de fora: 'pam' é sobre o processo (fazer
+// o bloco de procura/adição), não só o resultado — que já é capturado por
+// 'contacto' — e os outros dois não têm dado equivalente na app para os
+// confirmar automaticamente. Os três continuam manuais.
 function habDetetarFeitosHoje() {
   var hojeStr = habHoje(); // "YYYY-MM-DD"
   var resultado = { contacto:false, followup:false, post:false };
@@ -40110,7 +40771,7 @@ function habRender() {
     listaEl.innerHTML = HAB_DEF.map(function(h) {
       var isFeito = !!feitos[h.id];
       var foiAuto = isFeito && !!detetadosAuto[h.id];
-      return '<div onclick="habToggle(\'' + h.id + '\')" style="display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:10px;cursor:pointer;border:1px solid ' + (isFeito ? h.cor.replace(')',',0.3)').replace('var(--','rgba(0,212,170,') : 'var(--border)') + ';background:' + (isFeito ? h.cor.replace('var(--accent)','rgba(0,212,170,0.08)').replace('var(--gold)','rgba(245,200,66,0.08)').replace('var(--accent2)','rgba(0,132,255,0.08)').replace('#b47aff','rgba(180,122,255,0.08)').replace('#a3e635','rgba(163,230,53,0.08)') : 'transparent') + ';transition:all .2s;">'
+      return '<div onclick="habToggle(\'' + h.id + '\')" style="display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:10px;cursor:pointer;border:1px solid ' + (isFeito ? h.cor.replace(')',',0.3)').replace('var(--','rgba(0,212,170,') : 'var(--border)') + ';background:' + (isFeito ? h.cor.replace('var(--accent)','rgba(0,212,170,0.08)').replace('var(--gold)','rgba(245,200,66,0.08)').replace('var(--accent2)','rgba(0,132,255,0.08)').replace('#b47aff','rgba(180,122,255,0.08)').replace('#a3e635','rgba(163,230,53,0.08)').replace('#ff9f43','rgba(255,159,67,0.08)') : 'transparent') + ';transition:all .2s;">'
         + '<div style="width:28px;height:28px;border-radius:50%;border:2px solid ' + (isFeito ? h.cor : 'var(--border)') + ';display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;transition:all .2s;">'
         + (isFeito ? '✅' : h.icon) + '</div>'
         + '<div style="flex:1;">'
@@ -41349,8 +42010,16 @@ function _setBadge(id, n) {
   window.salvarMembro = function() {
     const eraNovoMembro = !window.editingMembroId;
     const nomeAntes = eraNovoMembro ? (document.getElementById('mb-nome')?.value.trim() || '') : '';
+    // Conta antes de chamar o original — se o membro não for mesmo criado
+    // (nome vazio, ou o utilizador cancela a confirmação de "já existe um
+    // membro com este nome"), salvarMembro() sai cedo sem chamar
+    // membros.unshift(), e o comprimento do array não muda. Sem esta
+    // verificação, o onboarding disparava na mesma para um membro que
+    // nunca chegou a ser guardado.
+    const totalAntes = (typeof membros !== 'undefined') ? membros.length : -1;
     _orig.apply(this, arguments);
     if (!eraNovoMembro || !nomeAntes) return;
+    if (typeof membros !== 'undefined' && membros.length <= totalAntes) return;
     try {
       // 2a. Diário
       _bridgeDiario('🚀', 'Novo membro na equipa: ' + nomeAntes + ' — boas-vindas!');
@@ -41430,28 +42099,31 @@ function _setBadge(id, n) {
 })();
 
 // ═══════════════════════════════════════════════════════════════
-// GATILHO 5: Recomendador → abre Catálogo no produto certo
+// GATILHO 5: Recomendador → botão "Ver no Catálogo" no resultado
 // Quando: utilizador obtém recomendação de patch
-// Dispara: botão "Ver no Catálogo" injectado no resultado
+// Dispara: botão injectado no resultado, que abre o Catálogo
+//
+// Nota: o botão hoje abre o Catálogo geral, não filtrado no produto
+// recomendado — renderCatalogo()/goTo() não têm hoje forma de receber
+// qual produto pré-selecionar. Se for útil, é uma extensão futura.
 // ═══════════════════════════════════════════════════════════════
 (function() {
-  const _orig = window.recomInit || window.recomRender;
-  // Hook via MutationObserver — observa o resultado do recomendador
+  // Hook via MutationObserver — #recom-resultado já existe estaticamente no
+  // HTML (só alterna style.display), por isso não é ele que aparece em
+  // addedNodes; o innerHTML que popula o resultado corre dentro do seu
+  // filho #recom-principal. Por isso, em vez de procurar o alvo a partir do
+  // nó adicionado (que nunca o encontraria, por ser ancestral e não
+  // descendente), verifica-se diretamente por ID a cada lote de mutações.
   const observer = new MutationObserver(function(mutations) {
-    mutations.forEach(function(m) {
-      m.addedNodes.forEach(function(node) {
-        if (!node.querySelector) return;
-        const resultCard = node.querySelector ? node.querySelector('[id^="recom-resultado"]') || (node.id && node.id.startsWith('recom-resultado') ? node : null) : null;
-        if (!resultCard) return;
-        if (resultCard.querySelector('.bridge-catalogo-btn')) return;
-        const btn = document.createElement('button');
-        btn.className = 'btn btn-secondary btn-sm bridge-catalogo-btn';
-        btn.style.marginTop = '10px';
-        btn.innerHTML = '📦 Ver no Catálogo';
-        btn.onclick = function() { closeModal && closeModal('modal-recom-resultado'); goTo('catalogo'); };
-        resultCard.appendChild(btn);
-      });
-    });
+    const resultCard = document.getElementById('recom-resultado');
+    if (!resultCard || resultCard.style.display === 'none') return;
+    if (resultCard.querySelector('.bridge-catalogo-btn')) return;
+    const btn = document.createElement('button');
+    btn.className = 'btn btn-secondary btn-sm bridge-catalogo-btn';
+    btn.style.marginTop = '10px';
+    btn.innerHTML = '📦 Ver no Catálogo';
+    btn.onclick = function() { goTo('catalogo'); };
+    resultCard.appendChild(btn);
   });
   const recomPage = document.getElementById('page-recomendador');
   if (recomPage) observer.observe(recomPage, { childList: true, subtree: true });
@@ -41466,7 +42138,7 @@ function _setBadge(id, n) {
     mutations.forEach(function(m) {
       m.addedNodes.forEach(function(node) {
         if (!node.querySelector) return;
-        const resultEl = document.getElementById('ac-resultado-wrap');
+        const resultEl = document.getElementById('ac-resultado');
         if (!resultEl || !resultEl.textContent.trim()) return;
         if (resultEl.querySelector('.bridge-coach-btn')) return;
         const btn = document.createElement('button');
