@@ -10154,7 +10154,7 @@ function ditadoDisponivel() {
   return !!(window.SpeechRecognition || window.webkitSpeechRecognition);
 }
 
-let _ditadoAtivo = null; // { recognition, textareaId } quando há um ditado em curso
+let _ditadoAtivo = null; // { recognition, textareaId, paradoPeloUtilizador } quando há um ditado em curso
 
 function toggleDitadoVoz(textareaId, btnEl) {
   if (!ditadoDisponivel()) {
@@ -10172,67 +10172,95 @@ function toggleDitadoVoz(textareaId, btnEl) {
     return;
   }
   if (_ditadoAtivo && _ditadoAtivo.textareaId === textareaId) {
+    _ditadoAtivo.paradoPeloUtilizador = true;
     _ditadoAtivo.recognition.stop(); // toggle: já está a ditar aqui, para
     return;
   }
-  if (_ditadoAtivo) _ditadoAtivo.recognition.stop(); // só um ditado ativo de cada vez
+  if (_ditadoAtivo) { _ditadoAtivo.paradoPeloUtilizador = true; _ditadoAtivo.recognition.stop(); } // só um ditado ativo de cada vez
 
   const textarea = document.getElementById(textareaId);
   if (!textarea) return;
   const valorBase = textarea.value ? textarea.value.replace(/\s+$/, '') + ' ' : '';
 
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-  const recognition = new SR();
-  recognition.lang = 'pt-PT';
-  recognition.interimResults = true;
-  recognition.continuous = true;
 
   btnEl.classList.add('ditado-ativo');
   btnEl.textContent = '⏹️';
   btnEl.title = 'Parar ditado';
 
-  // Texto final "selado" (nunca reconstruído a partir de ev.results — só
-  // vai crescendo). Corrige a duplicação/fragmentação em loop que acontecia
-  // porque o Chrome/Android por vezes reinicia o motor de reconhecimento a
-  // meio do ditado contínuo, fazendo o índice de ev.results recomeçar do 0
-  // — percorrer sempre "todos os resultados desde o início" repetia
-  // segmentos já tratados como finais junto com os novos.
+  // Texto final "selado", acumulado FORA do array ev.results desta sessão.
+  // No Chrome/Android, em modo contínuo, o array ev.results por vezes deixa
+  // de se comportar como cumulativo e estável: o motor reavalia e reemite
+  // frases já ouvidas como novos resultados "finais", causando repetição e
+  // fragmentação (ex: "Rui vaio Rui vaio Rui vai mudaro..."). A forma
+  // fiável de evitar isto é nunca deixar uma sessão de reconhecimento viver
+  // muito tempo — cada vez que chega um resultado final, fechamos essa
+  // sessão e abrimos uma nova (array limpo, resultIndex 0 outra vez), sem
+  // o utilizador notar (o botão continua "a ditar" o tempo todo).
+  const estadoDitado = { recognition: null, textareaId, paradoPeloUtilizador: false };
   let textoFinalAcumulado = '';
-  let ultimoIndiceFinalVisto = -1;
 
-  recognition.onresult = (ev) => {
-    let textoInterim = '';
-    for (let i = 0; i < ev.results.length; i++) {
-      if (ev.results[i].isFinal) {
-        if (i > ultimoIndiceFinalVisto) {
-          textoFinalAcumulado += ev.results[i][0].transcript;
-          ultimoIndiceFinalVisto = i;
-        }
-      } else {
-        textoInterim += ev.results[i][0].transcript;
+  function novaSessao() {
+    const recognition = new SR();
+    recognition.lang = 'pt-PT';
+    recognition.interimResults = true;
+    recognition.continuous = true;
+
+    recognition.onresult = (ev) => {
+      let textoInterim = '';
+      let novoFinal = '';
+      for (let i = ev.resultIndex; i < ev.results.length; i++) {
+        const resultado = ev.results[i];
+        if (resultado.isFinal) novoFinal += resultado[0].transcript;
+        else textoInterim += resultado[0].transcript;
       }
-    }
-    textarea.value = valorBase + textoFinalAcumulado + textoInterim;
-  };
-  recognition.onerror = (ev) => {
-    if (ev.error === 'no-speech' || ev.error === 'aborted') return; // não são erros reais
-    if (ev.error === 'not-allowed') {
-      showToast('⚠️ Microfone bloqueado. Vai a Definições do Chrome → Definições do site → Microfone, e permite o acesso para esta app.');
-      return;
-    }
-    showToast('⚠️ Erro no ditado: ' + ev.error);
-  };
-  recognition.onend = () => {
+      if (novoFinal.trim()) {
+        textoFinalAcumulado += (textoFinalAcumulado ? ' ' : '') + novoFinal.trim();
+      }
+      textarea.value = valorBase + textoFinalAcumulado + (textoFinalAcumulado && textoInterim ? ' ' : '') + textoInterim;
+    };
+    recognition.onerror = (ev) => {
+      if (ev.error === 'no-speech' || ev.error === 'aborted') return; // não são erros reais
+      if (ev.error === 'not-allowed') {
+        estadoDitado.paradoPeloUtilizador = true;
+        showToast('⚠️ Microfone bloqueado. Vai a Definições do Chrome → Definições do site → Microfone, e permite o acesso para esta app.');
+        return;
+      }
+      showToast('⚠️ Erro no ditado: ' + ev.error);
+    };
+    recognition.onend = () => {
+      if (estadoDitado.paradoPeloUtilizador) {
+        btnEl.classList.remove('ditado-ativo');
+        btnEl.textContent = '🎤';
+        btnEl.title = 'Ditar por voz';
+        if (_ditadoAtivo === estadoDitado) _ditadoAtivo = null;
+        return;
+      }
+      // O motor terminou sozinho (ex: pausa detetada, ou limite interno de
+      // uma sessão) mas o utilizador não pediu para parar — reabre uma
+      // sessão nova e limpa, mantendo o botão ativo. O texto já dito fica
+      // em textoFinalAcumulado, por isso nada se perde nem duplica.
+      try {
+        novaSessao();
+      } catch (e) {
+        btnEl.classList.remove('ditado-ativo');
+        btnEl.textContent = '🎤';
+        btnEl.title = 'Ditar por voz';
+        if (_ditadoAtivo === estadoDitado) _ditadoAtivo = null;
+      }
+    };
+
+    estadoDitado.recognition = recognition;
+    recognition.start();
+  }
+
+  try {
+    novaSessao();
+    _ditadoAtivo = estadoDitado;
+  } catch (e) {
     btnEl.classList.remove('ditado-ativo');
     btnEl.textContent = '🎤';
     btnEl.title = 'Ditar por voz';
-    if (_ditadoAtivo && _ditadoAtivo.textareaId === textareaId) _ditadoAtivo = null;
-  };
-
-  try {
-    recognition.start();
-    _ditadoAtivo = { recognition, textareaId };
-  } catch (e) {
     showToast('⚠️ Não foi possível iniciar o ditado.');
   }
 }
@@ -10242,6 +10270,7 @@ function toggleDitadoVoz(textareaId, btnEl) {
 // de limpo) e só depois esvazia o texto, pronto para ditar de novo do zero.
 function limparDitadoVoz(textareaId) {
   if (_ditadoAtivo && _ditadoAtivo.textareaId === textareaId) {
+    _ditadoAtivo.paradoPeloUtilizador = true;
     _ditadoAtivo.recognition.stop();
   }
   const textarea = document.getElementById(textareaId);
