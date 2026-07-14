@@ -10191,13 +10191,28 @@ function toggleDitadoVoz(textareaId, btnEl) {
   btnEl.textContent = '⏹️';
   btnEl.title = 'Parar ditado';
 
+  // Texto final "selado" (nunca reconstruído a partir de ev.results — só
+  // vai crescendo). Corrige a duplicação/fragmentação em loop que acontecia
+  // porque o Chrome/Android por vezes reinicia o motor de reconhecimento a
+  // meio do ditado contínuo, fazendo o índice de ev.results recomeçar do 0
+  // — percorrer sempre "todos os resultados desde o início" repetia
+  // segmentos já tratados como finais junto com os novos.
+  let textoFinalAcumulado = '';
+  let ultimoIndiceFinalVisto = -1;
+
   recognition.onresult = (ev) => {
-    let textoFinal = '', textoInterim = '';
+    let textoInterim = '';
     for (let i = 0; i < ev.results.length; i++) {
-      if (ev.results[i].isFinal) textoFinal += ev.results[i][0].transcript;
-      else textoInterim += ev.results[i][0].transcript;
+      if (ev.results[i].isFinal) {
+        if (i > ultimoIndiceFinalVisto) {
+          textoFinalAcumulado += ev.results[i][0].transcript;
+          ultimoIndiceFinalVisto = i;
+        }
+      } else {
+        textoInterim += ev.results[i][0].transcript;
+      }
     }
-    textarea.value = valorBase + textoFinal + textoInterim;
+    textarea.value = valorBase + textoFinalAcumulado + textoInterim;
   };
   recognition.onerror = (ev) => {
     if (ev.error === 'no-speech' || ev.error === 'aborted') return; // não são erros reais
@@ -10220,6 +10235,19 @@ function toggleDitadoVoz(textareaId, btnEl) {
   } catch (e) {
     showToast('⚠️ Não foi possível iniciar o ditado.');
   }
+}
+
+// Limpa o campo de ditado por completo. Se houver um ditado em curso nessa
+// textarea, para-o primeiro (para não continuar a escrever por cima depois
+// de limpo) e só depois esvazia o texto, pronto para ditar de novo do zero.
+function limparDitadoVoz(textareaId) {
+  if (_ditadoAtivo && _ditadoAtivo.textareaId === textareaId) {
+    _ditadoAtivo.recognition.stop();
+  }
+  const textarea = document.getElementById(textareaId);
+  if (!textarea) return;
+  textarea.value = '';
+  textarea.focus();
 }
 
 function adicionarNotaTimeline(leadId){
@@ -10565,6 +10593,7 @@ function verLead(id) {
       <textarea id="nota-rapida-input" style="width:100%;background:var(--surface3);border:1px solid var(--border);border-radius:10px;color:var(--text);font-size:13px;padding:10px 12px;resize:vertical;min-height:72px;font-family:inherit;outline:none;box-sizing:border-box;" placeholder="Contexto rápido: ex. Tem dores nas costas, ficou de pensar até sexta...">${l.notas || ''}</textarea>
       <div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px;">
         <button type="button" class="btn-ditado" onclick="toggleDitadoVoz('nota-rapida-input', this)" title="Ditar por voz">🎤</button>
+        <button type="button" class="btn-ditado" onclick="limparDitadoVoz('nota-rapida-input')" title="Limpar texto">🗑️</button>
         <button class="btn btn-primary btn-sm" onclick="guardarNotaRapida('${id}')" style="font-size:12px;">💾 Guardar nota</button>
       </div>
     </div>
@@ -10584,6 +10613,7 @@ function verLead(id) {
       <div class="tl-input-row">
         <textarea class="tl-input" id="tl-nova-nota" placeholder="Resumo: ex. Enviei WA — ficou de pensar..."></textarea>
         <button type="button" class="btn-ditado" onclick="toggleDitadoVoz('tl-nova-nota', this)" title="Ditar por voz">🎤</button>
+        <button type="button" class="btn-ditado" onclick="limparDitadoVoz('tl-nova-nota')" title="Limpar texto">🗑️</button>
         <button class="btn btn-primary btn-sm btn-tl-add" onclick="adicionarNotaTimeline('${id}')">＋ Guardar</button>
       </div>
       <div style="margin-top:8px;">
