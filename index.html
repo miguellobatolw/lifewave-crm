@@ -10189,17 +10189,15 @@ function toggleDitadoVoz(textareaId, btnEl) {
   btnEl.title = 'Parar ditado';
 
   // Texto final "selado", acumulado ENTRE sessões de reconhecimento.
-  // IMPORTANTE: usamos continuous=false (não true). No Android, o modo
-  // continuous=true faz o motor emitir vários resultados "isFinal:true"
-  // parciais e mal formados ao longo da fala — cada pequena pausa gera um
-  // "final" novo, muitas vezes uma transcrição ainda a meio de ser
-  // corrigida (ex: "Rui vaio", depois "Rui vai", depois "Rui vai mudar"),
-  // e um final não substitui o anterior, por isso concatenar todos dá
-  // texto repetido e fragmentado. Com continuous=false, cada sessão faz UM
-  // reconhecimento completo e só devolve o resultado quando está pronto —
-  // fiável e sem essa fragmentação. Para simular ditado contínuo,
-  // reiniciamos uma sessão nova automaticamente sempre que uma termina,
-  // até o utilizador carregar em parar.
+  // IMPORTANTE: dentro de UMA sessão, o Android pode emitir vários
+  // resultados marcados isFinal:true para a MESMA frase falada — cada um
+  // uma correção/continuação do anterior (ex: "Rui", depois "Rui vai",
+  // depois "Rui vai mudar de instalações"). Não são segmentos diferentes
+  // a somar — é o motor a ir refinando a mesma frase. Por isso, dentro de
+  // uma sessão usamos sempre APENAS o ÚLTIMO resultado final recebido
+  // (mais completo), nunca a soma de todos. Só quando a sessão termina
+  // (onend) é que o texto final dessa sessão passa a fazer parte do texto
+  // acumulado de forma definitiva, e uma sessão nova começa do zero.
   const estadoDitado = { recognition: null, textareaId, paradoPeloUtilizador: false };
   let textoFinalAcumulado = '';
 
@@ -10209,18 +10207,19 @@ function toggleDitadoVoz(textareaId, btnEl) {
     recognition.interimResults = true;
     recognition.continuous = false;
 
+    let ultimoFinalDaSessao = '';
+
     recognition.onresult = (ev) => {
       let textoInterim = '';
-      let novoFinal = '';
+      let ultimoFinal = '';
       for (let i = 0; i < ev.results.length; i++) {
         const resultado = ev.results[i];
-        if (resultado.isFinal) novoFinal += resultado[0].transcript;
+        if (resultado.isFinal) ultimoFinal = resultado[0].transcript; // substitui, não soma
         else textoInterim += resultado[0].transcript;
       }
-      if (novoFinal.trim()) {
-        textoFinalAcumulado += (textoFinalAcumulado ? ' ' : '') + novoFinal.trim();
-      }
-      textarea.value = valorBase + textoFinalAcumulado + (textoFinalAcumulado && textoInterim ? ' ' : '') + textoInterim;
+      if (ultimoFinal.trim()) ultimoFinalDaSessao = ultimoFinal.trim();
+      const previaSessao = ultimoFinalDaSessao || textoInterim;
+      textarea.value = valorBase + textoFinalAcumulado + (textoFinalAcumulado && previaSessao ? ' ' : '') + previaSessao;
     };
     recognition.onerror = (ev) => {
       if (ev.error === 'no-speech' || ev.error === 'aborted') return; // não são erros reais
@@ -10232,6 +10231,10 @@ function toggleDitadoVoz(textareaId, btnEl) {
       showToast('⚠️ Erro no ditado: ' + ev.error);
     };
     recognition.onend = () => {
+      // Sessão terminou de vez: o que ela ouviu passa a ser definitivo.
+      if (ultimoFinalDaSessao) {
+        textoFinalAcumulado += (textoFinalAcumulado ? ' ' : '') + ultimoFinalDaSessao;
+      }
       if (estadoDitado.paradoPeloUtilizador) {
         btnEl.classList.remove('ditado-ativo');
         btnEl.textContent = '🎤';
