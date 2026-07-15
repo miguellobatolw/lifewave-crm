@@ -5,6 +5,46 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, interactive-widget=resizes-content">
 <title>LifeWave CRM v82 — Gestão de Leads & Posts</title>
 
+<!-- ===== APANHADOR DE ERROS TEMPORÁRIO (remover depois de resolver o bug do restauro) ===== -->
+<script>
+(function() {
+  const erros = [];
+  function mostrarPainel() {
+    let box = document.getElementById('erro-catcher-box');
+    if (!box) {
+      box = document.createElement('div');
+      box.id = 'erro-catcher-box';
+      box.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:9999999;background:#2a0808;border-bottom:3px solid #ff4444;padding:10px 12px;font-family:monospace;font-size:11px;color:#ffb3b3;max-height:60vh;overflow:auto;white-space:pre-wrap;';
+      const fechar = document.createElement('button');
+      fechar.textContent = '✕ Fechar';
+      fechar.style.cssText = 'margin-top:8px;background:#ff4444;color:#000;border:none;border-radius:6px;padding:6px 12px;font-weight:700;font-family:sans-serif;font-size:11px;';
+      fechar.onclick = () => box.remove();
+      box.appendChild(document.createElement('div')).id = 'erro-catcher-lista';
+      box.appendChild(fechar);
+      (document.body || document.documentElement).appendChild(box);
+    }
+    const lista = document.getElementById('erro-catcher-lista');
+    lista.textContent = '🚨 ERROS JS APANHADOS (' + erros.length + ')\n\n' + erros.join('\n\n---\n\n');
+  }
+  window.addEventListener('error', function(ev) {
+    const msg = '❌ ERRO: ' + ev.message +
+      '\nFicheiro: ' + ev.filename +
+      '\nLinha: ' + ev.lineno + ', Coluna: ' + ev.colno +
+      (ev.error && ev.error.stack ? '\nStack:\n' + ev.error.stack : '');
+    erros.push(msg);
+    try { mostrarPainel(); } catch(e) {}
+  });
+  window.addEventListener('unhandledrejection', function(ev) {
+    const reason = ev.reason;
+    const msg = '❌ PROMISE REJEITADA: ' + (reason && reason.message ? reason.message : String(reason)) +
+      (reason && reason.stack ? '\nStack:\n' + reason.stack : '');
+    erros.push(msg);
+    try { mostrarPainel(); } catch(e) {}
+  });
+})();
+</script>
+<!-- ===== FIM APANHADOR DE ERROS TEMPORÁRIO ===== -->
+
 <!-- ===== PWA: manifest, ícones e meta tags ===== -->
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#0a0f1e">
