@@ -11228,6 +11228,13 @@ Queres continuar?`)) {
       });
 
       localStorage.setItem(getBackupLastKey(), new Date().toISOString());
+      // Marca que acabámos de restaurar um backup: o próximo arranque vai
+      // saltar o auto-sync do Google Drive (driveLoadOnLogin), porque o
+      // token de acesso (só vive em memória) foi sempre perdido neste
+      // reload — restauro ou não — e pedir um novo token silenciosamente
+      // logo a seguir a um restauro pode interferir com o arranque da
+      // sessão. Sincronização manual continua disponível normalmente.
+      sessionStorage.setItem('lw_skip_drive_autosync_once', '1');
       showToast(`✅ Backup restaurado! (${restauradas} itens). A recarregar...`);
       setTimeout(() => window.location.reload(), 1200);
     } catch(err) {
@@ -20017,6 +20024,14 @@ function drivesyncFalhouAvisoAdiar() {
 // locais com os do Drive sem apagar nada, em vez de substituir às cegas.
 async function driveLoadOnLogin() {
   if (!currentUser || currentUser.method !== 'google') return;
+  // Se este arranque é o reload logo a seguir a um restauro de backup,
+  // salta o auto-sync desta vez só (evita pedir um novo token do Google
+  // silenciosamente enquanto a sessão ainda está a estabilizar). Consome
+  // a flag para que os próximos arranques normais voltem a sincronizar.
+  if (sessionStorage.getItem('lw_skip_drive_autosync_once') === '1') {
+    sessionStorage.removeItem('lw_skip_drive_autosync_once');
+    return;
+  }
   updateDriveButton();
   await driveSync('auto-login');
 }
