@@ -20808,6 +20808,52 @@ function entrarModoLocal() {
 }
 
 // ---- Boot: check if already logged in ----
+(function mostrarDiagnosticoTemporario() {
+  // ===== DIAGNÓSTICO TEMPORÁRIO — REMOVER DEPOIS DE RESOLVER O BUG =====
+  // Mostra, logo no arranque, o estado exato do localStorage relevante
+  // para o login, antes de qualquer lógica de decisão correr.
+  try {
+    const raw = localStorage.getItem(AUTH_KEY);
+    const rawLocal = localStorage.getItem('lw_auth_user_local');
+    const modoPublico = (typeof agDetectarModoPublico === 'function') ? agDetectarModoPublico() : 'fn indisponível';
+    let parseOk = null, parseErro = null, temEmail = null;
+    if (raw) {
+      try {
+        const u = JSON.parse(raw);
+        parseOk = true;
+        temEmail = !!(u && u.email);
+      } catch(e) {
+        parseOk = false;
+        parseErro = e.message;
+      }
+    }
+    const div = document.createElement('div');
+    div.id = 'diag-temp-box';
+    div.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:999999;background:#101a10;border-bottom:3px solid #00d4aa;padding:10px 12px;font-family:monospace;font-size:11px;color:#9fffe0;max-height:45vh;overflow:auto;white-space:pre-wrap;';
+    div.textContent =
+      '🔍 DIAGNÓSTICO ARRANQUE (remover depois)\n' +
+      'agDetectarModoPublico(): ' + JSON.stringify(modoPublico) + '\n' +
+      'lw_auth_user existe? ' + (raw !== null) + '\n' +
+      'lw_auth_user comprimento: ' + (raw ? raw.length : 0) + '\n' +
+      'lw_auth_user parse OK? ' + parseOk + (parseErro ? (' erro: ' + parseErro) : '') + '\n' +
+      'lw_auth_user tem email? ' + temEmail + '\n' +
+      'lw_auth_user conteúdo (raw): ' + (raw || '(vazio)') + '\n' +
+      'lw_auth_user_local existe? ' + (rawLocal !== null) + '\n' +
+      'localStorage total de chaves: ' + localStorage.length + '\n' +
+      'URL atual: ' + location.href;
+    const fechar = document.createElement('button');
+    fechar.textContent = '✕ Fechar';
+    fechar.style.cssText = 'margin-top:8px;background:#00d4aa;color:#000;border:none;border-radius:6px;padding:6px 12px;font-weight:700;font-family:sans-serif;font-size:11px;';
+    fechar.onclick = () => div.remove();
+    div.appendChild(document.createElement('br'));
+    div.appendChild(fechar);
+    document.body ? document.body.appendChild(div) : document.addEventListener('DOMContentLoaded', () => document.body.appendChild(div));
+  } catch(e) {
+    console.error('Erro no diagnóstico:', e);
+  }
+  // ===== FIM DIAGNÓSTICO TEMPORÁRIO =====
+})();
+
 (function initAuth() {
   // Se a URL pedir a página pública de agendamento, mostra só isso e ignora
   // login/auth por completo (não expõe a CRM nem exige conta).
