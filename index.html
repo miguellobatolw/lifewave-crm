@@ -8786,6 +8786,36 @@ var QRCode=function(t){"use strict";var r,e=function(){return"function"==typeof 
   </div>
 </div>
 
+<!-- MODAL: CONFIRMAR ELIMINAÇÃO DE LEAD(S) — com opção de manter ou apagar
+     o histórico de conversas/estado. Usado tanto por eliminarLead() (um
+     contacto) como por eliminarTodosContactos() (todos), controlados pelo
+     texto/estado preenchidos em abrirConfirmEliminarLead()/abrirConfirmEliminarTodos(). -->
+<div class="modal-overlay" id="modal-confirmar-eliminar-lead">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="confirmar-eliminar-lead-titulo">🗑️ Eliminar contacto</div>
+      <button class="modal-close" onclick="closeModal('modal-confirmar-eliminar-lead')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div id="confirmar-eliminar-lead-texto" style="font-size:13px;color:var(--text);margin-bottom:14px;line-height:1.5;"></div>
+      <label style="display:flex;align-items:flex-start;gap:8px;font-size:12.5px;color:var(--text);cursor:pointer;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px 12px;">
+        <input type="checkbox" id="chk-eliminar-historico-tambem" style="accent-color:var(--danger,#ef4444);width:16px;height:16px;flex-shrink:0;margin-top:1px;cursor:pointer;">
+        <span>
+          <span style="font-weight:600;">Eliminar também o histórico de conversas e estado</span><br>
+          <span id="confirmar-eliminar-lead-explicacao" style="color:var(--text2);font-size:11.5px;">
+            Desmarcado: o histórico fica guardado na lixeira e é associado automaticamente se voltares a importar este contacto. Marcado: o histórico é apagado e não volta, mesmo que reimportes o contacto.
+          </span>
+        </span>
+      </label>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-confirmar-eliminar-lead')">Cancelar</button>
+      <button class="btn btn-danger" onclick="executarEliminacaoPendente()">🗑️ Eliminar</button>
+    </div>
+  </div>
+</div>
+
+
 <!-- MODAL: AGENDAR POST -->
 <div class="modal-overlay" id="modal-agendar">
   <div class="modal">
@@ -8853,6 +8883,28 @@ var QRCode=function(t){"use strict";var r,e=function(){return"function"==typeof 
             <button class="btn btn-secondary btn-sm" onclick="selecionarTodosImport(true)">✓ Todos</button>
             <button class="btn btn-secondary btn-sm" onclick="selecionarTodosImport(false)">✗ Nenhum</button>
           </div>
+        </div>
+        <!-- FILTROS DE IMPORTAÇÃO — mesmo padrão do import do Google Contacts -->
+        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px 12px;">
+          <select class="form-select" id="imp-filtro-indicativo" onchange="renderImportPreview()" style="flex:1;min-width:160px;">
+            <option value="">🌍 Todos os países</option>
+            <option value="+351">🇵🇹 +351 Portugal</option>
+            <option value="+55">🇧🇷 +55 Brasil</option>
+            <option value="+34">🇪🇸 +34 Espanha</option>
+            <option value="+44">🇬🇧 +44 Reino Unido</option>
+            <option value="+33">🇫🇷 +33 França</option>
+            <option value="+49">🇩🇪 +49 Alemanha</option>
+            <option value="+1">🇺🇸 +1 EUA/Canadá</option>
+            <option value="+39">🇮🇹 +39 Itália</option>
+            <option value="+244">🇦🇴 +244 Angola</option>
+            <option value="+258">🇲🇿 +258 Moçambique</option>
+            <option value="+238">🇨🇻 +238 Cabo Verde</option>
+            <option value="outro">Outro / sem indicativo</option>
+          </select>
+          <label style="display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--text2);cursor:pointer;white-space:nowrap;">
+            <input type="checkbox" id="imp-filtro-com-contacto" onchange="renderImportPreview()" style="accent-color:var(--accent);width:15px;height:15px;cursor:pointer;">
+            📞 Só com contacto
+          </label>
         </div>
         <div class="import-preview" id="import-preview" style="display:block;"></div>
       </div>
@@ -10747,24 +10799,86 @@ function avancarEstado(id) {
   }
 }
 
+// Guarda o que está pendente de eliminação entre abrir o modal de
+// confirmação e o utilizador clicar em "Eliminar" — preenchido por
+// abrirConfirmEliminarLead()/eliminarTodosContactos(), lido e limpo por
+// executarEliminacaoPendente().
+let _eliminacaoPendente = null; // { modo: 'single', id } | { modo: 'todos' }
+
 function eliminarLead(id) {
-  if (!confirm('Tens a certeza que queres eliminar este lead?')) return;
   const lead = leads.find(x => x.id === id);
-  if (lead) moverParaLixeira('lead', lead);
-  leads = leads.filter(x => x.id !== id);
-  saveleads();
-  // Remove lembretes/sequências ligados a este lead — sem isto, ficavam
-  // notificações "órfãs" na lista, referindo-se a um lead que já não existe
-  // (e o botão "Enviar" delas deixava de funcionar, sem número associado).
-  if (typeof lembretes !== 'undefined' && lembretes.length) {
-    lembretes = lembretes.filter(l => l._leadId !== id);
-    if (typeof saveLembretes === 'function') saveLembretes();
+  if (!lead) return;
+  _eliminacaoPendente = { modo: 'single', id };
+  document.getElementById('confirmar-eliminar-lead-titulo').textContent = '🗑️ Eliminar contacto';
+  document.getElementById('confirmar-eliminar-lead-texto').textContent =
+    `Vais eliminar "${lead.nome}" da tua lista.`;
+  document.getElementById('chk-eliminar-historico-tambem').checked = false;
+  openModal('modal-confirmar-eliminar-lead');
+}
+
+// Executa a eliminação guardada em _eliminacaoPendente, de acordo com o
+// estado do checkbox "eliminar também o histórico":
+//   - Desmarcado (default): o(s) lead(s) vai/vão inteiros para a lixeira,
+//     historico/estado incluídos — ficam associáveis automaticamente se o
+//     contacto for reimportado (ver procurarLeadNaLixeira() em
+//     confirmarImportFileContacts()/confirmarImportGoogleContacts()).
+//   - Marcado: vai igualmente para a lixeira (o contacto em si continua
+//     recuperável por 7 dias, e é isso que impede a sincronização com a
+//     Drive de o "ressuscitar" — ver idsEliminadosLead em driveSync()), mas
+//     com historico/estado já limpos antes de arquivar, para não ficarem
+//     nem recuperáveis manualmente nem associáveis a uma reimportação.
+function executarEliminacaoPendente() {
+  const pend = _eliminacaoPendente;
+  if (!pend) { closeModal('modal-confirmar-eliminar-lead'); return; }
+  const apagarHistorico = document.getElementById('chk-eliminar-historico-tambem')?.checked || false;
+
+  const prepararParaLixeira = (lead) => {
+    if (!apagarHistorico) return lead;
+    return { ...lead, historico: [], estado: 'novo' };
+  };
+
+  if (pend.modo === 'single') {
+    const lead = leads.find(x => x.id === pend.id);
+    if (lead) moverParaLixeira('lead', prepararParaLixeira(lead));
+    leads = leads.filter(x => x.id !== pend.id);
+    saveleads();
+    // Remove lembretes/sequências ligados a este lead — sem isto, ficavam
+    // notificações "órfãs" na lista, referindo-se a um lead que já não existe
+    // (e o botão "Enviar" delas deixava de funcionar, sem número associado).
+    if (typeof lembretes !== 'undefined' && lembretes.length) {
+      lembretes = lembretes.filter(l => l._leadId !== pend.id);
+      if (typeof saveLembretes === 'function') saveLembretes();
+    }
+    closeModal('modal-ver-lead');
+    closeModal('modal-confirmar-eliminar-lead');
+    renderDashboard();
+    renderFunil();
+    renderLista();
+    showToast(apagarHistorico
+      ? '🗑 Lead eliminado, incluindo histórico e estado.'
+      : '🗑 Lead movido para a lixeira (recuperável por 7 dias, com histórico).');
+
+  } else if (pend.modo === 'todos') {
+    const total = leads.length;
+    const lixeira = getLixeira();
+    const agora = new Date().toISOString();
+    leads.forEach(lead => {
+      lixeira.unshift({ tipo: 'lead', item: prepararParaLixeira(lead), eliminadoEm: agora });
+    });
+    saveLixeira(lixeira);
+
+    leads = [];
+    saveleads();
+    closeModal('modal-confirmar-eliminar-lead');
+    renderDashboard();
+    renderFunil();
+    renderLista();
+    showToast(apagarHistorico
+      ? `🗑 ${total} contacto(s) eliminado(s), incluindo histórico e estado. Já podes importar uma nova lista.`
+      : `🗑 ${total} contacto(s) eliminado(s) (recuperáveis na lixeira por ${LIXEIRA_DIAS} dias, com histórico). Já podes importar uma nova lista.`);
   }
-  closeModal('modal-ver-lead');
-  renderDashboard();
-  renderFunil();
-  renderLista();
-  showToast('🗑 Lead movido para a lixeira (recuperável por 7 dias)');
+
+  _eliminacaoPendente = null;
 }
 
 function exportarLeadsJSON() {
@@ -10786,6 +10900,10 @@ function exportarLeadsJSON() {
   showToast(`✅ Backup de ${leads.length} contactos guardado!`);
 }
 
+// Lista de contactos lidos de um ficheiro (.json), aguardando confirmação
+// no modal de pré-visualização — mesmo padrão do googleContactsToImport.
+let fileContactsToImport = [];
+
 function importarLeadsJSON(event) {
   const file = event.target.files[0];
   if (!file) return;
@@ -10793,47 +10911,176 @@ function importarLeadsJSON(event) {
   reader.onload = function(e) {
     try {
       const data = JSON.parse(e.target.result);
-      // Accept both raw array and our export format
-      const importados = Array.isArray(data) ? data : (data.leads || null);
-      if (!importados || !Array.isArray(importados)) throw new Error('Formato inválido');
-
-      const existentes = leads.length;
-      if (existentes > 0) {
-        if (!confirm(`Tens ${existentes} contacto(s) já na app.
-
-O que queres fazer?
-
-• OK = Juntar (adiciona os novos aos existentes)
-• Cancelar = Abortar importação`)) {
-          event.target.value = '';
-          return;
+      // Aceita 3 formatos:
+      // 1) Array direto de leads
+      // 2) { leads: [...] } — export próprio desta página (exportarLeadsJSON)
+      // 3) Backup completo { dados: { "lw_leads_<email>": "[...]" } } — export
+      //    do botão "Backup" geral (menu principal), para quem carrega o
+      //    ficheiro errado aqui não ficar preso com "Formato inválido".
+      let importados = Array.isArray(data) ? data : (data.leads || null);
+      if (!importados && data.dados && typeof data.dados === 'object') {
+        const leadsKey = Object.keys(data.dados).find(k => k.indexOf('lw_leads') === 0);
+        if (leadsKey) {
+          try { importados = JSON.parse(data.dados[leadsKey]); } catch(e) { importados = null; }
         }
       }
+      if (!importados || !Array.isArray(importados)) throw new Error('Formato inválido');
+      if (!importados.length) throw new Error('Ficheiro sem contactos.');
 
-      // Merge: avoid duplicates by name+tel
-      let adicionados = 0;
-      importados.forEach(lead => {
-        const duplicado = leads.find(l =>
-          (l.nome && lead.nome && l.nome.trim().toLowerCase() === lead.nome.trim().toLowerCase()) &&
-          (l.tel === lead.tel)
-        );
-        if (!duplicado) {
-          // Ensure ID is unique
-          lead.id = lead.id && !leads.find(l => l.id === lead.id) ? lead.id : Date.now() + Math.random();
-          leads.push(lead);
-          adicionados++;
-        }
-      });
+      // Normaliza para o mesmo formato { nome, tel, email, notas } usado
+      // no preview do Google, mas preserva os restantes campos originais
+      // (mercado, estado, fonte, histórico...) para não perder informação
+      // caso o ficheiro seja um export completo desta própria app.
+      fileContactsToImport = importados
+        .map(l => ({
+          nome: (l.nome || '').normalize('NFC'),
+          tel: l.tel || '',
+          email: l.email || '',
+          notas: l.notas || '',
+          _original: l
+        }))
+        .filter(c => c.nome);
 
-      saveleads();
-      renderTabela();
-      showToast(`✅ ${adicionados} contacto(s) importado(s)!`);
+      fileContactsToImport.sort((a, b) => normalizarNome(a.nome).localeCompare(normalizarNome(b.nome), 'pt'));
+
+      // Reset filtros de importação (reutiliza os mesmos campos do modal Google)
+      const fInd = document.getElementById('fc-filtro-indicativo');
+      const fCom = document.getElementById('fc-filtro-com-contacto');
+      if (fInd) fInd.value = '';
+      if (fCom) fCom.checked = false;
+
+      renderFileContactsPreview();
+      openModal('modal-file-contacts-preview');
     } catch(err) {
       showToast('❌ Ficheiro inválido: ' + err.message);
     }
     event.target.value = '';
   };
   reader.readAsText(file);
+}
+
+// Mantém referência da lista atualmente filtrada (índices relativos a fileContactsToImport)
+let fContactsFiltradosIdx = [];
+
+function renderFileContactsPreview() {
+  const label = document.getElementById('fcontacts-count-label');
+  const preview = document.getElementById('fcontacts-preview');
+  const fIndicativo = document.getElementById('fc-filtro-indicativo')?.value || '';
+  const soComContacto = document.getElementById('fc-filtro-com-contacto')?.checked || false;
+
+  fContactsFiltradosIdx = fileContactsToImport
+    .map((c, i) => i)
+    .filter(i => {
+      const c = fileContactsToImport[i];
+      if (soComContacto && !c.tel && !c.email) return false;
+      if (fIndicativo) {
+        const ind = getIndicativo(c.tel);
+        if (fIndicativo === 'outro') {
+          if (ind && ind !== 'outro') return false;
+        } else if (ind !== fIndicativo) {
+          return false;
+        }
+      }
+      return true;
+    });
+
+  const total = fileContactsToImport.length;
+  const visiveis = fContactsFiltradosIdx.length;
+  label.textContent = visiveis === total
+    ? `${total} contacto(s) encontrado(s)`
+    : `${visiveis} de ${total} contacto(s) (filtrado)`;
+
+  if (!visiveis) {
+    preview.innerHTML = '<div style="text-align:center;padding:24px;color:var(--text2);font-size:12.5px;">Nenhum contacto corresponde aos filtros.</div>';
+    return;
+  }
+
+  preview.innerHTML = fContactsFiltradosIdx.map(i => {
+    const c = fileContactsToImport[i];
+    return `
+    <div class="import-row">
+      <input type="checkbox" id="fc-${i}" checked>
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:12px;font-weight:600;color:var(--text);">${escapeHtml(c.nome)}</div>
+        <div style="font-size:11px;color:var(--text2);">${[c.tel, c.email].filter(Boolean).map(escapeHtml).join(' · ') || 'Sem contacto'}</div>
+      </div>
+    </div>
+  `;
+  }).join('');
+}
+
+function selecionarTodosFContacts(val) {
+  fContactsFiltradosIdx.forEach(i => {
+    const cb = document.getElementById(`fc-${i}`);
+    if (cb) cb.checked = val;
+  });
+}
+
+function confirmarImportFileContacts() {
+  const selecionados = fContactsFiltradosIdx
+    .filter(i => document.getElementById(`fc-${i}`)?.checked)
+    .map(i => fileContactsToImport[i]);
+  if (!selecionados.length) { showToast('❌ Nenhum contacto selecionado'); return; }
+
+  let novos = 0;
+  let comHistoricoRestaurado = 0;
+  // Constrói os novos leads numa lista à parte e insere-os todos de uma vez
+  // no fim, mantendo a ordem A→Z em que 'selecionados' já vem (ver sort() em
+  // confirmarImportFileContacts). Antes, cada contacto era inserido com
+  // leads.unshift() dentro do forEach: como unshift põe sempre no índice 0,
+  // o último contacto processado (o mais próximo de "Z") acabava no topo,
+  // invertendo a ordem alfabética visível na lista "recente".
+  const novosLeads = [];
+  selecionados.forEach(c => {
+    const existe = leadJaExiste(c);
+    if (existe) return;
+    // Preserva os campos originais do ficheiro (mercado, estado, fonte,
+    // histórico...) quando existirem — só cai nos valores por omissão do
+    // Google-import se o ficheiro não trouxer essa informação.
+    const orig = c._original || {};
+    const novoLead = {
+      id: orig.id && !leads.find(l => l.id === orig.id) ? orig.id : gerarId(),
+      nome: c.nome,
+      tel: c.tel,
+      email: c.email,
+      mercado: orig.mercado || 'Frio (desconhecidos)',
+      estado: orig.estado || 'novo',
+      fonte: orig.fonte || 'Ficheiro importado',
+      notas: c.notas,
+      data: orig.data || new Date().toLocaleDateString('pt-PT'),
+      historico: orig.historico || [{ msg: 'Importado de ficheiro', data: new Date().toLocaleString('pt-PT') }]
+    };
+
+    // Reatar histórico/estado se este contacto já tinha sido eliminado antes
+    // (está na lixeira) e o utilizador optou por preservar o histórico nessa
+    // altura — ver checkbox "eliminar também o histórico" em eliminarLead()/
+    // eliminarTodosContactos(). Sem isto, reimportar um contacto eliminado
+    // criava sempre um lead "do zero", perdendo conversas e estado anteriores.
+    const naLixeira = procurarLeadNaLixeira(c);
+    if (naLixeira && naLixeira.entry.item.historico?.length) {
+      novoLead.estado = naLixeira.entry.item.estado || novoLead.estado;
+      novoLead.historico = [
+        ...naLixeira.entry.item.historico,
+        { msg: 'Reimportado de ficheiro — histórico anterior associado automaticamente', data: new Date().toLocaleString('pt-PT') }
+      ];
+      removerDaLixeiraPorIndice(naLixeira.index);
+      comHistoricoRestaurado++;
+    }
+
+    novosLeads.push(novoLead);
+    novos++;
+  });
+  leads.unshift(...novosLeads);
+
+  saveleads();
+  closeModal('modal-file-contacts-preview');
+  renderDashboard();
+  renderTabela();
+  const ignorados = selecionados.length - novos;
+  const partes = [`✅ ${novos} contacto(s) importado(s)!`];
+  if (comHistoricoRestaurado > 0) partes.push(`🔄 ${comHistoricoRestaurado} com histórico anterior associado.`);
+  if (ignorados > 0) partes.push(`(${ignorados} duplicado(s) ignorado(s))`);
+  showToast(partes.join(' '));
 }
 
 // ===== BACKUP COMPLETO (todos os dados da app, não só leads) =====
@@ -11120,14 +11367,14 @@ function fecharPesquisaEIr(fn) {
 function eliminarTodosContactos() {
   const total = leads.length;
   if (!total) { showToast('A lista já está vazia.'); return; }
-  if (!confirm(`⚠️ Isto vai eliminar TODOS os ${total} contactos da tua lista (leads e clientes). Esta ação não pode ser desfeita.\n\nTens a certeza que queres continuar?`)) return;
-  if (!confirm(`Última confirmação: vais eliminar ${total} contacto(s) permanentemente. Confirmas?`)) return;
-  leads = [];
-  saveleads();
-  renderDashboard();
-  renderFunil();
-  renderLista();
-  showToast(`🗑 ${total} contacto(s) eliminado(s). Já podes importar uma nova lista do Google.`);
+  if (!confirm(`⚠️ Isto vai eliminar TODOS os ${total} contactos da tua lista (leads e clientes).\n\nTens a certeza que queres continuar?`)) return;
+
+  _eliminacaoPendente = { modo: 'todos' };
+  document.getElementById('confirmar-eliminar-lead-titulo').textContent = '🗑️ Eliminar todos os contactos';
+  document.getElementById('confirmar-eliminar-lead-texto').textContent =
+    `Última confirmação: vais eliminar ${total} contacto(s) permanentemente da lista.`;
+  document.getElementById('chk-eliminar-historico-tambem').checked = false;
+  openModal('modal-confirmar-eliminar-lead');
 }
 
 // saveleads() defined below in AUTH section (user-scoped)
@@ -12418,11 +12665,19 @@ function temContacto(l) {
 }
 
 // Detecta o indicativo de país a partir do número
+// Indicativos suportados, ordenados dos mais longos para os mais curtos
+// (necessário para não haver colisão, ex: '+244' Angola tem de ser testado
+// antes de '+1' EUA/Canadá, que é apenas um caractere).
+const INDICATIVOS_SUPORTADOS = ['+351', '+244', '+258', '+238', '+55', '+34', '+44', '+33', '+49', '+39', '+1'];
+
 function getIndicativo(tel) {
   if (!tel) return '';
   const t = tel.replace(/[\s\-\(\)]/g, '');
-  // Formato +XXX ou 00XXX
-  if (t.startsWith('+')) return t.slice(0, t.length > 5 ? (t.startsWith('+1') ? 2 : t.startsWith('+3') || t.startsWith('+4') || t.startsWith('+2') ? 3 : 3) : 3);
+  // Formato +XXX
+  if (t.startsWith('+')) {
+    const match = INDICATIVOS_SUPORTADOS.find(ind => t.startsWith(ind));
+    return match || 'outro';
+  }
   if (t.startsWith('00')) {
     const digits = t.slice(2);
     if (digits.startsWith('351')) return '+351';
@@ -15539,6 +15794,13 @@ let importContactos = [];
 function handleImportFile(input) {
   const file = input.files[0];
   if (!file) return;
+
+  // Reset filtros de importação a cada novo ficheiro carregado
+  const fInd = document.getElementById('imp-filtro-indicativo');
+  const fCom = document.getElementById('imp-filtro-com-contacto');
+  if (fInd) fInd.value = '';
+  if (fCom) fCom.checked = false;
+
   const ext = file.name.split('.').pop().toLowerCase();
   const isExcel = ext === 'xlsx' || ext === 'xls';
 
@@ -15577,7 +15839,7 @@ function handleImportFile(input) {
 
   const reader = new FileReader();
   reader.onload = e => {
-    const content = e.target.result;
+    const content = decodeTextFile(e.target.result);
     if (ext === 'vcf') {
       importContactos = parseVCF(content);
     } else if (ext === 'csv') {
@@ -15588,21 +15850,95 @@ function handleImportFile(input) {
     }
     renderImportPreview();
   };
-  reader.readAsText(file, 'UTF-8');
+  reader.readAsArrayBuffer(file);
+}
+
+// Decodifica um ficheiro de texto detetando o encoding pelo BOM (Byte Order Mark).
+// Exports do Facebook Ads Manager (leads de formulários) vêm tipicamente em
+// UTF-16 LE, que corrompe totalmente o texto se for lido como UTF-8 (cada
+// caractere ASCII passa a ocupar 2 bytes, um deles \x00). Ficheiros CSV/VCF
+// normais (a maioria) não têm BOM e continuam a ser lidos como UTF-8.
+function decodeTextFile(buffer) {
+  const bytes = new Uint8Array(buffer);
+  // BOM UTF-16 LE: FF FE
+  if (bytes.length >= 2 && bytes[0] === 0xFF && bytes[1] === 0xFE) {
+    return new TextDecoder('utf-16le').decode(bytes.slice(2));
+  }
+  // BOM UTF-16 BE: FE FF
+  if (bytes.length >= 2 && bytes[0] === 0xFE && bytes[1] === 0xFF) {
+    return new TextDecoder('utf-16be').decode(bytes.slice(2));
+  }
+  // BOM UTF-8: EF BB BF (opcional, mas remove-se para não aparecer no primeiro campo)
+  if (bytes.length >= 3 && bytes[0] === 0xEF && bytes[1] === 0xBB && bytes[2] === 0xBF) {
+    return new TextDecoder('utf-8').decode(bytes.slice(3));
+  }
+  // Sem BOM: assume UTF-8 (caso mais comum)
+  return new TextDecoder('utf-8').decode(bytes);
+}
+
+// Descodifica uma string Quoted-Printable (ex: "=4D=6F=72=67=61=64=6F" -> "Morgado",
+// "H=C3=A9lia" -> "Hélia"). Muitos exportadores de contactos (Android/Samsung/Xiaomi)
+// gravam nomes com acentos neste formato quando a propriedade tem
+// ENCODING=QUOTED-PRINTABLE no cabeçalho, em vez de gravar o texto diretamente.
+// Sequências "=XX" são bytes em hex; para acentos (UTF-8 multi-byte) vêm 2-4
+// sequências seguidas que têm de ser descodificadas em conjunto, não caractere a
+// caractere, daí acumularmos bytes e usar TextDecoder no fim.
+function decodeQuotedPrintable(str) {
+  if (!str || str.indexOf('=') === -1) return str;
+  const bytes = [];
+  for (let i = 0; i < str.length; i++) {
+    if (str[i] === '=' && /^[0-9A-Fa-f]{2}$/.test(str.slice(i + 1, i + 3))) {
+      bytes.push(parseInt(str.slice(i + 1, i + 3), 16));
+      i += 2;
+    } else {
+      bytes.push(str.charCodeAt(i));
+    }
+  }
+  try {
+    return new TextDecoder('utf-8').decode(new Uint8Array(bytes));
+  } catch (e) {
+    return str;
+  }
+}
+
+// Extrai o valor de uma propriedade vCard (ex: FN, N, TEL, EMAIL) já descodificado.
+// A negative lookahead (?![A-Z]) garante que o nome da propriedade termina ali
+// (não é seguido de mais letras) — sem isto, "N" casava indevidamente com
+// "NOTE", "NICKNAME", etc., porque "OTE"/"ICKNAME" eram lidos como parte do
+// cabeçalho da própria propriedade N.
+function extrairPropriedadeVCF(card, nomePropriedade) {
+  const re = new RegExp(`^${nomePropriedade}(?![A-Z])([^:\\r\\n]*):([^\\r\\n]+)`, 'im');
+  const m = card.match(re);
+  if (!m) return '';
+  const cabecalho = m[1] || '';
+  const valor = m[2].trim();
+  if (/ENCODING=QUOTED-PRINTABLE/i.test(cabecalho)) {
+    return decodeQuotedPrintable(valor).trim();
+  }
+  return valor;
 }
 
 function parseVCF(text) {
   const contacts = [];
-  const cards = text.split(/BEGIN:VCARD/i).filter(c => c.trim());
+  // Un-fold: no formato vCard/QP, uma linha que termina em '=' seguido de quebra de
+  // linha significa "o valor continua na linha seguinte" (limite de 76 chars por
+  // linha). Sem isto, nomes/valores longos ficam cortados a meio.
+  const unfolded = text.replace(/=\r?\n/g, '');
+  const cards = unfolded.split(/BEGIN:VCARD/i).filter(c => c.trim());
   cards.forEach(card => {
-    const nome = (card.match(/FN[^:]*:(.+)/i) || card.match(/N[^:]*:([^;\n]+)/i) || [])[1]?.trim() || '';
-    const telMatch = card.match(/TEL[^:]*:([^\r\n]+)/i);
-    const emailMatch = card.match(/EMAIL[^:]*:([^\r\n]+)/i);
-    if (nome || telMatch) {
+    let nome = extrairPropriedadeVCF(card, 'FN');
+    if (!nome) {
+      // Fallback ao campo N (Sobrenome;Nome;...) quando não há FN
+      const nRaw = extrairPropriedadeVCF(card, 'N');
+      nome = nRaw ? nRaw.split(';').filter(Boolean).join(' ').trim() : '';
+    }
+    const tel = extrairPropriedadeVCF(card, 'TEL').replace(/\s/g, '');
+    const email = extrairPropriedadeVCF(card, 'EMAIL');
+    if (nome || tel) {
       contacts.push({
         nome: nome || 'Sem nome',
-        tel: telMatch ? telMatch[1].trim().replace(/\s/g,'') : '',
-        email: emailMatch ? emailMatch[1].trim() : '',
+        tel,
+        email,
         notas: ''
       });
     }
@@ -15610,25 +15946,105 @@ function parseVCF(text) {
   return contacts;
 }
 
+// Faz parsing de uma linha CSV respeitando aspas (um campo entre aspas pode
+// conter o próprio separador sem que a coluna se parta ao meio).
+function splitCSVLine(line, sep) {
+  const cols = [];
+  let atual = '';
+  let dentroAspas = false;
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+    if (ch === '"') {
+      if (dentroAspas && line[i + 1] === '"') { atual += '"'; i++; }
+      else dentroAspas = !dentroAspas;
+    } else if (ch === sep && !dentroAspas) {
+      cols.push(atual);
+      atual = '';
+    } else {
+      atual += ch;
+    }
+  }
+  cols.push(atual);
+  return cols.map(c => c.trim().replace(/^["']|["']$/g, '').trim());
+}
+
+// Deteta o separador mais provável testando tab, vírgula e ponto-e-vírgula na
+// primeira linha (cabeçalho) e escolhendo o que produz mais colunas. Exports
+// do Facebook Ads Manager usam tab; a maioria dos outros CSVs usa vírgula ou
+// ponto-e-vírgula.
+function detetarSeparadorCSV(headerLine) {
+  const candidatos = ['\t', ',', ';'];
+  let melhor = ',';
+  let maxCols = 1;
+  candidatos.forEach(sep => {
+    const n = splitCSVLine(headerLine, sep).length;
+    if (n > maxCols) { maxCols = n; melhor = sep; }
+  });
+  return melhor;
+}
+
+// Remove prefixos técnicos que o Facebook Ads Manager coloca antes de
+// telefone/ids (ex: "p:+351935786565" -> "+351935786565").
+function limparPrefixoFacebook(valor) {
+  return (valor || '').replace(/^[a-z]{1,3}:/i, '').trim();
+}
+
 function parseCSV(text) {
   const lines = text.split(/\r?\n/).filter(l => l.trim());
   if (!lines.length) return [];
-  const header = lines[0].split(/[,;]/).map(h => h.trim().toLowerCase().replace(/['"]/g,''));
-  const idxNome = header.findIndex(h => h.includes('nome') || h.includes('name'));
-  const idxTel = header.findIndex(h => h.includes('tel') || h.includes('phone') || h.includes('mob'));
-  const idxEmail = header.findIndex(h => h.includes('email') || h.includes('mail'));
+
+  const sep = detetarSeparadorCSV(lines[0]);
+  const headerRaw = splitCSVLine(lines[0], sep);
+  const header = headerRaw.map(h => h.toLowerCase());
+
+  // Deteção do nome em duas fases: primeiro tenta uma correspondência forte
+  // (coluna chamada exatamente "nome"/"name", ou "nome_completo"/"full_name"),
+  // só recorrendo a correspondência solta (contém "nome"/"name") se não houver
+  // nenhuma. Isto evita que colunas tipo "ad_name", "form_name" ou
+  // "campaign_name" (comuns em exports do Facebook Ads Manager) sejam
+  // confundidas com a coluna do nome do lead.
+  const idxNome = (() => {
+    const forte = header.findIndex(h => h === 'nome' || h === 'name' || h.includes('nome_completo') || h.includes('nome completo') || h.includes('full_name') || h.includes('full name'));
+    if (forte >= 0) return forte;
+    return header.findIndex(h => h.includes('nome') || h.includes('name'));
+  })();
+  const idxTel = header.findIndex(h => h.includes('telefone') || h.includes('tel') || h.includes('phone') || h.includes('mob'));
+  const idxEmail = header.findIndex(h => h.includes('email') || h.includes('e-mail') || h.includes('mail'));
   const idxNotas = header.findIndex(h => h.includes('nota') || h.includes('note') || h.includes('obs'));
+  // Colunas típicas de exports de leads do Facebook Ads Manager: quando existem,
+  // os restantes campos (campanha, anúncio, formulário, etc.) vão resumidos
+  // para "notas" em vez de aparecerem no nome ou ficarem soltos.
+  const idxMorada = header.findIndex(h => h.includes('morada') || h.includes('address') || h.includes('endereco') || h.includes('endereço'));
+  const idxCampanha = header.findIndex(h => h.includes('campaign_name'));
+  const idxFormulario = header.findIndex(h => h.includes('form_name'));
+  const idxCriado = header.findIndex(h => h.includes('created_time'));
 
   return lines.slice(1).map(line => {
-    const cols = line.split(/[,;]/).map(c => c.trim().replace(/^["']|["']$/g,''));
-    return {
-      nome: idxNome >= 0 ? cols[idxNome] || '' : cols[0] || '',
-      tel: idxTel >= 0 ? cols[idxTel] || '' : '',
-      email: idxEmail >= 0 ? cols[idxEmail] || '' : '',
-      notas: idxNotas >= 0 ? cols[idxNotas] || '' : ''
-    };
+    const cols = splitCSVLine(line, sep);
+
+    const nome = idxNome >= 0 ? cols[idxNome] || '' : cols[0] || '';
+    const tel = idxTel >= 0 ? limparPrefixoFacebook(cols[idxTel]) : '';
+    const email = idxEmail >= 0 ? cols[idxEmail] || '' : '';
+
+    // Notas: usa a coluna de notas explícita se existir; senão, se for um
+    // formato tipo Facebook Lead Ads, monta um resumo curto e legível em vez
+    // de despejar todas as colunas de metadados.
+    let notas = idxNotas >= 0 ? (cols[idxNotas] || '') : '';
+    if (!notas && (idxCampanha >= 0 || idxFormulario >= 0 || idxMorada >= 0)) {
+      const partes = [];
+      if (idxFormulario >= 0 && cols[idxFormulario]) partes.push(`Formulário: ${cols[idxFormulario]}`);
+      if (idxCampanha >= 0 && cols[idxCampanha]) partes.push(`Campanha: ${cols[idxCampanha]}`);
+      if (idxMorada >= 0 && cols[idxMorada]) partes.push(`Morada: ${cols[idxMorada]}`);
+      if (idxCriado >= 0 && cols[idxCriado]) partes.push(`Lead em: ${cols[idxCriado]}`);
+      notas = partes.join(' · ');
+    }
+
+    return { nome, tel, email, notas };
   }).filter(c => c.nome);
 }
+
+// Mantém referência da lista atualmente filtrada (índices relativos a importContactos)
+let importFiltradosIdx = [];
 
 function renderImportPreview() {
   const area = document.getElementById('import-preview-area');
@@ -15641,43 +16057,106 @@ function renderImportPreview() {
     return;
   }
 
-  // Ordena A-Z por nome (usa normalizarNome para ignorar acentos/maiúsculas na comparação)
+  // Ordena A-Z por nome (usa normalizarNome para ignorar acentos/maiúsculas na comparação).
+  // Nomes com "�" (nomeCorrompido) são ordenados à parte mais abaixo, em vez de
+  // ficarem misturados aqui — ver comentário em nomeCorrompido() para o porquê.
   importContactos.sort((a, b) => normalizarNome(a.nome).localeCompare(normalizarNome(b.nome), 'pt'));
 
   area.style.display = 'block';
   confirmBtn.style.display = 'inline-flex';
-  countLabel.textContent = `${importContactos.length} contacto(s) encontrado(s)`;
 
-  preview.innerHTML = importContactos.map((c, i) => `
+  const fIndicativo = document.getElementById('imp-filtro-indicativo')?.value || '';
+  const soComContacto = document.getElementById('imp-filtro-com-contacto')?.checked || false;
+
+  const passaFiltros = i => {
+    const c = importContactos[i];
+    if (soComContacto && !c.tel && !c.email) return false;
+    if (fIndicativo) {
+      const ind = getIndicativo(c.tel);
+      if (fIndicativo === 'outro') {
+        if (ind && ind !== 'outro') return false;
+      } else if (ind !== fIndicativo) {
+        return false;
+      }
+    }
+    return true;
+  };
+
+  const todosIdx = importContactos.map((c, i) => i).filter(passaFiltros);
+  // Separa os índices em dois grupos, preservando a ordem A-Z já aplicada acima
+  // dentro de cada grupo (o .filter() não reordena, só remove).
+  const idxCorrompidosImp = todosIdx.filter(i => nomeCorrompido(importContactos[i].nome));
+  const idxNormaisImp = todosIdx.filter(i => !nomeCorrompido(importContactos[i].nome));
+  // Ordem final de apresentação: normais primeiro (A-Z), corrompidos numa secção no fim.
+  importFiltradosIdx = idxNormaisImp.concat(idxCorrompidosImp);
+
+  const total = importContactos.length;
+  const visiveis = importFiltradosIdx.length;
+  countLabel.textContent = visiveis === total
+    ? `${total} contacto(s) encontrado(s)`
+    : `${visiveis} de ${total} contacto(s) (filtrado)`;
+
+  if (!visiveis) {
+    preview.innerHTML = '<div style="text-align:center;padding:24px;color:var(--text2);font-size:12.5px;">Nenhum contacto corresponde aos filtros.</div>';
+    return;
+  }
+
+  const linhaContacto = i => {
+    const c = importContactos[i];
+    return `
     <div class="import-row">
       <input type="checkbox" id="imp-${i}" checked>
       <div style="flex:1;min-width:0;">
-        <div style="font-size:12px;font-weight:600;color:var(--text);">${c.nome}</div>
-        <div style="font-size:11px;color:var(--text2);">${[c.tel, c.email].filter(Boolean).join(' · ') || 'Sem contacto'}</div>
+        <div style="font-size:12px;font-weight:600;color:var(--text);">${escapeHtml(c.nome)}</div>
+        <div style="font-size:11px;color:var(--text2);">${[c.tel, c.email].filter(Boolean).map(escapeHtml).join(' · ') || 'Sem contacto'}</div>
       </div>
     </div>
-  `).join('');
+  `;
+  };
+
+  let html = idxNormaisImp.map(linhaContacto).join('');
+
+  if (idxCorrompidosImp.length) {
+    html += `
+    <div style="margin:14px 0 8px;padding:8px 10px;background:rgba(255,180,0,0.1);border:1px solid rgba(255,180,0,0.25);border-radius:8px;font-size:11px;color:#e0a300;display:flex;gap:6px;align-items:flex-start;">
+      <span>⚠️</span>
+      <span>${idxCorrompidosImp.length} nome(s) ilegível(is) — o carácter "�" indica que o nome já veio danificado da fonte original (agenda do telemóvel, sync antiga) e não pode ser recuperado automaticamente. Confirma o nome manualmente depois de importar, ou desmarca estes contactos.</span>
+    </div>
+  `;
+    html += idxCorrompidosImp.map(linhaContacto).join('');
+  }
+
+  preview.innerHTML = html;
 }
 
 function selecionarTodosImport(val) {
-  importContactos.forEach((_, i) => {
+  importFiltradosIdx.forEach(i => {
     const cb = document.getElementById(`imp-${i}`);
     if (cb) cb.checked = val;
   });
 }
 
 function confirmarImport() {
-  const selecionados = importContactos.filter((_, i) => {
-    const cb = document.getElementById(`imp-${i}`);
-    return cb && cb.checked;
-  });
+  const selecionados = importFiltradosIdx
+    .filter(i => document.getElementById(`imp-${i}`)?.checked)
+    .map(i => importContactos[i]);
   if (!selecionados.length) { showToast('❌ Nenhum contacto selecionado'); return; }
 
   let novos = 0;
+  let comHistoricoRestaurado = 0;
+  // Acumula os novos leads numa lista à parte e só insere-os todos de uma vez
+  // no fim com leads.unshift(...novosLeads), preservando a ordem A→Z em que
+  // 'selecionados' já vem (ver sort() em renderImportPreview). Antes, cada
+  // contacto era inserido com leads.unshift() dentro do forEach: como unshift
+  // põe sempre no índice 0, o último contacto processado (o mais próximo de
+  // "Z") acabava no topo, invertendo a ordem alfabética visível na lista
+  // "recente" — mesma correção já aplicada em confirmarImportFileContacts()
+  // e confirmarImportGoogleContacts().
+  const novosLeads = [];
   selecionados.forEach(c => {
     const existe = leadJaExiste(c);
     if (!existe) {
-      leads.unshift({
+      const novoLead = {
         id: gerarId(),
         nome: c.nome,
         tel: c.tel,
@@ -15688,10 +16167,32 @@ function confirmarImport() {
         notas: c.notas,
         data: new Date().toLocaleDateString('pt-PT'),
         historico: [{ msg: 'Importado de ficheiro', data: new Date().toLocaleString('pt-PT') }]
-      });
+      };
+
+      // Reatar histórico/estado se este contacto já tinha sido eliminado antes
+      // (está na lixeira) e o utilizador optou por preservar o histórico nessa
+      // altura — ver checkbox "eliminar também o histórico" em eliminarLead()/
+      // eliminarTodosContactos(). Sem isto, reimportar um contacto eliminado
+      // criava sempre um lead "do zero", perdendo conversas e estado anteriores.
+      // Mesma lógica já aplicada em confirmarImportFileContacts() e
+      // confirmarImportGoogleContacts() — faltava só aqui, na importação
+      // CSV/VCF/Excel.
+      const naLixeira = procurarLeadNaLixeira(c);
+      if (naLixeira && naLixeira.entry.item.historico?.length) {
+        novoLead.estado = naLixeira.entry.item.estado || novoLead.estado;
+        novoLead.historico = [
+          ...naLixeira.entry.item.historico,
+          { msg: 'Reimportado de ficheiro — histórico anterior associado automaticamente', data: new Date().toLocaleString('pt-PT') }
+        ];
+        removerDaLixeiraPorIndice(naLixeira.index);
+        comHistoricoRestaurado++;
+      }
+
+      novosLeads.push(novoLead);
       novos++;
     }
   });
+  leads.unshift(...novosLeads);
 
   saveleads();
   closeModal('modal-importar');
@@ -15704,7 +16205,11 @@ function confirmarImport() {
   document.getElementById('import-preview-area').style.display = 'none';
   document.getElementById('import-confirm-btn').style.display = 'none';
 
-  showToast(`✓ ${novos} contacto(s) importado(s)! ${selecionados.length - novos > 0 ? `(${selecionados.length - novos} duplicado(s) ignorado(s))` : ''}`);
+  const ignorados = selecionados.length - novos;
+  const partes = [`✓ ${novos} contacto(s) importado(s)!`];
+  if (comHistoricoRestaurado > 0) partes.push(`🔄 ${comHistoricoRestaurado} com histórico anterior associado.`);
+  if (ignorados > 0) partes.push(`(${ignorados} duplicado(s) ignorado(s))`);
+  showToast(partes.join(' '));
 }
 
 // ===== FEATURE 3: RESPOSTA COM SCREENSHOT =====
@@ -16044,22 +16549,27 @@ function renderGContactsPreview() {
   const fIndicativo = document.getElementById('gc-filtro-indicativo')?.value || '';
   const soComContacto = document.getElementById('gc-filtro-com-contacto')?.checked || false;
 
-  // Calcula os índices (na lista original) que passam os filtros
-  gContactsFiltradosIdx = googleContactsToImport
-    .map((c, i) => i)
-    .filter(i => {
-      const c = googleContactsToImport[i];
-      if (soComContacto && !c.tel && !c.email) return false;
-      if (fIndicativo) {
-        const ind = getIndicativo(c.tel);
-        if (fIndicativo === 'outro') {
-          if (ind && ind !== 'outro') return false;
-        } else if (ind !== fIndicativo) {
-          return false;
-        }
+  const passaFiltrosG = i => {
+    const c = googleContactsToImport[i];
+    if (soComContacto && !c.tel && !c.email) return false;
+    if (fIndicativo) {
+      const ind = getIndicativo(c.tel);
+      if (fIndicativo === 'outro') {
+        if (ind && ind !== 'outro') return false;
+      } else if (ind !== fIndicativo) {
+        return false;
       }
-      return true;
-    });
+    }
+    return true;
+  };
+
+  const todosIdxG = googleContactsToImport.map((c, i) => i).filter(passaFiltrosG);
+  // Separa os índices em dois grupos, preservando a ordem A-Z já aplicada em
+  // syncGoogleContacts() dentro de cada grupo (o .filter() não reordena).
+  const idxCorrompidosG = todosIdxG.filter(i => nomeCorrompido(googleContactsToImport[i].nome));
+  const idxNormaisG = todosIdxG.filter(i => !nomeCorrompido(googleContactsToImport[i].nome));
+  // Ordem final de apresentação: normais primeiro (A-Z), corrompidos numa secção no fim.
+  gContactsFiltradosIdx = idxNormaisG.concat(idxCorrompidosG);
 
   const total = googleContactsToImport.length;
   const visiveis = gContactsFiltradosIdx.length;
@@ -16072,18 +16582,32 @@ function renderGContactsPreview() {
     return;
   }
 
-  preview.innerHTML = gContactsFiltradosIdx.map(i => {
+  const linhaContactoG = i => {
     const c = googleContactsToImport[i];
     return `
     <div class="import-row">
       <input type="checkbox" id="gc-${i}" checked>
       <div style="flex:1;min-width:0;">
-        <div style="font-size:12px;font-weight:600;color:var(--text);">${c.nome}</div>
-        <div style="font-size:11px;color:var(--text2);">${[c.tel, c.email].filter(Boolean).join(' · ') || 'Sem contacto'}</div>
+        <div style="font-size:12px;font-weight:600;color:var(--text);">${escapeHtml(c.nome)}</div>
+        <div style="font-size:11px;color:var(--text2);">${[c.tel, c.email].filter(Boolean).map(escapeHtml).join(' · ') || 'Sem contacto'}</div>
       </div>
     </div>
   `;
-  }).join('');
+  };
+
+  let html = idxNormaisG.map(linhaContactoG).join('');
+
+  if (idxCorrompidosG.length) {
+    html += `
+    <div style="margin:14px 0 8px;padding:8px 10px;background:rgba(255,180,0,0.1);border:1px solid rgba(255,180,0,0.25);border-radius:8px;font-size:11px;color:#e0a300;display:flex;gap:6px;align-items:flex-start;">
+      <span>⚠️</span>
+      <span>${idxCorrompidosG.length} nome(s) ilegível(is) — o carácter "�" indica que o nome já veio danificado da conta Google (sync antiga de outro dispositivo) e não pode ser recuperado automaticamente. Confirma o nome manualmente depois de importar, ou desmarca estes contactos.</span>
+    </div>
+  `;
+    html += idxCorrompidosG.map(linhaContactoG).join('');
+  }
+
+  preview.innerHTML = html;
 }
 
 function selecionarTodosGContacts(val) {
@@ -16100,10 +16624,18 @@ function confirmarImportGoogleContacts() {
   if (!selecionados.length) { showToast('❌ Nenhum contacto selecionado'); return; }
 
   let novos = 0;
+  let comHistoricoRestaurado = 0;
+  // Mesma correção que em confirmarImportFileContacts: acumula os novos
+  // leads à parte e só faz unshift(...) uma vez no fim, mantendo a ordem
+  // A→Z já definida pelo sort() em googleContactsToImport. Fazer
+  // leads.unshift() dentro do forEach invertia a ordem, porque cada
+  // inserção sucessiva empurra a anterior, pondo o último nome (perto de
+  // "Z") no topo da lista.
+  const novosLeads = [];
   selecionados.forEach(c => {
     const existe = leadJaExiste(c);
     if (!existe) {
-      leads.unshift({
+      const novoLead = {
         id: gerarId(),
         nome: c.nome,
         tel: c.tel,
@@ -16114,17 +16646,37 @@ function confirmarImportGoogleContacts() {
         notas: c.notas,
         data: new Date().toLocaleDateString('pt-PT'),
         historico: [{ msg: 'Importado do Google Contacts', data: new Date().toLocaleString('pt-PT') }]
-      });
+      };
+
+      // Reatar histórico/estado se este contacto já tinha sido eliminado
+      // antes (está na lixeira com histórico preservado). Ver a mesma lógica
+      // e o mesmo motivo em confirmarImportFileContacts().
+      const naLixeira = procurarLeadNaLixeira(c);
+      if (naLixeira && naLixeira.entry.item.historico?.length) {
+        novoLead.estado = naLixeira.entry.item.estado || novoLead.estado;
+        novoLead.historico = [
+          ...naLixeira.entry.item.historico,
+          { msg: 'Reimportado do Google Contacts — histórico anterior associado automaticamente', data: new Date().toLocaleString('pt-PT') }
+        ];
+        removerDaLixeiraPorIndice(naLixeira.index);
+        comHistoricoRestaurado++;
+      }
+
+      novosLeads.push(novoLead);
       novos++;
     }
   });
+  leads.unshift(...novosLeads);
 
   saveleads();
   closeModal('modal-google-contacts-preview');
   renderDashboard();
   renderLista();
   const ignorados = selecionados.length - novos;
-  showToast(`✅ ${novos} contacto(s) importado(s) do Google!${ignorados > 0 ? ` (${ignorados} duplicado(s) ignorado(s))` : ''}`);
+  const partes = [`✅ ${novos} contacto(s) importado(s) do Google!`];
+  if (comHistoricoRestaurado > 0) partes.push(`🔄 ${comHistoricoRestaurado} com histórico anterior associado.`);
+  if (ignorados > 0) partes.push(`(${ignorados} duplicado(s) ignorado(s))`);
+  showToast(partes.join(' '));
 
   // Auto-mark tutorial step "gcontacts"
   if (novos > 0) {
@@ -16566,6 +17118,17 @@ function normalizarNome(nome) {
     .toLowerCase()
     .normalize('NFD').replace(/[\u0300-\u036f]/g, '') // remove acentos
     .replace(/\s+/g, ' ');
+}
+
+// Deteta nomes com o carácter de substituição Unicode (U+FFFD, "�"). Este
+// carácter aparece quando a FONTE do contacto (agenda do telemóvel, sync
+// antiga, export de outro sistema) já perdeu a informação original antes
+// de chegar a este ficheiro/conta — não há como recuperar o nome certo a
+// partir daqui. Como "�" não é uma letra, localeCompare() ordena-o sempre
+// depois do "Z", fazendo estes contactos "desaparecerem" no fundo da lista
+// de forma pouco óbvia. Isolamo-los numa secção própria em vez disso.
+function nomeCorrompido(nome) {
+  return typeof nome === 'string' && nome.indexOf('\uFFFD') !== -1;
 }
 
 // Verifica se um contacto {nome, tel, email} já existe na lista de leads.
@@ -17660,6 +18223,43 @@ function limparLixeiraExpirada() {
     return dias < LIXEIRA_DIAS;
   });
   if (restantes.length !== lixeira.length) saveLixeira(restantes);
+}
+
+// Procura na lixeira um lead eliminado cujo telefone ou email coincida com o
+// contacto que está a ser (re)importado — mesmos critérios de correspondência
+// que leadJaExiste() usa para 'leads', mas aplicados a 'lixeira'. Serve para
+// reatar automaticamente o histórico de conversas e o estado ao contacto
+// quando ele é reimportado depois de ter sido eliminado (em vez de o
+// utilizador ter de ir à lixeira e restaurar manualmente, o que só faz
+// sentido enquanto ele não voltou a importar a lista toda de novo).
+// Devolve { entry, index } do primeiro lead correspondente, ou null.
+function procurarLeadNaLixeira(contacto) {
+  const lixeira = getLixeira();
+  const telNorm = contacto.tel ? limparTelefone(contacto.tel) : '';
+  const emailNorm = contacto.email ? contacto.email.trim().toLowerCase() : '';
+  if (!telNorm && !emailNorm) return null; // sem telefone/email não há correspondência fiável
+
+  const index = lixeira.findIndex(entry => {
+    if (entry.tipo !== 'lead' || !entry.item) return false;
+    const item = entry.item;
+    const lTelNorm = item.tel ? limparTelefone(item.tel) : '';
+    const lEmailNorm = item.email ? item.email.trim().toLowerCase() : '';
+    if (telNorm && lTelNorm && telNorm === lTelNorm) return true;
+    if (emailNorm && lEmailNorm && emailNorm === lEmailNorm) return true;
+    return false;
+  });
+  return index === -1 ? null : { entry: lixeira[index], index };
+}
+
+// Remove uma entrada específica da lixeira pelo índice (usado depois de
+// reatar o histórico dela a um contacto reimportado — a entrada antiga fica
+// sem função aí, e deixá-la ficaria como um "fantasma" restaurável à parte,
+// criando um duplicado se alguém a restaurasse manualmente mais tarde).
+function removerDaLixeiraPorIndice(index) {
+  const lixeira = getLixeira();
+  if (index < 0 || index >= lixeira.length) return;
+  lixeira.splice(index, 1);
+  saveLixeira(lixeira);
 }
 
 function abrirLixeira() {
@@ -28896,6 +29496,55 @@ function renderPrevisaoComissao() {
     <div class="modal-actions">
       <button class="btn btn-secondary" onclick="closeModal('modal-google-contacts-preview')">Cancelar</button>
       <button class="btn btn-primary" onclick="confirmarImportGoogleContacts()">✓ Importar Selecionados</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: PRÉ-VISUALIZAÇÃO DE IMPORTAÇÃO DE FICHEIRO (.json) — mesmos
+     filtros do modal Google acima, para o utilizador poder escolher
+     indicativo/país e "só com contacto" também ao importar de ficheiro,
+     em vez de o ficheiro entrar todo sem hipótese de filtrar. -->
+<div class="modal-overlay" id="modal-file-contacts-preview">
+  <div class="modal" style="max-width:600px;">
+    <div class="modal-title">
+      <span>📂 Contactos do Ficheiro</span>
+      <button class="modal-close" onclick="closeModal('modal-file-contacts-preview')">✕</button>
+    </div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;gap:10px;flex-wrap:wrap;">
+      <div class="section-title" style="margin-bottom:0;" id="fcontacts-count-label">0 contactos encontrados</div>
+      <div style="display:flex;gap:8px;">
+        <button class="btn btn-secondary btn-sm" onclick="selecionarTodosFContacts(true)">✓ Todos</button>
+        <button class="btn btn-secondary btn-sm" onclick="selecionarTodosFContacts(false)">✗ Nenhum</button>
+      </div>
+    </div>
+
+    <!-- FILTROS DE IMPORTAÇÃO -->
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px 12px;">
+      <select class="form-select" id="fc-filtro-indicativo" onchange="renderFileContactsPreview()" style="flex:1;min-width:160px;">
+        <option value="">🌍 Todos os países</option>
+        <option value="+351">🇵🇹 +351 Portugal</option>
+        <option value="+55">🇧🇷 +55 Brasil</option>
+        <option value="+34">🇪🇸 +34 Espanha</option>
+        <option value="+44">🇬🇧 +44 Reino Unido</option>
+        <option value="+33">🇫🇷 +33 França</option>
+        <option value="+49">🇩🇪 +49 Alemanha</option>
+        <option value="+1">🇺🇸 +1 EUA/Canadá</option>
+        <option value="+39">🇮🇹 +39 Itália</option>
+        <option value="+244">🇦🇴 +244 Angola</option>
+        <option value="+258">🇲🇿 +258 Moçambique</option>
+        <option value="+238">🇨🇻 +238 Cabo Verde</option>
+        <option value="outro">Outro / sem indicativo</option>
+      </select>
+      <label style="display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--text2);cursor:pointer;white-space:nowrap;">
+        <input type="checkbox" id="fc-filtro-com-contacto" onchange="renderFileContactsPreview()" style="accent-color:var(--accent);width:15px;height:15px;cursor:pointer;">
+        📞 Só com contacto
+      </label>
+    </div>
+
+    <div class="import-preview" id="fcontacts-preview" style="display:block;max-height:280px;overflow-y:auto;"></div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="closeModal('modal-file-contacts-preview')">Cancelar</button>
+      <button class="btn btn-primary" onclick="confirmarImportFileContacts()">✓ Importar Selecionados</button>
     </div>
   </div>
 </div>
