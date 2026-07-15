@@ -11163,6 +11163,9 @@ function exportarBackupCompleto() {
     if (!key || !key.startsWith(prefixo)) continue;
     // Não incluir chaves de API keys (sensíveis e específicas do dispositivo)
     if (/claudeKey|claude_key|geminiKey|gemini_key|google_client_id|grokKey|groqKey|mistralKey|openrouterKey/i.test(key)) continue;
+    // Não incluir a sessão de login (específica deste dispositivo/navegador) —
+    // restaurar isto por cima da sessão atual causa logout/loop de login.
+    if (key === AUTH_KEY || key === 'lw_auth_user_local') continue;
     try {
       dados[key] = localStorage.getItem(key);
       totalChaves++;
@@ -11216,12 +11219,16 @@ Queres continuar?`)) {
         return;
       }
 
+      let restauradas = 0;
       chaves.forEach(key => {
-        try { localStorage.setItem(key, dados[key]); } catch(e) { /* ignora chave problemática */ }
+        // Nunca restaurar a sessão de login guardada num backup antigo —
+        // isso substitui a sessão atual e causa logout/loop de login.
+        if (key === AUTH_KEY || key === 'lw_auth_user_local') return;
+        try { localStorage.setItem(key, dados[key]); restauradas++; } catch(e) { /* ignora chave problemática */ }
       });
 
       localStorage.setItem(getBackupLastKey(), new Date().toISOString());
-      showToast(`✅ Backup restaurado! (${chaves.length} itens). A recarregar...`);
+      showToast(`✅ Backup restaurado! (${restauradas} itens). A recarregar...`);
       setTimeout(() => window.location.reload(), 1200);
     } catch(err) {
       showToast('❌ Ficheiro inválido: ' + err.message);
