@@ -9227,8 +9227,32 @@ var QRCode=function(t){"use strict";var r,e=function(){return"function"==typeof 
 })();
 
 // ===== STATE =====
-let leads = JSON.parse(localStorage.getItem('lw_leads') || '[]');
-let posts = JSON.parse(localStorage.getItem('lw_posts') || '[]');
+// IMPORTANTE: leads/posts têm de ser lidos com getUserStorageKey(), tal como
+// em TODOS os outros pontos do ficheiro que os leem/gravam (ver saveleads(),
+// applyDrivePayload(), getDrivePayload(), etc.) — a app guarda estes dados
+// por conta, na chave "lw_leads_<email_sanitizado>"/"lw_posts_<...>", nunca
+// na chave crua "lw_leads"/"lw_posts". Antes, esta inicialização lia a
+// chave sem prefixo (uma chave que nunca é escrita para um utilizador
+// autenticado), pelo que 'leads'/'posts' arrancavam sempre vazios em
+// qualquer arranque com sessão já ativa — em particular depois do reload
+// automático que importarBackupCompleto() dispara: o backup restaurava
+// corretamente lw_leads_<email> no localStorage, mas a app, ao recarregar,
+// continuava a ler de "lw_leads" e nunca via os dados restaurados.
+// currentUser precisa de estar declarada ANTES desta secção (não só definida
+// mais abaixo) porque getUserStorageKey(), chamada já a seguir para
+// inicializar leads/posts, lê esta variável. Com 'let', ler uma variável
+// antes da sua linha de declaração correr lança ReferenceError (temporal
+// dead zone) — por isso a declaração (sem valor ainda) foi trazida para
+// aqui; a definição real de conteúdo continua a acontecer mais abaixo,
+// durante o login, tal como antes.
+let currentUser = null; // { email, name, picture, method }
+
+// currentUser só existe depois do login processar, mas getUserStorageKey()
+// já trata isso: sem currentUser definido devolve a própria chave (key),
+// preservando o comportamento pré-login (ecrã de login, sem conta ainda
+// selecionada) e só passando a aplicar o sufixo assim que há sessão.
+let leads = JSON.parse(localStorage.getItem(getUserStorageKey('lw_leads')) || '[]');
+let posts = JSON.parse(localStorage.getItem(getUserStorageKey('lw_posts')) || '[]');
 let editingLeadId = null;
 let currentPlatform = 'Facebook';
 let currentTone = 'Testemunho pessoal';
@@ -11259,13 +11283,43 @@ Queres continuar?`)) {
         return;
       }
 
+      // IMPORTANTE: localStorage.setItem() está globalmente substituído (ver
+      // IIFE perto do topo do ficheiro, "Armazenamento do dispositivo está
+      // cheio") para NUNCA relançar QuotaExceededError — esse wrapper
+      // engole o erro para não partir o resto da app. Isso significa que o
+      // try/catch abaixo NUNCA vê uma exceção mesmo quando a escrita falha
+      // por falta de espaço: cada key entrava sempre em "restauradas++",
+      // mostrando "✅ Backup restaurado!" mesmo quando a chave mais pesada
+      // (tipicamente lw_leads, com milhares de contactos) nunca chegou a
+      // ser gravada. Por isso confirmamos aqui, a seguir a cada escrita, se
+      // o valor lido de volta bate certo com o que devia ter sido gravado —
+      // é a única forma fiável de detetar a falha com este wrapper ativo.
       let restauradas = 0;
+      const falhadas = [];
       chaves.forEach(key => {
         // Nunca restaurar a sessão de login guardada num backup antigo —
         // isso substitui a sessão atual e causa logout/loop de login.
         if (key === AUTH_KEY || key === 'lw_auth_user_local') return;
-        try { localStorage.setItem(key, dados[key]); restauradas++; } catch(e) { /* ignora chave problemática */ }
+        try {
+          localStorage.setItem(key, dados[key]);
+          if (localStorage.getItem(key) === dados[key]) {
+            restauradas++;
+          } else {
+            falhadas.push(key);
+          }
+        } catch(e) { falhadas.push(key); }
       });
+
+      if (falhadas.length) {
+        // Não recarrega a página neste caso: um reload agora consolidaria
+        // um estado parcialmente restaurado (algumas contas/secções
+        // atualizadas, outras não) como se fosse definitivo, e a próxima
+        // tentativa de restauro partiria de dados já misturados.
+        const chavesPrincipais = falhadas.filter(k => /^lw_(leads|posts|membros)_/.test(k));
+        showToast(`⚠️ Restauro incompleto: o armazenamento do dispositivo está cheio. ${restauradas} item(ns) restaurado(s), mas ${falhadas.length} falharam${chavesPrincipais.length ? ' (incluindo contactos/posts)' : ''}. Liberta espaço (ex.: desinstala apps não usadas, ou limpa dados de outras apps) e tenta novamente — a página NÃO foi recarregada para não perderes o que já lá estava.`);
+        event.target.value = '';
+        return;
+      }
 
       localStorage.setItem(getBackupLastKey(), new Date().toISOString());
       // Marca que acabámos de restaurar um backup: o próximo arranque vai
@@ -18203,7 +18257,9 @@ function openModal(id) {
 // Each user's data is stored with their email as key prefix
 // e.g. lw_leads_joao@gmail.com, lw_posts_joao@gmail.com
 
-let currentUser = null; // { email, name, picture, method }
+// currentUser é declarada no topo do ficheiro (perto de "let leads = ..."),
+// não aqui, porque getUserStorageKey() precisa de a ler já nessa altura.
+// Ver o comentário junto a essa declaração para o motivo.
 
 const AUTH_KEY = 'lw_auth_user';
 const GOOGLE_CLIENT_ID_KEY = 'lw_google_client_id';
