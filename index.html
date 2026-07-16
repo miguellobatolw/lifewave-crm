@@ -5,46 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, interactive-widget=resizes-content">
 <title>LifeWave CRM v82 — Gestão de Leads & Posts</title>
 
-<!-- ===== APANHADOR DE ERROS TEMPORÁRIO (remover depois de resolver o bug do restauro) ===== -->
-<script>
-(function() {
-  const erros = [];
-  function mostrarPainel() {
-    let box = document.getElementById('erro-catcher-box');
-    if (!box) {
-      box = document.createElement('div');
-      box.id = 'erro-catcher-box';
-      box.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:9999999;background:#2a0808;border-bottom:3px solid #ff4444;padding:10px 12px;font-family:monospace;font-size:11px;color:#ffb3b3;max-height:60vh;overflow:auto;white-space:pre-wrap;';
-      const fechar = document.createElement('button');
-      fechar.textContent = '✕ Fechar';
-      fechar.style.cssText = 'margin-top:8px;background:#ff4444;color:#000;border:none;border-radius:6px;padding:6px 12px;font-weight:700;font-family:sans-serif;font-size:11px;';
-      fechar.onclick = () => box.remove();
-      box.appendChild(document.createElement('div')).id = 'erro-catcher-lista';
-      box.appendChild(fechar);
-      (document.body || document.documentElement).appendChild(box);
-    }
-    const lista = document.getElementById('erro-catcher-lista');
-    lista.textContent = '🚨 ERROS JS APANHADOS (' + erros.length + ')\n\n' + erros.join('\n\n---\n\n');
-  }
-  window.addEventListener('error', function(ev) {
-    const msg = '❌ ERRO: ' + ev.message +
-      '\nFicheiro: ' + ev.filename +
-      '\nLinha: ' + ev.lineno + ', Coluna: ' + ev.colno +
-      (ev.error && ev.error.stack ? '\nStack:\n' + ev.error.stack : '');
-    erros.push(msg);
-    try { mostrarPainel(); } catch(e) {}
-  });
-  window.addEventListener('unhandledrejection', function(ev) {
-    const reason = ev.reason;
-    const msg = '❌ PROMISE REJEITADA: ' + (reason && reason.message ? reason.message : String(reason)) +
-      (reason && reason.stack ? '\nStack:\n' + reason.stack : '');
-    erros.push(msg);
-    try { mostrarPainel(); } catch(e) {}
-  });
-})();
-</script>
-<!-- ===== FIM APANHADOR DE ERROS TEMPORÁRIO ===== -->
-
 <!-- ===== PWA: manifest, ícones e meta tags ===== -->
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#0a0f1e">
@@ -8817,7 +8777,7 @@ var QRCode=function(t){"use strict";var r,e=function(){return"function"==typeof 
       <button class="modal-close" onclick="closeModal('modal-lixeira')">✕</button>
     </div>
     <div class="modal-body">
-      <div style="font-size:11.5px;color:var(--text2);margin-bottom:12px;">Itens eliminados ficam aqui por 7 dias antes de serem apagados em definitivo.</div>
+      <div id="lixeira-info-dias" style="font-size:11.5px;color:var(--text2);margin-bottom:12px;">Itens eliminados ficam aqui por 30 dias antes de serem apagados em definitivo.</div>
       <div id="lixeira-lista" style="display:flex;flex-direction:column;gap:8px;"></div>
     </div>
     <div class="modal-footer">
@@ -9050,7 +9010,7 @@ var QRCode=function(t){"use strict";var r,e=function(){return"function"==typeof 
     </div>
     <div class="ai-note" style="margin-bottom:14px;">
       <span>📋</span>
-      <span>Deteta contactos com o <strong>mesmo telefone</strong>, <strong>mesmo email</strong> ou <strong>nome muito parecido</strong>. Escolhe qual manter — o outro passa para a lixeira (recuperável 7 dias) e o histórico é fundido.</span>
+      <span id="duplicados-info-dias">Deteta contactos com o <strong>mesmo telefone</strong>, <strong>mesmo email</strong> ou <strong>nome muito parecido</strong>. Escolhe qual manter — o outro passa para a lixeira (recuperável 30 dias) e o histórico é fundido.</span>
     </div>
     <div id="duplicados-loading" style="text-align:center;padding:30px 0;color:var(--text2);font-size:13px;">A analisar contactos...</div>
     <div id="duplicados-vazio" style="display:none;text-align:center;padding:30px 0;">
@@ -9227,32 +9187,8 @@ var QRCode=function(t){"use strict";var r,e=function(){return"function"==typeof 
 })();
 
 // ===== STATE =====
-// IMPORTANTE: leads/posts têm de ser lidos com getUserStorageKey(), tal como
-// em TODOS os outros pontos do ficheiro que os leem/gravam (ver saveleads(),
-// applyDrivePayload(), getDrivePayload(), etc.) — a app guarda estes dados
-// por conta, na chave "lw_leads_<email_sanitizado>"/"lw_posts_<...>", nunca
-// na chave crua "lw_leads"/"lw_posts". Antes, esta inicialização lia a
-// chave sem prefixo (uma chave que nunca é escrita para um utilizador
-// autenticado), pelo que 'leads'/'posts' arrancavam sempre vazios em
-// qualquer arranque com sessão já ativa — em particular depois do reload
-// automático que importarBackupCompleto() dispara: o backup restaurava
-// corretamente lw_leads_<email> no localStorage, mas a app, ao recarregar,
-// continuava a ler de "lw_leads" e nunca via os dados restaurados.
-// currentUser precisa de estar declarada ANTES desta secção (não só definida
-// mais abaixo) porque getUserStorageKey(), chamada já a seguir para
-// inicializar leads/posts, lê esta variável. Com 'let', ler uma variável
-// antes da sua linha de declaração correr lança ReferenceError (temporal
-// dead zone) — por isso a declaração (sem valor ainda) foi trazida para
-// aqui; a definição real de conteúdo continua a acontecer mais abaixo,
-// durante o login, tal como antes.
-let currentUser = null; // { email, name, picture, method }
-
-// currentUser só existe depois do login processar, mas getUserStorageKey()
-// já trata isso: sem currentUser definido devolve a própria chave (key),
-// preservando o comportamento pré-login (ecrã de login, sem conta ainda
-// selecionada) e só passando a aplicar o sufixo assim que há sessão.
-let leads = JSON.parse(localStorage.getItem(getUserStorageKey('lw_leads')) || '[]');
-let posts = JSON.parse(localStorage.getItem(getUserStorageKey('lw_posts')) || '[]');
+let leads = JSON.parse(localStorage.getItem('lw_leads') || '[]');
+let posts = JSON.parse(localStorage.getItem('lw_posts') || '[]');
 let editingLeadId = null;
 let currentPlatform = 'Facebook';
 let currentTone = 'Testemunho pessoal';
@@ -10885,9 +10821,9 @@ function eliminarLead(id) {
 //   - Desmarcado (default): o(s) lead(s) vai/vão inteiros para a lixeira,
 //     historico/estado incluídos — ficam associáveis automaticamente se o
 //     contacto for reimportado (ver procurarLeadNaLixeira() em
-//     confirmarImportFileContacts()/confirmarImportGoogleContacts()).
+//     confirmarImport()/confirmarImportFileContacts()/confirmarImportGoogleContacts()).
 //   - Marcado: vai igualmente para a lixeira (o contacto em si continua
-//     recuperável por 7 dias, e é isso que impede a sincronização com a
+//     recuperável por LIXEIRA_DIAS dias, e é isso que impede a sincronização com a
 //     Drive de o "ressuscitar" — ver idsEliminadosLead em driveSync()), mas
 //     com historico/estado já limpos antes de arquivar, para não ficarem
 //     nem recuperáveis manualmente nem associáveis a uma reimportação.
@@ -10920,7 +10856,7 @@ function executarEliminacaoPendente() {
     renderLista();
     showToast(apagarHistorico
       ? '🗑 Lead eliminado, incluindo histórico e estado.'
-      : '🗑 Lead movido para a lixeira (recuperável por 7 dias, com histórico).');
+      : `🗑 Lead movido para a lixeira (recuperável por ${LIXEIRA_DIAS} dias, com histórico).`);
 
   } else if (pend.modo === 'todos') {
     const total = leads.length;
@@ -11227,9 +11163,6 @@ function exportarBackupCompleto() {
     if (!key || !key.startsWith(prefixo)) continue;
     // Não incluir chaves de API keys (sensíveis e específicas do dispositivo)
     if (/claudeKey|claude_key|geminiKey|gemini_key|google_client_id|grokKey|groqKey|mistralKey|openrouterKey/i.test(key)) continue;
-    // Não incluir a sessão de login (específica deste dispositivo/navegador) —
-    // restaurar isto por cima da sessão atual causa logout/loop de login.
-    if (key === AUTH_KEY || key === 'lw_auth_user_local') continue;
     try {
       dados[key] = localStorage.getItem(key);
       totalChaves++;
@@ -11283,53 +11216,12 @@ Queres continuar?`)) {
         return;
       }
 
-      // IMPORTANTE: localStorage.setItem() está globalmente substituído (ver
-      // IIFE perto do topo do ficheiro, "Armazenamento do dispositivo está
-      // cheio") para NUNCA relançar QuotaExceededError — esse wrapper
-      // engole o erro para não partir o resto da app. Isso significa que o
-      // try/catch abaixo NUNCA vê uma exceção mesmo quando a escrita falha
-      // por falta de espaço: cada key entrava sempre em "restauradas++",
-      // mostrando "✅ Backup restaurado!" mesmo quando a chave mais pesada
-      // (tipicamente lw_leads, com milhares de contactos) nunca chegou a
-      // ser gravada. Por isso confirmamos aqui, a seguir a cada escrita, se
-      // o valor lido de volta bate certo com o que devia ter sido gravado —
-      // é a única forma fiável de detetar a falha com este wrapper ativo.
-      let restauradas = 0;
-      const falhadas = [];
       chaves.forEach(key => {
-        // Nunca restaurar a sessão de login guardada num backup antigo —
-        // isso substitui a sessão atual e causa logout/loop de login.
-        if (key === AUTH_KEY || key === 'lw_auth_user_local') return;
-        try {
-          localStorage.setItem(key, dados[key]);
-          if (localStorage.getItem(key) === dados[key]) {
-            restauradas++;
-          } else {
-            falhadas.push(key);
-          }
-        } catch(e) { falhadas.push(key); }
+        try { localStorage.setItem(key, dados[key]); } catch(e) { /* ignora chave problemática */ }
       });
 
-      if (falhadas.length) {
-        // Não recarrega a página neste caso: um reload agora consolidaria
-        // um estado parcialmente restaurado (algumas contas/secções
-        // atualizadas, outras não) como se fosse definitivo, e a próxima
-        // tentativa de restauro partiria de dados já misturados.
-        const chavesPrincipais = falhadas.filter(k => /^lw_(leads|posts|membros)_/.test(k));
-        showToast(`⚠️ Restauro incompleto: o armazenamento do dispositivo está cheio. ${restauradas} item(ns) restaurado(s), mas ${falhadas.length} falharam${chavesPrincipais.length ? ' (incluindo contactos/posts)' : ''}. Liberta espaço (ex.: desinstala apps não usadas, ou limpa dados de outras apps) e tenta novamente — a página NÃO foi recarregada para não perderes o que já lá estava.`);
-        event.target.value = '';
-        return;
-      }
-
       localStorage.setItem(getBackupLastKey(), new Date().toISOString());
-      // Marca que acabámos de restaurar um backup: o próximo arranque vai
-      // saltar o auto-sync do Google Drive (driveLoadOnLogin), porque o
-      // token de acesso (só vive em memória) foi sempre perdido neste
-      // reload — restauro ou não — e pedir um novo token silenciosamente
-      // logo a seguir a um restauro pode interferir com o arranque da
-      // sessão. Sincronização manual continua disponível normalmente.
-      sessionStorage.setItem('lw_skip_drive_autosync_once', '1');
-      showToast(`✅ Backup restaurado! (${restauradas} itens). A recarregar...`);
+      showToast(`✅ Backup restaurado! (${chaves.length} itens). A recarregar...`);
       setTimeout(() => window.location.reload(), 1200);
     } catch(err) {
       showToast('❌ Ficheiro inválido: ' + err.message);
@@ -13947,7 +13839,7 @@ function eliminarTestemunho(id) {
   testemunhos = testemunhos.filter(x => x.id !== id);
   saveTestemunhos();
   renderTestemunhos();
-  showToast('🗑 Testemunho movido para a lixeira (recuperável por 7 dias)');
+  showToast(`🗑 Testemunho movido para a lixeira (recuperável por ${LIXEIRA_DIAS} dias)`);
 }
 
 function testemunhosFiltrar(filtro) {
@@ -16974,7 +16866,7 @@ function eliminarEvento(id) {
   eventos = eventos.filter(e => e.id !== id);
   saveEventos();
   renderAgenda(agendaSelectedDay);
-  showToast('🗑 Evento movido para a lixeira (recuperável por 7 dias)');
+  showToast(`🗑 Evento movido para a lixeira (recuperável por ${LIXEIRA_DIAS} dias)`);
 }
 
 let editingEventoId = null;
@@ -17342,6 +17234,8 @@ function detetarLeadsDuplicados() {
 
 function abrirDuplicados() {
   openModal('modal-duplicados');
+  const infoDias = document.getElementById('duplicados-info-dias');
+  if (infoDias) infoDias.innerHTML = `Deteta contactos com o <strong>mesmo telefone</strong>, <strong>mesmo email</strong> ou <strong>nome muito parecido</strong>. Escolhe qual manter — o outro passa para a lixeira (recuperável ${LIXEIRA_DIAS} dias) e o histórico é fundido.`;
   document.getElementById('duplicados-loading').style.display = 'block';
   document.getElementById('duplicados-vazio').style.display = 'none';
   document.getElementById('duplicados-lista').style.display = 'none';
@@ -18257,9 +18151,7 @@ function openModal(id) {
 // Each user's data is stored with their email as key prefix
 // e.g. lw_leads_joao@gmail.com, lw_posts_joao@gmail.com
 
-// currentUser é declarada no topo do ficheiro (perto de "let leads = ..."),
-// não aqui, porque getUserStorageKey() precisa de a ler já nessa altura.
-// Ver o comentário junto a essa declaração para o motivo.
+let currentUser = null; // { email, name, picture, method }
 
 const AUTH_KEY = 'lw_auth_user';
 const GOOGLE_CLIENT_ID_KEY = 'lw_google_client_id';
@@ -18298,10 +18190,13 @@ function getUserStorageKey(key) {
 
 // ===================================================
 // LIXEIRA — itens eliminados (leads/membros) ficam recuperáveis
-// por 7 dias antes de serem apagados em definitivo. Protege contra
-// cliques acidentais em "Eliminar", que antes eram irreversíveis.
+// por LIXEIRA_DIAS dias antes de serem apagados em definitivo. Protege
+// contra cliques acidentais em "Eliminar", que antes eram irreversíveis.
+// Alargado de 7 para 30 dias: um contacto eliminado e só reimportado
+// semanas depois (ex. reimportação de um ficheiro CSV/VCF antigo) já
+// não perde o histórico por a janela de recuperação ter fechado entretanto.
 // ===================================================
-const LIXEIRA_DIAS = 7;
+const LIXEIRA_DIAS = 30;
 
 function getLixeira() {
   try { return JSON.parse(localStorage.getItem(getUserStorageKey('lw_lixeira')) || '[]'); }
@@ -18377,6 +18272,9 @@ function abrirLixeira() {
   const lixeira = getLixeira();
   const lista = document.getElementById('lixeira-lista');
   if (!lista) return;
+
+  const infoDias = document.getElementById('lixeira-info-dias');
+  if (infoDias) infoDias.textContent = `Itens eliminados ficam aqui por ${LIXEIRA_DIAS} dias antes de serem apagados em definitivo.`;
 
   if (!lixeira.length) {
     lista.innerHTML = '<div style="font-size:13px;color:var(--text2);text-align:center;padding:24px 0;">🗑️ A lixeira está vazia.</div>';
@@ -18789,7 +18687,7 @@ function entrarNaApp(user) {
   // Mover automaticamente leads inativos há muito tempo para "Frio"
   moverLeadsParaFrioAutomaticamente();
 
-  // Limpar da lixeira itens com mais de 7 dias (apagados em definitivo)
+  // Limpar da lixeira itens com mais de LIXEIRA_DIAS dias (apagados em definitivo)
   limparLixeiraExpirada();
 
   // Hide login screen, show app
@@ -20120,14 +20018,6 @@ function drivesyncFalhouAvisoAdiar() {
 // locais com os do Drive sem apagar nada, em vez de substituir às cegas.
 async function driveLoadOnLogin() {
   if (!currentUser || currentUser.method !== 'google') return;
-  // Se este arranque é o reload logo a seguir a um restauro de backup,
-  // salta o auto-sync desta vez só (evita pedir um novo token do Google
-  // silenciosamente enquanto a sessão ainda está a estabilizar). Consome
-  // a flag para que os próximos arranques normais voltem a sincronizar.
-  if (sessionStorage.getItem('lw_skip_drive_autosync_once') === '1') {
-    sessionStorage.removeItem('lw_skip_drive_autosync_once');
-    return;
-  }
   updateDriveButton();
   await driveSync('auto-login');
 }
@@ -20904,52 +20794,6 @@ function entrarModoLocal() {
 }
 
 // ---- Boot: check if already logged in ----
-(function mostrarDiagnosticoTemporario() {
-  // ===== DIAGNÓSTICO TEMPORÁRIO — REMOVER DEPOIS DE RESOLVER O BUG =====
-  // Mostra, logo no arranque, o estado exato do localStorage relevante
-  // para o login, antes de qualquer lógica de decisão correr.
-  try {
-    const raw = localStorage.getItem(AUTH_KEY);
-    const rawLocal = localStorage.getItem('lw_auth_user_local');
-    const modoPublico = (typeof agDetectarModoPublico === 'function') ? agDetectarModoPublico() : 'fn indisponível';
-    let parseOk = null, parseErro = null, temEmail = null;
-    if (raw) {
-      try {
-        const u = JSON.parse(raw);
-        parseOk = true;
-        temEmail = !!(u && u.email);
-      } catch(e) {
-        parseOk = false;
-        parseErro = e.message;
-      }
-    }
-    const div = document.createElement('div');
-    div.id = 'diag-temp-box';
-    div.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:999999;background:#101a10;border-bottom:3px solid #00d4aa;padding:10px 12px;font-family:monospace;font-size:11px;color:#9fffe0;max-height:45vh;overflow:auto;white-space:pre-wrap;';
-    div.textContent =
-      '🔍 DIAGNÓSTICO ARRANQUE (remover depois)\n' +
-      'agDetectarModoPublico(): ' + JSON.stringify(modoPublico) + '\n' +
-      'lw_auth_user existe? ' + (raw !== null) + '\n' +
-      'lw_auth_user comprimento: ' + (raw ? raw.length : 0) + '\n' +
-      'lw_auth_user parse OK? ' + parseOk + (parseErro ? (' erro: ' + parseErro) : '') + '\n' +
-      'lw_auth_user tem email? ' + temEmail + '\n' +
-      'lw_auth_user conteúdo (raw): ' + (raw || '(vazio)') + '\n' +
-      'lw_auth_user_local existe? ' + (rawLocal !== null) + '\n' +
-      'localStorage total de chaves: ' + localStorage.length + '\n' +
-      'URL atual: ' + location.href;
-    const fechar = document.createElement('button');
-    fechar.textContent = '✕ Fechar';
-    fechar.style.cssText = 'margin-top:8px;background:#00d4aa;color:#000;border:none;border-radius:6px;padding:6px 12px;font-weight:700;font-family:sans-serif;font-size:11px;';
-    fechar.onclick = () => div.remove();
-    div.appendChild(document.createElement('br'));
-    div.appendChild(fechar);
-    document.body ? document.body.appendChild(div) : document.addEventListener('DOMContentLoaded', () => document.body.appendChild(div));
-  } catch(e) {
-    console.error('Erro no diagnóstico:', e);
-  }
-  // ===== FIM DIAGNÓSTICO TEMPORÁRIO =====
-})();
-
 (function initAuth() {
   // Se a URL pedir a página pública de agendamento, mostra só isso e ignora
   // login/auth por completo (não expõe a CRM nem exige conta).
@@ -26436,7 +26280,7 @@ function eliminarMembro(id) {
   saveMembros();
   closeModal('modal-ver-membro');
   renderEquipa();
-  showToast('🗑 Membro movido para a lixeira (recuperável por 7 dias)');
+  showToast(`🗑 Membro movido para a lixeira (recuperável por ${LIXEIRA_DIAS} dias)`);
 }
 
 // ─────────────────────────────────────────────────
@@ -27043,7 +26887,7 @@ function eliminarDespesa(id) {
   despesas = despesas.filter(x => x.id !== id);
   saveDespesas();
   renderDespesas();
-  showToast('🗑 Despesa movida para a lixeira (recuperável por 7 dias)');
+  showToast(`🗑 Despesa movida para a lixeira (recuperável por ${LIXEIRA_DIAS} dias)`);
 }
 
 function renderDespesas() {
@@ -27662,7 +27506,7 @@ function eliminarVenda(id) {
   vendas = vendas.filter(v => v.id !== id);
   saveVendas();
   renderComissoes();
-  showToast('🗑 Venda movida para a lixeira (recuperável por 7 dias)');
+  showToast(`🗑 Venda movida para a lixeira (recuperável por ${LIXEIRA_DIAS} dias)`);
 }
 
 function salvarMetaMensal() {
@@ -32197,7 +32041,7 @@ function formacaoEliminarRecurso(id) {
   formacaoGuardarRecursos(recursos);
   formacaoRenderBiblioteca();
   if (r && r.paginaRelacionada) atualizarBotaoVideoTutorial(r.paginaRelacionada);
-  showToast('🗑 Recurso movido para a lixeira (recuperável por 7 dias)');
+  showToast(`🗑 Recurso movido para a lixeira (recuperável por ${LIXEIRA_DIAS} dias)`);
 }
 
 function formacaoPartilharRecurso(id) {
@@ -34240,7 +34084,7 @@ function srEliminar(id) {
   if (item) moverParaLixeira('script', item);
   localStorage.setItem(getSrBibliotecaKey(), JSON.stringify(todos.filter(i=>i.id!==id)));
   srRenderBiblioteca();
-  showToast('🗑 Script movido para a lixeira (recuperável por 7 dias)');
+  showToast(`🗑 Script movido para a lixeira (recuperável por ${LIXEIRA_DIAS} dias)`);
 }
 
 function srCopiarItem(id) {
@@ -35773,7 +35617,7 @@ function eliminarTemplate(id) {
   custom = custom.filter(t => t.id !== id);
   localStorage.setItem(getUserStorageKey('lw_templates'), JSON.stringify(custom));
   renderTemplates();
-  showToast('🗑 Template movido para a lixeira (recuperável por 7 dias)');
+  showToast(`🗑 Template movido para a lixeira (recuperável por ${LIXEIRA_DIAS} dias)`);
 }
 function gerarTemplateIA() {
   const panel = document.getElementById('tmpl-ia-panel');
@@ -35977,7 +35821,7 @@ function eliminarPromo(id) {
   const p = custom.find(x => x.id === id);
   if (p) moverParaLixeira('promocao', p);
   savePromos(custom.filter(p => p.id !== id));
-  renderPromocoes(); showToast('🗑 Promoção movida para a lixeira (recuperável por 7 dias)');
+  renderPromocoes(); showToast(`🗑 Promoção movida para a lixeira (recuperável por ${LIXEIRA_DIAS} dias)`);
 }
 async function gerarMsgUrgenciaPromo() {
   const sel = document.getElementById('promo-ia-select'); const id = sel?.value;
@@ -38034,7 +37878,7 @@ function eliminarRegra(id) {
   const r = regras.find(x => x.id === id);
   if (r) moverParaLixeira('regra', r);
   saveAutoRegras(regras.filter(r => r.id !== id)); renderAutomacaoGrid(); renderAutomacao();
-  showToast('🗑 Regra movida para a lixeira (recuperável por 7 dias)');
+  showToast(`🗑 Regra movida para a lixeira (recuperável por ${LIXEIRA_DIAS} dias)`);
 }
 function renderAutomacaoLog() {
   const log = [...getAutoLog()].reverse();
@@ -39021,7 +38865,7 @@ function eliminarDiarioEntrada(id) {
   if (e) moverParaLixeira('diario', e);
   saveDiarioEntradas(entradas.filter(e => e.id !== id));
   renderDiario();
-  showToast('🗑 Movido para a lixeira (recuperável por 7 dias)');
+  showToast(`🗑 Movido para a lixeira (recuperável por ${LIXEIRA_DIAS} dias)`);
 }
 
 function reagirDiario(id, emoji) {
