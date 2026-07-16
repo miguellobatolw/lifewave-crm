@@ -11747,13 +11747,33 @@ function renderProximaAcao() {
     motivo = `Está em "${estadoLabel(escolhido.estado)}" há ${esfriar[0].dias} dias sem contacto — risco de perder o interesse.`;
   } else {
     const candidatosScore = ativos.filter(l => diasSemContacto(l) !== 0);
-    const poolScore = candidatosScore.length > 0 ? candidatosScore : ativos;
+    let poolScore = candidatosScore.length > 0 ? candidatosScore : ativos;
+
+    // Não sugerir o mesmo lead que já aparece como "Lead do Dia" — evita
+    // mostrar dois leads "nº1" diferentes ao mesmo tempo quando empatam em
+    // score. Se excluir esvaziar o pool, mantém-se o pool original.
+    if (window._lwLeadDoDiaLeadId) {
+      const poolSemLeadDoDia = poolScore.filter(l => l.id !== window._lwLeadDoDiaLeadId);
+      if (poolSemLeadDoDia.length > 0) poolScore = poolSemLeadDoDia;
+    }
+
     const porScore = poolScore
       .map(l => ({ l, sc: calcularScore(l).score }))
       .sort((a, b) => b.sc - a.sc);
     if (!porScore.length) { el.innerHTML = ''; return; }
     escolhido = porScore[0].l;
     motivo = `É o lead com maior probabilidade de fecho neste momento (${porScore[0].sc}/10).`;
+  }
+  // Sincronização entre widgets: sempre que este cartão muda de escolhido,
+  // força o "Lead do Dia" a recalcular com este valor fresco (protegido
+  // contra loop infinito) — assim os dois nunca mostram o mesmo lead,
+  // independentemente de qual dos dois é chamado primeiro em cada sítio.
+  const mudou = window._lwProximaAcaoLeadId !== escolhido.id;
+  window._lwProximaAcaoLeadId = escolhido.id;
+  if (mudou && !window._lwSyncEmCurso && typeof renderResumoDia === 'function') {
+    window._lwSyncEmCurso = true;
+    renderResumoDia();
+    window._lwSyncEmCurso = false;
   }
 
   const tel = escolhido.tel ? limparTelefone(escolhido.tel) : '';
@@ -17511,12 +17531,13 @@ ${perfilDetectado.includes('INDEFINIDO') ? '→ Não há sinais claros ainda. Us
 
 Regras:
 - Escreve em Português de Portugal
-- O teu nome é ${nomeDistribuidor} — é quem está a enviar esta mensagem. Se a mensagem se identificar ou assinar, usa APENAS este nome, nunca um username ou nome inventado
+- O teu nome é ${nomeDistribuidor} — é quem está a enviar esta mensagem
+- A mensagem tem SEMPRE de terminar assinada com este nome próprio (ex: "- ${nomeDistribuidor}" ou "${nomeDistribuidor} 😊" numa linha final), mesmo sendo uma mensagem curta e informal — nunca envies sem assinatura, e nunca uses um username ou nome inventado
 - Tom pessoal, caloroso e sem pressão de vendas
-- Comprimento: ${limite}
+- Comprimento: ${limite} (a assinatura conta para este limite)
 - ${canal === 'SMS' ? 'Sem emojis, texto simples' : 'Podes usar alguns emojis (máximo 3)'}
 - Evita frases que pareçam um script copiado (ex: "pergunta aleatória", "espero que estejas bem!! 😊" genérico)
-- Termina com uma pergunta aberta ou convite suave
+- Termina com uma pergunta aberta ou convite suave, seguida da assinatura
 - Não repitas factos óbvios do histórico de forma mecânica — usa-os com naturalidade
 
 Responde APENAS com o texto da mensagem, sem título nem explicação.`;
@@ -17856,12 +17877,13 @@ Quem envia (usa APENAS este nome se a mensagem se identificar ou assinar, nunca 
 Regras:
 - Escreve em Português de Portugal
 - O teu nome é ${nomeDistribuidorMassa} — é quem está a enviar esta mensagem
+- A mensagem tem SEMPRE de terminar assinada com este nome próprio (ex: "- ${nomeDistribuidorMassa}" ou "${nomeDistribuidorMassa} 😊" numa linha final), mesmo sendo curta e informal — nunca envies sem assinatura, e nunca uses um username ou nome inventado
 - Tom pessoal, caloroso e sem pressão de vendas
 - Adapta o tom ao mercado: quente=mais pessoal e direto, morno=mais explicativo, frio=mais cuidadoso e não invasivo
 - Personaliza a abertura com {nome}, mas VARIA a construção da frase (não uses sempre "Olá {nome}!" — alterna com formas como "{nome}, ...", "Ei {nome}!", ou entra direto no assunto mencionando {nome} a meio da 1ª frase). Pessoas que recebem mensagens em massa por vezes comparam notas; abertura sempre idêntica denuncia script.
-- Comprimento: ${limite}
+- Comprimento: ${limite} (a assinatura conta para este limite)
 - ${canal === 'SMS' ? 'Sem emojis, texto simples' : 'Podes usar alguns emojis (máximo 3)'}
-- Termina com uma pergunta aberta ou convite suave
+- Termina com uma pergunta aberta ou convite suave, seguida da assinatura
 - Usa {nome} como placeholder para o nome da pessoa
 
 Responde APENAS com o texto da mensagem, sem título nem explicação.`;
@@ -23518,6 +23540,7 @@ function pularLeadDoDia(id) {
     localStorage.setItem(chave, JSON.stringify(atuais));
   } catch(e) {}
   showToast('⏭️ A passar para o próximo lead...');
+  if (typeof renderDigestDiario === 'function') renderDigestDiario();
   if (typeof renderResumoDia === 'function') renderResumoDia();
 }
 
@@ -23739,11 +23762,33 @@ function renderDigestDiario() {
       const poolSemIgnorados = pool.filter(l => ignoradosHoje.indexOf(l.id) === -1);
       if (poolSemIgnorados.length > 0) pool = poolSemIgnorados;
     }
+    // A partir daqui, "pool" já respeita os "Passar" de hoje — guarda-se este
+    // estado para a exclusão seguinte nunca poder reverter para um lead já
+    // passado (ver nota abaixo).
+    const poolRespeitandoPassar = pool;
+
+    // Não sugerir o mesmo lead que já aparece como "Próxima Melhor Ação" —
+    // os dois cartões partilham o pool de ativos e podiam empatar em score,
+    // mostrando "dois leads nº1" em simultâneo. Se excluir esvaziar o pool,
+    // recua para o pool que já respeita os "Passar" (nunca para o pool
+    // original) — caso contrário um lead marcado "Passar" podia reaparecer
+    // (era o bug: clicar "Passar" não tinha efeito visível).
+    if (window._lwProximaAcaoLeadId) {
+      const poolSemProximaAcao = pool.filter(l => l.id !== window._lwProximaAcaoLeadId);
+      pool = poolSemProximaAcao.length > 0 ? poolSemProximaAcao : poolRespeitandoPassar;
+    }
 
     const melhor = pool
       .map(l => ({ l, sc: calcularScore(l).score, dias: diasSemContacto(l) }))
       .sort((a, b) => b.sc - a.sc)[0];
     const { l, sc, dias } = melhor;
+    const _lwMudouLeadDia = window._lwLeadDoDiaLeadId !== l.id;
+    window._lwLeadDoDiaLeadId = l.id; // publicado para o widget "Próxima Melhor Ação" se excluir a si mesmo
+    if (_lwMudouLeadDia && !window._lwSyncEmCurso && typeof renderProximaAcao === 'function') {
+      window._lwSyncEmCurso = true;
+      renderProximaAcao();
+      window._lwSyncEmCurso = false;
+    }
     const tel = l.tel ? limparTelefone(l.tel) : '';
 
     // Ação sugerida com base no estado
@@ -40622,25 +40667,33 @@ async function acAnalisar() {
 
     // Sistema central de fallback automático para texto puro sem media —
     // tentando Gemini → Claude → Grok → Mistral → OpenRouter (conforme chaves configuradas).
-    // Assim que há QUALQUER media (imagem e/ou áudio, isolados ou em conjunto),
-    // força-se sempre o Gemini: é o único provider da cadeia com suporte nativo
-    // a inline_data (imagem/áudio) e o único capaz de receber vários media na
-    // mesma chamada (ex: screenshot + nota de voz analisados em conjunto).
+    // Quando há ÁUDIO (isolado ou combinado com imagem), força-se sempre o Gemini: é o
+    // único provider da cadeia com suporte nativo a inline_data de áudio e o único capaz
+    // de receber vários media na mesma chamada (ex: screenshot + nota de voz analisados
+    // em conjunto) — não há fallback possível aqui, as outras IAs simplesmente não
+    // conseguem processar áudio.
+    // Quando é APENAS imagem (o caso mais comum — print de conversa), várias IAs da
+    // cadeia (Claude, Grok, Mistral, OpenRouter) também têm visão, por isso passa por
+    // callAI() para poder cair para a próxima IA se o Gemini estiver sem quota/em baixo
+    // — antes, um erro de quota do Gemini aparecia cru ao utilizador mesmo havendo
+    // outras chaves configuradas, porque a chamada ignorava a cadeia de fallback.
     var _acExtraMedia = [];
     if (isImg && isAudio) {
       // Quando ambos existem, a imagem vai como extraMedia e o áudio como o
       // media "principal" da chamada (mantém a assinatura de callGemini simples).
       _acExtraMedia.push({ data: _acImagemB64, mimeType: 'image/jpeg' });
     }
-    var raw = temMedia
+    var raw = isAudio
       ? await callGemini(
           promptText,
-          isAudio ? _acAudioB64 : _acImagemB64,
-          isAudio ? (_acAudioMediaType || 'audio/webm') : 'image/jpeg',
+          _acAudioB64,
+          _acAudioMediaType || 'audio/webm',
           null,
           _acExtraMedia
         )
-      : await callAI('posts', promptText, null, null, 'analise_conversa');
+      : isImg
+        ? await callAI('posts', promptText, _acImagemB64, 'image/jpeg', 'analise_conversa')
+        : await callAI('posts', promptText, null, null, 'analise_conversa');
 
     if (!raw || !raw.trim()) throw new Error('Resposta vazia da IA');
 
@@ -40758,15 +40811,17 @@ async function acAnalisar() {
           "Respond ONLY in valid JSON",
           "LEAD HISTORY RULE (critical): below is the prior interaction history already recorded for this prospect in the CRM, most recent first. Use it as background context to inform \"sentimento\", \"fase\", \"objecoes\", \"pontos_positivos\", \"erros_cometidos\", \"probabilidade_conversao\", \"proximo_passo\" and especially \"proxima_mensagem\" — do not repeat an objection they already resolved, reference earlier commitments naturally if relevant, and trust the CURRENT conversation over the history if they contradict each other. If the history includes a line starting with \"ÚLTIMA SUGESTÃO DE MENSAGEM JÁ FEITA A ESTE LEAD\" marked as NÃO RESULTOU, do not repeat a similar angle — actively try a genuinely different approach this time, and mention briefly in \"dica_extra\" that the previous approach did not land so the distributor understands why the strategy changed. If marked RESULTOU, build on what worked instead of starting over. If marked pendente, treat it the same as no prior suggestion.\n\nHISTÓRICO DO LEAD (mais recente primeiro):\n" + _acHistoricoResumoFinal + "\n\nRespond ONLY in valid JSON"
         );
-        var rawComHistorico = temMedia
+        var rawComHistorico = isAudio
           ? await callGemini(
               promptTextComHistorico,
-              isAudio ? _acAudioB64 : _acImagemB64,
-              isAudio ? (_acAudioMediaType || 'audio/webm') : 'image/jpeg',
+              _acAudioB64,
+              _acAudioMediaType || 'audio/webm',
               null,
               _acExtraMedia
             )
-          : await callAI('posts', promptTextComHistorico, null, null, 'analise_conversa');
+          : isImg
+            ? await callAI('posts', promptTextComHistorico, _acImagemB64, 'image/jpeg', 'analise_conversa')
+            : await callAI('posts', promptTextComHistorico, null, null, 'analise_conversa');
         if (rawComHistorico && rawComHistorico.trim()) {
           var cleanComHist = rawComHistorico.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim();
           var parsedComHist = null;
