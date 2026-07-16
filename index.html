@@ -10071,6 +10071,9 @@ function salvarLead() {
       lead.historico.push({ tipo: 'estado', msg: `Estado alterado para "${estadoLabel(lead.estado)}"`, data: new Date().toLocaleString('pt-PT') });
       lead.ultimoContacto = new Date().toISOString();
     }
+    if (lead.mercado !== leads[idx].mercado) {
+      lead.historico.push({ tipo: 'nota', msg: `🌡️ Temperatura alterada de "${leads[idx].mercado || 'não definida'}" para "${lead.mercado}"`, data: new Date().toLocaleString('pt-PT') });
+    }
     leads[idx] = lead;
   } else {
     lead.historico = [{ tipo: 'sistema', msg: 'Lead adicionado', data: new Date().toLocaleString('pt-PT') }];
@@ -16997,6 +17000,24 @@ function iniciarGoogleAuth(action) {
 let msgLeadId = null;
 let msgTemplateTipoAtual = null; // 'tipo' do template usado nesta mensagem (para medir taxa de resposta), null se escrita à mão
 let msgCanal = 'whatsapp'; // 'whatsapp' | 'sms'
+let msgTempEscolhida = 'morno'; // temperatura escolhida na pill do modal de mensagem ('quente'|'morno'|'frio'|'desconhecido')
+
+// Mapeia a string canónica de l.mercado (ex: '🔥 Mercado Quente') para o valor
+// da pill de temperatura ('quente'|'morno'|'frio'), para pré-selecionar a pill
+// certa quando o modal abre — mesmo raciocínio usado em Análise de Conversa.
+function mercadoParaTempPill(mercado) {
+  const m = (mercado || '').toLowerCase();
+  if (m.indexOf('quente') !== -1) return 'quente';
+  if (m.indexOf('morno') !== -1) return 'morno';
+  if (m.indexOf('frio') !== -1) return 'frio';
+  return 'desconhecido';
+}
+
+function setMsgTemp(el, val) {
+  document.querySelectorAll('#msg-temp-pills .tone-pill').forEach(p => p.classList.remove('active'));
+  el.classList.add('active');
+  msgTempEscolhida = val;
+}
 
 const TEMPLATES = {
   // ===== QUENTE (amigos/família) =====
@@ -17047,6 +17068,14 @@ function abrirMensagem(leadId, canal) {
   document.getElementById('msg-ia-objetivo').value = OBJETIVO_POR_ESTADO[l.estado] || 'primeiro';
   toggleCampoRespostaLead();
 
+  // Pré-seleciona a pill de temperatura com base na temperatura atual do lead
+  // (l.mercado), tal como acontece em Análise de Conversa — o distribuidor só
+  // precisa de mudar se, na sua perceção, a temperatura mudou entretanto.
+  msgTempEscolhida = mercadoParaTempPill(l.mercado);
+  document.querySelectorAll('#msg-temp-pills .tone-pill').forEach(function(p) {
+    p.classList.toggle('active', p.dataset.temp === msgTempEscolhida);
+  });
+
   // Fill number
   const telRaw = l.tel || '';
   const telLimpo = limparTelefone(telRaw);
@@ -17065,13 +17094,22 @@ function abrirMensagem(leadId, canal) {
   initMsgAISelector();
 }
 
-// Abre o modal de mensagem pré-configurado para follow-up e gera mensagem IA automaticamente
+// Abre o modal de mensagem pré-configurado para contactar o lead e gera mensagem IA
+// automaticamente. O objetivo (Primeiro contacto vs Follow-up) é escolhido consoante
+// o estado real do lead: 'novo' é sempre o estado atribuído na criação/importação
+// (ver executarEliminacaoPendente(), confirmarImport(), confirmarImportGoogleContacts()),
+// e só avança para 'contactado' quando o utilizador o faz manualmente — por isso é
+// o sinal fiável de que ainda não houve nenhum contacto. Antes, esta função forçava
+// sempre 'followup', mesmo para leads nunca contactados, o que fazia a mensagem
+// gerada por IA soar como se já tivesse havido conversa anterior, quando era a primeira.
 function abrirMensagemFollowUp(leadId) {
   abrirMensagem(leadId, 'whatsapp');
-  // Aguarda o modal abrir e define objetivo follow-up + gera IA
+  const lead = leads.find(l => l.id === leadId);
+  const objetivo = (lead && lead.estado === 'novo') ? 'primeiro' : 'followup';
+  // Aguarda o modal abrir e define o objetivo certo + gera IA
   setTimeout(() => {
     const sel = document.getElementById('msg-ia-objetivo');
-    if (sel) { sel.value = 'followup'; toggleCampoRespostaLead(); }
+    if (sel) { sel.value = objetivo; toggleCampoRespostaLead(); }
     gerarMsgIA();
   }, 200);
 }
@@ -17370,7 +17408,14 @@ function usarTemplate(tipo) {
   const tipoMercado = mercado.includes('frio') ? 'frio' : mercado.includes('morno') ? 'morno' : 'quente';
   const fn = TEMPLATES[tipo + '_' + tipoMercado] || TEMPLATES[tipo + '_quente'];
   if (fn) {
-    document.getElementById('msg-texto').value = fn().replace(/\{nome\}/g, nome);
+    // {nome_remetente} — usado no template primeiro_frio (a pessoa apresenta-se por
+    // ser um desconhecido) — precisa do mesmo nome real usado em gerarMsgIA()/
+    // gerarGuiaoIA(), senão fica por substituir e aparece literalmente na mensagem.
+    const perfilTmpl = getUserPerfil();
+    const nomeRemetente = perfilTmpl.nomeDisplay || currentUser?.name || 'Distribuidor';
+    document.getElementById('msg-texto').value = fn()
+      .replace(/\{nome\}/g, nome)
+      .replace(/\{nome_remetente\}/g, nomeRemetente);
     updateMsgCount();
     msgTemplateTipoAtual = tipo; // guarda qual template foi escolhido, para depois medir taxa de resposta
   }
@@ -17393,6 +17438,11 @@ async function gerarMsgIA() {
   const respostaLead = document.getElementById('msg-resposta-lead')?.value.trim() || '';
   const negocio = document.getElementById('msg-cat-negocio')?.checked;
   const produto = document.getElementById('msg-cat-produto')?.checked;
+  // Nome de quem envia — mesmo padrão já usado em gerarGuiaoIA(), para a IA
+  // assinar/referir-se a si própria com o nome real do distribuidor em vez
+  // de inventar um nome ou deixar a mensagem sem remetente.
+  const perfilMsg = getUserPerfil();
+  const nomeDistribuidor = perfilMsg.nomeDisplay || currentUser?.name || 'Distribuidor';
 
   let foco = 'sobre o produto LifeWave X39 e a oportunidade de negócio';
   if (negocio && !produto) foco = 'focada em apresentar a oportunidade de negócio LifeWave (recrutamento/parceria), sem falar em detalhe do produto';
@@ -17441,6 +17491,9 @@ async function gerarMsgIA() {
 ${objetivoInstrucao}
 ${contextoRetencao}
 
+--- QUEM ESTÁ A ENVIAR ---
+Nome próprio (usa APENAS este nome, nunca usernames): ${nomeDistribuidor}
+
 --- CONTEXTO DO LEAD ---
 Estado atual: ${estadoLabel(l.estado)}
 Mercado: ${l.mercado}
@@ -17458,6 +17511,7 @@ ${perfilDetectado.includes('INDEFINIDO') ? '→ Não há sinais claros ainda. Us
 
 Regras:
 - Escreve em Português de Portugal
+- O teu nome é ${nomeDistribuidor} — é quem está a enviar esta mensagem. Se a mensagem se identificar ou assinar, usa APENAS este nome, nunca um username ou nome inventado
 - Tom pessoal, caloroso e sem pressão de vendas
 - Comprimento: ${limite}
 - ${canal === 'SMS' ? 'Sem emojis, texto simples' : 'Podes usar alguns emojis (máximo 3)'}
@@ -17499,6 +17553,24 @@ function enviarMensagem() {
   const l = leads.find(x => x.id === msgLeadId);
   if (l) {
     l.historico = l.historico || [];
+
+    // Atualiza a temperatura do lead (l.mercado) com a pill escolhida neste modal —
+    // mesmo padrão usado em Análise de Conversa (acGuardarNoLead): a pill é a fonte
+    // de verdade porque é uma escolha explícita do distribuidor, não uma inferência.
+    // "Não sei" não é aplicada (mantém o que já estava no lead). Só regista no
+    // histórico quando de facto muda, para não poluir com entradas repetidas.
+    const MERCADO_POR_TEMP_MSG = { quente: '🔥 Mercado Quente', morno: '🌡️ Mercado Morno', frio: '❄️ Mercado Frio' };
+    const mercadoParaAplicarMsg = MERCADO_POR_TEMP_MSG[msgTempEscolhida] || '';
+    if (mercadoParaAplicarMsg && mercadoParaAplicarMsg !== l.mercado) {
+      const mercadoAnteriorMsg = l.mercado || 'não definido';
+      l.mercado = mercadoParaAplicarMsg;
+      l.historico.push({
+        tipo: 'nota',
+        msg: `🌡️ Temperatura do lead alterada de "${mercadoAnteriorMsg}" para "${mercadoParaAplicarMsg}" (Enviar WhatsApp)`,
+        data: new Date().toLocaleString('pt-PT')
+      });
+    }
+
     const entradaMsg = {
       tipo: 'mensagem',
       msg: `${msgCanal === 'whatsapp' ? '💬 WhatsApp' : '📱 SMS'} enviado: "${texto.slice(0, 60)}${texto.length > 60 ? '…' : ''}"`,
@@ -17732,7 +17804,12 @@ function updateMassaCount() {
 function usarTemplateMassa(tipo) {
   const fn = TEMPLATES[tipo + '_' + massaLeadType] || TEMPLATES[tipo + '_quente'];
   if (fn) {
-    document.getElementById('massa-texto').value = fn();
+    // {nome_remetente} é sempre o mesmo (o próprio utilizador), ao contrário de
+    // {nome}, que fica como placeholder para ser substituído por destinatário
+    // no envio em massa — ver mesmo padrão em usarTemplate().
+    const perfilTmplMassa = getUserPerfil();
+    const nomeRemetenteMassa = perfilTmplMassa.nomeDisplay || currentUser?.name || 'Distribuidor';
+    document.getElementById('massa-texto').value = fn().replace(/\{nome_remetente\}/g, nomeRemetenteMassa);
     updateMassaCount();
   }
 }
@@ -17757,6 +17834,10 @@ async function gerarMsgIAMassa() {
   else if (!negocio && !produto) foco = 'genérica e amigável, sem focar especificamente em negócio ou produto';
 
   const tipoMercado = { quente: 'mercado quente (amigos/familiares próximos)', morno: 'mercado morno (conhecidos, colegas)', frio: 'mercado frio (desconhecidos)' }[massaLeadType];
+  // Nome de quem envia — mesmo padrão de gerarMsgIA()/gerarGuiaoIA(), para a
+  // IA saber quem está a assinar em vez de inventar um remetente.
+  const perfilMassa = getUserPerfil();
+  const nomeDistribuidorMassa = perfilMassa.nomeDisplay || currentUser?.name || 'Distribuidor';
 
   const objetivo = document.getElementById('massa-ia-objetivo')?.value || 'primeiro';
   const objetivoInstrucao = {
@@ -17770,9 +17851,11 @@ async function gerarMsgIAMassa() {
   const prompt = `Cria uma mensagem de ${canal} para enviar a vários contactos, ${foco}.
 ${objetivoInstrucao}
 Tipo de mercado: ${tipoMercado}
+Quem envia (usa APENAS este nome se a mensagem se identificar ou assinar, nunca um username): ${nomeDistribuidorMassa}
 
 Regras:
 - Escreve em Português de Portugal
+- O teu nome é ${nomeDistribuidorMassa} — é quem está a enviar esta mensagem
 - Tom pessoal, caloroso e sem pressão de vendas
 - Adapta o tom ao mercado: quente=mais pessoal e direto, morno=mais explicativo, frio=mais cuidadoso e não invasivo
 - Personaliza a abertura com {nome}, mas VARIA a construção da frase (não uses sempre "Olá {nome}!" — alterna com formas como "{nome}, ...", "Ei {nome}!", ou entra direto no assunto mencionando {nome} a meio da 1ª frase). Pessoas que recebem mensagens em massa por vezes comparam notas; abertura sempre idêntica denuncia script.
@@ -21683,10 +21766,16 @@ function getLastContactDate(l) {
       }
     }
   }
-  if (maisRecente) return maisRecente;
-  // Fall back to lead creation date
-  if (l.data) return parseDataContactoLead(l.data);
-  return null;
+  // NOTA: NÃO faz fallback para a data de criação/importação do lead (l.data)
+  // quando não há nenhum contacto real no histórico. Criar ou importar um
+  // lead não é o mesmo que contactá-lo — antes, esse fallback fazia
+  // diasSemContacto() devolver 0 (ou outro número pequeno) para um lead
+  // "Novo" importado/criado há poucas horas, e o "Lead do Dia" mostrava a
+  // contradição "Novo · 0d sem contacto" em vez de simplesmente "Novo".
+  // null aqui é o sinal correto de "nunca houve contacto", que diasSemContacto()
+  // já propaga como null e que os locais que o consomem já tratam bem
+  // (mostrando "Novo" em vez de um número de dias).
+  return maisRecente;
 }
 
 function diasSemContacto(l) {
@@ -23406,6 +23495,32 @@ function renderStreak() {
 // histórico "Funil: X → Y" criado para o analytics do funil) — não introduz
 // nenhum tracking novo.
 // ===================================================
+// ── Lead do Dia: "Passar ao próximo" ──────────────────────────────────
+// Permite ignorar o lead sugerido hoje sem alterar nenhum dado do lead (nem
+// estado, nem histórico) — útil quando o contacto já foi feito offline (ex:
+// pessoalmente, por chamada não registada) e não há interesse, ou quando o
+// distribuidor simplesmente prefere agir sobre outro lead primeiro. A lista se
+// reseta automaticamente todos os dias (chave inclui a data), para o lead
+// voltar a poder ser sugerido amanhã.
+function _leadDoDiaChaveIgnorados() {
+  return 'lw_leaddodia_ignorados_' + new Date().toLocaleDateString('pt-PT');
+}
+function getLeadsDoDiaIgnorados() {
+  try {
+    return JSON.parse(localStorage.getItem(_leadDoDiaChaveIgnorados()) || '[]');
+  } catch(e) { return []; }
+}
+function pularLeadDoDia(id) {
+  try {
+    const chave = _leadDoDiaChaveIgnorados();
+    const atuais = getLeadsDoDiaIgnorados();
+    if (atuais.indexOf(id) === -1) atuais.push(id);
+    localStorage.setItem(chave, JSON.stringify(atuais));
+  } catch(e) {}
+  showToast('⏭️ A passar para o próximo lead...');
+  if (typeof renderResumoDia === 'function') renderResumoDia();
+}
+
 function renderResumoDia() {
   const card = document.getElementById('resumo-dia-card');
   const itensEl = document.getElementById('resumo-dia-itens');
@@ -23614,7 +23729,17 @@ function renderDigestDiario() {
     // sugerida, por isso o cartão deve avançar para o próximo lead prioritário. Só volta a
     // mostrar um lead "0d sem contacto" se, mesmo assim, não houver mais ninguém por contactar.
     const candidatos = ativos.filter(l => diasSemContacto(l) !== 0);
-    const pool = candidatos.length > 0 ? candidatos : ativos;
+    let pool = candidatos.length > 0 ? candidatos : ativos;
+
+    // Exclui leads que o distribuidor marcou como "Passar" hoje (ver pularLeadDoDia).
+    // Se isso esvaziar o pool (já passou por todos), volta a mostrar todos — é
+    // preferível repetir uma sugestão a não mostrar nenhum "Lead do Dia".
+    const ignoradosHoje = getLeadsDoDiaIgnorados();
+    if (ignoradosHoje.length > 0) {
+      const poolSemIgnorados = pool.filter(l => ignoradosHoje.indexOf(l.id) === -1);
+      if (poolSemIgnorados.length > 0) pool = poolSemIgnorados;
+    }
+
     const melhor = pool
       .map(l => ({ l, sc: calcularScore(l).score, dias: diasSemContacto(l) }))
       .sort((a, b) => b.sc - a.sc)[0];
@@ -23643,7 +23768,10 @@ function renderDigestDiario() {
           </div>
           <div style="display:flex;flex-direction:column;gap:6px;flex-shrink:0;align-items:flex-end;">
             <span style="font-size:13px;font-weight:800;color:${sc>=8?'#ff5555':sc>=6?'#ff9300':'#f5c842'};">${scoreEmoji(sc)} ${sc}/10</span>
-            ${tel ? `<button onclick="abrirMensagemFollowUp('${l.id}')" style="background:var(--accent);border:none;border-radius:8px;color:#000;font-size:12px;font-weight:700;padding:6px 12px;cursor:pointer;white-space:nowrap;">🤖💬 Agir</button>` : `<button onclick="verLead('${l.id}')" style="background:var(--surface3);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:12px;font-weight:600;padding:6px 12px;cursor:pointer;">👁 Ver</button>`}
+            <div style="display:flex;gap:6px;">
+              ${tel ? `<button onclick="abrirMensagemFollowUp('${l.id}')" style="background:var(--accent);border:none;border-radius:8px;color:#000;font-size:12px;font-weight:700;padding:6px 12px;cursor:pointer;white-space:nowrap;">🤖💬 Agir</button>` : `<button onclick="verLead('${l.id}')" style="background:var(--surface3);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:12px;font-weight:600;padding:6px 12px;cursor:pointer;">👁 Ver</button>`}
+              <button onclick="pularLeadDoDia('${l.id}')" title="Já contactado offline ou sem interesse — sugerir outro lead" style="background:var(--surface3);border:1px solid var(--border);border-radius:8px;color:var(--text2);font-size:12px;font-weight:600;padding:6px 10px;cursor:pointer;white-space:nowrap;">⏭️ Passar</button>
+            </div>
           </div>
         </div>
       </div>`;
@@ -29713,6 +29841,17 @@ function renderPrevisaoComissao() {
       <div class="msg-pill active-wa" id="msg-pill-whatsapp" onclick="setMsgCanal('whatsapp')">💬 WhatsApp</div>
       <div class="msg-pill" id="msg-pill-sms" onclick="setMsgCanal('sms')">📱 SMS</div>
       <div class="msg-pill" id="msg-pill-tel" onclick="ligarAtual()">📞 Ligar</div>
+    </div>
+
+    <!-- Temperatura do lead -->
+    <div class="form-group" style="margin-bottom:12px;">
+      <label class="form-label">Temperatura do lead</label>
+      <div style="display:flex;flex-wrap:wrap;gap:6px;" id="msg-temp-pills">
+        <div class="tone-pill active" data-temp="morno" onclick="setMsgTemp(this,'morno')">🌤 Morno</div>
+        <div class="tone-pill" data-temp="quente" onclick="setMsgTemp(this,'quente')">🔥 Quente</div>
+        <div class="tone-pill" data-temp="frio" onclick="setMsgTemp(this,'frio')">❄️ Frio</div>
+        <div class="tone-pill" data-temp="desconhecido" onclick="setMsgTemp(this,'desconhecido')">🤷 Não sei</div>
+      </div>
     </div>
 
     <!-- Aviso sem telefone -->
@@ -40713,7 +40852,7 @@ async function acAnalisar() {
     }
 
     acReset(false);
-    _acUltimaAnalise = { resultado: parsed, plataforma: plat, platLabel: platLabel, textoOriginal: (!isImg && !isAudio ? texto : ''), meuNome: perfNome, leadIdentificado: (_acLeadMatchFinal ? _acLeadMatchFinal.id : '') };
+    _acUltimaAnalise = { resultado: parsed, plataforma: plat, platLabel: platLabel, temperatura: acTemp, textoOriginal: (!isImg && !isAudio ? texto : ''), meuNome: perfNome, leadIdentificado: (_acLeadMatchFinal ? _acLeadMatchFinal.id : '') };
     acMostrarResultado(parsed);
 
   } catch(err) {
@@ -40769,7 +40908,17 @@ function acMostrarResultado(r) {
   // acUsarMsgAlt() poder trocar o conteúdo principal sem precisar de re-renderizar
   // tudo nem de guardar estado global extra.
   var altHtml = (_acMsgAlt && _acMsgAlt !== _acMsgOriginal) ? '<div style="margin-top:12px;border-top:1px dashed rgba(0,212,170,0.25);padding-top:12px;"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;flex-wrap:wrap;gap:8px;"><div style="font-size:11.5px;font-weight:700;color:var(--text2);">🔀 Outra opção: ' + escapeHtml(_acMsgAltLabel) + '</div><button class="btn btn-secondary btn-sm" onclick="acUsarMsgAlt(this)">Usar esta em vez</button></div><pre id="ac-msg-alt-copy" style="font-size:12.5px;color:var(--text2);white-space:pre-wrap;line-height:1.65;font-family:DM Sans,sans-serif;margin:0;">' + _acMsgAlt + '</pre></div>' : '';
-  var msgHtml = _acMsgOriginal ? '<div style="background:linear-gradient(135deg,rgba(0,212,170,0.1),rgba(0,132,255,0.07));border:1px solid rgba(0,212,170,0.3);border-radius:var(--radius);padding:16px;"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:8px;"><div style="font-size:13px;font-weight:700;color:var(--accent);">Mensagem a enviar agora</div><div style="display:flex;gap:6px;flex-wrap:wrap;"><button id="ac-traduzir-btn" class="btn btn-secondary btn-sm" onclick="acTraduzirMsg()">🌐 Traduzir</button><button class="btn btn-secondary btn-sm" onclick="acCopiarMsg()">Copiar</button></div></div><pre id="ac-msg-copy" style="font-size:12.5px;color:var(--text);white-space:pre-wrap;line-height:1.65;font-family:DM Sans,sans-serif;margin:0;">' + _acMsgOriginal + '</pre><div id="ac-traducao-wrap" style="display:none;margin-top:12px;border-top:1px solid rgba(0,212,170,0.2);padding-top:12px;"><div id="ac-traducao-label" style="font-size:11px;font-weight:700;color:var(--text2);margin-bottom:6px;">🌐 Tradução</div><pre id="ac-traducao-text" style="font-size:12.5px;color:var(--text);white-space:pre-wrap;line-height:1.65;font-family:DM Sans,sans-serif;margin:0;"></pre><button class="btn btn-secondary btn-sm" style="margin-top:8px;" onclick="acCopiarTraducao()">Copiar tradução</button></div>' + altHtml + '</div>' : '';
+  // Botão de envio automático — só faz sentido para canais de mensagem de texto
+  // (Chamada e Email ficam de fora, tal como já não geram "proxima_mensagem" útil
+  // para copiar/enviar da mesma forma). O canal vem de _acUltimaAnalise.plataforma,
+  // preenchido em acAnalisar() a partir da pill escolhida em #ac-plat-pills.
+  var _acCanalEnvio = (_acUltimaAnalise && _acUltimaAnalise.plataforma) || 'whatsapp';
+  var _acCanalEnvioSuportado = (_acCanalEnvio === 'whatsapp' || _acCanalEnvio === 'instagram' || _acCanalEnvio === 'messenger');
+  var _acEnvioLabel = { whatsapp: '💬 Enviar WhatsApp', instagram: '📸 Abrir Instagram', messenger: '💙 Abrir Messenger' }[_acCanalEnvio] || '';
+  var btnEnviarHtml = _acCanalEnvioSuportado
+    ? '<button id="ac-enviar-btn" class="btn btn-primary btn-sm" onclick="acEnviarMsgAgora(this)">' + _acEnvioLabel + '</button>'
+    : '';
+  var msgHtml = _acMsgOriginal ? '<div style="background:linear-gradient(135deg,rgba(0,212,170,0.1),rgba(0,132,255,0.07));border:1px solid rgba(0,212,170,0.3);border-radius:var(--radius);padding:16px;"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:8px;"><div style="font-size:13px;font-weight:700;color:var(--accent);">Mensagem a enviar agora</div><div style="display:flex;gap:6px;flex-wrap:wrap;">' + btnEnviarHtml + '<button id="ac-traduzir-btn" class="btn btn-secondary btn-sm" onclick="acTraduzirMsg()">🌐 Traduzir</button><button class="btn btn-secondary btn-sm" onclick="acCopiarMsg()">Copiar</button></div></div><pre id="ac-msg-copy" style="font-size:12.5px;color:var(--text);white-space:pre-wrap;line-height:1.65;font-family:DM Sans,sans-serif;margin:0;">' + _acMsgOriginal + '</pre><div id="ac-envio-aviso" style="display:none;font-size:11px;color:var(--text2);margin-top:8px;"></div><div id="ac-traducao-wrap" style="display:none;margin-top:12px;border-top:1px solid rgba(0,212,170,0.2);padding-top:12px;"><div id="ac-traducao-label" style="font-size:11px;font-weight:700;color:var(--text2);margin-bottom:6px;">🌐 Tradução</div><pre id="ac-traducao-text" style="font-size:12.5px;color:var(--text);white-space:pre-wrap;line-height:1.65;font-family:DM Sans,sans-serif;margin:0;"></pre><button class="btn btn-secondary btn-sm" style="margin-top:8px;" onclick="acCopiarTraducao()">Copiar tradução</button></div>' + altHtml + '</div>' : '';
   var passoHtml = r.proximo_passo ? '<div style="background:rgba(245,200,66,0.08);border:1px solid rgba(245,200,66,0.25);border-radius:var(--radius);padding:14px;display:flex;align-items:flex-start;gap:12px;"><span style="font-size:22px;flex-shrink:0;">🎯</span><div><div style="font-size:12px;font-weight:700;color:var(--gold);margin-bottom:4px;">Proximo passo</div><div style="font-size:13px;color:var(--text);line-height:1.5;">' + r.proximo_passo + '</div></div></div>' : '';
   var dicaHtml = r.dica_extra ? '<div style="background:rgba(180,122,255,0.07);border:1px solid rgba(180,122,255,0.2);border-radius:var(--radius);padding:14px;display:flex;align-items:flex-start;gap:12px;"><span style="font-size:22px;flex-shrink:0;">💡</span><div><div style="font-size:12px;font-weight:700;color:#b47aff;margin-bottom:4px;">Dica estrategica</div><div style="font-size:12.5px;color:var(--text2);line-height:1.6;">' + r.dica_extra + '</div></div></div>' : '';
 
@@ -41011,6 +41160,16 @@ function acGuardarNoLead() {
 
   if (!leadIdEscolhido && !nome) { showToast('❌ Indica um nome para criar o lead.'); return; }
 
+  // Mapeia a pill "Temperatura do lead" (escolhida manualmente pelo distribuidor antes
+  // de analisar) para a string canónica do campo l.mercado usada em todo o CRM. É a
+  // fonte de verdade da temperatura — sobrepõe-se a qualquer estimativa feita a partir
+  // do sentimento/fase da IA, porque é uma escolha explícita e deliberada do distribuidor,
+  // não uma inferência. "Não sei" não é aplicada (mantém o que já estava no lead), já que
+  // não é uma resposta afirmativa sobre a temperatura.
+  var MERCADO_POR_TEMP_AC = { quente: '🔥 Mercado Quente', morno: '🌡️ Mercado Morno', frio: '❄️ Mercado Frio' };
+  var acTempEscolhida = (_acUltimaAnalise && _acUltimaAnalise.temperatura) || 'morno';
+  var mercadoParaAplicar = MERCADO_POR_TEMP_AC[acTempEscolhida] || '';
+
   var r = _acUltimaAnalise.resultado || {};
   var platLabel = _acUltimaAnalise.platLabel || 'conversa';
   var sentLbl = { positivo:'😊 Positivo', neutro:'😐 Neutro', negativo:'😟 Negativo', muito_negativo:'😞 Muito negativo' }[r.sentimento] || r.sentimento || '';
@@ -41052,6 +41211,19 @@ function acGuardarNoLead() {
     lead = leads.find(function(x) { return x.id === leadIdEscolhido; });
     if (!lead) { showToast('❌ Lead não encontrado.'); return; }
     if (nome && nome !== lead.nome) lead.nome = nome; // permite corrigir o nome ao associar
+    // Atualiza a temperatura do lead (l.mercado) com a pill escolhida nesta análise —
+    // só regista no histórico quando de facto muda, para não poluir com entradas
+    // repetidas em análises seguidas onde a temperatura escolhida é sempre a mesma.
+    if (mercadoParaAplicar && mercadoParaAplicar !== lead.mercado) {
+      var mercadoAnteriorAC = lead.mercado || 'não definido';
+      lead.mercado = mercadoParaAplicar;
+      lead.historico = lead.historico || [];
+      lead.historico.unshift({
+        tipo: 'nota',
+        msg: '🌡️ Temperatura do lead alterada de "' + mercadoAnteriorAC + '" para "' + mercadoParaAplicar + '" (Análise de Conversa IA)',
+        data: new Date().toLocaleString('pt-PT')
+      });
+    }
     // Atualiza a "Nota Rápida" com o resumo desta nova análise — sem isto, a nota
     // ficava sempre presa ao resumo da conversa que criou o lead originalmente,
     // mesmo depois de várias análises mais recentes serem guardadas por cima,
@@ -41077,9 +41249,15 @@ function acGuardarNoLead() {
     } else {
       // P3 — Preencher campos com dados já detetados pela IA
       var r0 = _acUltimaAnalise.resultado || {};
-      var mercadoAC = 'Mercado Frio';
-      if (r0.sentimento === 'positivo' || r0.fase === 'pronto_para_comprar' || r0.fase === 'interesse') mercadoAC = '🔥 Mercado Quente';
-      else if (r0.sentimento === 'neutro' || r0.fase === 'consideracao') mercadoAC = '🌡️ Mercado Morno';
+      // Usa a temperatura escolhida manualmente pelo distribuidor na pill (mercadoParaAplicar);
+      // só cai para uma estimativa a partir do sentimento/fase da IA no caso raro de a pill
+      // estar em "Não sei" (mercadoParaAplicar vazio nesse caso).
+      var mercadoAC = mercadoParaAplicar;
+      if (!mercadoAC) {
+        mercadoAC = 'Mercado Frio';
+        if (r0.sentimento === 'positivo' || r0.fase === 'pronto_para_comprar' || r0.fase === 'interesse') mercadoAC = '🔥 Mercado Quente';
+        else if (r0.sentimento === 'neutro' || r0.fase === 'consideracao') mercadoAC = '🌡️ Mercado Morno';
+      }
       var notasAC = r0.resumo || '';
       if (r0.objecoes && r0.objecoes.length) notasAC += (notasAC ? '\n' : '') + 'Objeções: ' + r0.objecoes.join('; ');
       lead = {
@@ -41267,6 +41445,90 @@ function acCopiarMsg() {
   copiarTextoSeguro(txt, 'Mensagem copiada!');
 }
 
+// Envia a "Mensagem a enviar agora" diretamente para o canal escolhido, tal como
+// enviarMensagem() (modal principal) e enviarGuiaoCanal() (Guião IA) já fazem —
+// grava no histórico do lead ANTES de navegar (mesma razão: em Android Chrome
+// window.open pode cair no fallback window.location.href, que corta a execução
+// a meio) e só depois abre a app. WhatsApp abre já com o texto preenchido via
+// wa.me; Instagram e Messenger não têm deep-link que aceite texto, por isso
+// copia para a área de transferência e abre a inbox para o utilizador colar,
+// exatamente como o Guião já faz para Instagram.
+function acEnviarMsgAgora(btn) {
+  var msgEl = document.getElementById('ac-msg-copy');
+  var texto = msgEl ? msgEl.textContent.trim() : '';
+  if (!texto) return;
+
+  var canal = (_acUltimaAnalise && _acUltimaAnalise.plataforma) || 'whatsapp';
+  var avisoEl = document.getElementById('ac-envio-aviso');
+  function aviso(msg) { if (avisoEl) { avisoEl.textContent = msg; avisoEl.style.display = 'block'; } }
+
+  // O lead "atual" é sempre o que está selecionado em #ac-lead-existente — reflete
+  // qualquer troca manual feita pelo utilizador, não só o match automático inicial.
+  var selLead = document.getElementById('ac-lead-existente');
+  var lead = (selLead && selLead.value && typeof leads !== 'undefined')
+    ? leads.find(function(l) { return l.id === selLead.value; })
+    : null;
+
+  if (!lead) {
+    // Sem lead associado ainda não há onde gravar histórico nem (para WhatsApp) telefone
+    // para onde enviar. Envia à mesma para não bloquear o distribuidor, mas avisa
+    // claramente que esta mensagem não vai ficar registada em nenhum lead.
+    copiarTextoSeguro(texto, 'Mensagem copiada!');
+    aviso('⚠️ Sem lead associado — a mensagem não foi guardada no histórico. Escolhe ou cria o lead acima primeiro.');
+    if (canal === 'whatsapp') {
+      showToast('📋 Copiado — associa um lead com telefone para abrir o WhatsApp automaticamente');
+    } else {
+      setTimeout(function() {
+        window.open(canal === 'messenger' ? 'https://www.messenger.com/' : 'https://www.instagram.com/direct/inbox/', '_blank');
+      }, 600);
+    }
+    return;
+  }
+
+  var canalLbl = { whatsapp: '💬 WhatsApp', instagram: '📸 Instagram DM', messenger: '💙 Messenger' }[canal] || canal;
+
+  lead.historico = lead.historico || [];
+  lead.historico.unshift({
+    tipo: 'mensagem',
+    msg: canalLbl + ' enviado (Análise de Conversa IA): "' + texto.slice(0, 60) + (texto.length > 60 ? '…' : '') + '"',
+    data: new Date().toLocaleString('pt-PT')
+  });
+  lead.ultimoContacto = new Date().toISOString();
+  saveleads();
+  if (typeof renderResumoDia === 'function') renderResumoDia();
+  if (typeof renderProximaAcao === 'function') renderProximaAcao();
+  if (typeof renderFunil === 'function') renderFunil();
+  if (typeof renderLista === 'function') renderLista();
+
+  if (canal === 'whatsapp') {
+    var tel = lead.tel ? limparTelefone(lead.tel) : '';
+    if (!tel) {
+      copiarTextoSeguro(texto, 'Mensagem copiada!');
+      aviso('⚠️ Lead sem número de telefone — mensagem copiada e guardada no histórico. Adiciona o telefone ao lead para abrir o WhatsApp automaticamente da próxima vez.');
+      showToast('📋 Copiado — sem telefone para abrir o WhatsApp');
+      return;
+    }
+    var telWA = telParaWaMe(tel);
+    var url = 'https://wa.me/' + telWA + '?text=' + encodeURIComponent(texto);
+    var waWin = window.open(url, '_blank');
+    if (!waWin || waWin.closed || typeof waWin.closed === 'undefined') {
+      window.location.href = url;
+    }
+    showToast('💬 A abrir WhatsApp...');
+  } else {
+    // Instagram DM / Messenger — sem deep-link com texto, copia e abre a inbox
+    copiarTextoSeguro(texto, 'Mensagem copiada!');
+    aviso('📋 Copiado e guardado no histórico — cola na conversa de ' + (canal === 'messenger' ? 'Messenger' : 'Instagram') + '.');
+    showToast('📋 Copiado — cola na conversa de ' + (canal === 'messenger' ? 'Messenger' : 'Instagram'));
+    setTimeout(function() {
+      window.open(canal === 'messenger' ? 'https://www.messenger.com/' : 'https://www.instagram.com/direct/inbox/', '_blank');
+    }, 600);
+  }
+
+  if (btn) { var orig = btn.textContent; btn.textContent = '✓ Enviado'; setTimeout(function(){ btn.textContent = orig; }, 1800); }
+}
+
+
 // Troca o conteúdo do bloco "Mensagem a enviar agora" pela variante alternativa,
 // e vice-versa — permite ao distribuidor alternar entre as duas propostas de
 // ângulo estratégico sem perder nenhuma nem duplicar os botões de copiar/traduzir.
@@ -41281,6 +41543,9 @@ function acUsarMsgAlt(btn) {
   // Se havia uma tradução visível, já não corresponde ao novo texto principal — esconde-a.
   var traducaoWrap = document.getElementById('ac-traducao-wrap');
   if (traducaoWrap) traducaoWrap.style.display = 'none';
+  // Idem para o aviso de envio (ex: "sem telefone") — referia-se ao texto anterior.
+  var envioAviso = document.getElementById('ac-envio-aviso');
+  if (envioAviso) envioAviso.style.display = 'none';
   if (btn) { var orig = btn.textContent; btn.textContent = '✓ Trocado'; setTimeout(function(){ btn.textContent = orig; }, 1400); }
   showToast('🔀 Mensagens trocadas');
 }
