@@ -3,7 +3,13 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, interactive-widget=resizes-content">
-<title>LifeWave CRM v82 — Gestão de Leads & Posts</title>
+<title>LifeWave CRM v86 — Gestão de Leads & Posts</title>
+<script>
+  // Versão única da app — muda só aqui a cada release; o título da página
+  // e o rodapé do ecrã de login lêem sempre deste valor, para nunca ficarem
+  // dessincronizados um do outro.
+  window.APP_VERSION = 'v91';
+</script>
 
 <!-- ===== PWA: manifest, ícones e meta tags ===== -->
 <link rel="manifest" href="manifest.json">
@@ -3504,6 +3510,9 @@ var QRCode=function(t){"use strict";var r,e=function(){return"function"==typeof 
     </div>
 
     <div class="login-tagline">O CRM para o teu<br>negócio LifeWave</div>
+    <div id="login-versao-app" style="text-align:center;font-size:10.5px;color:var(--text3, rgba(255,255,255,0.35));margin-top:-8px;margin-bottom:12px;"></div>
+    <script>document.getElementById('login-versao-app').textContent = window.APP_VERSION || '';</script>
+
 
     <!-- Google login -->
     <button class="btn-google-login" id="btn-login-google" onclick="loginComGoogle()">
@@ -4879,6 +4888,7 @@ var QRCode=function(t){"use strict";var r,e=function(){return"function"==typeof 
           </div>
         </div>
       </div>
+      <div id="posts-desempenho-conteudo" style="margin-top:20px;"></div>
     </div>
 
     <!-- RESPOSTAS RÁPIDAS -->
@@ -5148,6 +5158,9 @@ var QRCode=function(t){"use strict";var r,e=function(){return"function"==typeof 
 
       <!-- CATEGORIAS COMPENSAÇÃO 2.0 -->
       <div id="equipa-categorias-wrap" style="margin-bottom:24px;"></div>
+
+      <!-- MELHORES FONTES DE RECRUTAMENTO -->
+      <div id="equipa-fontes-recrutamento" style="margin-bottom:24px;"></div>
 
       <!-- RANKING + RECURSOS -->
       <div style="display:grid;grid-template-columns:1fr 360px;gap:20px;margin-bottom:20px;" class="equipa-row-main">
@@ -5522,6 +5535,9 @@ var QRCode=function(t){"use strict";var r,e=function(){return"function"==typeof 
           <div class="page-sub">Monitoriza todos os teus Clientes Preferidos e age antes de perderes receita recorrente</div>
         </div>
       </div>
+
+      <!-- SUGESTÕES DE CROSS-SELL -->
+      <div id="ret-cross-sell" style="margin-bottom:16px;"></div>
 
       <!-- RESUMO RÁPIDO -->
       <div id="ret-resumo" style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px;"></div>
@@ -8841,6 +8857,18 @@ var QRCode=function(t){"use strict";var r,e=function(){return"function"==typeof 
         <input class="form-input" type="datetime-local" id="ag-data">
       </div>
     </div>
+    <div class="form-group">
+      <label class="form-label">Categoria de Conteúdo <span style="color:var(--text3);font-weight:400;">(opcional — ajuda a ver o que gera mais leads)</span></label>
+      <select class="form-select" id="ag-categoria">
+        <option value="">Não definida</option>
+        <option value="produto">📦 Produto</option>
+        <option value="testemunho">⭐ Testemunho</option>
+        <option value="educativo">📚 Educativo</option>
+        <option value="estilo-vida">🌿 Estilo de vida</option>
+        <option value="promocao">🏷️ Promoção</option>
+        <option value="negocio">💼 Oportunidade de negócio</option>
+      </select>
+    </div>
     <div class="modal-actions">
       <button class="btn btn-secondary" onclick="closeModal('modal-agendar')">Cancelar</button>
       <button class="btn btn-primary" onclick="agendarPost()">📅 Agendar</button>
@@ -9019,7 +9047,35 @@ var QRCode=function(t){"use strict";var r,e=function(){return"function"==typeof 
     </div>
     <div id="duplicados-lista" style="display:none;max-height:60vh;overflow-y:auto;display:flex;flex-direction:column;gap:10px;"></div>
     <div class="modal-actions">
+      <button class="btn btn-secondary" id="btn-unificar-todos-duplicados" style="display:none;" onclick="unificarTodosDuplicados()">🧬 Unificar Todos</button>
       <button class="btn btn-secondary" onclick="closeModal('modal-duplicados')">Fechar</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-resolver-duplicado-import">
+  <div class="modal" style="max-width:560px;">
+    <div class="modal-title">
+      <span>⚠️ Contacto Duplicado na Importação</span>
+      <span id="rdi-contador" style="font-size:11px;font-weight:600;color:var(--text2);">1 de 1</span>
+    </div>
+    <div id="rdi-motivo" style="font-size:12.5px;color:var(--gold);font-weight:600;margin-bottom:12px;"></div>
+    <div style="display:flex;gap:10px;align-items:stretch;margin-bottom:12px;">
+      <div style="flex:1;background:var(--surface2);border-radius:8px;padding:9px 10px;">
+        <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--text3);margin-bottom:6px;">Já existe</div>
+        <div id="rdi-existente"></div>
+        <button class="btn btn-secondary btn-sm" style="width:100%;margin-top:8px;" onclick="resolverDuplicadoImportAtual('manterExistente')">Manter este →</button>
+      </div>
+      <div style="flex:1;background:var(--surface2);border-radius:8px;padding:9px 10px;">
+        <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--text3);margin-bottom:6px;">A importar</div>
+        <div id="rdi-novo"></div>
+        <button class="btn btn-secondary btn-sm" style="width:100%;margin-top:8px;" onclick="resolverDuplicadoImportAtual('substituir')">← Substituir</button>
+      </div>
+    </div>
+    <button class="btn btn-secondary btn-sm" style="width:100%;opacity:0.85;" onclick="resolverDuplicadoImportAtual('manterAmbos')">Não é duplicado — manter os dois</button>
+    <div class="modal-actions" style="margin-top:14px;">
+      <button class="btn btn-secondary" style="opacity:0.7;" onclick="resolverDuplicadoImportTodos('manterExistente')">Ignorar todos os restantes</button>
+      <button class="btn btn-secondary" style="opacity:0.7;" onclick="resolverDuplicadoImportTodos('manterAmbos')">Manter todos como novos</button>
     </div>
   </div>
 </div>
@@ -10083,7 +10139,7 @@ function salvarLead() {
   closeModal('modal-lead');
   const foiEdicao = !!editingLeadId;
   editingLeadId = null;
-  renderDashboard();
+  renderDashboardSeVisivel();
   renderFunil();
   renderLista();
   showToast(foiEdicao ? '✓ Lead atualizado' : '✓ Lead adicionado');
@@ -10794,7 +10850,7 @@ function avancarEstado(id) {
     l.ultimoContacto = new Date().toISOString();
     saveleads();
     verLead(id);
-    renderDashboard();
+    renderDashboardSeVisivel();
     executarAutomacoes(l, estadoAnterior, l.estado);
     renderFunil();
     renderLista();
@@ -10854,7 +10910,7 @@ function executarEliminacaoPendente() {
     }
     closeModal('modal-ver-lead');
     closeModal('modal-confirmar-eliminar-lead');
-    renderDashboard();
+    renderDashboardSeVisivel();
     renderFunil();
     renderLista();
     showToast(apagarHistorico
@@ -10873,7 +10929,7 @@ function executarEliminacaoPendente() {
     leads = [];
     saveleads();
     closeModal('modal-confirmar-eliminar-lead');
-    renderDashboard();
+    renderDashboardSeVisivel();
     renderFunil();
     renderLista();
     showToast(apagarHistorico
@@ -11019,71 +11075,90 @@ function selecionarTodosFContacts(val) {
   });
 }
 
+// Dispara as automações de "Novo Lead" (lembrete de 1º contacto, sequência de
+// follow-up) para leads genuinamente novos vindos de uma importação em massa
+// — sem isto, contactos importados via CSV/Google Contacts/Facebook Ads nunca
+// beneficiavam das mesmas regras que já corriam para um lead criado à mão.
+// Só dispara para quem NÃO teve histórico restaurado da lixeira (reativação
+// não é "novo lead" — reiniciar a sequência de dia 0/3/7/14 para alguém que
+// já foi contactado antes seria confuso, não útil).
+function _dispararAutomacaoImportacaoEmMassa(novosLeadsComFlag) {
+  if (typeof executarAutomacoes !== 'function') return;
+  novosLeadsComFlag.forEach(({ novoLead, comHistoricoRestaurado }) => {
+    if (comHistoricoRestaurado) return;
+    executarAutomacoes(novoLead, null, novoLead.estado, true);
+  });
+}
+
+// Constrói o objeto lead final a partir de um contacto do ficheiro importado,
+// incluindo a reativação de histórico se o contacto estava na lixeira.
+// Devolve { novoLead, comHistoricoRestaurado: bool }.
+function _construirLeadDeFicheiro(c) {
+  const orig = c._original || {};
+  const novoLead = {
+    id: orig.id && !leads.find(l => l.id === orig.id) ? orig.id : gerarId(),
+    nome: c.nome,
+    tel: c.tel,
+    email: c.email,
+    mercado: orig.mercado || 'Frio (desconhecidos)',
+    estado: orig.estado || 'novo',
+    fonte: orig.fonte || 'Ficheiro importado',
+    notas: c.notas,
+    data: orig.data || new Date().toLocaleDateString('pt-PT'),
+    historico: orig.historico || [{ msg: 'Importado de ficheiro', data: new Date().toLocaleString('pt-PT') }]
+  };
+
+  let comHistoricoRestaurado = false;
+  const naLixeira = procurarLeadNaLixeira(c);
+  if (naLixeira && naLixeira.entry.item.historico?.length) {
+    novoLead.estado = naLixeira.entry.item.estado || novoLead.estado;
+    novoLead.historico = [
+      ...naLixeira.entry.item.historico,
+      { msg: 'Reimportado de ficheiro — histórico anterior associado automaticamente', data: new Date().toLocaleString('pt-PT') }
+    ];
+    removerDaLixeiraPorIndice(naLixeira.index);
+    comHistoricoRestaurado = true;
+  }
+  return { novoLead, comHistoricoRestaurado };
+}
+
 function confirmarImportFileContacts() {
   const selecionados = fContactsFiltradosIdx
     .filter(i => document.getElementById(`fc-${i}`)?.checked)
     .map(i => fileContactsToImport[i]);
   if (!selecionados.length) { showToast('❌ Nenhum contacto selecionado'); return; }
 
-  let novos = 0;
-  let comHistoricoRestaurado = 0;
-  // Constrói os novos leads numa lista à parte e insere-os todos de uma vez
-  // no fim, mantendo a ordem A→Z em que 'selecionados' já vem (ver sort() em
-  // confirmarImportFileContacts). Antes, cada contacto era inserido com
-  // leads.unshift() dentro do forEach: como unshift põe sempre no índice 0,
-  // o último contacto processado (o mais próximo de "Z") acabava no topo,
-  // invertendo a ordem alfabética visível na lista "recente".
-  const novosLeads = [];
-  selecionados.forEach(c => {
-    const existe = leadJaExiste(c);
-    if (existe) return;
-    // Preserva os campos originais do ficheiro (mercado, estado, fonte,
-    // histórico...) quando existirem — só cai nos valores por omissão do
-    // Google-import se o ficheiro não trouxer essa informação.
-    const orig = c._original || {};
-    const novoLead = {
-      id: orig.id && !leads.find(l => l.id === orig.id) ? orig.id : gerarId(),
-      nome: c.nome,
-      tel: c.tel,
-      email: c.email,
-      mercado: orig.mercado || 'Frio (desconhecidos)',
-      estado: orig.estado || 'novo',
-      fonte: orig.fonte || 'Ficheiro importado',
-      notas: c.notas,
-      data: orig.data || new Date().toLocaleDateString('pt-PT'),
-      historico: orig.historico || [{ msg: 'Importado de ficheiro', data: new Date().toLocaleString('pt-PT') }]
-    };
+  resolverDuplicadosImportacao(selecionados, (contactosFinais, resumoDup) => {
+    let novos = 0;
+    let comHistoricoRestaurado = 0;
+    // Constrói os novos leads numa lista à parte e insere-os todos de uma vez
+    // no fim, mantendo a ordem A→Z em que 'selecionados' já vem (ver sort() em
+    // confirmarImportFileContacts). Antes, cada contacto era inserido com
+    // leads.unshift() dentro do forEach: como unshift põe sempre no índice 0,
+    // o último contacto processado (o mais próximo de "Z") acabava no topo,
+    // invertendo a ordem alfabética visível na lista "recente".
+    const novosLeads = [];
+    const novosLeadsComFlag = [];
+    contactosFinais.forEach(c => {
+      const { novoLead, comHistoricoRestaurado: reativado } = _construirLeadDeFicheiro(c);
+      if (reativado) comHistoricoRestaurado++;
+      novosLeads.push(novoLead);
+      novosLeadsComFlag.push({ novoLead, comHistoricoRestaurado: reativado });
+      novos++;
+    });
+    leads.unshift(...novosLeads);
 
-    // Reatar histórico/estado se este contacto já tinha sido eliminado antes
-    // (está na lixeira) e o utilizador optou por preservar o histórico nessa
-    // altura — ver checkbox "eliminar também o histórico" em eliminarLead()/
-    // eliminarTodosContactos(). Sem isto, reimportar um contacto eliminado
-    // criava sempre um lead "do zero", perdendo conversas e estado anteriores.
-    const naLixeira = procurarLeadNaLixeira(c);
-    if (naLixeira && naLixeira.entry.item.historico?.length) {
-      novoLead.estado = naLixeira.entry.item.estado || novoLead.estado;
-      novoLead.historico = [
-        ...naLixeira.entry.item.historico,
-        { msg: 'Reimportado de ficheiro — histórico anterior associado automaticamente', data: new Date().toLocaleString('pt-PT') }
-      ];
-      removerDaLixeiraPorIndice(naLixeira.index);
-      comHistoricoRestaurado++;
-    }
-
-    novosLeads.push(novoLead);
-    novos++;
+    saveleads();
+    closeModal('modal-file-contacts-preview');
+    renderDashboardSeVisivel();
+    renderTabela();
+    _dispararAutomacaoImportacaoEmMassa(novosLeadsComFlag);
+    const partes = [`✅ ${novos} contacto(s) importado(s)!`];
+    if (comHistoricoRestaurado > 0) partes.push(`🔄 ${comHistoricoRestaurado} com histórico anterior associado.`);
+    if (resumoDup.substituidos > 0) partes.push(`🔁 ${resumoDup.substituidos} substituído(s).`);
+    if (resumoDup.ignorados > 0) partes.push(`(${resumoDup.ignorados} duplicado(s) mantido(s) como estava)`);
+    showToast(partes.join(' '));
   });
-  leads.unshift(...novosLeads);
-
-  saveleads();
-  closeModal('modal-file-contacts-preview');
-  renderDashboard();
-  renderTabela();
-  const ignorados = selecionados.length - novos;
-  const partes = [`✅ ${novos} contacto(s) importado(s)!`];
-  if (comHistoricoRestaurado > 0) partes.push(`🔄 ${comHistoricoRestaurado} com histórico anterior associado.`);
-  if (ignorados > 0) partes.push(`(${ignorados} duplicado(s) ignorado(s))`);
-  showToast(partes.join(' '));
 }
 
 // ===== BACKUP COMPLETO (todos os dados da app, não só leads) =====
@@ -11687,8 +11762,14 @@ function registarResultadoEvento(eventoId, resultado) {
     leadObj.historico.push({ tipo: 'chamada', msg, data: new Date().toLocaleString('pt-PT') });
     leadObj.ultimoContacto = new Date().toISOString();
     if (resultado === 'bem' && ['novo','contactado'].includes(leadObj.estado)) {
+      const estadoAnteriorEvento = leadObj.estado;
       leadObj.estado = 'interessado';
       leadObj.historico.push({ tipo: 'estado', msg: `Estado alterado para "${estadoLabel(leadObj.estado)}"`, data: new Date().toLocaleString('pt-PT') });
+      // Dispara o motor de automação tal como as outras mudanças de estado do
+      // app (funil, formulário de lead, venda confirmada, análise IA) — sem
+      // isto, a regra "Enviar Apresentação a Interessado" nunca corria
+      // quando o avanço vinha de "Como correu?" em vez de uma edição manual.
+      if (typeof executarAutomacoes === 'function') executarAutomacoes(leadObj, estadoAnteriorEvento, 'interessado');
     }
     saveleads();
   }
@@ -11980,6 +12061,23 @@ function irParaGargaloFunil(estadoKey) {
     const sel = document.getElementById('f-filtro-estado');
     if (sel) { sel.value = estadoKey; aplicarFiltros(); }
   }, 100);
+}
+
+// Wrapper de performance: renderDashboard() dispara uma cascata de ~25
+// sub-renders (follow-ups, aniversários, metas, streak, funil de conversão,
+// saúde da rede, etc.), pensada para quando a pessoa está mesmo a ver o
+// Dashboard. Só que dezenas de fluxos de fundo (guardar lead, importar,
+// sync Drive, automações) chamavam renderDashboard() incondicionalmente,
+// mesmo quando o utilizador estava noutra página qualquer — trabalho
+// desperdiçado que pesa sobretudo em listas grandes de leads/membros.
+// Este wrapper só faz o render pesado quando a página Dashboard está
+// mesmo ativa; nos outros casos, os contadores atualizam-se sozinhos da
+// próxima vez que o utilizador voltar ao Dashboard (goTo já chama
+// renderDashboard() diretamente nesse momento — não mexido aqui).
+function renderDashboardSeVisivel() {
+  if (document.getElementById('page-dashboard')?.classList.contains('active')) {
+    renderDashboard();
+  }
 }
 
 function renderDashboard() {
@@ -13258,8 +13356,9 @@ function agendarPost() {
   const texto = document.getElementById('ag-texto').value.trim();
   const data = document.getElementById('ag-data').value;
   const plataforma = document.getElementById('ag-plataforma').value;
+  const categoria = document.getElementById('ag-categoria')?.value || '';
   if (!texto || !data) { showToast('❌ Preenche o texto e a data'); return; }
-  const post = { id: gerarId(), texto, data, plataforma };
+  const post = { id: gerarId(), texto, data, plataforma, categoria, leadsGerados: null };
   posts.push(post);
   savePosts();
   closeModal('modal-agendar');
@@ -13306,19 +13405,27 @@ function renderCalendario() {
     const dt = new Date(p.data);
     const label = dt.toLocaleDateString('pt-PT', { weekday:'short', day:'numeric', month:'short' });
     const hora = dt.toLocaleTimeString('pt-PT', { hour:'2-digit', minute:'2-digit' });
+    const catLabels = { produto:'📦 Produto', testemunho:'⭐ Testemunho', educativo:'📚 Educativo', 'estilo-vida':'🌿 Estilo de vida', promocao:'🏷️ Promoção', negocio:'💼 Negócio' };
+    const catBadge = p.categoria && catLabels[p.categoria] ? ` · ${catLabels[p.categoria]}` : '';
+    const resultadoBtn = (p.leadsGerados === null || p.leadsGerados === undefined)
+      ? `<button onclick="registarResultadoPost('${p.id}')" style="background:none;border:none;color:var(--gold);cursor:pointer;font-size:11px;margin-left:8px;">📊 Registar resultado</button>`
+      : `<span style="color:var(--accent);font-size:11px;margin-left:8px;" title="Clica para editar" onclick="registarResultadoPost('${p.id}')" style="cursor:pointer;">📊 ${p.leadsGerados} lead${p.leadsGerados !== 1 ? 's' : ''}</span>`;
     return `
       <div class="scheduled-item">
         <div class="scheduled-dot" style="background:${p.plataforma==='Facebook'?'#0084ff':p.plataforma==='Instagram'?'#e1306c':'#25d366'}"></div>
         <div>
           <div class="scheduled-text">${escapeHtml(p.texto.slice(0,80))}${p.texto.length > 80 ? '…' : ''}</div>
-          <div class="scheduled-meta">📘 ${p.plataforma} · ${label} às ${hora}
+          <div class="scheduled-meta">📘 ${p.plataforma}${catBadge} · ${label} às ${hora}
             <button onclick="copiarPostAgendado('${p.id}')" style="background:none;border:none;color:var(--accent);cursor:pointer;font-size:11px;margin-left:8px;">📋 Copiar e abrir</button>
             <button onclick="eliminarPost('${p.id}')" style="background:none;border:none;color:#ff6b6b;cursor:pointer;font-size:11px;margin-left:8px;">✕ Remover</button>
+            ${resultadoBtn}
           </div>
         </div>
       </div>
     `;
   }).join('');
+
+  if (typeof renderDesempenhoConteudo === 'function') renderDesempenhoConteudo();
 }
 
 // ── Publicação de posts agendados ────────────────────────────────
@@ -13422,6 +13529,98 @@ function eliminarPost(id) {
   savePosts();
   renderCalendario();
   showToast('🗑 Post removido');
+}
+
+// Regista manualmente quantos leads/contactos um post gerou — não há API
+// pública para medir isto automaticamente (Meta/Instagram não expõe isso
+// a apps de terceiros), por isso é um registo leve e opcional. Só grava
+// no próprio post, sem tocar em mais nada.
+function registarResultadoPost(id) {
+  const p = posts.find(x => x.id === id);
+  if (!p) { showToast('❌ Post não encontrado'); return; }
+  const atual = (p.leadsGerados === null || p.leadsGerados === undefined) ? '' : String(p.leadsGerados);
+  const resposta = prompt('Quantos leads/contactos este post gerou?', atual);
+  if (resposta === null) return; // cancelado
+  const num = parseInt(resposta, 10);
+  if (isNaN(num) || num < 0) { showToast('❌ Introduz um número válido (0 ou mais)'); return; }
+  p.leadsGerados = num;
+  savePosts();
+  renderCalendario();
+  if (typeof renderDesempenhoConteudo === 'function') renderDesempenhoConteudo();
+  showToast('✓ Resultado registado!');
+}
+
+// ===== DESEMPENHO DE CONTEÚDO =====
+// Agrupa posts por categoria de conteúdo (produto/testemunho/educativo/etc.)
+// e calcula a média de leads gerados por categoria, para perceber que TIPO
+// de conteúdo realmente traz contactos — não só publicar por publicar.
+// 100% derivado de `posts[].categoria` e `posts[].leadsGerados`, ambos
+// opcionais e preenchidos manualmente; não interfere com gerarPost,
+// agendarPost ou partilharPost existentes.
+function renderDesempenhoConteudo() {
+  const el = document.getElementById('posts-desempenho-conteudo');
+  if (!el || typeof posts === 'undefined') return;
+
+  const catLabels = { produto:'📦 Produto', testemunho:'⭐ Testemunho', educativo:'📚 Educativo', 'estilo-vida':'🌿 Estilo de vida', promocao:'🏷️ Promoção', negocio:'💼 Negócio' };
+
+  const comResultado = posts.filter(p => p.categoria && (p.leadsGerados !== null && p.leadsGerados !== undefined));
+  if (comResultado.length < 2) {
+    el.innerHTML = `
+      <div class="card" style="background:rgba(0,212,170,0.04);border:1px solid rgba(0,212,170,0.15);">
+        <div style="display:flex;align-items:center;gap:12px;">
+          <span style="font-size:26px;">📊</span>
+          <div>
+            <div style="font-size:13px;font-weight:700;color:var(--text);">Desempenho de Conteúdo</div>
+            <div style="font-size:12px;color:var(--text2);">Regista a categoria e os resultados de pelo menos 2 posts agendados para veres aqui que tipo de conteúdo gera mais leads.</div>
+          </div>
+        </div>
+      </div>`;
+    return;
+  }
+
+  const porCategoria = {};
+  comResultado.forEach(p => {
+    if (!porCategoria[p.categoria]) porCategoria[p.categoria] = { posts: 0, totalLeads: 0 };
+    porCategoria[p.categoria].posts++;
+    porCategoria[p.categoria].totalLeads += (p.leadsGerados || 0);
+  });
+
+  const arr = Object.entries(porCategoria)
+    .map(([cat, d]) => ({ cat, posts: d.posts, mediaLeads: d.totalLeads / d.posts }))
+    .sort((a, b) => b.mediaLeads - a.mediaLeads);
+
+  const melhor = arr[0];
+
+  let html = `
+    <div class="card">
+      <div class="section-title" style="margin-bottom:4px;">📊 Desempenho de Conteúdo</div>
+      <div style="font-size:11.5px;color:var(--text2);margin-bottom:14px;line-height:1.5;">
+        Média de leads gerados por categoria de conteúdo, com base nos resultados que registaste.
+      </div>`;
+
+  if (melhor && arr.length >= 2) {
+    html += `
+      <div style="display:flex;align-items:flex-start;gap:8px;background:rgba(0,212,170,0.06);border:1px solid rgba(0,212,170,0.2);border-radius:10px;padding:10px 12px;margin-bottom:16px;font-size:11.5px;color:var(--text2);line-height:1.5;">
+        <span style="font-size:15px;">💎</span>
+        <span>Conteúdo <strong style="color:var(--text);">${catLabels[melhor.cat] || melhor.cat}</strong> gera em média <strong style="color:var(--accent);">${melhor.mediaLeads.toFixed(1)} leads/post</strong> — a categoria com melhor resultado até agora.</span>
+      </div>`;
+  }
+
+  html += `<div style="display:flex;flex-direction:column;gap:8px;">`;
+  html += arr.map(a => `
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:10px 14px;flex-wrap:wrap;">
+        <div>
+          <div style="font-size:12.5px;font-weight:700;color:var(--text);">${catLabels[a.cat] || a.cat}</div>
+          <div style="font-size:10.5px;color:var(--text3);">${a.posts} post${a.posts !== 1 ? 's' : ''} registado${a.posts !== 1 ? 's' : ''}</div>
+        </div>
+        <div style="text-align:center;">
+          <div style="font-size:16px;font-weight:800;color:var(--accent);">${a.mediaLeads.toFixed(1)}</div>
+          <div style="font-size:9.5px;color:var(--text3);">leads/post (média)</div>
+        </div>
+      </div>`).join('');
+  html += `</div></div>`;
+
+  el.innerHTML = html;
 }
 
 function changeMonth(dir) {
@@ -16165,20 +16364,20 @@ function confirmarImport() {
     .map(i => importContactos[i]);
   if (!selecionados.length) { showToast('❌ Nenhum contacto selecionado'); return; }
 
-  let novos = 0;
-  let comHistoricoRestaurado = 0;
-  // Acumula os novos leads numa lista à parte e só insere-os todos de uma vez
-  // no fim com leads.unshift(...novosLeads), preservando a ordem A→Z em que
-  // 'selecionados' já vem (ver sort() em renderImportPreview). Antes, cada
-  // contacto era inserido com leads.unshift() dentro do forEach: como unshift
-  // põe sempre no índice 0, o último contacto processado (o mais próximo de
-  // "Z") acabava no topo, invertendo a ordem alfabética visível na lista
-  // "recente" — mesma correção já aplicada em confirmarImportFileContacts()
-  // e confirmarImportGoogleContacts().
-  const novosLeads = [];
-  selecionados.forEach(c => {
-    const existe = leadJaExiste(c);
-    if (!existe) {
+  resolverDuplicadosImportacao(selecionados, (contactosFinais, resumoDup) => {
+    let novos = 0;
+    let comHistoricoRestaurado = 0;
+    // Acumula os novos leads numa lista à parte e só insere-os todos de uma vez
+    // no fim com leads.unshift(...novosLeads), preservando a ordem A→Z em que
+    // 'selecionados' já vem (ver sort() em renderImportPreview). Antes, cada
+    // contacto era inserido com leads.unshift() dentro do forEach: como unshift
+    // põe sempre no índice 0, o último contacto processado (o mais próximo de
+    // "Z") acabava no topo, invertendo a ordem alfabética visível na lista
+    // "recente" — mesma correção já aplicada em confirmarImportFileContacts()
+    // e confirmarImportGoogleContacts().
+    const novosLeads = [];
+    const novosLeadsComFlag = [];
+    contactosFinais.forEach(c => {
       const novoLead = {
         id: gerarId(),
         nome: c.nome,
@@ -16197,10 +16396,8 @@ function confirmarImport() {
       // altura — ver checkbox "eliminar também o histórico" em eliminarLead()/
       // eliminarTodosContactos(). Sem isto, reimportar um contacto eliminado
       // criava sempre um lead "do zero", perdendo conversas e estado anteriores.
-      // Mesma lógica já aplicada em confirmarImportFileContacts() e
-      // confirmarImportGoogleContacts() — faltava só aqui, na importação
-      // CSV/VCF/Excel.
       const naLixeira = procurarLeadNaLixeira(c);
+      let reativadoEsteLead = false;
       if (naLixeira && naLixeira.entry.item.historico?.length) {
         novoLead.estado = naLixeira.entry.item.estado || novoLead.estado;
         novoLead.historico = [
@@ -16209,30 +16406,33 @@ function confirmarImport() {
         ];
         removerDaLixeiraPorIndice(naLixeira.index);
         comHistoricoRestaurado++;
+        reativadoEsteLead = true;
       }
 
       novosLeads.push(novoLead);
+      novosLeadsComFlag.push({ novoLead, comHistoricoRestaurado: reativadoEsteLead });
       novos++;
-    }
+    });
+    leads.unshift(...novosLeads);
+
+    saveleads();
+    closeModal('modal-importar');
+    renderDashboardSeVisivel();
+    renderLista();
+    _dispararAutomacaoImportacaoEmMassa(novosLeadsComFlag);
+
+    // reset
+    importContactos = [];
+    document.getElementById('import-file-input').value = '';
+    document.getElementById('import-preview-area').style.display = 'none';
+    document.getElementById('import-confirm-btn').style.display = 'none';
+
+    const partes = [`✓ ${novos} contacto(s) importado(s)!`];
+    if (comHistoricoRestaurado > 0) partes.push(`🔄 ${comHistoricoRestaurado} com histórico anterior associado.`);
+    if (resumoDup.substituidos > 0) partes.push(`🔁 ${resumoDup.substituidos} substituído(s).`);
+    if (resumoDup.ignorados > 0) partes.push(`(${resumoDup.ignorados} duplicado(s) mantido(s) como estava)`);
+    showToast(partes.join(' '));
   });
-  leads.unshift(...novosLeads);
-
-  saveleads();
-  closeModal('modal-importar');
-  renderDashboard();
-  renderLista();
-
-  // reset
-  importContactos = [];
-  document.getElementById('import-file-input').value = '';
-  document.getElementById('import-preview-area').style.display = 'none';
-  document.getElementById('import-confirm-btn').style.display = 'none';
-
-  const ignorados = selecionados.length - novos;
-  const partes = [`✓ ${novos} contacto(s) importado(s)!`];
-  if (comHistoricoRestaurado > 0) partes.push(`🔄 ${comHistoricoRestaurado} com histórico anterior associado.`);
-  if (ignorados > 0) partes.push(`(${ignorados} duplicado(s) ignorado(s))`);
-  showToast(partes.join(' '));
 }
 
 // ===== FEATURE 3: RESPOSTA COM SCREENSHOT =====
@@ -16646,18 +16846,18 @@ function confirmarImportGoogleContacts() {
     .map(i => googleContactsToImport[i]);
   if (!selecionados.length) { showToast('❌ Nenhum contacto selecionado'); return; }
 
-  let novos = 0;
-  let comHistoricoRestaurado = 0;
-  // Mesma correção que em confirmarImportFileContacts: acumula os novos
-  // leads à parte e só faz unshift(...) uma vez no fim, mantendo a ordem
-  // A→Z já definida pelo sort() em googleContactsToImport. Fazer
-  // leads.unshift() dentro do forEach invertia a ordem, porque cada
-  // inserção sucessiva empurra a anterior, pondo o último nome (perto de
-  // "Z") no topo da lista.
-  const novosLeads = [];
-  selecionados.forEach(c => {
-    const existe = leadJaExiste(c);
-    if (!existe) {
+  resolverDuplicadosImportacao(selecionados, (contactosFinais, resumoDup) => {
+    let novos = 0;
+    let comHistoricoRestaurado = 0;
+    // Mesma correção que em confirmarImportFileContacts: acumula os novos
+    // leads à parte e só faz unshift(...) uma vez no fim, mantendo a ordem
+    // A→Z já definida pelo sort() em googleContactsToImport. Fazer
+    // leads.unshift() dentro do forEach invertia a ordem, porque cada
+    // inserção sucessiva empurra a anterior, pondo o último nome (perto de
+    // "Z") no topo da lista.
+    const novosLeads = [];
+    const novosLeadsComFlag = [];
+    contactosFinais.forEach(c => {
       const novoLead = {
         id: gerarId(),
         nome: c.nome,
@@ -16675,6 +16875,7 @@ function confirmarImportGoogleContacts() {
       // antes (está na lixeira com histórico preservado). Ver a mesma lógica
       // e o mesmo motivo em confirmarImportFileContacts().
       const naLixeira = procurarLeadNaLixeira(c);
+      let reativadoEsteLead = false;
       if (naLixeira && naLixeira.entry.item.historico?.length) {
         novoLead.estado = naLixeira.entry.item.estado || novoLead.estado;
         novoLead.historico = [
@@ -16683,33 +16884,36 @@ function confirmarImportGoogleContacts() {
         ];
         removerDaLixeiraPorIndice(naLixeira.index);
         comHistoricoRestaurado++;
+        reativadoEsteLead = true;
       }
 
       novosLeads.push(novoLead);
+      novosLeadsComFlag.push({ novoLead, comHistoricoRestaurado: reativadoEsteLead });
       novos++;
+    });
+    leads.unshift(...novosLeads);
+
+    saveleads();
+    closeModal('modal-google-contacts-preview');
+    renderDashboardSeVisivel();
+    renderLista();
+    _dispararAutomacaoImportacaoEmMassa(novosLeadsComFlag);
+    const partes = [`✅ ${novos} contacto(s) importado(s) do Google!`];
+    if (comHistoricoRestaurado > 0) partes.push(`🔄 ${comHistoricoRestaurado} com histórico anterior associado.`);
+    if (resumoDup.substituidos > 0) partes.push(`🔁 ${resumoDup.substituidos} substituído(s).`);
+    if (resumoDup.ignorados > 0) partes.push(`(${resumoDup.ignorados} duplicado(s) mantido(s) como estava)`);
+    showToast(partes.join(' '));
+
+    // Auto-mark tutorial step "gcontacts"
+    if (novos > 0) {
+      const tdone = tutGetProgress();
+      if (!tdone.includes('gcontacts')) { tdone.push('gcontacts'); tutSaveProgress(tdone); }
+      if (document.getElementById('page-tutorial')?.classList.contains('active')) tutRender();
     }
+
+    const status = document.getElementById('contacts-gsync-status');
+    if (status) { status.textContent = `✅ ${novos} importados`; status.className = 'gsync-status ok'; }
   });
-  leads.unshift(...novosLeads);
-
-  saveleads();
-  closeModal('modal-google-contacts-preview');
-  renderDashboard();
-  renderLista();
-  const ignorados = selecionados.length - novos;
-  const partes = [`✅ ${novos} contacto(s) importado(s) do Google!`];
-  if (comHistoricoRestaurado > 0) partes.push(`🔄 ${comHistoricoRestaurado} com histórico anterior associado.`);
-  if (ignorados > 0) partes.push(`(${ignorados} duplicado(s) ignorado(s))`);
-  showToast(partes.join(' '));
-
-  // Auto-mark tutorial step "gcontacts"
-  if (novos > 0) {
-    const tdone = tutGetProgress();
-    if (!tdone.includes('gcontacts')) { tdone.push('gcontacts'); tutSaveProgress(tdone); }
-    if (document.getElementById('page-tutorial')?.classList.contains('active')) tutRender();
-  }
-
-  const status = document.getElementById('contacts-gsync-status');
-  if (status) { status.textContent = `✅ ${novos} importados`; status.className = 'gsync-status ok'; }
 }
 
 // ---- CALENDAR ----
@@ -17213,6 +17417,134 @@ function leadJaExiste(contacto, listaLeads) {
   }) || null;
 }
 
+// ===== MÓDULO: RESOLUÇÃO DE DUPLICADOS NA IMPORTAÇÃO =====
+// Estado da resolução pendente (um de cada vez — os 3 fluxos de importação
+// partilham este mesmo mecanismo, um após o outro).
+let _resolucaoImportPendente = null; // { casos: [{contacto, existente, decisao}], onConcluir }
+
+// Ponto de entrada comum aos 3 fluxos de importação (Google Contacts, ficheiro
+// CSV/VCF/Excel, backup JSON). Recebe a lista de contactos já selecionados
+// pelo utilizador no ecrã de pré-visualização e separa-os em:
+//   - semDuplicado: entram logo, sem mais perguntas
+//   - comDuplicado: cada um faz par com um lead já existente na lista
+// Se houver casos com duplicado, abre um modal para o utilizador escolher,
+// por cada caso, "Manter o existente" / "Substituir pelo novo" / "Manter os dois".
+// Quando termina (com ou sem duplicados), chama onConcluir(contactosFinais),
+// onde contactosFinais é a lista definitiva de contactos a transformar em leads.
+function resolverDuplicadosImportacao(selecionados, onConcluir) {
+  const semDuplicado = [];
+  const casos = [];
+
+  selecionados.forEach(c => {
+    const existente = leadJaExiste(c);
+    if (existente) {
+      casos.push({ contacto: c, existente, decisao: null });
+    } else {
+      semDuplicado.push(c);
+    }
+  });
+
+  if (!casos.length) {
+    onConcluir(semDuplicado, { substituidos: 0, mantidosComoNovo: 0, ignorados: 0 });
+    return;
+  }
+
+  _resolucaoImportPendente = { casos, semDuplicado, onConcluir, idx: 0 };
+  _renderResolucaoDuplicadoAtual();
+  openModal('modal-resolver-duplicado-import');
+}
+
+function _renderResolucaoDuplicadoAtual() {
+  const st = _resolucaoImportPendente;
+  if (!st) return;
+  const total = st.casos.length;
+  document.getElementById('rdi-contador').textContent = `${st.idx + 1} de ${total}`;
+
+  if (st.idx >= total) {
+    _finalizarResolucaoDuplicadosImportacao();
+    return;
+  }
+
+  const caso = st.casos[st.idx];
+  const novo = caso.contacto;
+  const existente = caso.existente;
+
+  const motivo = (() => {
+    const telN = novo.tel ? limparTelefone(novo.tel) : '';
+    const telE = existente.tel ? limparTelefone(existente.tel) : '';
+    if (telN && telE && telN === telE) return 'mesmo telefone';
+    const emN = novo.email ? novo.email.trim().toLowerCase() : '';
+    const emE = existente.email ? existente.email.trim().toLowerCase() : '';
+    if (emN && emE && emN === emE) return 'mesmo email';
+    return 'mesmo nome';
+  })();
+
+  document.getElementById('rdi-motivo').textContent = `⚠️ Encontrado contacto já existente (${motivo})`;
+  document.getElementById('rdi-existente').innerHTML = `
+    <div style="font-size:13px;font-weight:700;color:var(--text);">${escapeHtml(existente.nome || '(sem nome)')}</div>
+    <div style="font-size:11px;color:var(--text2);margin-top:2px;">${[existente.tel, existente.email].filter(Boolean).map(escapeHtml).join(' · ') || 'Sem contacto'}</div>
+    <div style="font-size:10px;color:var(--text3);margin-top:4px;">${(existente.historico||[]).length} evento(s) · desde ${existente.data||'?'} · estado: ${estadoLabel ? estadoLabel(existente.estado) : (existente.estado||'')}</div>
+  `;
+  document.getElementById('rdi-novo').innerHTML = `
+    <div style="font-size:13px;font-weight:700;color:var(--text);">${escapeHtml(novo.nome || '(sem nome)')}</div>
+    <div style="font-size:11px;color:var(--text2);margin-top:2px;">${[novo.tel, novo.email].filter(Boolean).map(escapeHtml).join(' · ') || 'Sem contacto'}</div>
+    <div style="font-size:10px;color:var(--text3);margin-top:4px;">A importar agora</div>
+  `;
+}
+
+// Aplica a decisão do utilizador ao caso atual e avança para o próximo.
+// decisao: 'manterExistente' | 'substituir' | 'manterAmbos'
+function resolverDuplicadoImportAtual(decisao) {
+  const st = _resolucaoImportPendente;
+  if (!st) return;
+  st.casos[st.idx].decisao = decisao;
+  st.idx++;
+  _renderResolucaoDuplicadoAtual();
+}
+
+// Aplica a mesma decisão a todos os casos restantes de uma vez.
+function resolverDuplicadoImportTodos(decisao) {
+  const st = _resolucaoImportPendente;
+  if (!st) return;
+  for (let i = st.idx; i < st.casos.length; i++) {
+    st.casos[i].decisao = decisao;
+  }
+  st.idx = st.casos.length;
+  _renderResolucaoDuplicadoAtual();
+}
+
+function _finalizarResolucaoDuplicadosImportacao() {
+  const st = _resolucaoImportPendente;
+  if (!st) return;
+  closeModal('modal-resolver-duplicado-import');
+
+  const contactosFinais = [...st.semDuplicado];
+  let substituidos = 0, mantidosComoNovo = 0, ignorados = 0;
+
+  st.casos.forEach(caso => {
+    if (caso.decisao === 'substituir') {
+      // Remove o lead existente (para a lixeira, com histórico preservável)
+      // e deixa o novo contacto entrar como se fosse inédito.
+      const existenteVivo = leads.find(l => l.id === caso.existente.id);
+      if (existenteVivo) {
+        moverParaLixeira('lead', existenteVivo);
+        leads = leads.filter(l => l.id !== existenteVivo.id);
+      }
+      contactosFinais.push(caso.contacto);
+      substituidos++;
+    } else if (caso.decisao === 'manterAmbos') {
+      contactosFinais.push(caso.contacto);
+      mantidosComoNovo++;
+    } else {
+      // 'manterExistente' (ou nulo/omisso) — ignora o novo, mantém o existente tal como está
+      ignorados++;
+    }
+  });
+
+  _resolucaoImportPendente = null;
+  st.onConcluir(contactosFinais, { substituidos, mantidosComoNovo, ignorados });
+}
+
 // ===== MÓDULO: DETEÇÃO DE DUPLICADOS NA LISTA EXISTENTE =====
 // Distância de Levenshtein simples, usada só para detetar nomes "parecidos"
 // (ex: "Joao Silva" vs "João Silva " ou pequenos erros de escrita).
@@ -17302,11 +17634,14 @@ function abrirDuplicados() {
   setTimeout(() => {
     const pares = detetarLeadsDuplicados();
     document.getElementById('duplicados-loading').style.display = 'none';
+    const btnUnificarTodos = document.getElementById('btn-unificar-todos-duplicados');
 
     if (!pares.length) {
       document.getElementById('duplicados-vazio').style.display = 'block';
+      if (btnUnificarTodos) btnUnificarTodos.style.display = 'none';
       return;
     }
+    if (btnUnificarTodos) btnUnificarTodos.style.display = '';
 
     const listaEl = document.getElementById('duplicados-lista');
     listaEl.style.display = 'flex';
@@ -17347,7 +17682,127 @@ function _fecharDuplicadosSeVazio() {
   if (listaEl && !listaEl.children.length) {
     listaEl.style.display = 'none';
     document.getElementById('duplicados-vazio').style.display = 'block';
+    const btnUnificarTodos = document.getElementById('btn-unificar-todos-duplicados');
+    if (btnUnificarTodos) btnUnificarTodos.style.display = 'none';
   }
+}
+
+// Dá uma pontuação de "completude" a um lead — usada para escolher automaticamente
+// qual registo manter dentro de uma família de duplicados (mais alto = mais completo).
+function _pontuacaoCompletudeLead(l) {
+  let pontos = 0;
+  if (l.tel) pontos += 2;
+  if (l.email) pontos += 2;
+  if (l.notas) pontos += 1;
+  if (l.mercado) pontos += 1;
+  if (l.objetivo) pontos += 1;
+  pontos += (l.historico || []).length;
+  return pontos;
+}
+
+// Agrupa pares { a, b, motivo } em famílias por conectividade transitiva
+// (ex: A~B e B~C ficam na mesma família [A,B,C], mesmo que A e C não
+// tenham sido comparados diretamente como duplicados entre si).
+function _agruparFamiliasDuplicados(pares) {
+  const grafo = new Map(); // id -> Set(ids ligados)
+  const leadPorId = new Map();
+  pares.forEach(p => {
+    leadPorId.set(p.a.id, p.a);
+    leadPorId.set(p.b.id, p.b);
+    if (!grafo.has(p.a.id)) grafo.set(p.a.id, new Set());
+    if (!grafo.has(p.b.id)) grafo.set(p.b.id, new Set());
+    grafo.get(p.a.id).add(p.b.id);
+    grafo.get(p.b.id).add(p.a.id);
+  });
+
+  const visitados = new Set();
+  const familias = [];
+  grafo.forEach((_, id) => {
+    if (visitados.has(id)) return;
+    const fila = [id];
+    const componente = [];
+    visitados.add(id);
+    while (fila.length) {
+      const atual = fila.shift();
+      componente.push(atual);
+      (grafo.get(atual) || new Set()).forEach(vizinho => {
+        if (!visitados.has(vizinho)) {
+          visitados.add(vizinho);
+          fila.push(vizinho);
+        }
+      });
+    }
+    familias.push(componente.map(cid => leadPorId.get(cid)).filter(Boolean));
+  });
+  return familias;
+}
+
+// Escolhe, dentro de uma família, o lead a manter: o mais antigo (data de
+// criação mais antiga) e, em empate/ambiguidade, o mais completo.
+function _escolherLeadPrincipal(familia) {
+  const parseData = (l) => {
+    const m = (l.data || '').match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+    if (!m) return Infinity;
+    return new Date(+m[3], +m[2] - 1, +m[1]).getTime();
+  };
+  return [...familia].sort((x, y) => {
+    const dx = parseData(x), dy = parseData(y);
+    if (dx !== dy) return dx - dy;
+    return _pontuacaoCompletudeLead(y) - _pontuacaoCompletudeLead(x);
+  })[0];
+}
+
+// Une todos os pares detetados de uma vez: agrupa em famílias e fá-las
+// convergir num único lead por família (o mais antigo/completo), fundindo
+// histórico e campos em falta dos restantes, tal como fundirLeadsDuplicados().
+function unificarTodosDuplicados() {
+  const pares = detetarLeadsDuplicados();
+  if (!pares.length) { showToast('✅ Não há duplicados para unificar'); return; }
+
+  const familias = _agruparFamiliasDuplicados(pares);
+  const totalRegistosEnvolvidos = familias.reduce((s, f) => s + f.length, 0);
+  const totalRemovidos = totalRegistosEnvolvidos - familias.length;
+
+  if (!confirm(`Vais unificar ${familias.length} grupo(s) de contactos duplicados (${totalRemovidos} registo(s) serão movidos para a lixeira, com o histórico fundido no registo mais antigo/completo de cada grupo). Continuar?`)) return;
+
+  let gruposUnificados = 0;
+  familias.forEach(familia => {
+    if (familia.length < 2) return;
+    const principal = _escolherLeadPrincipal(familia);
+    const outros = familia.filter(l => l.id !== principal.id);
+
+    outros.forEach(remover => {
+      const manterVivo = leads.find(l => l.id === principal.id);
+      const removerVivo = leads.find(l => l.id === remover.id);
+      if (!manterVivo || !removerVivo) return;
+
+      ['tel', 'email', 'mercado', 'objetivo', 'fonte', 'indicadoPor', 'notas', 'aniversario'].forEach(campo => {
+        if (!manterVivo[campo] && removerVivo[campo]) manterVivo[campo] = removerVivo[campo];
+      });
+      manterVivo.historico = (manterVivo.historico || []).concat(removerVivo.historico || []);
+      manterVivo.historico.push({
+        tipo: 'sistema',
+        msg: `Fundido com contacto duplicado "${removerVivo.nome}" (unificação em lote)`,
+        data: new Date().toLocaleString('pt-PT')
+      });
+
+      moverParaLixeira('lead', removerVivo);
+      leads = leads.filter(l => l.id !== removerVivo.id);
+      if (typeof lembretes !== 'undefined' && lembretes.length) {
+        lembretes = lembretes.filter(l => l._leadId !== removerVivo.id);
+        if (typeof saveLembretes === 'function') saveLembretes();
+      }
+    });
+    gruposUnificados++;
+  });
+
+  saveleads();
+  renderDashboardSeVisivel();
+  renderFunil();
+  renderLista();
+  showToast(`✓ ${gruposUnificados} grupo(s) unificado(s), ${totalRemovidos} contacto(s) fundido(s)`);
+
+  abrirDuplicados();
 }
 
 // Funde dois leads: mantém o lead "manterId", junta o histórico e os campos em
@@ -17382,7 +17837,7 @@ function fundirLeadsDuplicados(manterId, removerId, elId) {
   }
 
   saveleads();
-  renderDashboard();
+  renderDashboardSeVisivel();
   renderFunil();
   renderLista();
   showToast(`✓ Contactos fundidos em "${manter.nome}"`);
@@ -18463,7 +18918,7 @@ function restaurarDaLixeira(index) {
   lixeira.splice(index, 1);
   saveLixeira(lixeira);
   abrirLixeira(); // refresca a lista
-  renderDashboard(); renderFunil(); renderLista(); renderEquipa();
+  renderDashboardSeVisivel(); renderFunil(); renderLista(); renderEquipa();
   if (typeof renderAgenda === 'function') renderAgenda();
   if (typeof renderComissoes === 'function') renderComissoes();
   if (typeof formacaoRenderBiblioteca === 'function') formacaoRenderBiblioteca();
@@ -18810,7 +19265,7 @@ function entrarNaApp(user) {
   renderLinksRapidos();
 
   // Re-render
-  renderDashboard();
+  renderDashboardSeVisivel();
   renderAgendamentoPedidosWidget('dash-agendamento-pedidos-widget');
   renderFollowUps();
   renderAniversarios();
@@ -18987,6 +19442,7 @@ const TUTORIAL_STEPS = [
   { id:'funil',    emoji:'👤', titulo:'Adiciona o teu primeiro Lead',         desc:'Um "lead" é um contacto teu — alguém que pode interessar-se pelo produto ou negócio. Vai ao Funil e clica em "+ Novo Lead".', tag:'Essencial', page:'funil' },
   { id:'acoes',    emoji:'🔔', titulo:'Vê as tuas Ações de Hoje',             desc:'A app analisa os teus leads e mostra quem contactar hoje — urgente, esta semana e novos.', tag:'Essencial', page:'acoes' },
   { id:'gcontacts',emoji:'🔗', titulo:'Sincroniza os teus Contactos Google',  desc:'Agora que já sabes o que é um lead, importa os teus contactos diretamente do Google em 1 clique. Evita duplicados e poupa tempo.', tag:'Essencial', action:() => { goTo('lista'); setTimeout(() => syncGoogleContacts(), 400); } },
+  { id:'automacao', emoji:'⚙️', titulo:'Ativa a tua primeira Automação',     desc:'Escolhe uma regra pronta da Biblioteca — por exemplo, mensagem de boas-vindas automática quando um lead vira Cliente. Sem escrever nada de raiz.', tag:'Recomendado', action:() => { goTo('automacao'); setTimeout(() => { if (typeof autoTab === 'function') autoTab('biblioteca'); }, 300); } },
   { id:'metas',    emoji:'🎯', titulo:'Define as tuas Metas mensais',         desc:'Configura objetivos de vendas, recrutamento e rendimento. A app acompanha o progresso.', tag:'Recomendado', page:'metas' },
   { id:'posts',    emoji:'✨', titulo:'Cria o teu primeiro Post com IA',      desc:'Escolhe plataforma, tom e tema. A IA gera posts autênticos em Português para as tuas redes.', tag:'Recomendado', page:'posts' },
   { id:'coach',    emoji:'🤖', titulo:'Experimenta o Coach IA',               desc:'Faz perguntas sobre scripts, objeções, recrutamento. O coach conhece o teu perfil LifeWave.', tag:'Extra', page:'coach' },
@@ -19868,7 +20324,7 @@ async function driveSync(mode) {
       applyDrivePayload(payload);
       driveFileId = await driveWriteFile(googleAccessToken, driveFileId, getDrivePayload());
       // Re-renderiza tudo
-      renderDashboard(); renderFollowUps(); renderAniversarios(); renderMetas();
+      renderDashboardSeVisivel(); renderFollowUps(); renderAniversarios(); renderMetas();
       renderAgenda(); renderAcoes(); updateBadge(); updateBadgeLuminate();
       if (mode === 'manual') {
         showToast('☁️ Dados sincronizados com Google Drive!');
@@ -20058,7 +20514,7 @@ async function supabaseSync(mode) {
       .upsert({ user_id: uid, payload: getDrivePayload(), updated_at: new Date().toISOString() }, { onConflict: 'user_id' });
     if (writeErr) throw writeErr;
 
-    renderDashboard(); renderFollowUps(); renderAniversarios(); renderMetas();
+    renderDashboardSeVisivel(); renderFollowUps(); renderAniversarios(); renderMetas();
     renderAgenda(); renderAcoes(); updateBadge(); updateBadgeLuminate();
 
     if (label) label.textContent = '☁️ Cloud Ativa';
@@ -21124,7 +21580,7 @@ function enviarGuiaoCanal() {
     // copia o guião e abre o Instagram para o utilizador colar manualmente.
     copiarGuiao();
     showToast('📋 Guião copiado — cola na conversa do Instagram');
-    setTimeout(() => { window.open('https://www.instagram.com/direct/inbox/', '_blank'); }, 600);
+    setTimeout(() => { abrirAppNativa('instagram', 'https://www.instagram.com/direct/inbox/'); }, 600);
   }
 }
 
@@ -21253,17 +21709,37 @@ ${guiaoTipoAtivo === 'primeiro-contacto' ? `
 - NÃO menciones o X39 diretamente logo no início — quebra o gelo primeiro
 - NÃO uses frases como "como médico" se não souberes a profissão com certeza
 - Sê natural e curioso, como se quisesses reconectar ou conhecer melhor a pessoa
-- Só no fim, de forma muito suave, podes insinuar que tens algo interessante a partilhar` :
+- Só no fim, de forma muito suave, podes insinuar que tens algo interessante a partilhar${(() => {
+    const fonte = (l.fonte || '').trim();
+    if (fonte === 'Referência') return `
+- Veio por INDICAÇÃO — já traz confiança emprestada de quem a indicou; podes reconhecer isso logo na abertura (ex: mencionar que foi indicado, sem ser efusivo) em vez de abrir como um contacto totalmente frio`;
+    if (fonte === 'Pessoal') return `
+- É um contacto PESSOAL (conhecido, amigo ou familiar) — a abertura pode ser mais direta e menos cautelosa do que com um estranho, já existe uma relação`;
+    if (fonte === 'Instagram' || fonte === 'Facebook') return `
+- Veio de redes sociais — é um contacto mais frio, sem relação prévia; a curiosidade genuína importa ainda mais aqui, evita qualquer coisa que pareça um script de venda`;
+    return '';
+  })()}` :
 guiaoTipoAtivo === 'follow-up' ? `
 - Já houve contacto anterior — referencia algo concreto do histórico
 - Começa com algo leve para quebrar o gelo, não com pitch imediato
-- Mostra que te lembraste desta pessoa especificamente` :
+- Mostra que te lembraste desta pessoa especificamente${(() => {
+    const diasFU = diasSemContacto(l);
+    if (diasFU === null) return '';
+    if (diasFU <= 7) return `
+- Contacto recente (${diasFU} dias) — o seguimento pode ser direto, a conversa ainda está "fresca"`;
+    if (diasFU <= 21) return `
+- Já vão ${diasFU} dias sem contacto — reconhece brevemente o hiato antes de continuar, não presumas que ela lembra tudo com o mesmo detalhe`;
+    return `
+- Já vão ${diasFU} dias sem contacto — isto está a aproximar-se de silêncio, não de um seguimento normal; trata como uma reabertura suave da conversa, não como continuação direta de onde ficou`;
+  })()}` :
 guiaoTipoAtivo === 'apresentacao-produto' ? `
 - A pessoa já sabe quem és — vai direto ao X39 com entusiasmo genuíno
-- Foca nos benefícios mais relevantes para o perfil desta pessoa` :
+- Foca nos benefícios mais relevantes para o perfil desta pessoa${l.objecoes && l.objecoes.length > 0 ? `
+- Já levantou estas objeções antes (${l.objecoes.map(o => OBJECOES_LABELS[o] || o).join(', ')}) — não as ignores só porque o objetivo agora é o produto; tece uma resposta breve a isso antes ou durante a apresentação, não depois de a pessoa voltar a levantá-la` : ''}` :
 guiaoTipoAtivo === 'apresentacao-negocio' ? `
 - A pessoa já conhece o produto — apresenta agora a oportunidade de negócio
-- Foca na liberdade financeira e no modelo de distribuição` :
+- Foca na liberdade financeira e no modelo de distribuição${l.objecoes && l.objecoes.length > 0 ? `
+- Já levantou estas objeções antes (${l.objecoes.map(o => OBJECOES_LABELS[o] || o).join(', ')}) — se alguma for sobre tempo, ceticismo ou má experiência prévia em MLM, isso pesa ainda mais ao apresentar o NEGÓCIO do que o produto; não avances como se a objeção nunca tivesse existido` : ''}` :
 guiaoTipoAtivo === 'fechar-venda' ? `
 - A pessoa está quase a decidir — remove a última barreira
 - Sê direto mas sem pressão, ajuda-a a dar o passo final${(() => {
@@ -21285,7 +21761,13 @@ guiaoTipoAtivo === 'fechar-venda' ? `
     return partes.length ? '\n' + partes.join('\n') : '';
   })()}` :
 `- A pessoa estava fria/inativa — reativa com algo genuíno e sem pressão
-- Não faças pitch imediato, reconecta primeiro como pessoa`}
+- Não faças pitch imediato, reconecta primeiro como pessoa${(() => {
+    const diasFrio = diasSemContacto(l);
+    if (diasFrio === null) return '';
+    if (diasFrio <= 30) return `\n- Está fria há ${diasFrio} dias (menos de um mês) — o hiato ainda é curto, uma reconexão leve e casual chega, sem precisar de te desculpares pelo silêncio`;
+    if (diasFrio <= 120) return `\n- Está fria há ${diasFrio} dias (alguns meses) — reconhece brevemente que faz tempo, sem exagerar, e pergunta algo genuíno sobre a vida da pessoa antes de qualquer outra coisa`;
+    return `\n- Está fria há ${diasFrio} dias (muito tempo, muitos meses) — é essencialmente um recomeço; não presumas que a pessoa se lembra dos detalhes da conversa anterior nem que o interesse de então ainda existe, trata-a como uma reconexão genuína após um hiato longo, não como continuação`;
+  })()}`}
 
 INSTRUÇÕES:
 1. Escreve uma mensagem para ${guiaoCanal} em Português de Portugal. O teu nome é ${nomeDistribuidor} (usa APENAS este nome, nunca usernames)
@@ -22945,9 +23427,124 @@ function retEstadoCor(estado) {
   return { ativo: '#00d4aa', risco: '#f5c842', critico: '#ff6b35', perdido: '#ff4444' }[estado] || 'var(--text2)';
 }
 
+// ===== CROSS-SELL — PRÓXIMO PRODUTO PARA CADA CLIENTE =====
+// Olha para o histórico real de compras de cada Cliente Preferido (via
+// getClientesPreferenciaisRet, já existente — não duplica a agregação) e,
+// com um mapa simples de "para quem já tem X, o complemento natural é Y",
+// sugere o produto seguinte que ainda não comprou. Não é IA nem previsão
+// estatística — é bom senso comercial sobre o catálogo, tal como os scripts
+// de venda que já existem em CATALOGO_PRODUTOS. 100% aditivo e read-only
+// sobre `vendas`/`leads`; não altera nenhuma venda existente.
+const LW_CROSS_SELL_MAPA = {
+  x39:      [{ id:'x49',     motivo:'já usa a base X39 — X49 soma performance e força' },
+             { id:'icewave', motivo:'complementa com alívio de dores pontuais' }],
+  x49:      [{ id:'x39',     motivo:'ainda não tem a base X39 para o bem-estar geral' },
+             { id:'energy',  motivo:'energia extra para sustentar os treinos' }],
+  icewave:  [{ id:'x39',     motivo:'para bem-estar geral, além do alívio pontual de dores' }],
+  energy:   [{ id:'silent',  motivo:'complementa energia de dia com sono de qualidade à noite' },
+             { id:'x39',     motivo:'base de bem-estar geral' }],
+  silent:   [{ id:'energy',  motivo:'complementa o sono com mais energia durante o dia' },
+             { id:'x39',     motivo:'base de bem-estar geral' }],
+  aeon:     [{ id:'glut',    motivo:'reforça o sistema anti-idade Y-Age' }],
+  glut:     [{ id:'aeon',    motivo:'reforça o sistema anti-idade Y-Age' }],
+  carn:     [{ id:'x39',     motivo:'base de bem-estar geral' }],
+};
+
+function renderCrossSell() {
+  const el = document.getElementById('ret-cross-sell');
+  if (!el || typeof CATALOGO_PRODUTOS === 'undefined') return;
+
+  const clientes = getClientesPreferenciaisRet().filter(c => c.estado === 'ativo' || c.estado === 'risco');
+  if (!clientes.length) { el.innerHTML = ''; return; }
+
+  // Nome do produto -> id do catálogo, para conseguir cruzar vendas.produto
+  // (que guarda o nome, ex: "LifeWave X39®") com os ids do mapa acima.
+  const nomeParaId = {};
+  CATALOGO_PRODUTOS.forEach(p => { nomeParaId[p.nome] = p.id; });
+
+  const sugestoes = [];
+  clientes.forEach(c => {
+    const idsQueTem = new Set(
+      c.historico.map(v => nomeParaId[v.produto]).filter(Boolean)
+    );
+    if (!idsQueTem.size) return;
+
+    // Para cada produto que já tem, olha para os complementares sugeridos
+    // e escolhe o primeiro que ainda não tem — só 1 sugestão por cliente,
+    // para não sobrecarregar a lista com várias hipóteses.
+    let sugestao = null;
+    for (const idTem of idsQueTem) {
+      const complementares = LW_CROSS_SELL_MAPA[idTem] || [];
+      const encontrado = complementares.find(comp => !idsQueTem.has(comp.id));
+      if (encontrado) { sugestao = encontrado; break; }
+    }
+    if (!sugestao) return;
+
+    const produtoSugerido = CATALOGO_PRODUTOS.find(p => p.id === sugestao.id);
+    if (!produtoSugerido) return;
+
+    sugestoes.push({
+      nome: c.nome,
+      tel: c.tel,
+      leadId: c.leadId,
+      produtoSugerido,
+      motivo: sugestao.motivo,
+    });
+  });
+
+  if (!sugestoes.length) { el.innerHTML = ''; return; }
+
+  el.innerHTML = `
+    <div class="card" style="background:linear-gradient(135deg,rgba(0,212,170,0.05),rgba(0,132,255,0.03));border-color:rgba(0,212,170,0.15);">
+      <div class="section-title" style="margin-bottom:4px;">🎁 Sugestões de Cross-Sell</div>
+      <div style="font-size:11.5px;color:var(--text2);margin-bottom:14px;line-height:1.5;">
+        Clientes ativos que ainda não têm um produto complementar — a próxima venda mais óbvia antes de procurares clientes novos.
+      </div>
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        ${sugestoes.slice(0, 8).map(s => {
+          const idSafe = s.nome.replace(/[^a-zA-Z0-9]/g, '_');
+          return `
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:10px 14px;flex-wrap:wrap;">
+            <div style="min-width:0;flex:1;">
+              <div style="font-size:12.5px;font-weight:700;color:var(--text);">${escapeHtml(s.nome)}</div>
+              <div style="font-size:11px;color:var(--text2);margin-top:2px;">${s.produtoSugerido.emoji} <strong style="color:var(--text);">${s.produtoSugerido.nome}</strong> — ${escapeHtml(s.motivo)}</div>
+            </div>
+            <div style="display:flex;gap:6px;flex-shrink:0;">
+              ${s.tel ? `<button class="btn btn-sm" style="background:rgba(37,211,102,0.15);color:#25d366;border:1px solid rgba(37,211,102,0.3);" onclick="crossSellWA('${idSafe}', '${encodeURIComponent(s.tel)}','${encodeURIComponent(s.nome)}','${s.produtoSugerido.id}','${s.leadId||''}')">📲 Sugerir</button>` : ''}
+            </div>
+          </div>`;
+        }).join('')}
+      </div>
+    </div>`;
+}
+
+function crossSellWA(idSafe, telEnc, nomeEnc, produtoId, leadId) {
+  const tel = decodeURIComponent(telEnc);
+  const nomePrimeiro = decodeURIComponent(nomeEnc).split(' ')[0];
+  const produto = CATALOGO_PRODUTOS.find(p => p.id === produtoId);
+  if (!produto) { showToast('❌ Produto não encontrado'); return; }
+
+  const texto = `Olá ${nomePrimeiro}! 👋 Já que estás a gostar dos teus resultados, queria só partilhar-te o ${produto.nome} — ${produto.desc.split('.')[0].toLowerCase()}. Achei que podia fazer sentido para ti. Queres que te explique melhor? 😊`;
+
+  if (leadId && typeof leads !== 'undefined') {
+    const l = leads.find(x => x.id === leadId);
+    if (l) {
+      l.historico = l.historico || [];
+      l.historico.push({ tipo: 'mensagem', msg: `💬 WhatsApp enviado (Cross-Sell — ${produto.nome}): "${texto.slice(0,60)}…"`, data: new Date().toLocaleString('pt-PT') });
+      l.ultimoContacto = new Date().toISOString();
+      if (typeof saveleads === 'function') saveleads();
+      if (typeof renderResumoDia === 'function') renderResumoDia();
+      if (typeof renderProximaAcao === 'function') renderProximaAcao();
+    }
+  }
+
+  window.location.href = 'https://wa.me/' + tel + '?text=' + encodeURIComponent(texto);
+}
+
 function renderRetencao() {
   if (typeof loadVendas === 'function') loadVendas();
   if (typeof renderHistoricoRetencao === 'function') renderHistoricoRetencao();
+  if (typeof renderCrossSell === 'function') renderCrossSell();
 
   const todos = getClientesPreferenciaisRet();
   const filtroEstado  = document.getElementById('ret-filtro-estado')?.value || '';
@@ -25835,6 +26432,103 @@ function renderEquipa() {
 
   // Quadro de Honra
   renderQuadroHonra();
+
+  // Melhores fontes de recrutamento (de onde vêm os recrutas que ficam)
+  renderFontesRecrutamento();
+}
+
+// ===== MELHORES FONTES DE RECRUTAMENTO =====
+// Cruza `membros` com `leads[].fonte` (mesmo critério de match por nome
+// normalizado já usado em renderStatsValorCliente / LTV por fonte) para
+// mostrar de que fonte vêm os recrutas que RESULTAM em negócio — não só
+// quantos entraram, mas quantos ficaram ativos e quanto PV/QDV geram.
+// 100% derivado de dados já existentes (membros + leads.fonte) — não
+// adiciona nenhum campo novo nem altera salvarLead/salvarMembro.
+function renderFontesRecrutamento() {
+  const el = document.getElementById('equipa-fontes-recrutamento');
+  if (!el || typeof membros === 'undefined' || typeof leads === 'undefined') return;
+
+  if (!membros.length) { el.innerHTML = ''; return; }
+
+  const fonteEmojis = { Instagram:'📸', Facebook:'📘', WhatsApp:'💬', Pessoal:'🤝', Referência:'⭐', Hashtag:'#️⃣', 'Grupo Facebook':'👥', 'Perfil/Comentário':'💭', Outro:'📌', Desconhecida:'❓' };
+
+  const porFonte = {};
+  membros.forEach(m => {
+    const leadOrig = leads.find(l => (l.nome || '').trim().toLowerCase() === (m.nome || '').trim().toLowerCase());
+    const fonte = leadOrig?.fonte || 'Desconhecida';
+    if (!porFonte[fonte]) porFonte[fonte] = { recrutas: 0, ativos: 0, somaScore: 0, somaPV: 0, somaQDV: 0 };
+    const f = porFonte[fonte];
+    const saudeM = calcularIndiceSaudeMembro(m);
+    f.recrutas++;
+    if (saudeM.score >= 45) f.ativos++; // "Saudável" ou "Atenção" — ainda em jogo, só "Crítico" conta como perdido
+    f.somaScore += saudeM.score;
+    f.somaPV += (m.pv || 0);
+    f.somaQDV += (m.qdv || 0);
+  });
+
+  const fontesArr = Object.entries(porFonte)
+    .map(([fonte, d]) => ({
+      fonte,
+      recrutas: d.recrutas,
+      ativos: d.ativos,
+      taxaSobrevivencia: Math.round((d.ativos / d.recrutas) * 100),
+      scoreMedio: Math.round(d.somaScore / d.recrutas),
+      pvMedio: Math.round(d.somaPV / d.recrutas),
+      qdvMedio: Math.round(d.somaQDV / d.recrutas),
+    }))
+    .sort((a, b) => b.taxaSobrevivencia - a.taxaSobrevivencia || b.recrutas - a.recrutas);
+
+  if (!fontesArr.length) { el.innerHTML = ''; return; }
+
+  const comparaveis = fontesArr.filter(f => f.recrutas >= 2);
+  const melhor = comparaveis[0];
+
+  let html = `
+    <div class="card">
+      <div class="section-title" style="margin-bottom:4px;">🧭 Melhores Fontes de Recrutamento</div>
+      <div style="font-size:11.5px;color:var(--text2);margin-bottom:14px;line-height:1.5;">
+        De onde vêm os recrutas que ficam e produzem — não só os que mais entram. "Taxa de continuidade" = % de recrutas ainda ativos ou saudáveis hoje.
+      </div>`;
+
+  if (melhor) {
+    html += `
+      <div style="display:flex;align-items:flex-start;gap:8px;background:rgba(0,212,170,0.06);border:1px solid rgba(0,212,170,0.2);border-radius:10px;padding:10px 12px;margin-bottom:16px;font-size:11.5px;color:var(--text2);line-height:1.5;">
+        <span style="font-size:15px;">💎</span>
+        <span>Os recrutas de <strong style="color:var(--text);">${fonteEmojis[melhor.fonte] || '📌'} ${escapeHtml(melhor.fonte)}</strong> têm a maior taxa de continuidade — <strong style="color:var(--accent);">${melhor.taxaSobrevivencia}%</strong> ainda ativos/saudáveis, com ${melhor.pvMedio} PV médio.</span>
+      </div>`;
+  }
+
+  html += `<div style="display:flex;flex-direction:column;gap:8px;">`;
+  html += fontesArr.map(f => {
+    const cor = f.taxaSobrevivencia >= 66 ? 'var(--accent)' : f.taxaSobrevivencia >= 33 ? 'var(--gold)' : '#ff6b6b';
+    return `
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:10px 14px;flex-wrap:wrap;">
+        <div style="display:flex;align-items:center;gap:8px;min-width:140px;">
+          <span style="font-size:16px;">${fonteEmojis[f.fonte] || '📌'}</span>
+          <div>
+            <div style="font-size:12.5px;font-weight:700;color:var(--text);">${escapeHtml(f.fonte)}</div>
+            <div style="font-size:10.5px;color:var(--text3);">${f.recrutas} recruta${f.recrutas !== 1 ? 's' : ''}${f.recrutas < 2 ? ' · amostra pequena' : ''}</div>
+          </div>
+        </div>
+        <div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap;">
+          <div style="text-align:center;">
+            <div style="font-size:14px;font-weight:800;color:${cor};">${f.taxaSobrevivencia}%</div>
+            <div style="font-size:9.5px;color:var(--text3);">continuidade</div>
+          </div>
+          <div style="text-align:center;">
+            <div style="font-size:14px;font-weight:800;color:var(--text);">${f.pvMedio}</div>
+            <div style="font-size:9.5px;color:var(--text3);">PV médio</div>
+          </div>
+          <div style="text-align:center;">
+            <div style="font-size:14px;font-weight:800;color:var(--text);">${f.qdvMedio}</div>
+            <div style="font-size:9.5px;color:var(--text3);">QDV médio</div>
+          </div>
+        </div>
+      </div>`;
+  }).join('');
+  html += `</div></div>`;
+
+  el.innerHTML = html;
 }
 
 function renderCategoriasEquipa() {
@@ -26010,7 +26704,7 @@ function promoverLeadAMembro(leadId) {
   saveleads();
 
   closeModal('modal-ver-lead');
-  renderDashboard();
+  renderDashboardSeVisivel();
   renderFunil();
   renderLista();
   showToast('🚀 ' + l.nome + ' agora é membro da equipa!');
@@ -27638,7 +28332,7 @@ function salvarVenda() {
       leads[leadIdx].historico = leads[leadIdx].historico || [];
       leads[leadIdx].historico.unshift({ data: new Date().toISOString(), msg: `✅ Convertido para cliente (venda: ${venda.produto} · €${venda.valor})`, tipo: 'sistema' });
       saveleads();
-      renderDashboard();
+      renderDashboardSeVisivel();
       showToast(`⭐ ${leads[leadIdx].nome} promovido a cliente!`);
       // Dispara o motor de automação — sem isto, a Sequência Pós-Venda e o
       // pedido de indicação (regras "estado_muda → cliente") nunca corriam
@@ -38178,7 +38872,7 @@ function executarAcaoRegra(regra, lead, ultimoContactoRef) {
     registarAutoLogRegra(regra, '📋', `Preparou mensagem para <b>${escapeHtml(lead.nome)}</b>: "${escapeHtml(texto.substring(0,50))}${texto.length>50?'…':''}"`, lead.id, texto, lead.id, ultimoContactoRef);
     showToast('⚙️ Automação: mensagem copiada para ' + lead.nome + '!');
   } else if (a.tipo === 'mudar_estado') {
-    setTimeout(() => { lead.estado = a.estado; if (typeof saveleads === 'function') saveleads(); if (typeof renderFunil === 'function') renderFunil(); if (typeof renderDashboard === 'function') renderDashboard(); }, 300);
+    setTimeout(() => { lead.estado = a.estado; if (typeof saveleads === 'function') saveleads(); if (typeof renderFunil === 'function') renderFunil(); if (typeof renderDashboardSeVisivel === 'function') renderDashboardSeVisivel(); }, 300);
     registarAutoLogRegra(regra, '🔄', `Moveu <b>${escapeHtml(lead.nome)}</b> para "${estadoLabel(a.estado)}"`, null, null, lead.id, ultimoContactoRef);
     showToast('⚙️ Automação: ' + lead.nome + ' → ' + estadoLabel(a.estado));
   } else if (a.tipo === 'notificar') {
@@ -40617,7 +41311,8 @@ async function acAnalisar() {
     var _uiLangMap = {'pt':'Português de Portugal','pt-PT':'Português de Portugal','pt-BR':'Português do Brasil','en':'English','en-US':'English','en-GB':'English','fr':'Français','fr-FR':'Français','fr-BE':'Français','es':'Español','de':'Deutsch','it':'Italiano','nl':'Nederlands','pl':'Polski','ro':'Română','hu':'Magyar','cs':'Čeština','sk':'Slovenčina','hr':'Hrvatski','sl':'Slovenščina','da':'Dansk','fi':'Suomi','sv':'Svenska','no':'Norsk','tr':'Türkçe','ru':'Русский','uk':'Українська'};
     var uiLangCode = uiLang.split('-')[0].toLowerCase();
     var uiLangName = _uiLangMap[uiLang] || _uiLangMap[uiLangCode] || uiLang;
-    var sys = 'You are a LifeWave sales coach analyzing a conversation for a LifeWave network marketing distributor. Always interpret the conversation in the context of the LifeWave business (X39 and other LifeWave wellness patches, the LifeWave compensation plan, recruiting Brand Partners, retail customers, PV/BV, ranks). Never assume an unrelated business or product context.' + (perfNome ? ' Distributor: ' + perfNome + '.' : '')
+    var _acHojeStr = new Date().toLocaleDateString('pt-PT', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    var sys = 'Today\'s date is ' + _acHojeStr + ' — use this to reason about how much time has passed since any dated event below (e.g. the lead history timestamps), never assume today\'s date from training data. You are a LifeWave sales coach analyzing a conversation for a LifeWave network marketing distributor. Always interpret the conversation in the context of the LifeWave business (X39 and other LifeWave wellness patches, the LifeWave compensation plan, recruiting Brand Partners, retail customers, PV/BV, ranks). Never assume an unrelated business or product context.' + (perfNome ? ' Distributor: ' + perfNome + '.' : '')
       + ' LANGUAGE RULES (mandatory):'
       + ' 1) Detect the language the PROSPECT is writing in.'
       + ' 2) Write the field "proxima_mensagem" EXCLUSIVELY in that detected language — never translate it to another language.'
@@ -40653,7 +41348,9 @@ async function acAnalisar() {
       + ' 12) PROBABILIDADE_CONVERSAO CALIBRATION (mandatory — use this rubric instead of a subjective guess, so scores stay consistent across analyses): 0-10 = prospect explicitly said no / not interested / asked to stop contact (like this example: "não estou interessada", "não me interessa"); 11-30 = cold or passive — vague/one-word replies, long delays, or a firm objection with no opening left; 31-50 = neutral/early — curious but noncommittal, asking basic questions, fase is typically "descoberta"; 51-70 = warm — engaging back and forth, asking specific questions about price/how it works/how to start, fase typically "consideracao" or "interesse"; 71-90 = hot — expressed clear intent to move forward, only logistics or a minor objection left unresolved, fase typically "interesse" or "objecao"; 91-100 = ready to close — explicitly asked how to pay/join/order or agreed to a next concrete step, fase "pronto_para_comprar". Anchor the number to the MOST RECENT signal from the prospect, not the overall history of the relationship — a prospect who was hot last month but is cold today scores low today.'
       + ' 12b) PROBABILIDADE_RACIONAL (mandatory companion field to probabilidade_conversao): write ONE short sentence (max ~20 words, in ' + uiLangName + ') naming the SINGLE most concrete, most recent signal that the score is anchored to — not a summary of the whole conversation, just the specific fact or quote that justifies the number. This exists so the distributor never has to blindly trust a bare percentage, especially when a lot of the analysis is inferred rather than stated outright (e.g. distinguish "abriu o link mas ainda não respondeu ao conteúdo" — a fact — from "provavelmente já foi Brand Partner" — an inference from a system email, weaker evidence). Good example: "Abriu o link mas a resposta é uma objeção firme, sem pergunta de volta." Bad example (too vague, do not do this): "O sentimento geral é morno."'
       + (_acHistoricoResumoInicial ? ' 13) LEAD HISTORY RULE (critical): below is the prior interaction history already recorded for this prospect in the CRM, most recent first. Use it as background context to inform "sentimento", "fase", "objecoes", "pontos_positivos", "erros_cometidos", "probabilidade_conversao", "proximo_passo" and especially "proxima_mensagem" — e.g. do not repeat an objection they already resolved, do not re-introduce something already explained before, and reference earlier commitments or promises naturally if relevant. The history is background only: the CURRENT conversation/audio/image being analyzed now still defines "fase" and "sentimento" primarily. If the current message contradicts the historical pattern (e.g. they were warm before but are cold now), trust the CURRENT signal.'
-        + ' 13b) PRIOR SUGGESTION OUTCOME (critical, closes the feedback loop — use this to actually improve, not just repeat): if the history below includes a line starting with "ÚLTIMA SUGESTÃO DE MENSAGEM JÁ FEITA A ESTE LEAD", it tells you whether the LAST AI-suggested message to this prospect worked or not. If it says the suggestion did NOT result in progress ("NÃO RESULTOU"), do not propose a very similar angle/question again — actively try a genuinely different approach this time (a different objection framing, a different opening, a different concrete offer), and mention briefly in "dica_extra" that the previous approach did not land so the distributor understands why the strategy changed. If it says the suggestion DID result in progress ("RESULTOU"), you can build on whatever worked (e.g. if a diagnostic question got a real answer, follow up on that answer directly) rather than starting over with a generic message. If it is still "pendente" (this is the first analysis after that suggestion was made), treat it the same as no prior suggestion.\n\nHISTÓRICO DO LEAD (mais recente primeiro):\n' + _acHistoricoResumoInicial : '')
+        + ' 13b) PRIOR SUGGESTION OUTCOME (critical, closes the feedback loop — use this to actually improve, not just repeat): if the history below includes a line starting with "ÚLTIMA SUGESTÃO DE MENSAGEM JÁ FEITA A ESTE LEAD", it tells you whether the LAST AI-suggested message to this prospect worked or not. If it says the suggestion did NOT result in progress ("NÃO RESULTOU"), do not propose a very similar angle/question again — actively try a genuinely different approach this time (a different objection framing, a different opening, a different concrete offer), and mention briefly in "dica_extra" that the previous approach did not land so the distributor understands why the strategy changed. If it says the suggestion DID result in progress ("RESULTOU"), you can build on whatever worked (e.g. if a diagnostic question got a real answer, follow up on that answer directly) rather than starting over with a generic message. If it is still "pendente" (this is the first analysis after that suggestion was made), treat it the same as no prior suggestion.'
+        + ' 13c) SILENT GAP vs ACTUAL OBJECTION (critical — these require OPPOSITE strategies, never confuse them): compare today\'s date (given above) against the most recent dated line in the history below. If a significant gap has passed (roughly 10+ days) since the LAST message in the history/conversation — regardless of who sent it — and nothing in the current conversation being analyzed is a reply that closes that gap, this is SILENCE, not a rejection: the prospect never said no, they simply went quiet. Do NOT treat this the same as an active objection (price, skepticism, etc.) and do NOT write "proxima_mensagem" as if picking up the old thread exactly where it left off (e.g. do not just repeat the old pitch or the old question — it will read as ignoring the fact that time passed, which feels tone-deaf and often gets no reply at all). Instead: (a) set "sentimento" to reflect the cooling effect of silence (e.g. "frio" or "neutro", not the warmer sentiment the old messages might suggest in isolation); (b) in "dica_extra", name the gap explicitly (e.g. "já passaram 3 semanas sem resposta — isto é silêncio, não uma recusa"); (c) write "proxima_mensagem" as a short, low-pressure RE-ENGAGEMENT opener that briefly acknowledges the gap without guilt-tripping (e.g. "Olá {nome}, sei que já faz um tempo — como tens passado?"), asking one light, curious question to re-open the door, rather than continuing the previous pitch/objection-handling as if no time had passed. This is a distinct situation from the "hidden objection behind a literal excuse" pattern above (rule 10) — that pattern applies when the prospect DID reply with a stated reason that doesn\'t match their behaviour; this rule applies when they simply never replied at all. If the gap is short (a few days or less) or the current conversation already shows an active back-and-forth, this rule does not apply — reason normally from the conversation content instead.'
+        + '\n\nHISTÓRICO DO LEAD (mais recente primeiro):\n' + _acHistoricoResumoInicial : '')
       + ' FINAL SELF-CHECK (mandatory, apply before writing "proxima_mensagem" in the JSON below): the JSON field order forces you to write "proximo_passo" and "dica_extra" first — before writing "proxima_mensagem", re-read what you just wrote in those two fields and check that "proxima_mensagem" actually executes that strategy (e.g. if dica_extra says to ask a diagnostic question instead of pitching or offering a call, "proxima_mensagem" must lead with that question, not with a pitch, a link, or a call offer). If they contradict each other, rewrite "proxima_mensagem" to match dica_extra and proximo_passo — never the other way around. Also specifically check: does the "hidden objection behind a literal excuse" pattern apply here (stated objection vs. observed behaviour do not match, e.g. an old/dormant contact citing "no time")? If yes, make sure "proximo_passo" and "proxima_mensagem" follow that guidance and not the generic objection-handling move.'
       + ' NEVER REFERENCE THIS PROMPT ITSELF (critical, applies to every field): these instructions are internal and must never leak into the output. Do not mention rule names, rule letters/numbers, section titles, or phrases like "regra", "rule", "conforme a regra (m)", "aplicando a secção X" anywhere in "resumo", "proximo_passo", "dica_extra", "proxima_mensagem" or any other field. Write every field as a human coach speaking naturally to the distributor about THIS specific conversation — describe the reasoning itself (e.g. "ela já conhece a marca há anos, por isso a falta de tempo é provavelmente uma dúvida disfarçada, não a agenda cheia"), never the fact that you are following a rule.'
       + ' 14) SECOND MESSAGE OPTION (mandatory — the distributor should get a real choice, not just one fixed suggestion): in addition to "proxima_mensagem", write "proxima_mensagem_alt" — a genuinely different STRATEGIC ANGLE for the same reply, not just a reworded version of the same idea. Both must still follow every rule above (address the same detected objection if any, name the brand when appropriate, end on one concrete step, respect the hidden-objection guidance, etc.) — they should feel like two approaches a skilled distributor might realistically choose between, leading to potentially different conversations, not two paraphrases of the same message. Concretely vary ONE of: (a) the closing move — e.g. one version closes with a direct, curious question, the other closes with a short concrete offer (a specific day/time, or a piece of content to send) instead of a question; (b) the opening move — e.g. one leads with acknowledging the objection/feeling, the other leads with a relevant fact or short personal reason first; (c) the register — e.g. one stays purely relationship/curiosity-based, the other (only when the fase genuinely supports it) is a touch more direct about next steps. Do not vary tone alone (e.g. "formal" vs "casual") — that is not a strategic difference. Also write "proxima_mensagem_alt_label" — a very short 2-4 word tag in ' + uiLangName + ' naming the strategic difference of the ALT version specifically, from the distributor\'s point of view (e.g. "Oferece horário direto", "Lidera com empatia", "Pergunta mais direta") — never a generic label like "Alternativa" or "Versão 2".'
@@ -40667,33 +41364,25 @@ async function acAnalisar() {
 
     // Sistema central de fallback automático para texto puro sem media —
     // tentando Gemini → Claude → Grok → Mistral → OpenRouter (conforme chaves configuradas).
-    // Quando há ÁUDIO (isolado ou combinado com imagem), força-se sempre o Gemini: é o
-    // único provider da cadeia com suporte nativo a inline_data de áudio e o único capaz
-    // de receber vários media na mesma chamada (ex: screenshot + nota de voz analisados
-    // em conjunto) — não há fallback possível aqui, as outras IAs simplesmente não
-    // conseguem processar áudio.
-    // Quando é APENAS imagem (o caso mais comum — print de conversa), várias IAs da
-    // cadeia (Claude, Grok, Mistral, OpenRouter) também têm visão, por isso passa por
-    // callAI() para poder cair para a próxima IA se o Gemini estiver sem quota/em baixo
-    // — antes, um erro de quota do Gemini aparecia cru ao utilizador mesmo havendo
-    // outras chaves configuradas, porque a chamada ignorava a cadeia de fallback.
+    // Assim que há QUALQUER media (imagem e/ou áudio, isolados ou em conjunto),
+    // força-se sempre o Gemini: é o único provider da cadeia com suporte nativo
+    // a inline_data (imagem/áudio) e o único capaz de receber vários media na
+    // mesma chamada (ex: screenshot + nota de voz analisados em conjunto).
     var _acExtraMedia = [];
     if (isImg && isAudio) {
       // Quando ambos existem, a imagem vai como extraMedia e o áudio como o
       // media "principal" da chamada (mantém a assinatura de callGemini simples).
       _acExtraMedia.push({ data: _acImagemB64, mimeType: 'image/jpeg' });
     }
-    var raw = isAudio
+    var raw = temMedia
       ? await callGemini(
           promptText,
-          _acAudioB64,
-          _acAudioMediaType || 'audio/webm',
+          isAudio ? _acAudioB64 : _acImagemB64,
+          isAudio ? (_acAudioMediaType || 'audio/webm') : 'image/jpeg',
           null,
           _acExtraMedia
         )
-      : isImg
-        ? await callAI('posts', promptText, _acImagemB64, 'image/jpeg', 'analise_conversa')
-        : await callAI('posts', promptText, null, null, 'analise_conversa');
+      : await callAI('posts', promptText, null, null, 'analise_conversa');
 
     if (!raw || !raw.trim()) throw new Error('Resposta vazia da IA');
 
@@ -40809,19 +41498,17 @@ async function acAnalisar() {
       try {
         var promptTextComHistorico = promptText.replace(
           "Respond ONLY in valid JSON",
-          "LEAD HISTORY RULE (critical): below is the prior interaction history already recorded for this prospect in the CRM, most recent first. Use it as background context to inform \"sentimento\", \"fase\", \"objecoes\", \"pontos_positivos\", \"erros_cometidos\", \"probabilidade_conversao\", \"proximo_passo\" and especially \"proxima_mensagem\" — do not repeat an objection they already resolved, reference earlier commitments naturally if relevant, and trust the CURRENT conversation over the history if they contradict each other. If the history includes a line starting with \"ÚLTIMA SUGESTÃO DE MENSAGEM JÁ FEITA A ESTE LEAD\" marked as NÃO RESULTOU, do not repeat a similar angle — actively try a genuinely different approach this time, and mention briefly in \"dica_extra\" that the previous approach did not land so the distributor understands why the strategy changed. If marked RESULTOU, build on what worked instead of starting over. If marked pendente, treat it the same as no prior suggestion.\n\nHISTÓRICO DO LEAD (mais recente primeiro):\n" + _acHistoricoResumoFinal + "\n\nRespond ONLY in valid JSON"
+          "LEAD HISTORY RULE (critical): below is the prior interaction history already recorded for this prospect in the CRM, most recent first. Use it as background context to inform \"sentimento\", \"fase\", \"objecoes\", \"pontos_positivos\", \"erros_cometidos\", \"probabilidade_conversao\", \"proximo_passo\" and especially \"proxima_mensagem\" — do not repeat an objection they already resolved, reference earlier commitments naturally if relevant, and trust the CURRENT conversation over the history if they contradict each other. If the history includes a line starting with \"ÚLTIMA SUGESTÃO DE MENSAGEM JÁ FEITA A ESTE LEAD\" marked as NÃO RESULTOU, do not repeat a similar angle — actively try a genuinely different approach this time, and mention briefly in \"dica_extra\" that the previous approach did not land so the distributor understands why the strategy changed. If marked RESULTOU, build on what worked instead of starting over. If marked pendente, treat it the same as no prior suggestion. SILENT GAP RULE: if today's date is 10+ days past the most recent dated line below and the current conversation doesn't close that gap, this is silence, not a rejection — set a cooler \"sentimento\", name the gap in \"dica_extra\", and write \"proxima_mensagem\" as a short, low-pressure re-engagement opener acknowledging the gap, not a continuation of the old thread as if no time passed.\n\nHISTÓRICO DO LEAD (mais recente primeiro):\n" + _acHistoricoResumoFinal + "\n\nRespond ONLY in valid JSON"
         );
-        var rawComHistorico = isAudio
+        var rawComHistorico = temMedia
           ? await callGemini(
               promptTextComHistorico,
-              _acAudioB64,
-              _acAudioMediaType || 'audio/webm',
+              isAudio ? _acAudioB64 : _acImagemB64,
+              isAudio ? (_acAudioMediaType || 'audio/webm') : 'image/jpeg',
               null,
               _acExtraMedia
             )
-          : isImg
-            ? await callAI('posts', promptTextComHistorico, _acImagemB64, 'image/jpeg', 'analise_conversa')
-            : await callAI('posts', promptTextComHistorico, null, null, 'analise_conversa');
+          : await callAI('posts', promptTextComHistorico, null, null, 'analise_conversa');
         if (rawComHistorico && rawComHistorico.trim()) {
           var cleanComHist = rawComHistorico.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim();
           var parsedComHist = null;
@@ -41403,7 +42090,7 @@ function acGuardarNoLead() {
 
   saveleads();
 
-  if (typeof renderDashboard === 'function') renderDashboard();
+  if (typeof renderDashboardSeVisivel === 'function') renderDashboardSeVisivel();
   if (typeof renderFunil === 'function') renderFunil();
   if (typeof renderLista === 'function') renderLista();
 
@@ -41502,6 +42189,72 @@ function acCopiarMsg() {
 
 // Envia a "Mensagem a enviar agora" diretamente para o canal escolhido, tal como
 // enviarMensagem() (modal principal) e enviarGuiaoCanal() (Guião IA) já fazem —
+// Tenta abrir a app nativa do Messenger/Instagram/Facebook no Android via
+// Intent URL (esquema intent://...#Intent;...end).
+//
+// PORQUE messenger.com NÃO FUNCIONA, MAS facebook.com FUNCIONA:
+// o Android só "salta" da web para uma app perante um domínio que essa app
+// tenha REGISTADO e VERIFICADO como App Link (ficheiro assetlinks.json
+// publicado nesse domínio, mais o utilizador ter "Abrir links suportados"
+// ativado nas definições dessa app). "messenger.com" é só o site de
+// marketing/download da app Messenger e NÃO está configurado como App Link
+// — por isso qualquer link para lá cai sempre no browser, mesmo dentro de
+// um intent:// com package= correto. Já "www.facebook.com" ESTÁ registado
+// como App Link pela própria app do Facebook (com.facebook.katana) — é por
+// isso que, em muitos telemóveis, tocar num link do Facebook abre a app em
+// vez do browser. Por isso, sem um m.me/{username} concreto (que exigiria
+// guardar o username do lead — decisão consciente de não o fazer por agora),
+// o melhor destino "genérico" que tem hipótese real de abrir a app é o feed
+// do Facebook (facebook.com), não o site do Messenger. É isso que este botão
+// faz agora: tenta abrir a app do Facebook (feed), não uma conversa
+// específica — o utilizador segue depois manualmente até às mensagens dentro
+// da app. Se um dia guardares o username/link do Facebook do lead, passa
+// o 3º argumento (usernamePerfil) para saltar diretamente para m.me/username
+// no Messenger, que é ainda mais direto.
+function abrirAppNativa(canal, urlWebFallback, usernamePerfil) {
+  var isAndroid = /Android/i.test(navigator.userAgent);
+
+  var urlAlvo = urlWebFallback;
+  var pacote = null;
+
+  if (canal === 'messenger' && usernamePerfil) {
+    // Com username conhecido, o link mais direto (App Link verificado do
+    // Messenger) é m.me/{username} — abre já a conversa, não só o feed.
+    urlAlvo = 'https://m.me/' + usernamePerfil.replace(/^@/, '').trim();
+    pacote = 'com.facebook.orca';
+  } else if (canal === 'messenger') {
+    // Sem username, usa o feed do Facebook (facebook.com), que está
+    // verificado como App Link da app do Facebook — não abre a conversa
+    // específica, mas tem hipótese real de abrir a app em vez do browser.
+    urlAlvo = 'https://www.facebook.com/';
+    pacote = 'com.facebook.katana';
+  } else if (canal === 'instagram') {
+    pacote = 'com.instagram.android';
+  }
+
+  if (!isAndroid || !pacote) {
+    window.open(urlAlvo, '_blank');
+    return;
+  }
+
+  // Remove o "https://" (ou "http://") do início — o intent:// já inclui o
+  // scheme separadamente a seguir à âncora.
+  var semEsquema = urlAlvo.replace(/^https?:\/\//, '');
+  var intentUrl = 'intent://' + semEsquema + '#Intent;scheme=https;package=' + pacote +
+    ';S.browser_fallback_url=' + encodeURIComponent(urlAlvo) + ';end';
+
+  // Usa location.href (não window.open) para intents no Android: window.open
+  // com intent:// costuma falhar silenciosamente em muitos WebViews/Chrome.
+  try {
+    window.location.href = intentUrl;
+  } catch (e) {
+    window.open(urlAlvo, '_blank');
+  }
+}
+
+
+
+
 // grava no histórico do lead ANTES de navegar (mesma razão: em Android Chrome
 // window.open pode cair no fallback window.location.href, que corta a execução
 // a meio) e só depois abre a app. WhatsApp abre já com o texto preenchido via
@@ -41534,7 +42287,7 @@ function acEnviarMsgAgora(btn) {
       showToast('📋 Copiado — associa um lead com telefone para abrir o WhatsApp automaticamente');
     } else {
       setTimeout(function() {
-        window.open(canal === 'messenger' ? 'https://www.messenger.com/' : 'https://www.instagram.com/direct/inbox/', '_blank');
+        abrirAppNativa(canal, canal === 'messenger' ? 'https://www.messenger.com/' : 'https://www.instagram.com/direct/inbox/');
       }, 600);
     }
     return;
@@ -41571,12 +42324,16 @@ function acEnviarMsgAgora(btn) {
     }
     showToast('💬 A abrir WhatsApp...');
   } else {
-    // Instagram DM / Messenger — sem deep-link com texto, copia e abre a inbox
+    // Instagram DM / Messenger — sem deep-link com texto, copia e abre a app.
+    // Nota sobre Messenger: sem um username/link do Facebook guardado no
+    // lead, abre-se a app do Facebook (feed) em vez da inbox do Messenger
+    // diretamente — ver explicação em abrirAppNativa().
     copiarTextoSeguro(texto, 'Mensagem copiada!');
-    aviso('📋 Copiado e guardado no histórico — cola na conversa de ' + (canal === 'messenger' ? 'Messenger' : 'Instagram') + '.');
-    showToast('📋 Copiado — cola na conversa de ' + (canal === 'messenger' ? 'Messenger' : 'Instagram'));
+    var destinoLbl = canal === 'messenger' ? 'Messenger (dentro da app do Facebook)' : 'Instagram';
+    aviso('📋 Copiado e guardado no histórico — cola na conversa de ' + destinoLbl + '.');
+    showToast('📋 Copiado — cola na conversa de ' + destinoLbl);
     setTimeout(function() {
-      window.open(canal === 'messenger' ? 'https://www.messenger.com/' : 'https://www.instagram.com/direct/inbox/', '_blank');
+      abrirAppNativa(canal, canal === 'messenger' ? 'https://www.messenger.com/' : 'https://www.instagram.com/direct/inbox/');
     }, 600);
   }
 
@@ -43033,7 +43790,7 @@ function _setBadge(id, n) {
       _bridgeLembrete('Check-in 7 dias: como está ' + lead.nome + ' com o produto?', 7);
       // 1d. Atualizar dashboard e ações
       setTimeout(function() {
-        if (typeof renderDashboard === 'function') renderDashboard();
+        if (typeof renderDashboardSeVisivel === 'function') renderDashboardSeVisivel();
         if (typeof renderAcoes === 'function') renderAcoes();
       }, 400);
     } catch(e) {}
@@ -43259,7 +44016,7 @@ function _setBadge(id, n) {
 setTimeout(function() {
   try {
     if (typeof moverLeadsParaFrioAutomaticamente === 'function') moverLeadsParaFrioAutomaticamente();
-    if (typeof renderDashboard === 'function') renderDashboard();
+    if (typeof renderDashboardSeVisivel === 'function') renderDashboardSeVisivel();
   } catch(e) {}
 }, 3000);
 
