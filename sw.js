@@ -2,7 +2,7 @@
 // Estratégia: network-first para o HTML (garante que vês sempre a versão mais
 // recente quando há internet), com fallback para cache quando estás offline.
 
-const CACHE_NAME = 'alfateam-crm-v2';
+const CACHE_NAME = 'alfateam-crm-v3';
 const CORE_ASSETS = [
   './',
   './index.html',
@@ -11,12 +11,24 @@ const CORE_ASSETS = [
   './icon-512.png'
 ];
 
-// Instala e guarda os ficheiros essenciais em cache
+// Instala e guarda os ficheiros essenciais em cache.
+// NOTA: não chamamos self.skipWaiting() aqui de propósito — o novo SW fica
+// "waiting" até a própria página (index.html) decidir a altura certa de o
+// ativar (ver listener de 'message' abaixo). Isto é o que permite à app
+// detetar "há uma versão nova" e só trocar quando quiser (ex: no login,
+// com reload automático), em vez de trocar às cegas por baixo do utilizador.
 self.addEventListener('install', (event) => {
-  self.skipWaiting();
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => cache.addAll(CORE_ASSETS)).catch(() => {})
   );
+});
+
+// Permite à página pedir ao SW em espera para assumir controlo imediatamente
+// (chamado depois de mostrarmos/aplicarmos o aviso de nova versão).
+self.addEventListener('message', (event) => {
+  if (event.data === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
 });
 
 // Limpa caches antigas quando uma nova versão do SW assume controlo
