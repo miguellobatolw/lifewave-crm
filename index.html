@@ -8612,6 +8612,21 @@ var QRCode=function(t){"use strict";var r,e=function(){return"function"==typeof 
       </div>
       <textarea class="form-textarea" id="f-notas" placeholder="Interesses, dores, histórico de conversa..." oninput="autoSaveNotasLead()"></textarea>
     </div>
+    <div class="form-group">
+      <label class="form-label" style="display:flex;align-items:center;gap:8px;">
+        📅 Próximo contacto combinado
+        <span id="f-proximo-contacto-auto-tag" style="display:none;font-size:10px;font-weight:600;color:var(--text3);background:var(--surface3);border-radius:20px;padding:1px 7px;">gerado automaticamente</span>
+      </label>
+      <div class="form-row">
+        <div class="form-group">
+          <input class="form-input" id="f-proximo-contacto-data" type="date">
+        </div>
+        <div class="form-group">
+          <input class="form-input" id="f-proximo-contacto-hora" type="time" value="09:00">
+        </div>
+      </div>
+      <input class="form-input" id="f-proximo-contacto-nota" placeholder="O que ficou combinado? Ex: Ligar a confirmar encomenda" style="margin-top:8px;">
+    </div>
     <div class="modal-actions">
       <button class="btn btn-secondary" onclick="closeModal('modal-lead'); editingLeadId=null;">Cancelar</button>
       <button class="btn btn-primary" onclick="salvarLead()">✓ Guardar Lead</button>
@@ -10136,6 +10151,7 @@ function salvarLead() {
     leads.unshift(lead);
   }
   saveleads();
+  guardarProximoContactoComoLembrete(lead.id, lead.nome);
   closeModal('modal-lead');
   const foiEdicao = !!editingLeadId;
   editingLeadId = null;
@@ -10176,8 +10192,39 @@ function editarLead(id) {
   const fIndEl = document.getElementById('f-indicado-por'); if (fIndEl) fIndEl.value = l.indicadoPor || '';
   document.getElementById('f-notas').value = l.notas;
   document.getElementById('f-aniversario').value = l.aniversario || '';
+  preencherCampoProximoContacto(l.id);
   closeModal('modal-ver-lead');
   openModal('modal-lead');
+}
+
+// Lê o lembrete de follow-up ativo deste lead (se existir) e preenche os
+// campos de "próximo contacto combinado" no modal. A fonte de verdade é
+// sempre lembretes[] — este campo não guarda estado próprio no lead, só
+// lê/escreve no mesmo sítio que gerarLembretesAutomaticos() já usa, para
+// nunca haver dois lembretes de follow-up a competir para o mesmo lead.
+function preencherCampoProximoContacto(leadId) {
+  const dataEl = document.getElementById('f-proximo-contacto-data');
+  const horaEl = document.getElementById('f-proximo-contacto-hora');
+  const notaEl = document.getElementById('f-proximo-contacto-nota');
+  const autoTag = document.getElementById('f-proximo-contacto-auto-tag');
+  if (!dataEl || !horaEl || !notaEl) return;
+
+  loadLembretes();
+  const lembrete = lembretes.find(x => x._leadId === leadId && !x.concluido && x.tipo === 'followup');
+  if (lembrete && lembrete.proximoDisparo) {
+    const dt = new Date(lembrete.proximoDisparo);
+    if (!isNaN(dt.getTime())) {
+      dataEl.value = dt.toISOString().slice(0, 10);
+      horaEl.value = dt.toTimeString().slice(0, 5);
+      notaEl.value = lembrete._notaManual || '';
+      if (autoTag) autoTag.style.display = lembrete._auto ? 'inline-block' : 'none';
+      return;
+    }
+  }
+  dataEl.value = '';
+  horaEl.value = '09:00';
+  notaEl.value = '';
+  if (autoTag) autoTag.style.display = 'none';
 }
 
 // ===== TIMELINE HELPERS =====
@@ -11989,8 +12036,110 @@ function renderFunilConversao() {
           </div>
         </div>
       ` : ''}
+      ${renderTempoPorEtapaHTML(ETAPAS, ordemKeys)}
     </div>
     ${renderConversaoPorProdutoHTML()}`;
+}
+
+// Extrai o novo estado a partir da mensagem de uma entrada tipo 'estado' do
+// histórico. Cobre os 4 formatos de mensagem já usados na app ("Funil: X →
+// Y", "Estado alterado para Y", "Avançou para Y", "Recrutamento: ..." este
+// último ignorado de propósito por não fazer parte do funil de vendas).
+const ESTADO_LABEL_PARA_KEY = Object.fromEntries(
+  ['novo','contactado','interessado','negociacao','cliente','frio','perdido'].map(k => [estadoLabel(k), k])
+);
+function extrairNovoEstadoDoHistorico(msg) {
+  if (!msg) return null;
+  const setaMatch = msg.match(/→\s*"([^"]+)"/);
+  if (setaMatch) return ESTADO_LABEL_PARA_KEY[setaMatch[1]] || null;
+  const paraMatch = msg.match(/(?:Estado alterado para|Avançou para)\s*"([^"]+)"/);
+  if (paraMatch) return ESTADO_LABEL_PARA_KEY[paraMatch[1]] || null;
+  return null;
+}
+
+// Calcula, por etapa do funil, quanto tempo em média os leads (incluindo os
+// que já fecharam ou morreram) passaram lá antes de sair para a etapa
+// seguinte. Usa exclusivamente o historico[] que a app já regista em cada
+// mudança de estado — não introduz nenhum novo campo de tracking no lead.
+// Reaproveita o mesmo padrão de "ordenar por data real" já usado em
+// calcularAutoTags/getLastContactDate, porque o histórico mistura push() e
+// unshift() consoante o sítio da app que escreveu a entrada.
+function calcularTempoPorEtapa(etapasKeys) {
+  const somaDias = {}, contagem = {};
+  etapasKeys.forEach(k => { somaDias[k] = 0; contagem[k] = 0; });
+
+  leads.forEach(l => {
+    const hist = l.historico || [];
+    const mudancas = hist
+      .filter(h => h.tipo === 'estado')
+      .map(h => {
+        const novoEstado = extrairNovoEstadoDoHistorico(h.msg);
+        const d = parseDataContactoLead(h.data);
+        return (novoEstado && d && !isNaN(d.getTime())) ? { estado: novoEstado, ts: d.getTime() } : null;
+      })
+      .filter(Boolean)
+      .sort((a, b) => a.ts - b.ts);
+
+    if (mudancas.length === 0) return;
+
+    // A entrada no funil (criação do lead) conta como o início da etapa
+    // "novo", mesmo que nunca tenha havido uma entrada 'estado' explícita
+    // para "Novo" (é o estado inicial por omissão, não gera histórico próprio).
+    const criacao = parseDataContactoLead(l.data);
+    const pontos = [];
+    if (criacao && !isNaN(criacao.getTime())) pontos.push({ estado: 'novo', ts: criacao.getTime() });
+    pontos.push(...mudancas);
+
+    for (let i = 0; i < pontos.length - 1; i++) {
+      const etapaAtual = pontos[i].estado;
+      if (!etapasKeys.includes(etapaAtual)) continue; // ignora recrutamento/frio/perdido
+      const dias = (pontos[i + 1].ts - pontos[i].ts) / 86400000;
+      if (dias < 0) continue; // histórico desordenado/corrompido — ignora silenciosamente
+      somaDias[etapaAtual] += dias;
+      contagem[etapaAtual]++;
+    }
+  });
+
+  return etapasKeys.map(k => ({
+    key: k,
+    mediaDias: contagem[k] > 0 ? somaDias[k] / contagem[k] : null,
+    amostras: contagem[k]
+  }));
+}
+
+function renderTempoPorEtapaHTML(ETAPAS, ordemKeys) {
+  // Não considera a última etapa (Cliente) — não há "tempo até à etapa
+  // seguinte" depois de fechar, o funil acaba ali.
+  const etapasComTempo = ETAPAS.slice(0, -1).map(e => e.key);
+  const tempos = calcularTempoPorEtapa(etapasComTempo);
+  const comDados = tempos.filter(t => t.amostras >= 2); // menos de 2 amostras não é uma média fiável
+  if (comDados.length === 0) return '';
+
+  const maisLenta = comDados.reduce((a, b) => (b.mediaDias > a.mediaDias ? b : a));
+
+  return `
+    <div style="margin-top:16px;padding-top:14px;border-top:1px solid var(--border);">
+      <div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:10px;">⏱️ Tempo médio por etapa (até avançar)</div>
+      ${comDados.map(t => {
+        const etapa = ETAPAS.find(e => e.key === t.key);
+        const destaque = t.key === maisLenta.key && comDados.length > 1;
+        return `
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;">
+            <span style="font-size:12.5px;color:var(--text);">${etapa.icon} ${etapa.label}</span>
+            <span style="font-size:12.5px;font-weight:700;color:${destaque ? '#ff9300' : 'var(--text)'};">
+              ${t.mediaDias < 1 ? '< 1 dia' : Math.round(t.mediaDias) + ' dias'}${destaque ? ' 🐢' : ''}
+              <span style="font-weight:400;color:var(--text3);font-size:10.5px;"> (${t.amostras})</span>
+            </span>
+          </div>
+        `;
+      }).join('')}
+      ${comDados.length > 1 ? `
+        <div style="margin-top:8px;font-size:11px;color:var(--text2);">
+          💡 Os leads demoram mais tempo em <strong style="color:var(--text);">${ETAPAS.find(e => e.key === maisLenta.key).label}</strong> antes de avançar. Se tens leads parados aí há mais tempo do que isto, é provavelmente aí que precisas de agir primeiro.
+        </div>
+      ` : ''}
+    </div>
+  `;
 }
 
 // Mapa de rótulos amigáveis dos produtos (mesmos slugs usados no campo
@@ -18548,7 +18697,45 @@ let pwaDeferredPrompt = null;
 
 if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('sw.js').catch(() => {
+    navigator.serviceWorker.register('sw.js').then((reg) => {
+
+      // Evita reload em loop se o browser trocar de controller mais que uma vez
+      let jaRecarregou = false;
+      navigator.serviceWorker.addEventListener('controllerchange', () => {
+        if (jaRecarregou) return;
+        jaRecarregou = true;
+        window.location.reload();
+      });
+
+      function ativarNovaVersao(worker) {
+        // Manda o SW em espera assumir controlo; isto dispara 'controllerchange'
+        // acima, que faz o reload automático — o utilizador vê sempre a versão
+        // mais recente sem precisar de saber que existe um "botão de atualizar".
+        worker.postMessage('SKIP_WAITING');
+      }
+
+      // Caso 1: já havia um SW em espera quando registámos (ex: separador
+      // ficou aberto em background enquanto publicávamos uma versão nova)
+      if (reg.waiting) {
+        ativarNovaVersao(reg.waiting);
+      }
+
+      // Caso 2: deteta uma instalação nova a meio da sessão atual
+      reg.addEventListener('updatefound', () => {
+        const novoWorker = reg.installing;
+        if (!novoWorker) return;
+        novoWorker.addEventListener('statechange', () => {
+          if (novoWorker.state === 'installed' && navigator.serviceWorker.controller) {
+            ativarNovaVersao(novoWorker);
+          }
+        });
+      });
+
+      // Verifica periodicamente se há versão nova no servidor (cobre o caso
+      // de a app ficar aberta horas/dias sem navegação nenhuma acontecer)
+      setInterval(() => reg.update().catch(() => {}), 60 * 60 * 1000); // 1x/hora
+
+    }).catch(() => {
       // Falha silenciosa: app continua a funcionar normalmente sem offline support
     });
   });
@@ -18647,8 +18834,10 @@ function openModal(id) {
   }
   if (id === 'modal-lead' && !editingLeadId) {
     document.getElementById('modal-lead-title').textContent = '➕ Novo Lead';
-    ['f-nome','f-tel','f-email','f-notas','f-aniversario','f-indicado-por'].forEach(f => document.getElementById(f).value = '');
+    ['f-nome','f-tel','f-email','f-notas','f-aniversario','f-indicado-por','f-proximo-contacto-data','f-proximo-contacto-nota'].forEach(f => document.getElementById(f).value = '');
     document.getElementById('f-estado').value = 'novo';
+    document.getElementById('f-proximo-contacto-hora').value = '09:00';
+    const fAutoTagEl = document.getElementById('f-proximo-contacto-auto-tag'); if (fAutoTagEl) fAutoTagEl.style.display = 'none';
     const fObjNovoEl = document.getElementById('f-objetivo'); if (fObjNovoEl) fObjNovoEl.value = 'cliente';
     const fProdNovoEl = document.getElementById('f-produto'); if (fProdNovoEl) fProdNovoEl.value = '';
   }
@@ -33765,9 +33954,61 @@ async function pedirPermissaoNotificacoes() {
     setTimeout(() => {
       dispararNotificacao('🔔 LifeWave CRM', 'Lembretes ativos! Vais receber alertas de follow-up e tarefas.', '🐺');
     }, 1000);
+    // Só tenta ativar push REAL (chega mesmo com a app fechada) se houver
+    // backend Supabase configurado — sem isso não há onde guardar a
+    // subscrição nem servidor a enviar o push, e a app já funciona bem só
+    // com dispararNotificacao() enquanto estiver aberta.
+    if (supabaseAtivo()) {
+      registarPushReal().catch(e => console.warn('Push real não ativado:', e));
+    }
   } else {
     showToast('⚠️ Permissão não concedida');
   }
+}
+
+// ===================================================
+// PUSH NOTIFICATIONS REAIS (chegam com a app fechada / telemóvel bloqueado)
+// ===================================================
+// Chave pública VAPID — identifica esta app perante o browser ao subscrever.
+// A chave PRIVADA correspondente vive só na Edge Function do Supabase (nunca
+// aqui no cliente) e é usada lá para assinar os pushes enviados.
+const VAPID_PUBLIC_KEY = 'BB5ZD75BgQhX-IPA6SbGiw-k8EQFcPkGJ8hwGUGp1GjfvRDhyYqGniEDOPysr7jt0HUexmPcpGIquZdBhU6ZvME';
+
+function urlBase64ToUint8Array(base64String) {
+  const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
+  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+  const rawData = atob(base64);
+  return Uint8Array.from([...rawData].map(c => c.charCodeAt(0)));
+}
+
+// Subscreve este dispositivo no Push API do browser e guarda a subscrição
+// no Supabase (tabela push_subscriptions), associada ao utilizador atual.
+// A Edge Function agendada lê essa tabela para saber a quem enviar.
+async function registarPushReal() {
+  if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
+  if (!supabaseAtivo()) return;
+
+  const reg = await navigator.serviceWorker.ready;
+  let sub = await reg.pushManager.getSubscription();
+  if (!sub) {
+    sub = await reg.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
+    });
+  }
+
+  const subJson = sub.toJSON();
+  const client = initSupabaseClient();
+  const uid = currentUser.supabaseUserId;
+
+  const { error } = await client.from('push_subscriptions').upsert({
+    user_id: uid,
+    endpoint: subJson.endpoint,
+    p256dh: subJson.keys.p256dh,
+    auth: subJson.keys.auth
+  }, { onConflict: 'endpoint' });
+
+  if (error) throw error;
 }
 
 function setNotifTipo(tipo, btn) {
@@ -34090,6 +34331,64 @@ function iniciarVerificacaoLembretes() {
     verificarEventosProximos();
     verificarPostsAgendados();
   }, 30000);
+}
+
+// Grava o "próximo contacto combinado" definido no modal de lead como um
+// lembrete tipo 'followup' em lembretes[] — usa a MESMA estrutura e o mesmo
+// ciclo de disparo (verificarLembretes/dispararNotificacao) que já existe,
+// não cria um segundo sistema de notificação em paralelo. Se já havia um
+// lembrete de follow-up ativo para este lead (manual ou auto-gerado por
+// gerarLembretesAutomaticos), este substitui-o em vez de somar mais um —
+// nunca deve haver dois lembretes de follow-up a competir pelo mesmo lead.
+function guardarProximoContactoComoLembrete(leadId, leadNome) {
+  const dataEl = document.getElementById('f-proximo-contacto-data');
+  const horaEl = document.getElementById('f-proximo-contacto-hora');
+  const notaEl = document.getElementById('f-proximo-contacto-nota');
+  if (!dataEl || !horaEl) return;
+
+  loadLembretes();
+  const idxExistente = lembretes.findIndex(x => x._leadId === leadId && !x.concluido && x.tipo === 'followup');
+
+  if (!dataEl.value) {
+    // Campo de data vazio = utilizador não quer (ou removeu) um contacto
+    // agendado para este lead. Só apaga lembretes MANUAIS — um lembrete
+    // auto-gerado (_auto: true) que o utilizador nunca chegou a editar não
+    // é removido aqui, para não interferir com gerarLembretesAutomaticos().
+    if (idxExistente > -1 && !lembretes[idxExistente]._auto) {
+      lembretes.splice(idxExistente, 1);
+      saveLembretes();
+    }
+    return;
+  }
+
+  const dt = new Date(dataEl.value + 'T' + (horaEl.value || '09:00') + ':00');
+  if (isNaN(dt.getTime())) return;
+
+  const notaManual = (notaEl && notaEl.value.trim()) || '';
+  const mensagem = notaManual ? `${leadNome}: ${notaManual}` : `Follow-up com ${leadNome}`;
+
+  if (idxExistente > -1) {
+    lembretes[idxExistente].proximoDisparo = dt.toISOString();
+    lembretes[idxExistente].mensagem = mensagem;
+    lembretes[idxExistente]._notaManual = notaManual;
+    lembretes[idxExistente]._auto = false; // passou a ser um compromisso definido pelo utilizador
+    delete lembretes[idxExistente]._ultimoDisparo; // permite disparar de novo se a hora mudou
+  } else {
+    lembretes.push({
+      id: 'notif_manual_' + leadId + '_' + Date.now(),
+      tipo: 'followup',
+      mensagem,
+      proximoDisparo: dt.toISOString(),
+      repeticao: 'uma',
+      criado: new Date().toISOString(),
+      concluido: false,
+      disparadoCount: 0,
+      _leadId: leadId,
+      _notaManual: notaManual,
+      _auto: false
+    });
+  }
+  saveLembretes();
 }
 
 // Also generate smart reminders from leads (follow-up suggestions)
