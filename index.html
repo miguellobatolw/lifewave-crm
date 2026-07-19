@@ -9867,6 +9867,11 @@ document.addEventListener('DOMContentLoaded', () => setTimeout(() => atualizarBo
 
 function goTo(page, opts) {
   const fromHistory = opts && opts.fromHistory;
+  // Ao mudar de página principal, tira o foco de qualquer input/textarea que
+  // tenha ficado ativo (ex: campo de pesquisa) — evita o teclado do Android
+  // continuar visível por cima da barra de navegação depois de navegar.
+  const ativoNav = document.activeElement;
+  if (ativoNav && (ativoNav.tagName === 'INPUT' || ativoNav.tagName === 'TEXTAREA')) ativoNav.blur();
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
   document.querySelectorAll('.bn-item, .bn-more-item').forEach(n => n.classList.remove('active'));
@@ -9976,6 +9981,14 @@ function closeModal(id) {
   const estavaAberto = el.classList.contains('open');
   el.classList.remove('open');
   el.style.display = '';
+  // Se o elemento focado estava dentro deste modal (ou é um input/textarea
+  // qualquer que ficou focado ao fechar), tira o foco — sem isto, no Android
+  // o teclado virtual continua visível por cima do resto da app mesmo depois
+  // do modal (ex: Pesquisa Global) já não estar visível.
+  const ativo = document.activeElement;
+  if (ativo && (el.contains(ativo) || ativo.tagName === 'INPUT' || ativo.tagName === 'TEXTAREA')) {
+    ativo.blur();
+  }
   if (estavaAberto) {
     _modaisAbertosCount = Math.max(0, _modaisAbertosCount - 1);
     _atualizarVisibilidadeFabs();
@@ -9985,6 +9998,10 @@ document.querySelectorAll('.modal-overlay').forEach(m => {
   m.addEventListener('click', e => {
     if (e.target === m && m.classList.contains('open')) {
       m.classList.remove('open');
+      const ativo = document.activeElement;
+      if (ativo && (m.contains(ativo) || ativo.tagName === 'INPUT' || ativo.tagName === 'TEXTAREA')) {
+        ativo.blur();
+      }
       _modaisAbertosCount = Math.max(0, _modaisAbertosCount - 1);
       _atualizarVisibilidadeFabs();
     }
