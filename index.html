@@ -8,7 +8,7 @@
   // Versão única da app — muda só aqui a cada release; o título da página
   // e o rodapé do ecrã de login lêem sempre deste valor, para nunca ficarem
   // dessincronizados um do outro.
-  window.APP_VERSION = 'v91';
+  window.APP_VERSION = 'v92';
 </script>
 
 <!-- ===== PWA: manifest, ícones e meta tags ===== -->
@@ -18729,10 +18729,23 @@ if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.
 
       // Evita reload em loop se o browser trocar de controller mais que uma vez
       let jaRecarregou = false;
-      navigator.serviceWorker.addEventListener('controllerchange', () => {
+      function recarregarUmaVez() {
         if (jaRecarregou) return;
         jaRecarregou = true;
         window.location.reload();
+      }
+      navigator.serviceWorker.addEventListener('controllerchange', recarregarUmaVez);
+
+      // O sw.js compara o HTML novo com o que tinha em cache e avisa por
+      // mensagem quando o conteúdo da app mudou (ex: publicaste um
+      // index.html novo) — é o gatilho que faltava, porque o ciclo normal
+      // de update do Service Worker só reage a mudanças no próprio sw.js,
+      // que raramente muda entre releases (as alterações são quase sempre
+      // só no index.html).
+      navigator.serviceWorker.addEventListener('message', (event) => {
+        if (event.data === 'CONTENT_UPDATED') {
+          recarregarUmaVez();
+        }
       });
 
       function ativarNovaVersao(worker) {
@@ -21569,6 +21582,18 @@ function entrarModoLocal() {
     window._localUser = user;
   }
   entrarNaApp(user);
+}
+
+// Pede ao browser para tratar o armazenamento desta origem (localStorage,
+// incluindo a sessão de login) como PERSISTENTE em vez de "best-effort".
+// Sem isto, o Android pode limpar localStorage de origens pouco usadas sob
+// pressão de memória/espaço — o que ao utilizador parece "a app fechou e
+// pede login outra vez" ao voltar de outra app (ex: Messenger), mesmo sem
+// nenhum bug no código de login em si. Não garante 100% (o utilizador pode
+// sempre limpar dados manualmente, ou o browser pode recusar em casos raros),
+// mas reduz bastante a frequência deste problema em PWAs instaladas.
+if (navigator.storage && navigator.storage.persist) {
+  navigator.storage.persist().catch(() => {});
 }
 
 // ---- Boot: check if already logged in ----
@@ -39252,10 +39277,18 @@ function executarAcaoRegra(regra, lead, ultimoContactoRef) {
     registarAutoLogRegra(regra, '⏰', `Criou lembrete para <b>${escapeHtml(lead.nome)}</b> em ${a.dias} dia(s)`, null, null, lead.id, ultimoContactoRef);
     showToast('⚙️ Automação: lembrete criado para ' + lead.nome);
   } else if (a.tipo === 'copiar_mensagem') {
+    // CORRIGIDO: esta ação corre em background (verificarAutomacoesPeriodicas,
+    // a cada 60s) sem qualquer interação do utilizador. Escrever no
+    // clipboard do sistema aqui sobrescrevia silenciosamente o que a pessoa
+    // tinha copiado por si mesma — em Android isto só se manifestava mais
+    // tarde, quando a app ganhava foco (ex: ao abrir o teclado), porque é
+    // nesse momento que a permissão do browser para escrever no clipboard
+    // finalmente é concedida. A mensagem fica pronta no log de automação
+    // (com botão "Enviar agora" via enviarWhatsAppDoLog) — só vai para o
+    // clipboard se o utilizador pedir isso explicitamente.
     const texto = substituirVariaveis(a.texto, lead);
-    copiarTextoSeguro(texto, '');
-    registarAutoLogRegra(regra, '📋', `Preparou mensagem para <b>${escapeHtml(lead.nome)}</b>: "${escapeHtml(texto.substring(0,50))}${texto.length>50?'…':''}"`, lead.id, texto, lead.id, ultimoContactoRef);
-    showToast('⚙️ Automação: mensagem copiada para ' + lead.nome + '!');
+    registarAutoLogRegra(regra, '📋', `Mensagem pronta para <b>${escapeHtml(lead.nome)}</b>: "${escapeHtml(texto.substring(0,50))}${texto.length>50?'…':''}"`, lead.id, texto, lead.id, ultimoContactoRef);
+    showToast('⚙️ Automação: mensagem pronta para ' + lead.nome + ' (ver em Automações)');
   } else if (a.tipo === 'mudar_estado') {
     setTimeout(() => { lead.estado = a.estado; if (typeof saveleads === 'function') saveleads(); if (typeof renderFunil === 'function') renderFunil(); if (typeof renderDashboardSeVisivel === 'function') renderDashboardSeVisivel(); }, 300);
     registarAutoLogRegra(regra, '🔄', `Moveu <b>${escapeHtml(lead.nome)}</b> para "${estadoLabel(a.estado)}"`, null, null, lead.id, ultimoContactoRef);

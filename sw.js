@@ -59,7 +59,41 @@ self.addEventListener('fetch', (event) => {
       fetch(req)
         .then((res) => {
           const resClone = res.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(req, resClone));
+          // Compara o novo HTML (por tamanho, via header Content-Length ou
+          // corpo) com o que já estava em cache. Isto é o que detecta "há
+          // uma versão nova" quando só o index.html mudou (o caso mais
+          // comum) — sem isto, o Service Worker só reagia a mudanças no
+          // próprio ficheiro sw.js, o que nunca acontecia nas atualizações
+          // normais da app, e por isso o reload automático nunca disparava.
+          caches.open(CACHE_NAME).then(async (cache) => {
+            const cachedRes = await cache.match(req);
+            let mudou = true;
+            if (cachedRes) {
+              try {
+                // Comparação rápida por tamanho primeiro (barata); só se
+                // os tamanhos coincidirem (raro mas possível) comparamos o
+                // texto completo para ter a certeza.
+                const tamanhoNovo = res.headers.get('content-length');
+                const tamanhoAntigo = cachedRes.headers.get('content-length');
+                if (tamanhoNovo && tamanhoAntigo && tamanhoNovo !== tamanhoAntigo) {
+                  mudou = true;
+                } else {
+                  const [textoNovo, textoAntigo] = await Promise.all([
+                    resClone.clone().text(),
+                    cachedRes.clone().text()
+                  ]);
+                  mudou = textoNovo !== textoAntigo;
+                }
+              } catch (e) {}
+            }
+            await cache.put(req, resClone);
+            if (mudou && cachedRes) {
+              // Avisa todas as páginas abertas que o conteúdo mudou, para
+              // decidirem recarregar (ver listener 'message' no index.html).
+              const clientList = await self.clients.matchAll({ type: 'window' });
+              clientList.forEach((client) => client.postMessage('CONTENT_UPDATED'));
+            }
+          });
           return res;
         })
         .catch(() => caches.match(req).then((cached) => cached || caches.match('./index.html')))
