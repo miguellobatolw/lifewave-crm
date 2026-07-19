@@ -8,7 +8,7 @@
   // Versão única da app — muda só aqui a cada release; o título da página
   // e o rodapé do ecrã de login lêem sempre deste valor, para nunca ficarem
   // dessincronizados um do outro.
-  window.APP_VERSION = 'v98';
+  window.APP_VERSION = 'v100';
 </script>
 
 <!-- ===== PWA: manifest, ícones e meta tags ===== -->
@@ -17470,8 +17470,8 @@ const TEMPLATES = {
 //    respondeu bem-disposto mas ainda não há análise de IA, sugere Ponte.
 // 4) Fallback: estado atual do funil, tal como antes.
 function objetivoSugeridoPeloHistorico(l) {
-  if (!l) return 'primeiro';
-  if (l.estado === 'cliente') return 'cliente';
+  if (!l) return { objetivo: 'primeiro', motivo: '' };
+  if (l.estado === 'cliente') return { objetivo: 'cliente', motivo: 'Lead já é cliente' };
 
   const hist = (l.historico || []).slice(); // já vem por ordem mista (push/unshift) — ver getLastContactDate()
   const FASE_PARA_OBJETIVO = {
@@ -17481,6 +17481,10 @@ function objetivoSugeridoPeloHistorico(l) {
     objecao: 'followup',
     pronto_para_comprar: 'ponte',
     perdido: 'followup'
+  };
+  const FASE_LABEL = {
+    descoberta: 'Descoberta', interesse: 'Interesse', consideracao: 'Consideração',
+    objecao: 'Objeção', pronto_para_comprar: 'Pronto para comprar', perdido: 'Perdido'
   };
 
   // 2) Procura a entrada de análise de IA mais recente com faseDetectada,
@@ -17492,18 +17496,38 @@ function objetivoSugeridoPeloHistorico(l) {
     }
   });
   if (ultimaAnaliseIA && FASE_PARA_OBJETIVO[ultimaAnaliseIA.faseDetectada]) {
-    return FASE_PARA_OBJETIVO[ultimaAnaliseIA.faseDetectada];
+    return {
+      objetivo: FASE_PARA_OBJETIVO[ultimaAnaliseIA.faseDetectada],
+      motivo: 'Última análise de conversa detetou fase "' + (FASE_LABEL[ultimaAnaliseIA.faseDetectada] || ultimaAnaliseIA.faseDetectada) + '"'
+    };
   }
 
-  // 3) Sem análise de IA registada: se já houve pelo menos um "Primeiro
-  // contacto" enviado (via templateTipoDetectado ou templateTipo) e o lead
-  // já não está em 'novo', assume-se que já houve alguma resposta/avanço —
-  // sugere Ponte em vez de repetir Follow-up indefinidamente só por falta
-  // de uma análise formal. Só se aplica se o estado já saiu de 'novo'.
-  const jaTeveContactoInicial = hist.some(function(h) {
-    return h && (h.templateTipoDetectado === 'primeiro' || h.templateTipo === 'primeiro' || (h.msg && h.msg.indexOf('Primeiro contacto') !== -1));
-  });
-  if (jaTeveContactoInicial && l.estado && l.estado !== 'novo') return 'ponte';
+  // 3) Sem análise de IA registada: se o estado já avançou de 'novo' — o que só
+  // acontece automaticamente depois de um "Primeiro contacto" ter sido enviado
+  // pela app (ver avancarEstadoAposPrimeiroContacto) — nunca voltar a sugerir
+  // 'primeiro'. Isto cobre o caso mais comum na prática: o distribuidor enviou
+  // o primeiro contacto e a pessoa respondeu no WhatsApp real (fora da app), sem
+  // que essa resposta tenha sido colada na Análise de Conversa e guardada no
+  // lead — nesse caso a app não tem como saber COM CERTEZA se a resposta foi
+  // positiva o suficiente para "Ponte", mas sabe com certeza que já não é a
+  // primeira vez, por isso "Primeiro contacto" nunca é a opção certa aqui.
+  //
+  // Distingue dois casos:
+  // a) Já houve um "Primeiro contacto" enviado pela app (rasto claro no
+  //    histórico via templateTipo/templateTipoDetectado) — sugere 'ponte',
+  //    assumindo o cenário mais comum de ter havido alguma resposta entretanto.
+  // b) Não há rasto de "Primeiro contacto" no histórico (ex: contacto feito
+  //    fora da app, ou lead importado já como 'contactado'), mas o estado não
+  //    é 'novo' — mais seguro sugerir 'followup', que nunca soa deslocado
+  //    mesmo que a "ponte" ainda não tenha sido feita.
+  if (l.estado && l.estado !== 'novo') {
+    const jaTeveContactoInicial = hist.some(function(h) {
+      return h && (h.templateTipoDetectado === 'primeiro' || h.templateTipo === 'primeiro');
+    });
+    return jaTeveContactoInicial
+      ? { objetivo: 'ponte', motivo: 'Primeiro contacto já enviado — estado "' + estadoLabel(l.estado) + '"' }
+      : { objetivo: 'followup', motivo: 'Lead já em "' + estadoLabel(l.estado) + '", sem análise de conversa registada' };
+  }
 
   // 4) Fallback: estado do funil, tal como antes.
   const OBJETIVO_POR_ESTADO = {
@@ -17513,7 +17537,21 @@ function objetivoSugeridoPeloHistorico(l) {
     negociacao: 'followup',
     cliente: 'cliente',
   };
-  return OBJETIVO_POR_ESTADO[l.estado] || 'primeiro';
+  return { objetivo: OBJETIVO_POR_ESTADO[l.estado] || 'primeiro', motivo: l.estado ? ('Baseado no estado "' + estadoLabel(l.estado) + '"') : 'Lead novo, sem histórico' };
+}
+
+// Mostra uma etiqueta discreta junto ao seletor de objetivo, explicando POR QUE
+// motivo aquele objetivo foi pré-selecionado (ex: "Última análise detetou fase
+// Interesse", "Primeiro contacto já enviado — estado Contactado"). Dá visibilidade
+// ao distribuidor de que a sugestão vem de facto do histórico real do lead, não
+// é um valor fixo — e ajuda a perceber quando falta guardar uma Análise de
+// Conversa para a app ter um sinal mais fino. Vazio ('') esconde a etiqueta.
+function mostrarSugestaoObjetivoBadge(motivo) {
+  const el = document.getElementById('msg-sugestao-objetivo-badge');
+  if (!el) return;
+  if (!motivo) { el.style.display = 'none'; el.textContent = ''; return; }
+  el.textContent = '💡 Sugestão: ' + motivo;
+  el.style.display = 'block';
 }
 
 function abrirMensagem(leadId, canal) {
@@ -17538,7 +17576,9 @@ function abrirMensagem(leadId, canal) {
   // desatualizado). Ex: um lead "Contactado" que respondeu bem-disposto ao
   // primeiro contacto já devia sugerir "Ponte p/ negócio", não "Follow-up"
   // — o estado por si só não sabe distinguir isso.
-  document.getElementById('msg-ia-objetivo').value = objetivoSugeridoPeloHistorico(l);
+  const _sugestaoObjetivo = objetivoSugeridoPeloHistorico(l);
+  document.getElementById('msg-ia-objetivo').value = _sugestaoObjetivo.objetivo;
+  mostrarSugestaoObjetivoBadge(_sugestaoObjetivo.motivo);
   toggleCampoRespostaLead();
 
   // Pré-seleciona a pill de temperatura com base na temperatura atual do lead
@@ -17579,11 +17619,11 @@ function abrirMensagem(leadId, canal) {
 function abrirMensagemFollowUp(leadId) {
   abrirMensagem(leadId, 'whatsapp');
   const lead = leads.find(l => l.id === leadId);
-  const objetivo = objetivoSugeridoPeloHistorico(lead);
+  const _sugestao = objetivoSugeridoPeloHistorico(lead);
   // Aguarda o modal abrir e define o objetivo certo + gera IA
   setTimeout(() => {
     const sel = document.getElementById('msg-ia-objetivo');
-    if (sel) { sel.value = objetivo; toggleCampoRespostaLead(); }
+    if (sel) { sel.value = _sugestao.objetivo; mostrarSugestaoObjetivoBadge(_sugestao.motivo); toggleCampoRespostaLead(); }
     gerarMsgIA();
   }, 200);
 }
@@ -31015,7 +31055,7 @@ function renderPrevisaoComissao() {
           </label>
         </div>
         <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
-          <select id="msg-ia-objetivo" onchange="toggleCampoRespostaLead()" style="background:var(--surface3);color:var(--text2);border:1px solid var(--border);border-radius:6px;padding:4px 8px;font-size:11.5px;cursor:pointer;">
+          <select id="msg-ia-objetivo" onchange="mostrarSugestaoObjetivoBadge('');toggleCampoRespostaLead()" style="background:var(--surface3);color:var(--text2);border:1px solid var(--border);border-radius:6px;padding:4px 8px;font-size:11.5px;cursor:pointer;">
             <option value="primeiro">👋 Primeiro contacto</option>
             <option value="ponte">🌉 Ponte p/ negócio</option>
             <option value="followup">🔄 Follow-up</option>
@@ -31024,6 +31064,7 @@ function renderPrevisaoComissao() {
           </select>
           <button class="btn btn-secondary btn-sm" id="msg-ia-btn" onclick="gerarMsgIA()">🤖 Gerar com IA</button>
         </div>
+        <div id="msg-sugestao-objetivo-badge" style="display:none;width:100%;font-size:10.5px;color:var(--accent);background:rgba(0,212,170,0.08);border:1px solid rgba(0,212,170,0.2);border-radius:6px;padding:4px 8px;margin-top:2px;"></div>
         <div id="msg-campo-resposta-lead" style="display:none;margin-top:8px;">
           <input type="text" id="msg-resposta-lead" placeholder="O que ele/ela respondeu? (opcional, ajuda a IA)" style="width:100%;background:var(--surface3);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:7px 10px;font-size:12.5px;">
         </div>
@@ -31041,11 +31082,11 @@ function renderPrevisaoComissao() {
       <div id="msg-cat-aviso" style="display:none;font-size:12px;color:var(--warning,#f59e0b);margin-bottom:8px;">⚠️ Seleciona pelo menos uma categoria (Negócio ou Produto) para ver os templates.</div>
       <div style="font-size:11.5px;color:var(--text2);margin-bottom:8px;">💡 Dica: reconecta primeiro, depois usa a "Ponte" quando a pessoa responder bem — taxas de resposta são muito mais altas que ir direto ao negócio.</div>
       <div style="display:flex;gap:6px;flex-wrap:wrap;" id="msg-templates-wrap">
-        <button class="btn btn-secondary btn-sm" data-cat="negocio" data-tipo-template="primeiro" onclick="usarTemplate('primeiro');document.getElementById('msg-ia-objetivo').value='primeiro';toggleCampoRespostaLead()">👋 Primeiro contacto<span class="tmpl-taxa-badge" data-tipo-template-badge="primeiro"></span></button>
-        <button class="btn btn-secondary btn-sm" data-cat="negocio" data-tipo-template="ponte" onclick="usarTemplate('ponte');document.getElementById('msg-ia-objetivo').value='ponte';toggleCampoRespostaLead()">🌉 Ponte p/ negócio<span class="tmpl-taxa-badge" data-tipo-template-badge="ponte"></span></button>
-        <button class="btn btn-secondary btn-sm" data-cat="negocio" data-tipo-template="followup" onclick="usarTemplate('followup');document.getElementById('msg-ia-objetivo').value='followup';toggleCampoRespostaLead()">🔄 Follow-up<span class="tmpl-taxa-badge" data-tipo-template-badge="followup"></span></button>
-        <button class="btn btn-secondary btn-sm" data-cat="produto" data-tipo-template="info" onclick="usarTemplate('info');document.getElementById('msg-ia-objetivo').value='info';toggleCampoRespostaLead()">📦 Info produto<span class="tmpl-taxa-badge" data-tipo-template-badge="info"></span></button>
-        <button class="btn btn-secondary btn-sm" data-cat="produto" data-tipo-template="cliente" onclick="usarTemplate('cliente');document.getElementById('msg-ia-objetivo').value='cliente';toggleCampoRespostaLead()">🎉 Bem-vindo cliente<span class="tmpl-taxa-badge" data-tipo-template-badge="cliente"></span></button>
+        <button class="btn btn-secondary btn-sm" data-cat="negocio" data-tipo-template="primeiro" onclick="usarTemplate('primeiro');document.getElementById('msg-ia-objetivo').value='primeiro';mostrarSugestaoObjetivoBadge('');toggleCampoRespostaLead()">👋 Primeiro contacto<span class="tmpl-taxa-badge" data-tipo-template-badge="primeiro"></span></button>
+        <button class="btn btn-secondary btn-sm" data-cat="negocio" data-tipo-template="ponte" onclick="usarTemplate('ponte');document.getElementById('msg-ia-objetivo').value='ponte';mostrarSugestaoObjetivoBadge('');toggleCampoRespostaLead()">🌉 Ponte p/ negócio<span class="tmpl-taxa-badge" data-tipo-template-badge="ponte"></span></button>
+        <button class="btn btn-secondary btn-sm" data-cat="negocio" data-tipo-template="followup" onclick="usarTemplate('followup');document.getElementById('msg-ia-objetivo').value='followup';mostrarSugestaoObjetivoBadge('');toggleCampoRespostaLead()">🔄 Follow-up<span class="tmpl-taxa-badge" data-tipo-template-badge="followup"></span></button>
+        <button class="btn btn-secondary btn-sm" data-cat="produto" data-tipo-template="info" onclick="usarTemplate('info');document.getElementById('msg-ia-objetivo').value='info';mostrarSugestaoObjetivoBadge('');toggleCampoRespostaLead()">📦 Info produto<span class="tmpl-taxa-badge" data-tipo-template-badge="info"></span></button>
+        <button class="btn btn-secondary btn-sm" data-cat="produto" data-tipo-template="cliente" onclick="usarTemplate('cliente');document.getElementById('msg-ia-objetivo').value='cliente';mostrarSugestaoObjetivoBadge('');toggleCampoRespostaLead()">🎉 Bem-vindo cliente<span class="tmpl-taxa-badge" data-tipo-template-badge="cliente"></span></button>
       </div>
     </div>
 
@@ -42297,8 +42338,9 @@ function acMostrarResultado(r) {
   // mais tarde, reutilizando o mesmo id do checkbox — nunca há dois no DOM ao mesmo
   // tempo (o segundo bloco substitui este via innerHTML), por isso é seguro.
 
+  var _acFaseLbl = { descoberta:'Descoberta', interesse:'Interesse', consideracao:'Consideração', objecao:'Objeção', pronto_para_comprar:'Pronto para comprar', perdido:'Perdido', sem_contexto:'Sem contexto LifeWave' };
   var leadHistoricoUsadoHtml = (leadPreSelecionado && leadPreSelecionado.historico && leadPreSelecionado.historico.length)
-    ? '<div style="font-size:11.5px;color:var(--accent);margin-bottom:10px;display:flex;align-items:center;gap:6px;">🧠 Lead identificado automaticamente — histórico com ' + leadPreSelecionado.historico.length + ' interação(ões) foi tido em conta nesta análise.</div>'
+    ? '<div style="font-size:11.5px;color:var(--accent);margin-bottom:10px;display:flex;align-items:center;gap:6px;">🧠 Lead identificado automaticamente — histórico com ' + leadPreSelecionado.historico.length + ' interação(ões) foi tido em conta nesta análise. Fase detetada agora: <strong>' + (_acFaseLbl[fase] || fase) + '</strong>.</div>'
     : '';
   var leadAssocHtml = '<div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px;">'
     + '<div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:10px;">👤 Associar a um Lead</div>'
