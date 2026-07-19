@@ -8,7 +8,7 @@
   // Versão única da app — muda só aqui a cada release; o título da página
   // e o rodapé do ecrã de login lêem sempre deste valor, para nunca ficarem
   // dessincronizados um do outro.
-  window.APP_VERSION = 'v94';
+  window.APP_VERSION = 'v95';
 </script>
 
 <!-- ===== PWA: manifest, ícones e meta tags ===== -->
@@ -18164,12 +18164,14 @@ ${perfilDetectado.includes('INDEFINIDO') ? '→ Não há sinais claros ainda. Us
 Regras:
 - Escreve em Português de Portugal
 - O teu nome é ${nomeDistribuidor} — é quem está a enviar esta mensagem
-- A mensagem tem SEMPRE de terminar assinada com este nome próprio (ex: "- ${nomeDistribuidor}" ou "${nomeDistribuidor} 😊" numa linha final), mesmo sendo uma mensagem curta e informal — nunca envies sem assinatura, e nunca uses um username ou nome inventado
+${objetivo === 'primeiro'
+  ? `- A mensagem tem SEMPRE de terminar assinada com este nome próprio (ex: "- ${nomeDistribuidor}" ou "${nomeDistribuidor} 😊" numa linha final), mesmo sendo uma mensagem curta e informal — nunca envies sem assinatura, e nunca uses um username ou nome inventado. Isto é um primeiro contacto (ou reconexão após muito tempo), por isso o destinatário precisa de saber quem está a escrever.`
+  : `- NÃO assines a mensagem com o teu nome (ex: nunca terminar com "- ${nomeDistribuidor}" ou similar) — já existe conversa/histórico com esta pessoa, ela já sabe quem és, e assinar aqui soa artificial e desnecessário, como se fosse a primeira vez a falar.`}
 - Tom pessoal, caloroso e sem pressão de vendas
-- Comprimento: ${limite} (a assinatura conta para este limite)
+- Comprimento: ${limite}${objetivo === 'primeiro' ? ' (a assinatura conta para este limite)' : ''}
 - ${canal === 'SMS' ? 'Sem emojis, texto simples' : 'Podes usar alguns emojis (máximo 3)'}
 - Evita frases que pareçam um script copiado (ex: "pergunta aleatória", "espero que estejas bem!! 😊" genérico)
-- Termina com uma pergunta aberta ou convite suave, seguida da assinatura
+- Termina com uma pergunta aberta ou convite suave${objetivo === 'primeiro' ? ', seguida da assinatura' : ''}
 - Não repitas factos óbvios do histórico de forma mecânica — usa-os com naturalidade
 
 Responde APENAS com o texto da mensagem, sem título nem explicação.`;
@@ -18511,13 +18513,15 @@ Quem envia (usa APENAS este nome se a mensagem se identificar ou assinar, nunca 
 Regras:
 - Escreve em Português de Portugal
 - O teu nome é ${nomeDistribuidorMassa} — é quem está a enviar esta mensagem
-- A mensagem tem SEMPRE de terminar assinada com este nome próprio (ex: "- ${nomeDistribuidorMassa}" ou "${nomeDistribuidorMassa} 😊" numa linha final), mesmo sendo curta e informal — nunca envies sem assinatura, e nunca uses um username ou nome inventado
+${objetivo === 'primeiro'
+  ? `- A mensagem tem SEMPRE de terminar assinada com este nome próprio (ex: "- ${nomeDistribuidorMassa}" ou "${nomeDistribuidorMassa} 😊" numa linha final), mesmo sendo curta e informal — nunca envies sem assinatura, e nunca uses um username ou nome inventado. É um primeiro contacto, por isso o destinatário precisa de saber quem está a escrever.`
+  : `- NÃO assines a mensagem com o teu nome (ex: nunca terminar com "- ${nomeDistribuidorMassa}" ou similar) — já existe conversa/histórico com estes contactos, por isso assinar aqui soa artificial, como se fosse a primeira vez a falar.`}
 - Tom pessoal, caloroso e sem pressão de vendas
 - Adapta o tom ao mercado: quente=mais pessoal e direto, morno=mais explicativo, frio=mais cuidadoso e não invasivo
 - Personaliza a abertura com {nome}, mas VARIA a construção da frase (não uses sempre "Olá {nome}!" — alterna com formas como "{nome}, ...", "Ei {nome}!", ou entra direto no assunto mencionando {nome} a meio da 1ª frase). Pessoas que recebem mensagens em massa por vezes comparam notas; abertura sempre idêntica denuncia script.
-- Comprimento: ${limite} (a assinatura conta para este limite)
+- Comprimento: ${limite}${objetivo === 'primeiro' ? ' (a assinatura conta para este limite)' : ''}
 - ${canal === 'SMS' ? 'Sem emojis, texto simples' : 'Podes usar alguns emojis (máximo 3)'}
-- Termina com uma pergunta aberta ou convite suave, seguida da assinatura
+- Termina com uma pergunta aberta ou convite suave${objetivo === 'primeiro' ? ', seguida da assinatura' : ''}
 - Usa {nome} como placeholder para o nome da pessoa
 
 Responde APENAS com o texto da mensagem, sem título nem explicação.`;
@@ -41855,26 +41859,31 @@ async function acAnalisar() {
       : '';
     var promptText = sys + '\n\nTemperatura do lead: ' + acTemp + '. Analisa esta conversa de ' + platLabel + acDescricaoInput + (texto ? ':\n\n' + texto : '') + (ctx ? '\n\nContexto: ' + ctx : '') + '\n\nResponde APENAS com JSON valido.';
 
-    // Sistema central de fallback automático para texto puro sem media —
-    // tentando Gemini → Claude → Grok → Mistral → OpenRouter (conforme chaves configuradas).
-    // Assim que há QUALQUER media (imagem e/ou áudio, isolados ou em conjunto),
-    // força-se sempre o Gemini: é o único provider da cadeia com suporte nativo
-    // a inline_data (imagem/áudio) e o único capaz de receber vários media na
-    // mesma chamada (ex: screenshot + nota de voz analisados em conjunto).
+    // Sistema central de fallback automático — tentando Gemini → Claude → Grok →
+    // Mistral → OpenRouter (conforme chaves configuradas). Quando há ÁUDIO
+    // (isolado ou junto com imagem), força-se sempre o Gemini: é o único
+    // provider da cadeia com suporte nativo a áudio e o único capaz de
+    // receber vários media na mesma chamada (ex: screenshot + nota de voz
+    // analisados em conjunto). Quando há SÓ IMAGEM (sem áudio), usa-se o
+    // callAI normal — Claude, Grok, Mistral e OpenRouter também têm visão,
+    // por isso a análise por screenshot passa a beneficiar do mesmo fallback
+    // automático que o texto puro já tinha.
     var _acExtraMedia = [];
     if (isImg && isAudio) {
       // Quando ambos existem, a imagem vai como extraMedia e o áudio como o
       // media "principal" da chamada (mantém a assinatura de callGemini simples).
       _acExtraMedia.push({ data: _acImagemB64, mimeType: 'image/jpeg' });
     }
-    var raw = temMedia
+    var raw = isAudio
       ? await callGemini(
           promptText,
-          isAudio ? _acAudioB64 : _acImagemB64,
-          isAudio ? (_acAudioMediaType || 'audio/webm') : 'image/jpeg',
+          _acAudioB64,
+          _acAudioMediaType || 'audio/webm',
           null,
           _acExtraMedia
         )
+      : isImg
+      ? await callAI('posts', promptText, _acImagemB64, 'image/jpeg', 'analise_conversa')
       : await callAI('posts', promptText, null, null, 'analise_conversa');
 
     if (!raw || !raw.trim()) throw new Error('Resposta vazia da IA');
@@ -41993,14 +42002,16 @@ async function acAnalisar() {
           "Respond ONLY in valid JSON",
           "LEAD HISTORY RULE (critical): below is the prior interaction history already recorded for this prospect in the CRM, most recent first. Use it as background context to inform \"sentimento\", \"fase\", \"objecoes\", \"pontos_positivos\", \"erros_cometidos\", \"probabilidade_conversao\", \"proximo_passo\" and especially \"proxima_mensagem\" — do not repeat an objection they already resolved, reference earlier commitments naturally if relevant, and trust the CURRENT conversation over the history if they contradict each other. If the history includes a line starting with \"ÚLTIMA SUGESTÃO DE MENSAGEM JÁ FEITA A ESTE LEAD\" marked as NÃO RESULTOU, do not repeat a similar angle — actively try a genuinely different approach this time, and mention briefly in \"dica_extra\" that the previous approach did not land so the distributor understands why the strategy changed. If marked RESULTOU, build on what worked instead of starting over. If marked pendente, treat it the same as no prior suggestion. SILENT GAP RULE: if today's date is 10+ days past the most recent dated line below and the current conversation doesn't close that gap, this is silence, not a rejection — set a cooler \"sentimento\", name the gap in \"dica_extra\", and write \"proxima_mensagem\" as a short, low-pressure re-engagement opener acknowledging the gap, not a continuation of the old thread as if no time passed.\n\nHISTÓRICO DO LEAD (mais recente primeiro):\n" + _acHistoricoResumoFinal + "\n\nRespond ONLY in valid JSON"
         );
-        var rawComHistorico = temMedia
+        var rawComHistorico = isAudio
           ? await callGemini(
               promptTextComHistorico,
-              isAudio ? _acAudioB64 : _acImagemB64,
-              isAudio ? (_acAudioMediaType || 'audio/webm') : 'image/jpeg',
+              _acAudioB64,
+              _acAudioMediaType || 'audio/webm',
               null,
               _acExtraMedia
             )
+          : isImg
+          ? await callAI('posts', promptTextComHistorico, _acImagemB64, 'image/jpeg', 'analise_conversa')
           : await callAI('posts', promptTextComHistorico, null, null, 'analise_conversa');
         if (rawComHistorico && rawComHistorico.trim()) {
           var cleanComHist = rawComHistorico.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim();
