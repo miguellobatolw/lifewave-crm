@@ -8,7 +8,7 @@
   // Versão única da app — muda só aqui a cada release; o título da página
   // e o rodapé do ecrã de login lêem sempre deste valor, para nunca ficarem
   // dessincronizados um do outro.
-  window.APP_VERSION = 'v92';
+  window.APP_VERSION = 'v93';
 </script>
 
 <!-- ===== PWA: manifest, ícones e meta tags ===== -->
@@ -18232,6 +18232,7 @@ function enviarMensagem() {
     if (msgTemplateTipoAtual) entradaMsg.templateTipo = msgTemplateTipoAtual; // liga esta mensagem ao template usado, se algum
     l.historico.push(entradaMsg);
     l.ultimoContacto = new Date().toISOString();
+    avancarEstadoAposPrimeiroContacto(l);
     saveleads();
   }
 
@@ -18267,6 +18268,7 @@ function ligar(leadId) {
   l.historico = l.historico || [];
   l.historico.push({ tipo: 'chamada', msg: `📞 Chamada iniciada`, data: new Date().toLocaleString('pt-PT') });
   l.ultimoContacto = new Date().toISOString();
+  avancarEstadoAposPrimeiroContacto(l);
   saveleads();
   // Mesmo refresh do "Lead do Dia" que enviarMensagem() já faz — uma
   // chamada telefónica conta como contacto de hoje tal como uma mensagem.
@@ -18653,6 +18655,7 @@ async function enviarMensagemMassa() {
       data: new Date().toLocaleString('pt-PT')
     });
     l.ultimoContacto = new Date().toISOString();
+    avancarEstadoAposPrimeiroContacto(l);
 
     enviados++;
 
@@ -19196,6 +19199,20 @@ function loadUserData() {
   updateBadgeLuminate();
   if (typeof migrarSrBibliotecaParaUtilizador === 'function') migrarSrBibliotecaParaUtilizador();
   if (typeof inicializarAutomacoesPosVendaPorDefeito === 'function') inicializarAutomacoesPosVendaPorDefeito();
+}
+
+// Avança automaticamente o estado de um lead de 'novo' para 'contactado'
+// quando lhe é enviada uma mensagem. Sem isto, o "Lead do Dia" e a "Próxima
+// Melhor Ação" continuavam a sugerir "Fazer o primeiro contacto" mesmo dias
+// depois de esse contacto já ter acontecido — porque a ação sugerida vem do
+// l.estado, não de diasSemContacto(). Só mexe no estado quando este é
+// 'novo': se já está em qualquer outra fase (interessado, negociação, etc.)
+// não o baixa nem o altera, para não interferir com decisões manuais já
+// tomadas pelo distribuidor no funil.
+function avancarEstadoAposPrimeiroContacto(lead) {
+  if (lead && lead.estado === 'novo') {
+    lead.estado = 'contactado';
+  }
 }
 
 function saveleads() {
@@ -21799,6 +21816,7 @@ function enviarGuiaoCanal() {
     data: new Date().toLocaleString('pt-PT')
   });
   l.ultimoContacto = new Date().toISOString();
+  avancarEstadoAposPrimeiroContacto(l);
   saveleads();
 
   if (typeof renderResumoDia === 'function') renderResumoDia();
@@ -23826,6 +23844,7 @@ function crossSellWA(idSafe, telEnc, nomeEnc, produtoId, leadId) {
       l.historico = l.historico || [];
       l.historico.push({ tipo: 'mensagem', msg: `💬 WhatsApp enviado (Cross-Sell — ${produto.nome}): "${texto.slice(0,60)}…"`, data: new Date().toLocaleString('pt-PT') });
       l.ultimoContacto = new Date().toISOString();
+      avancarEstadoAposPrimeiroContacto(l);
       if (typeof saveleads === 'function') saveleads();
       if (typeof renderResumoDia === 'function') renderResumoDia();
       if (typeof renderProximaAcao === 'function') renderProximaAcao();
@@ -23952,6 +23971,7 @@ function retWADireto(telEnc, nomeEnc, leadId) {
       l.historico = l.historico || [];
       l.historico.push({ tipo: 'mensagem', msg: `💬 WhatsApp enviado (Radar de Retenção): "${txt.slice(0,60)}…"`, data: new Date().toLocaleString('pt-PT') });
       l.ultimoContacto = new Date().toISOString();
+      avancarEstadoAposPrimeiroContacto(l);
       if (typeof saveleads === 'function') saveleads();
       if (typeof renderResumoDia === 'function') renderResumoDia();
       if (typeof renderProximaAcao === 'function') renderProximaAcao();
@@ -24037,6 +24057,7 @@ function enviarRetIAWhatsApp() {
       l.historico = l.historico || [];
       l.historico.push({ tipo: 'mensagem', msg: `💬 WhatsApp enviado (Radar de Retenção — Msg IA): "${msg.slice(0,60)}${msg.length>60?'…':''}"`, data: new Date().toLocaleString('pt-PT') });
       l.ultimoContacto = new Date().toISOString();
+      avancarEstadoAposPrimeiroContacto(l);
       if (typeof saveleads === 'function') saveleads();
       if (typeof renderResumoDia === 'function') renderResumoDia();
       if (typeof renderProximaAcao === 'function') renderProximaAcao();
@@ -30429,6 +30450,7 @@ function churnMensagemWA(tel, nomeEncoded, leadId) {
       l.historico = l.historico || [];
       l.historico.push({ tipo: 'mensagem', msg: `💬 WhatsApp enviado (Previsor de Churn): "${texto.slice(0,60)}…"`, data: new Date().toLocaleString('pt-PT') });
       l.ultimoContacto = new Date().toISOString();
+      avancarEstadoAposPrimeiroContacto(l);
       if (typeof saveleads === 'function') saveleads();
       if (typeof renderResumoDia === 'function') renderResumoDia();
       if (typeof renderProximaAcao === 'function') renderProximaAcao();
@@ -40270,6 +40292,7 @@ function enviarWhatsAppParaLead(leadId, texto, lembreteId) {
       data: new Date().toLocaleString('pt-PT')
     });
     l.ultimoContacto = new Date().toISOString();
+    avancarEstadoAposPrimeiroContacto(l);
     if (typeof saveleads === 'function') saveleads();
     if (typeof renderResumoDia === 'function') renderResumoDia();
     if (typeof renderProximaAcao === 'function') renderProximaAcao();
@@ -42486,6 +42509,7 @@ function acGuardarNoLead() {
   lead.historico = lead.historico || [];
   lead.historico.unshift(entrada);
   lead.ultimoContacto = new Date().toISOString();
+  avancarEstadoAposPrimeiroContacto(lead);
 
   // Se já havia uma sugestão anterior por avaliar, esta NOVA análise (que só
   // acontece porque o distribuidor voltou a esta conversa) é o sinal mais
@@ -42766,6 +42790,7 @@ function acEnviarMsgAgora(btn) {
     data: new Date().toLocaleString('pt-PT')
   });
   lead.ultimoContacto = new Date().toISOString();
+  avancarEstadoAposPrimeiroContacto(lead);
   saveleads();
   if (typeof renderResumoDia === 'function') renderResumoDia();
   if (typeof renderProximaAcao === 'function') renderProximaAcao();
