@@ -14097,7 +14097,11 @@ function saveTestemunhos() {
 function testemunhoToggleMidiaTipo() {
   const tipo = document.getElementById('tm-midia-tipo').value;
   document.getElementById('tm-wrap-foto').style.display = tipo === 'foto' ? '' : 'none';
-  document.getElementById('tm-wrap-video').style.display = tipo === 'video' ? '' : 'none';
+  document.getElementById('tm-wrap-video').style.display = (tipo === 'video' || tipo === 'link') ? '' : 'none';
+  const wrapPat = document.getElementById('tm-wrap-patologias');
+  if (wrapPat) wrapPat.style.display = tipo === 'link' ? '' : 'none';
+  const lbl = document.getElementById('tm-video-label');
+  if (lbl) lbl.textContent = tipo === 'link' ? 'Link externo (ex: lifewaveresults.com filtrado por produto/patologia)' : 'Link do vídeo (Google Drive, YouTube, etc.)';
 }
 
 // Comprime a foto no browser (canvas) para no máximo 900px no lado maior,
@@ -14138,6 +14142,7 @@ function abrirNovoTestemunho() {
   document.getElementById('tm-nome-cliente').value = '';
   document.getElementById('tm-notas').value = '';
   document.getElementById('tm-video-url').value = '';
+  document.getElementById('tm-patologias').value = '';
   document.getElementById('tm-foto-input').value = '';
   document.getElementById('tm-foto-preview').style.display = 'none';
   document.getElementById('tm-consentimento').checked = false;
@@ -14157,6 +14162,7 @@ function editarTestemunho(id) {
   document.getElementById('tm-nome-cliente').value = t.nomeCliente || '';
   document.getElementById('tm-notas').value = t.notas || '';
   document.getElementById('tm-video-url').value = t.videoUrl || '';
+  document.getElementById('tm-patologias').value = (t.patologias || []).join(', ');
   document.getElementById('tm-foto-input').value = '';
   const preview = document.getElementById('tm-foto-preview');
   if (t.fotoBase64) { preview.src = t.fotoBase64; preview.style.display = ''; } else { preview.style.display = 'none'; }
@@ -14171,15 +14177,19 @@ function salvarTestemunho() {
 
   if (!consentimento) { showToast('❌ Confirma que tens o consentimento do cliente para continuar'); return; }
   if (midiaTipo === 'foto' && !tmFotoBase64Temp) { showToast('❌ Escolhe uma foto'); return; }
-  if (midiaTipo === 'video' && !document.getElementById('tm-video-url').value.trim()) { showToast('❌ Indica o link do vídeo'); return; }
+  if ((midiaTipo === 'video' || midiaTipo === 'link') && !document.getElementById('tm-video-url').value.trim()) { showToast('❌ Indica o link'); return; }
+
+  const patologias = document.getElementById('tm-patologias').value
+    .split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
 
   const testemunho = {
     id: editingTestemunhoId || gerarId(),
     midiaTipo,
     fotoBase64: midiaTipo === 'foto' ? tmFotoBase64Temp : '',
-    videoUrl: midiaTipo === 'video' ? document.getElementById('tm-video-url').value.trim() : '',
+    videoUrl: (midiaTipo === 'video' || midiaTipo === 'link') ? document.getElementById('tm-video-url').value.trim() : '',
     produto: document.getElementById('tm-produto').value,
     categoria: document.getElementById('tm-categoria').value,
+    patologias: midiaTipo === 'link' ? patologias : [],
     nomeCliente: document.getElementById('tm-nome-cliente').value.trim(),
     notas: document.getElementById('tm-notas').value.trim(),
     consentimento: true,
@@ -14245,7 +14255,7 @@ function renderTestemunhos() {
   grid.innerHTML = lista.map(t => {
     const thumb = t.midiaTipo === 'foto' && t.fotoBase64
       ? `<img src="${t.fotoBase64}" style="width:100%;height:110px;object-fit:cover;border-radius:10px 10px 0 0;">`
-      : `<div style="width:100%;height:110px;display:flex;align-items:center;justify-content:center;background:var(--surface3);border-radius:10px 10px 0 0;font-size:32px;">🎥</div>`;
+      : `<div style="width:100%;height:110px;display:flex;align-items:center;justify-content:center;background:var(--surface3);border-radius:10px 10px 0 0;font-size:32px;">${t.midiaTipo === 'link' ? '🔗' : '🎥'}</div>`;
     return `
       <div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;overflow:hidden;cursor:pointer;" onclick="verTestemunho('${t.id}')">
         ${thumb}
@@ -14263,10 +14273,11 @@ function verTestemunho(id) {
   const conteudo = document.getElementById('tm-ver-conteudo');
   const midia = t.midiaTipo === 'foto' && t.fotoBase64
     ? `<img src="${t.fotoBase64}" style="width:100%;border-radius:10px;margin-bottom:12px;max-height:320px;object-fit:cover;">`
-    : `<a href="${escapeHtml(t.videoUrl)}" target="_blank" rel="noopener" style="display:block;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:16px;text-align:center;margin-bottom:12px;color:var(--accent);text-decoration:none;">🎥 Abrir vídeo ↗</a>`;
+    : `<a href="${escapeHtml(t.videoUrl)}" target="_blank" rel="noopener" style="display:block;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:16px;text-align:center;margin-bottom:12px;color:var(--accent);text-decoration:none;">${t.midiaTipo === 'link' ? '🔗 Abrir link ↗' : '🎥 Abrir vídeo ↗'}</a>`;
   conteudo.innerHTML = midia
     + `<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;">`
     + `<span class="auto-tag">${escapeHtml(t.produto)}</span><span class="auto-tag">${TM_CATEGORIA_LABELS[t.categoria] || t.categoria}</span>`
+    + (t.patologias || []).map(p => `<span class="auto-tag">${escapeHtml(p)}</span>`).join('')
     + `</div>`
     + (t.nomeCliente ? `<div style="font-size:12px;color:var(--text2);margin-bottom:6px;">Cliente: ${escapeHtml(t.nomeCliente)}</div>` : '')
     + (t.notas ? `<div style="font-size:13px;color:var(--text);line-height:1.5;background:var(--surface2);border-radius:8px;padding:10px;">${escapeHtml(t.notas)}</div>` : '<div style="font-size:12px;color:var(--text2);">Sem notas guardadas.</div>')
@@ -23072,6 +23083,52 @@ function abrirGuiaoIAdiretamente(leadId, tipoSugerido) {
 // MENSAGEM DE FOLLOW-UP IA — gerada por lead, direto no card de Ações
 // Mais leve que o Guião IA: não abre modal, mostra inline no próprio card.
 // ===================================================
+// Escolhe um testemunho relevante da Biblioteca de Testemunhos para servir de
+// prova social em mensagens 1-para-1 a um lead. Prioriza match direto por
+// tags de patologia (link externo tipo lifewaveresults.com), depois por
+// categoria alinhada com o estado/notas do lead; sem correspondência clara,
+// usa o mais recente. Devolve texto curto (notas + produto) e, se existir,
+// o link do vídeo/testemunho para a IA poder convidar o lead a vê-lo.
+function escolherTestemunhoParaLead(l) {
+  if (!testemunhos || !testemunhos.length) return null;
+
+  const texto = `${l.notas || ''} ${(l.historico || []).map(h => h.msg || '').join(' ')}`.toLowerCase();
+  const mapaCategorias = {
+    energia: ['energia', 'cansaç', 'cansad', 'fadiga'],
+    sono: ['sono', 'dormir', 'insónia'],
+    dor: ['dor', 'desconforto', 'articulaç'],
+    mental: ['foco', 'concentraç', 'mental', 'stress', 'ansiedade'],
+    negocio: ['negócio', 'negocio', 'rendimento', 'oportunidade', 'equipa']
+  };
+
+  const comConsentimento = testemunhos.filter(t => t.consentimento && t.notas);
+  if (!comConsentimento.length) return null;
+
+  // 1ª prioridade: match direto de alguma tag de patologia no texto do lead
+  // (ex: lead com notas "hérnia discal" encontra testemunho com essa tag).
+  const porPatologia = comConsentimento.filter(t =>
+    (t.patologias || []).some(tag => tag && texto.includes(tag))
+  );
+
+  let categoriaAlvo = null;
+  for (const [cat, termos] of Object.entries(mapaCategorias)) {
+    if (termos.some(t => texto.includes(t))) { categoriaAlvo = cat; break; }
+  }
+  const porCategoria = categoriaAlvo
+    ? comConsentimento.filter(t => t.categoria === categoriaAlvo)
+    : [];
+
+  const escolhido = (porPatologia.length ? porPatologia : porCategoria.length ? porCategoria : comConsentimento)[0];
+  if (!escolhido) return null;
+
+  return {
+    produto: escolhido.produto || 'X39',
+    notas: escolhido.notas.slice(0, 180),
+    videoUrl: escolhido.videoUrl || '',
+    patologias: escolhido.patologias || []
+  };
+}
+
 async function gerarMensagemAcaoIA(leadId) {
   const l = leads.find(x => x.id === leadId);
   if (!l) return;
@@ -23091,19 +23148,25 @@ async function gerarMensagemAcaoIA(leadId) {
 
   const dias = diasSemContacto(l);
   const ultimaNota = (l.historico || []).find(h => h.msg)?.msg || '';
+  const prova = escolherTestemunhoParaLead(l);
   const contexto = [
     `Nome: ${l.nome.split(' ')[0]}`,
     `Estado no funil: ${estadoLabel(l.estado)}`,
     `Mercado: ${l.mercado || 'não definido'}`,
     dias !== null ? `Dias sem contacto: ${dias}` : 'Lead novo, ainda sem contacto',
     l.notas ? `Notas: ${l.notas.slice(0, 200)}` : '',
-    ultimaNota ? `Última interação registada: ${ultimaNota.slice(0, 150)}` : ''
+    ultimaNota ? `Última interação registada: ${ultimaNota.slice(0, 150)}` : '',
+    prova ? `Prova social disponível (testemunho real de outro cliente, produto ${prova.produto}, com consentimento): ${prova.notas}${prova.videoUrl ? ` — link do vídeo: ${prova.videoUrl}` : ''}` : ''
   ].filter(Boolean).join('\n');
 
   const prompt = `Sou Brand Partner LifeWave (produto X39, patches de luz). Preciso de uma mensagem curta de follow-up em WhatsApp para este lead:
 ${contexto}
 ${getRevistaContextoIA()}
-Regras: Português de Portugal. Tom pessoal e caloroso, nunca robótico. Máximo 3 frases curtas. Sem saudação genérica tipo "Espero que estejas bem" repetida — vai direto ao ponto com naturalidade. Termina com uma pergunta aberta que convide a resposta. Responde APENAS com o texto da mensagem, sem aspas, sem explicações.`;
+Regras: Português de Portugal. Tom pessoal e caloroso, nunca robótico. Máximo 3 frases curtas — frases curtas que empurram para a próxima, sem parágrafos longos.
+Usa o contexto acima (estado no funil, dias sem contacto, notas) para tornar a mensagem específica a esta pessoa — evita frases genéricas que serviriam para qualquer lead.
+${prova ? `Se fizer sentido no fluxo da mensagem, podes usar a prova social fornecida acima de forma natural e breve. Regra importante: NUNCA afirmes tu mesma que o produto causou ou tratou algo específico (ex: nunca escrevas "o X39 ajudou a resolver X") — em vez disso, convida o lead a ver o testemunho real por ele próprio (ex: "tenho aqui um vídeo de uma pessoa com uma situação parecida com a tua, queres ver?"${prova.videoUrl ? ' incluindo o link' : ''}). Nunca cites nomes de clientes, mesmo que fictícios. Não forces isto se não encaixar bem na conversa.` : ''}
+Esta é uma mensagem privada 1-para-1: podes falar de resultados e benefícios com naturalidade, sem suavizar como farias num post público.
+Termina com uma pergunta aberta que convide a resposta. Responde APENAS com o texto da mensagem, sem aspas, sem explicações.`;
 
   try {
     let texto = await callIARapida(prompt, claudeKey && claudeKey.length > 10 ? 200 : 300);
@@ -31635,6 +31698,7 @@ function renderPrevisaoComissao() {
         <select class="form-select" id="tm-midia-tipo" onchange="testemunhoToggleMidiaTipo()">
           <option value="foto">📷 Foto</option>
           <option value="video">🎥 Link de Vídeo</option>
+          <option value="link">🔗 Link Externo (ex: lifewaveresults.com)</option>
         </select>
       </div>
       <div class="form-group">
@@ -31655,8 +31719,13 @@ function renderPrevisaoComissao() {
       <img id="tm-foto-preview" style="display:none;max-width:100%;border-radius:10px;margin-top:8px;max-height:200px;object-fit:cover;">
     </div>
     <div class="form-group" id="tm-wrap-video" style="display:none;">
-      <label class="form-label">Link do vídeo (Google Drive, YouTube, etc.)</label>
+      <label class="form-label" id="tm-video-label">Link do vídeo (Google Drive, YouTube, etc.)</label>
       <input class="form-input" id="tm-video-url" placeholder="https://...">
+    </div>
+    <div class="form-group" id="tm-wrap-patologias" style="display:none;">
+      <label class="form-label">Tags de patologia/tema (separadas por vírgula)</label>
+      <input class="form-input" id="tm-patologias" placeholder="Ex: AVC, cervical, dores, hérnia discal">
+      <div style="font-size:11px;color:var(--text2);margin-top:4px;">Usadas só internamente para a IA encontrar o testemunho certo para cada lead — nunca aparecem em conteúdo público.</div>
     </div>
     <div class="form-group">
       <label class="form-label">Categoria de resultado</label>
@@ -41500,6 +41569,51 @@ async function acAnalisar() {
       var ctxPartes = ctxCampos.map(function(id){ var el = document.getElementById(id); return el ? (el.value||'').trim() : ''; }).filter(Boolean);
       ctx = ctxPartes.join(' | ');
     } catch(x){}
+    // Deteta sinais de ceticismo/dúvida sobre eficácia na conversa colada e,
+    // se existir, escolhe um testemunho real da Biblioteca (com consentimento)
+    // para servir de prova social na "proxima_mensagem" — só quando o sinal é
+    // claro, nunca forçado. Reaproveita a mesma lógica de categorias usada em
+    // escolherTestemunhoParaLead, mas a partir do texto da conversa em vez de
+    // um lead específico do CRM.
+    function acEscolherTestemunhoPorCeticismo(textoConversa) {
+      try {
+        if (typeof testemunhos === 'undefined' || !testemunhos || !testemunhos.length) return null;
+        var t = acNormaliza(textoConversa);
+        var sinaisCeticismo = ['funciona mesmo', 'isso funciona', 'será que funciona', 'não acredito',
+          'parece bom demais', 'é a sério', 'tenho dúvidas', 'já ouvi falar mal', 'isto é golpe',
+          'é esquema', 'não confio', 'prova disso', 'tens provas', 'resultados reais'];
+        if (!sinaisCeticismo.some(function(s){ return t.indexOf(s) !== -1; })) return null;
+
+        var comConsentimento = testemunhos.filter(function(x){ return x.consentimento && x.notas; });
+        if (!comConsentimento.length) return null;
+
+        // 1ª prioridade: match direto por tag de patologia (link externo)
+        var porPatologia = comConsentimento.filter(function(x){
+          return (x.patologias || []).some(function(tag){ return tag && t.indexOf(tag) !== -1; });
+        });
+
+        var mapaCategorias = {
+          energia: ['energia', 'cansaç', 'cansad', 'fadiga'],
+          sono: ['sono', 'dormir', 'insónia'],
+          dor: ['dor', 'desconforto', 'articulaç'],
+          mental: ['foco', 'concentraç', 'mental', 'stress', 'ansiedade'],
+          negocio: ['negócio', 'negocio', 'rendimento', 'oportunidade', 'equipa']
+        };
+        var categoriaAlvo = null;
+        for (var cat in mapaCategorias) {
+          if (mapaCategorias[cat].some(function(termo){ return t.indexOf(termo) !== -1; })) { categoriaAlvo = cat; break; }
+        }
+        var porCategoria = categoriaAlvo ? comConsentimento.filter(function(x){ return x.categoria === categoriaAlvo; }) : [];
+        var escolhido = (porPatologia.length ? porPatologia : porCategoria.length ? porCategoria : comConsentimento)[0];
+        if (!escolhido) return null;
+        return { produto: escolhido.produto || 'X39', notas: escolhido.notas.slice(0, 180), videoUrl: escolhido.videoUrl || '' };
+      } catch(x) { return null; }
+    }
+    var _acProvaSocial = acEscolherTestemunhoPorCeticismo((texto || '') + ' ' + (ctx || ''));
+    var _acProvaSocialStr = _acProvaSocial
+      ? (' 14) SOCIAL PROOF RULE (only apply if a skepticism/doubt signal about effectiveness was detected in the conversation): a real testimonial from another client (product ' + _acProvaSocial.produto + ', with consent) is available: "' + _acProvaSocial.notas + '"' + (_acProvaSocial.videoUrl ? (' — video link: ' + _acProvaSocial.videoUrl) : '') + '. If — and only if — the prospect is skeptical, doubts it actually works, or is asking for proof: NEVER assert yourself that the product caused or treated anything specific (e.g. never write "X39 helped resolve X") — instead, invite the prospect to watch the real testimonial themselves (e.g. "tenho aqui um vídeo de uma pessoa com uma situação parecida, queres ver?"' + (_acProvaSocial.videoUrl ? ' including the link' : '') + '). Never invent a client name, even a fictitious one — refer to it as "uma pessoa da equipa" or similar. Do not force it if the objection is about price, time, or something else unrelated to effectiveness.')
+      : '';
+
     var plat = 'whatsapp';
     try { plat = document.getElementById('ac-plataforma').value || 'whatsapp'; } catch(x){}
 
@@ -41650,6 +41764,7 @@ async function acAnalisar() {
         + ' 13b) PRIOR SUGGESTION OUTCOME (critical, closes the feedback loop — use this to actually improve, not just repeat): if the history below includes a line starting with "ÚLTIMA SUGESTÃO DE MENSAGEM JÁ FEITA A ESTE LEAD", it tells you whether the LAST AI-suggested message to this prospect worked or not. If it says the suggestion did NOT result in progress ("NÃO RESULTOU"), do not propose a very similar angle/question again — actively try a genuinely different approach this time (a different objection framing, a different opening, a different concrete offer), and mention briefly in "dica_extra" that the previous approach did not land so the distributor understands why the strategy changed. If it says the suggestion DID result in progress ("RESULTOU"), you can build on whatever worked (e.g. if a diagnostic question got a real answer, follow up on that answer directly) rather than starting over with a generic message. If it is still "pendente" (this is the first analysis after that suggestion was made), treat it the same as no prior suggestion.'
         + ' 13c) SILENT GAP vs ACTUAL OBJECTION (critical — these require OPPOSITE strategies, never confuse them): compare today\'s date (given above) against the most recent dated line in the history below. If a significant gap has passed (roughly 10+ days) since the LAST message in the history/conversation — regardless of who sent it — and nothing in the current conversation being analyzed is a reply that closes that gap, this is SILENCE, not a rejection: the prospect never said no, they simply went quiet. Do NOT treat this the same as an active objection (price, skepticism, etc.) and do NOT write "proxima_mensagem" as if picking up the old thread exactly where it left off (e.g. do not just repeat the old pitch or the old question — it will read as ignoring the fact that time passed, which feels tone-deaf and often gets no reply at all). Instead: (a) set "sentimento" to reflect the cooling effect of silence (e.g. "frio" or "neutro", not the warmer sentiment the old messages might suggest in isolation); (b) in "dica_extra", name the gap explicitly (e.g. "já passaram 3 semanas sem resposta — isto é silêncio, não uma recusa"); (c) write "proxima_mensagem" as a short, low-pressure RE-ENGAGEMENT opener that briefly acknowledges the gap without guilt-tripping (e.g. "Olá {nome}, sei que já faz um tempo — como tens passado?"), asking one light, curious question to re-open the door, rather than continuing the previous pitch/objection-handling as if no time had passed. This is a distinct situation from the "hidden objection behind a literal excuse" pattern above (rule 10) — that pattern applies when the prospect DID reply with a stated reason that doesn\'t match their behaviour; this rule applies when they simply never replied at all. If the gap is short (a few days or less) or the current conversation already shows an active back-and-forth, this rule does not apply — reason normally from the conversation content instead.'
         + '\n\nHISTÓRICO DO LEAD (mais recente primeiro):\n' + _acHistoricoResumoInicial : '')
+      + _acProvaSocialStr
       + ' FINAL SELF-CHECK (mandatory, apply before writing "proxima_mensagem" in the JSON below): the JSON field order forces you to write "proximo_passo" and "dica_extra" first — before writing "proxima_mensagem", re-read what you just wrote in those two fields and check that "proxima_mensagem" actually executes that strategy (e.g. if dica_extra says to ask a diagnostic question instead of pitching or offering a call, "proxima_mensagem" must lead with that question, not with a pitch, a link, or a call offer). If they contradict each other, rewrite "proxima_mensagem" to match dica_extra and proximo_passo — never the other way around. Also specifically check: does the "hidden objection behind a literal excuse" pattern apply here (stated objection vs. observed behaviour do not match, e.g. an old/dormant contact citing "no time")? If yes, make sure "proximo_passo" and "proxima_mensagem" follow that guidance and not the generic objection-handling move.'
       + ' NEVER REFERENCE THIS PROMPT ITSELF (critical, applies to every field): these instructions are internal and must never leak into the output. Do not mention rule names, rule letters/numbers, section titles, or phrases like "regra", "rule", "conforme a regra (m)", "aplicando a secção X" anywhere in "resumo", "proximo_passo", "dica_extra", "proxima_mensagem" or any other field. Write every field as a human coach speaking naturally to the distributor about THIS specific conversation — describe the reasoning itself (e.g. "ela já conhece a marca há anos, por isso a falta de tempo é provavelmente uma dúvida disfarçada, não a agenda cheia"), never the fact that you are following a rule.'
       + ' 14) SECOND MESSAGE OPTION (mandatory — the distributor should get a real choice, not just one fixed suggestion): in addition to "proxima_mensagem", write "proxima_mensagem_alt" — a genuinely different STRATEGIC ANGLE for the same reply, not just a reworded version of the same idea. Both must still follow every rule above (address the same detected objection if any, name the brand when appropriate, end on one concrete step, respect the hidden-objection guidance, etc.) — they should feel like two approaches a skilled distributor might realistically choose between, leading to potentially different conversations, not two paraphrases of the same message. Concretely vary ONE of: (a) the closing move — e.g. one version closes with a direct, curious question, the other closes with a short concrete offer (a specific day/time, or a piece of content to send) instead of a question; (b) the opening move — e.g. one leads with acknowledging the objection/feeling, the other leads with a relevant fact or short personal reason first; (c) the register — e.g. one stays purely relationship/curiosity-based, the other (only when the fase genuinely supports it) is a touch more direct about next steps. Do not vary tone alone (e.g. "formal" vs "casual") — that is not a strategic difference. Also write "proxima_mensagem_alt_label" — a very short 2-4 word tag in ' + uiLangName + ' naming the strategic difference of the ALT version specifically, from the distributor\'s point of view (e.g. "Oferece horário direto", "Lidera com empatia", "Pergunta mais direta") — never a generic label like "Alternativa" or "Versão 2".'
