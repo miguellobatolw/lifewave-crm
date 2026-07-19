@@ -8,7 +8,7 @@
   // Versão única da app — muda só aqui a cada release; o título da página
   // e o rodapé do ecrã de login lêem sempre deste valor, para nunca ficarem
   // dessincronizados um do outro.
-  window.APP_VERSION = 'v93';
+  window.APP_VERSION = 'v94';
 </script>
 
 <!-- ===== PWA: manifest, ícones e meta tags ===== -->
@@ -39288,7 +39288,7 @@ function executarAutomacoes(lead, estadoAnterior, novoEstado, ehNovoLead) {
   });
 }
 
-function executarAcaoRegra(regra, lead, ultimoContactoRef) {
+function executarAcaoRegra(regra, lead, ultimoContactoRef, emBackground) {
   const a = regra.action;
   if (a.tipo === 'criar_lembrete') {
     const dataDisparo = new Date(); dataDisparo.setDate(dataDisparo.getDate() + (a.dias||1)); dataDisparo.setHours(9,0,0,0);
@@ -39297,7 +39297,13 @@ function executarAcaoRegra(regra, lead, ultimoContactoRef) {
       if (typeof saveLembretes === 'function') saveLembretes();
     }
     registarAutoLogRegra(regra, '⏰', `Criou lembrete para <b>${escapeHtml(lead.nome)}</b> em ${a.dias} dia(s)`, null, null, lead.id, ultimoContactoRef);
-    showToast('⚙️ Automação: lembrete criado para ' + lead.nome);
+    // Só mostra toast quando a automação foi disparada por uma ação direta
+    // do utilizador (guardar lead, mudar estado manualmente) — quando corre
+    // sozinha em background (verificarAutomacoesPeriodicas, a cada 60s), o
+    // toast interrompia visualmente qualquer ecrã que a pessoa estivesse a
+    // usar nesse instante, mesmo sem relação nenhuma com o que estava a
+    // fazer. O registo em Automações já fica disponível sem interromper.
+    if (!emBackground) showToast('⚙️ Automação: lembrete criado para ' + lead.nome);
   } else if (a.tipo === 'copiar_mensagem') {
     // CORRIGIDO: esta ação corre em background (verificarAutomacoesPeriodicas,
     // a cada 60s) sem qualquer interação do utilizador. Escrever no
@@ -39310,15 +39316,15 @@ function executarAcaoRegra(regra, lead, ultimoContactoRef) {
     // clipboard se o utilizador pedir isso explicitamente.
     const texto = substituirVariaveis(a.texto, lead);
     registarAutoLogRegra(regra, '📋', `Mensagem pronta para <b>${escapeHtml(lead.nome)}</b>: "${escapeHtml(texto.substring(0,50))}${texto.length>50?'…':''}"`, lead.id, texto, lead.id, ultimoContactoRef);
-    showToast('⚙️ Automação: mensagem pronta para ' + lead.nome + ' (ver em Automações)');
+    if (!emBackground) showToast('⚙️ Automação: mensagem pronta para ' + lead.nome + ' (ver em Automações)');
   } else if (a.tipo === 'mudar_estado') {
     setTimeout(() => { lead.estado = a.estado; if (typeof saveleads === 'function') saveleads(); if (typeof renderFunil === 'function') renderFunil(); if (typeof renderDashboardSeVisivel === 'function') renderDashboardSeVisivel(); }, 300);
     registarAutoLogRegra(regra, '🔄', `Moveu <b>${escapeHtml(lead.nome)}</b> para "${estadoLabel(a.estado)}"`, null, null, lead.id, ultimoContactoRef);
-    showToast('⚙️ Automação: ' + lead.nome + ' → ' + estadoLabel(a.estado));
+    if (!emBackground) showToast('⚙️ Automação: ' + lead.nome + ' → ' + estadoLabel(a.estado));
   } else if (a.tipo === 'notificar') {
     const texto = substituirVariaveis(a.texto, lead);
     if (typeof dispararNotificacao === 'function') dispararNotificacao('⚙️ Automação LifeWave CRM', texto, '⚙️');
-    else showToast('⚙️ ' + texto);
+    else if (!emBackground) showToast('⚙️ ' + texto);
     registarAutoLogRegra(regra, '🔔', texto, null, null, lead.id, ultimoContactoRef);
   } else if (a.tipo === 'iniciar_sequencia') {
     // Cria um lembrete por cada passo da sequência, já com o texto da mensagem
@@ -39390,7 +39396,7 @@ function verificarAutomacoesPeriodicas() {
         // silêncio, a mesma regra possa disparar de novo (novo ciclo), mas
         // nunca repita todos os dias enquanto o silêncio continua.
         const jaExecutou = getAutoLog().some(l => l.regraId === r.id && l._leadId === lead.id && l._ultimoContactoRef === ultimo);
-        if (dias >= (r.trigger.dias||14) && !jaExecutou) executarAcaoRegra(r, lead, ultimo);
+        if (dias >= (r.trigger.dias||14) && !jaExecutou) executarAcaoRegra(r, lead, ultimo, true);
       });
     }
     if (r.trigger.tipo === 'aniversario') {
@@ -39399,7 +39405,7 @@ function verificarAutomacoesPeriodicas() {
         const anivDate = new Date(lead.aniversario);
         if (anivDate.getMonth() === hojeMD.getMonth() && anivDate.getDate() === hojeMD.getDate()) {
           const jaHoje = getAutoLog().some(l => l.regraId === r.id && l.texto.includes(lead.nome) && l.data.startsWith(hojeMD.toLocaleDateString('pt-PT')));
-          if (!jaHoje) executarAcaoRegra(r, lead);
+          if (!jaHoje) executarAcaoRegra(r, lead, null, true);
         }
       });
     }
