@@ -8,7 +8,7 @@
   // Versão única da app — muda só aqui a cada release; o título da página
   // e o rodapé do ecrã de login lêem sempre deste valor, para nunca ficarem
   // dessincronizados um do outro.
-  window.APP_VERSION = 'v95';
+  window.APP_VERSION = 'v98';
 </script>
 
 <!-- ===== PWA: manifest, ícones e meta tags ===== -->
@@ -15850,9 +15850,22 @@ async function callAI(page, prompt, imageBase64, imageMediaType, cacheContext) {
     return `⚠️ ${name} falhou`;
   }
 
-  // Constrói cadeia de fallback: IA escolhida primeiro, depois as restantes que têm chave
-  // Quando há imagem, Groq fica fora da cadeia: os seus modelos padrão não têm visão.
-  const ALL_AI = imageBase64 ? ['gemini', 'mistral', 'openrouter', 'claude', 'grok'] : ['gemini', 'groq', 'mistral', 'openrouter', 'claude', 'grok'];
+  // Constrói cadeia de fallback: IA escolhida primeiro, depois as restantes que têm chave.
+  // Duas ordens diferentes consoante o tipo de tarefa, porque o que importa em cada
+  // uma é diferente:
+  // - COM IMAGEM (screenshots, análise de conversa por print): o que importa é
+  //   qualidade de VISÃO. Gemini e Grok leem screenshots com mais precisão que o
+  //   Pixtral do Mistral, que tende a dar leituras mais vagas/genéricas de conversas
+  //   — por isso o Mistral fica mais atrás, não logo a seguir ao Gemini. Claude entra
+  //   antes do Mistral porque também tem boa visão nativa.
+  // - SEM IMAGEM (posts, mensagens, guião, tradução): o que importa é qualidade de
+  //   ESCRITA/criatividade em português — aqui a fraqueza de visão do Mistral não se
+  //   aplica, por isso pode ficar mais cedo na cadeia. Claude entra em 2º por ser
+  //   historicamente o mais forte a escrever em português natural, antes do Grok.
+  // Groq fica sempre fora quando há imagem: os seus modelos padrão não têm visão.
+  const ALL_AI = imageBase64
+    ? ['gemini', 'grok', 'claude', 'mistral', 'openrouter']
+    : ['gemini', 'claude', 'grok', 'groq', 'mistral', 'openrouter'];
   const aiOrder = [ai, ...ALL_AI.filter(a => a !== ai)].filter(a => {
     if (imageBase64 && a === 'groq') return false;
     if (a === 'gemini')     return !!geminiKey;
@@ -17440,6 +17453,69 @@ const TEMPLATES = {
   cliente_frio:  () => `Olá {nome}! 🎉\n\nBem-vindo/a à LifeWave! Estou muito disponível para o/a acompanhar nesta jornada.\n\nQualquer dúvida sobre o X39, estarei aqui 💚`,
 };
 
+// Decide qual objetivo (primeiro/ponte/followup/cliente) faz mais sentido
+// pré-selecionar no gerador de mensagens, olhando para o HISTÓRICO REAL da
+// conversa em vez de só o estado do funil (que só muda quando o distribuidor
+// o atualiza manualmente, e por isso fica facilmente desatualizado face ao
+// que já se passou na conversa real — ex: David respondeu bem-disposto ao
+// primeiro contacto, mas o estado dele continuava "Contactado").
+//
+// Prioridade:
+// 1) Cliente → sempre 'cliente', não importa o histórico.
+// 2) Última análise de IA gravada no histórico (entrada com faseDetectada,
+//    criada por acGuardarNoLead) — sinal mais fiável, porque já reflete uma
+//    leitura real da conversa mais recente, não só um estado manual.
+// 3) Sinal simples de resposta positiva já registada (ex: mensagem recebida
+//    do lead após um "Primeiro contacto"/"Follow-up" enviado) — se o lead já
+//    respondeu bem-disposto mas ainda não há análise de IA, sugere Ponte.
+// 4) Fallback: estado atual do funil, tal como antes.
+function objetivoSugeridoPeloHistorico(l) {
+  if (!l) return 'primeiro';
+  if (l.estado === 'cliente') return 'cliente';
+
+  const hist = (l.historico || []).slice(); // já vem por ordem mista (push/unshift) — ver getLastContactDate()
+  const FASE_PARA_OBJETIVO = {
+    descoberta: 'followup',
+    interesse: 'ponte',
+    consideracao: 'ponte',
+    objecao: 'followup',
+    pronto_para_comprar: 'ponte',
+    perdido: 'followup'
+  };
+
+  // 2) Procura a entrada de análise de IA mais recente com faseDetectada,
+  // comparando DATAS (não posição no array — ver nota em getLastContactDate).
+  let ultimaAnaliseIA = null;
+  hist.forEach(function(h) {
+    if (h && h.tipo === 'analise_ia' && h.faseDetectada) {
+      if (!ultimaAnaliseIA || new Date(h.data) > new Date(ultimaAnaliseIA.data)) ultimaAnaliseIA = h;
+    }
+  });
+  if (ultimaAnaliseIA && FASE_PARA_OBJETIVO[ultimaAnaliseIA.faseDetectada]) {
+    return FASE_PARA_OBJETIVO[ultimaAnaliseIA.faseDetectada];
+  }
+
+  // 3) Sem análise de IA registada: se já houve pelo menos um "Primeiro
+  // contacto" enviado (via templateTipoDetectado ou templateTipo) e o lead
+  // já não está em 'novo', assume-se que já houve alguma resposta/avanço —
+  // sugere Ponte em vez de repetir Follow-up indefinidamente só por falta
+  // de uma análise formal. Só se aplica se o estado já saiu de 'novo'.
+  const jaTeveContactoInicial = hist.some(function(h) {
+    return h && (h.templateTipoDetectado === 'primeiro' || h.templateTipo === 'primeiro' || (h.msg && h.msg.indexOf('Primeiro contacto') !== -1));
+  });
+  if (jaTeveContactoInicial && l.estado && l.estado !== 'novo') return 'ponte';
+
+  // 4) Fallback: estado do funil, tal como antes.
+  const OBJETIVO_POR_ESTADO = {
+    novo: 'primeiro',
+    contactado: 'followup',
+    interessado: 'ponte',
+    negociacao: 'followup',
+    cliente: 'cliente',
+  };
+  return OBJETIVO_POR_ESTADO[l.estado] || 'primeiro';
+}
+
 function abrirMensagem(leadId, canal) {
   msgLeadId = leadId;
   msgTemplateTipoAtual = null;
@@ -17456,17 +17532,13 @@ function abrirMensagem(leadId, canal) {
   atualizarMsgCategorias();
   const respostaLeadInput = document.getElementById('msg-resposta-lead');
   if (respostaLeadInput) respostaLeadInput.value = '';
-  // Pré-seleciona o objetivo mais adequado ao estado atual do lead, em vez
-  // de assumir sempre "Primeiro contacto" — poupa 1 escolha manual sempre
-  // que o lead já não é totalmente novo. O utilizador pode sempre mudar.
-  const OBJETIVO_POR_ESTADO = {
-    novo: 'primeiro',
-    contactado: 'followup',
-    interessado: 'ponte',
-    negociacao: 'followup',
-    cliente: 'cliente',
-  };
-  document.getElementById('msg-ia-objetivo').value = OBJETIVO_POR_ESTADO[l.estado] || 'primeiro';
+  // Pré-seleciona o objetivo mais adequado, olhando primeiro para o
+  // HISTÓRICO REAL da conversa (não só para o estado do funil, que só muda
+  // quando o distribuidor o faz manualmente e por isso fica facilmente
+  // desatualizado). Ex: um lead "Contactado" que respondeu bem-disposto ao
+  // primeiro contacto já devia sugerir "Ponte p/ negócio", não "Follow-up"
+  // — o estado por si só não sabe distinguir isso.
+  document.getElementById('msg-ia-objetivo').value = objetivoSugeridoPeloHistorico(l);
   toggleCampoRespostaLead();
 
   // Pré-seleciona a pill de temperatura com base na temperatura atual do lead
@@ -17496,17 +17568,18 @@ function abrirMensagem(leadId, canal) {
 }
 
 // Abre o modal de mensagem pré-configurado para contactar o lead e gera mensagem IA
-// automaticamente. O objetivo (Primeiro contacto vs Follow-up) é escolhido consoante
-// o estado real do lead: 'novo' é sempre o estado atribuído na criação/importação
-// (ver executarEliminacaoPendente(), confirmarImport(), confirmarImportGoogleContacts()),
-// e só avança para 'contactado' quando o utilizador o faz manualmente — por isso é
-// o sinal fiável de que ainda não houve nenhum contacto. Antes, esta função forçava
-// sempre 'followup', mesmo para leads nunca contactados, o que fazia a mensagem
-// gerada por IA soar como se já tivesse havido conversa anterior, quando era a primeira.
+// automaticamente. O objetivo é escolhido por objetivoSugeridoPeloHistorico() —
+// que olha primeiro para o histórico real da conversa (última análise de IA
+// gravada, ou sinal de resposta positiva já registada) e só cai para o estado
+// do funil como último recurso. 'novo' continua a ser sempre 'primeiro': é o
+// estado atribuído na criação/importação (ver executarEliminacaoPendente(),
+// confirmarImport(), confirmarImportGoogleContacts()) e só avança quando o
+// utilizador o faz manualmente — por isso é o sinal fiável de que ainda não
+// houve nenhum contacto.
 function abrirMensagemFollowUp(leadId) {
   abrirMensagem(leadId, 'whatsapp');
   const lead = leads.find(l => l.id === leadId);
-  const objetivo = (lead && lead.estado === 'novo') ? 'primeiro' : 'followup';
+  const objetivo = objetivoSugeridoPeloHistorico(lead);
   // Aguarda o modal abrir e define o objetivo certo + gera IA
   setTimeout(() => {
     const sel = document.getElementById('msg-ia-objetivo');
@@ -41844,14 +41917,15 @@ async function acAnalisar() {
       + ' 12) PROBABILIDADE_CONVERSAO CALIBRATION (mandatory — use this rubric instead of a subjective guess, so scores stay consistent across analyses): 0-10 = prospect explicitly said no / not interested / asked to stop contact (like this example: "não estou interessada", "não me interessa"); 11-30 = cold or passive — vague/one-word replies, long delays, or a firm objection with no opening left; 31-50 = neutral/early — curious but noncommittal, asking basic questions, fase is typically "descoberta"; 51-70 = warm — engaging back and forth, asking specific questions about price/how it works/how to start, fase typically "consideracao" or "interesse"; 71-90 = hot — expressed clear intent to move forward, only logistics or a minor objection left unresolved, fase typically "interesse" or "objecao"; 91-100 = ready to close — explicitly asked how to pay/join/order or agreed to a next concrete step, fase "pronto_para_comprar". Anchor the number to the MOST RECENT signal from the prospect, not the overall history of the relationship — a prospect who was hot last month but is cold today scores low today.'
       + ' 12b) PROBABILIDADE_RACIONAL (mandatory companion field to probabilidade_conversao): write ONE short sentence (max ~20 words, in ' + uiLangName + ') naming the SINGLE most concrete, most recent signal that the score is anchored to — not a summary of the whole conversation, just the specific fact or quote that justifies the number. This exists so the distributor never has to blindly trust a bare percentage, especially when a lot of the analysis is inferred rather than stated outright (e.g. distinguish "abriu o link mas ainda não respondeu ao conteúdo" — a fact — from "provavelmente já foi Brand Partner" — an inference from a system email, weaker evidence). Good example: "Abriu o link mas a resposta é uma objeção firme, sem pergunta de volta." Bad example (too vague, do not do this): "O sentimento geral é morno."'
       + (_acHistoricoResumoInicial ? ' 13) LEAD HISTORY RULE (critical): below is the prior interaction history already recorded for this prospect in the CRM, most recent first. Use it as background context to inform "sentimento", "fase", "objecoes", "pontos_positivos", "erros_cometidos", "probabilidade_conversao", "proximo_passo" and especially "proxima_mensagem" — e.g. do not repeat an objection they already resolved, do not re-introduce something already explained before, and reference earlier commitments or promises naturally if relevant. The history is background only: the CURRENT conversation/audio/image being analyzed now still defines "fase" and "sentimento" primarily. If the current message contradicts the historical pattern (e.g. they were warm before but are cold now), trust the CURRENT signal.'
+        + ' 13a) CURRENT MESSAGE OVERRIDES HISTORY ON FACTS (critical, most common failure mode — check this explicitly before writing "resumo", "objecoes" or "pontos_positivos"): the history may show that the prospect was told about LifeWave/X39 before, or that a distributor once assumed they "already know the brand". This does NOT mean the prospect actually remembers, understood, or is currently familiar with it — people forget, confuse products, or never really registered what was said. If the CURRENT conversation/image/audio being analyzed contains an explicit statement from the prospect that contradicts that assumption — e.g. they ask "o que é a LifeWave?", "não conheço", "não sei o que é isso", or otherwise show they do not know what is being discussed — treat the prospect as NOT familiar with it right now, full stop. Do not write "já conhece a marca", "contacto antigo que já teve exposição", or similar framing anywhere in the output when the current message says otherwise; do not soften or reinterpret an explicit "não conheço" into curiosity about something already known. When this happens, "fase" should be "descoberta" (not a returning/informed contact) and "proxima_mensagem" must actually EXPLAIN what LifeWave/X39 is in plain terms — do not assume familiarity and skip the explanation just because the history mentions a prior message about it.'
         + ' 13b) PRIOR SUGGESTION OUTCOME (critical, closes the feedback loop — use this to actually improve, not just repeat): if the history below includes a line starting with "ÚLTIMA SUGESTÃO DE MENSAGEM JÁ FEITA A ESTE LEAD", it tells you whether the LAST AI-suggested message to this prospect worked or not. If it says the suggestion did NOT result in progress ("NÃO RESULTOU"), do not propose a very similar angle/question again — actively try a genuinely different approach this time (a different objection framing, a different opening, a different concrete offer), and mention briefly in "dica_extra" that the previous approach did not land so the distributor understands why the strategy changed. If it says the suggestion DID result in progress ("RESULTOU"), you can build on whatever worked (e.g. if a diagnostic question got a real answer, follow up on that answer directly) rather than starting over with a generic message. If it is still "pendente" (this is the first analysis after that suggestion was made), treat it the same as no prior suggestion.'
-        + ' 13c) SILENT GAP vs ACTUAL OBJECTION (critical — these require OPPOSITE strategies, never confuse them): compare today\'s date (given above) against the most recent dated line in the history below. If a significant gap has passed (roughly 10+ days) since the LAST message in the history/conversation — regardless of who sent it — and nothing in the current conversation being analyzed is a reply that closes that gap, this is SILENCE, not a rejection: the prospect never said no, they simply went quiet. Do NOT treat this the same as an active objection (price, skepticism, etc.) and do NOT write "proxima_mensagem" as if picking up the old thread exactly where it left off (e.g. do not just repeat the old pitch or the old question — it will read as ignoring the fact that time passed, which feels tone-deaf and often gets no reply at all). Instead: (a) set "sentimento" to reflect the cooling effect of silence (e.g. "frio" or "neutro", not the warmer sentiment the old messages might suggest in isolation); (b) in "dica_extra", name the gap explicitly (e.g. "já passaram 3 semanas sem resposta — isto é silêncio, não uma recusa"); (c) write "proxima_mensagem" as a short, low-pressure RE-ENGAGEMENT opener that briefly acknowledges the gap without guilt-tripping (e.g. "Olá {nome}, sei que já faz um tempo — como tens passado?"), asking one light, curious question to re-open the door, rather than continuing the previous pitch/objection-handling as if no time had passed. This is a distinct situation from the "hidden objection behind a literal excuse" pattern above (rule 10) — that pattern applies when the prospect DID reply with a stated reason that doesn\'t match their behaviour; this rule applies when they simply never replied at all. If the gap is short (a few days or less) or the current conversation already shows an active back-and-forth, this rule does not apply — reason normally from the conversation content instead.'
+        + ' 13c) SILENT GAP vs ACTUAL OBJECTION (critical — these require OPPOSITE strategies, never confuse them): compare today\'s date (given above) against the most recent dated line in the history below. If a significant gap has passed (roughly 10+ days) since the LAST message in the history/conversation — regardless of who sent it — and nothing in the current conversation being analyzed is a reply that closes that gap, this is SILENCE, not a rejection: the prospect never said no, they simply went quiet. Do NOT treat this the same as an active objection (price, skepticism, etc.) and do NOT write "proxima_mensagem" as if picking up the old thread exactly where it left off (e.g. do not just repeat the old pitch or the old question — it will read as ignoring the fact that time passed, which feels tone-deaf and often gets no reply at all). Instead: (a) set "sentimento" to reflect the cooling effect of silence (e.g. "frio" or "neutro", not the warmer sentiment the old messages might suggest in isolation); (b) in "dica_extra", name the gap explicitly (e.g. "já passaram 3 semanas sem resposta — isto é silêncio, não uma recusa"); (c) write "proxima_mensagem" as a short, low-pressure RE-ENGAGEMENT opener that briefly acknowledges the gap without guilt-tripping (e.g. "Olá {nome}, sei que já faz um tempo — como tens passado?"), asking one light, curious question to re-open the door, rather than continuing the previous pitch/objection-handling as if no time had passed. This is a distinct situation from the "hidden objection behind a literal excuse" pattern above (rule 10) — that pattern applies when the prospect DID reply with a stated reason that doesn\'t match their behaviour; this rule applies when they simply never replied at all. If the gap is short (a few days or less) or the current conversation already shows an active back-and-forth, this rule does not apply — reason normally from the conversation content instead. This "reconnect and acknowledge the gap" guidance is about tone/pacing only — it never means assuming the prospect remembers or understands what was discussed before; if the current conversation shows they do not (see rule 13a), the re-engagement message must still actually explain, not just reference, what LifeWave/X39 is.'
         + '\n\nHISTÓRICO DO LEAD (mais recente primeiro):\n' + _acHistoricoResumoInicial : '')
       + _acProvaSocialStr
       + ' FINAL SELF-CHECK (mandatory, apply before writing "proxima_mensagem" in the JSON below): the JSON field order forces you to write "proximo_passo" and "dica_extra" first — before writing "proxima_mensagem", re-read what you just wrote in those two fields and check that "proxima_mensagem" actually executes that strategy (e.g. if dica_extra says to ask a diagnostic question instead of pitching or offering a call, "proxima_mensagem" must lead with that question, not with a pitch, a link, or a call offer). If they contradict each other, rewrite "proxima_mensagem" to match dica_extra and proximo_passo — never the other way around. Also specifically check: does the "hidden objection behind a literal excuse" pattern apply here (stated objection vs. observed behaviour do not match, e.g. an old/dormant contact citing "no time")? If yes, make sure "proximo_passo" and "proxima_mensagem" follow that guidance and not the generic objection-handling move.'
-      + ' NEVER REFERENCE THIS PROMPT ITSELF (critical, applies to every field): these instructions are internal and must never leak into the output. Do not mention rule names, rule letters/numbers, section titles, or phrases like "regra", "rule", "conforme a regra (m)", "aplicando a secção X" anywhere in "resumo", "proximo_passo", "dica_extra", "proxima_mensagem" or any other field. Write every field as a human coach speaking naturally to the distributor about THIS specific conversation — describe the reasoning itself (e.g. "ela já conhece a marca há anos, por isso a falta de tempo é provavelmente uma dúvida disfarçada, não a agenda cheia"), never the fact that you are following a rule.'
+      + ' NEVER REFERENCE THIS PROMPT ITSELF (critical, applies to every field): these instructions are internal and must never leak into the output. Do not mention rule names, rule letters/numbers, section titles, or phrases like "regra", "rule", "conforme a regra (m)", "aplicando a secção X" anywhere in "resumo", "proximo_passo", "dica_extra", "proxima_mensagem" or any other field. Write every field as a human coach speaking naturally to the distributor about THIS specific conversation — describe the reasoning itself (e.g. "ele pediu explicitamente uma explicação, por isso ainda não percebe do que se trata"), never the fact that you are following a rule.'
       + ' 14) SECOND MESSAGE OPTION (mandatory — the distributor should get a real choice, not just one fixed suggestion): in addition to "proxima_mensagem", write "proxima_mensagem_alt" — a genuinely different STRATEGIC ANGLE for the same reply, not just a reworded version of the same idea. Both must still follow every rule above (address the same detected objection if any, name the brand when appropriate, end on one concrete step, respect the hidden-objection guidance, etc.) — they should feel like two approaches a skilled distributor might realistically choose between, leading to potentially different conversations, not two paraphrases of the same message. Concretely vary ONE of: (a) the closing move — e.g. one version closes with a direct, curious question, the other closes with a short concrete offer (a specific day/time, or a piece of content to send) instead of a question; (b) the opening move — e.g. one leads with acknowledging the objection/feeling, the other leads with a relevant fact or short personal reason first; (c) the register — e.g. one stays purely relationship/curiosity-based, the other (only when the fase genuinely supports it) is a touch more direct about next steps. Do not vary tone alone (e.g. "formal" vs "casual") — that is not a strategic difference. Also write "proxima_mensagem_alt_label" — a very short 2-4 word tag in ' + uiLangName + ' naming the strategic difference of the ALT version specifically, from the distributor\'s point of view (e.g. "Oferece horário direto", "Lidera com empatia", "Pergunta mais direta") — never a generic label like "Alternativa" or "Versão 2".'
-      + ' 15) NATURAL LANGUAGE IN EVERY FIELD, NEVER MACHINE-STYLE IDENTIFIERS (critical, applies to "objecoes", "pontos_positivos", "erros_cometidos", "proximo_passo", "dica_extra" and "resumo"): every one of these fields is read directly by a human distributor on a phone screen, not parsed by code — write them as normal ' + uiLangName + ' sentences or short phrases, the way a coach would say them out loud. NEVER output snake_case, kebab-case, camelCase, underscores joining words, or database-style tags (e.g. do NOT write "não_tem_tempo", "já_conhece_a_marca", "abordar_a_objeção_da_falta_de_tempo" — these are wrong). Correct style instead: "objecoes" → ["Falta de tempo", "Já conhece a marca"]; "pontos_positivos" → ["Já conhece a marca", "Já teve envolvimento passado com a marca"]; "proximo_passo" → a short natural sentence like "Reconhecer o histórico dela com a LifeWave e perguntar o que a fez parar antes de propor algo novo." This applies even though the JSON keys themselves (like "objecoes") are in code-style — the KEYS stay as given, only the VALUES must always read as natural human language, with proper spacing, accents and punctuation.'
+      + ' 15) NATURAL LANGUAGE IN EVERY FIELD, NEVER MACHINE-STYLE IDENTIFIERS (critical, applies to "objecoes", "pontos_positivos", "erros_cometidos", "proximo_passo", "dica_extra" and "resumo"): every one of these fields is read directly by a human distributor on a phone screen, not parsed by code — write them as normal ' + uiLangName + ' sentences or short phrases, the way a coach would say them out loud. NEVER output snake_case, kebab-case, camelCase, underscores joining words, or database-style tags (e.g. do NOT write "não_tem_tempo", "pediu_mais_informação", "abordar_a_objeção_da_falta_de_tempo" — these are wrong). Correct style instead: "objecoes" → ["Falta de tempo", "Preço elevado"]; "pontos_positivos" → ["Respondeu rapidamente", "Fez uma pergunta concreta"]; "proximo_passo" → a short natural sentence like "Responder à pergunta dele sobre o preço antes de propor um próximo passo." This applies even though the JSON keys themselves (like "objecoes") are in code-style — the KEYS stay as given, only the VALUES must always read as natural human language, with proper spacing, accents and punctuation.'
       + ' Respond ONLY in valid JSON with this exact structure (note the field order — write them in this order; the example VALUES below show the expected natural-language style, not literal text to copy): {"nome_detectado":"Maria Silva","tel_detectado":"+351912345678","email_detectado":"maria@email.com","sentimento":"positivo","fase":"interesse","resumo":"texto em frases normais","objecoes":["Falta de tempo","Já conhece a marca"],"pontos_positivos":["Já respondeu com interesse"],"erros_cometidos":["Não abordou a experiência anterior dela"],"proximo_passo":"Uma frase natural descrevendo a ação, ex: perguntar o que a fez parar antes de propor algo novo","dica_extra":"dica em frase normal","proxima_mensagem":"msg exacta no idioma do prospecto","proxima_mensagem_alt":"segunda opcao com angulo estrategico diferente, mesmo idioma","proxima_mensagem_alt_label":"tag curta 2-4 palavras","probabilidade_conversao":60,"probabilidade_racional":"frase curta com o sinal concreto mais recente","idioma_prospecto":"fr","template_detectado":"tb1"' + (isAudio ? ',"transcricao":"texto exacto dito no audio","tom_voz":"analise do tom de voz"' : '') + '}';
     var acDescricaoInput = isAudio && isImg ? '. Vê a imagem E ouve o áudio (nota de voz do prospecto) em conjunto, como partes da mesma conversa, e transcreve o áudio.'
       : isAudio ? '. Ouve o áudio (nota de voz do prospecto) e transcreve-o.'
