@@ -6557,6 +6557,12 @@ var QRCode=function(t){"use strict";var r,e=function(){return"function"==typeof 
         <button class="pill" id="tm-filtro-x49" onclick="testemunhosFiltrar('X49')" style="white-space:nowrap;">X49</button>
         <button class="pill" id="tm-filtro-aeon" onclick="testemunhosFiltrar('Aeon')" style="white-space:nowrap;">Aeon</button>
         <button class="pill" id="tm-filtro-icewave" onclick="testemunhosFiltrar('IceWave')" style="white-space:nowrap;">IceWave</button>
+        <button class="pill" id="tm-filtro-alavida" onclick="testemunhosFiltrar('Alavida')" style="white-space:nowrap;">Alavida</button>
+        <button class="pill" id="tm-filtro-carnosine" onclick="testemunhosFiltrar('Y-Age Carnosine')" style="white-space:nowrap;">Carnosine</button>
+        <button class="pill" id="tm-filtro-glutathione" onclick="testemunhosFiltrar('Y-Age Glutathione')" style="white-space:nowrap;">Glutathione</button>
+        <button class="pill" id="tm-filtro-silentnight" onclick="testemunhosFiltrar('Silent Nights')" style="white-space:nowrap;">Silent Nights</button>
+        <button class="pill" id="tm-filtro-cellergizemorning" onclick="testemunhosFiltrar('Cellergize Morning')" style="white-space:nowrap;">Cellergize Morning</button>
+        <button class="pill" id="tm-filtro-cellergizenight" onclick="testemunhosFiltrar('Cellergize Night')" style="white-space:nowrap;">Cellergize Night</button>
         <button class="pill" id="tm-filtro-negocio" onclick="testemunhosFiltrar('Negócio')" style="white-space:nowrap;">Negócio</button>
         <button class="pill" id="tm-filtro-outro" onclick="testemunhosFiltrar('Outro')" style="white-space:nowrap;">Outro</button>
       </div>
@@ -14242,12 +14248,12 @@ function eliminarTestemunho(id) {
 
 function testemunhosFiltrar(filtro) {
   tmFiltroAtivo = filtro;
-  ['todos','x39','x49','aeon','icewave','negocio','outro'].forEach(f => {
+  ['todos','x39','x49','aeon','icewave','alavida','carnosine','glutathione','silentnight','cellergizemorning','cellergizenight','negocio','outro'].forEach(f => {
     const el = document.getElementById('tm-filtro-' + f);
     if (el) el.classList.remove('active');
   });
-  const idMap = { 'Todos':'todos', X39:'x39', X49:'x49', Aeon:'aeon', IceWave:'icewave', 'Negócio':'negocio', Outro:'outro' };
-  const btnId = 'tm-filtro-' + (idMap[filtro] || filtro.toLowerCase());
+  const idMap = { 'Todos':'todos', X39:'x39', X49:'x49', Aeon:'aeon', IceWave:'icewave', Alavida:'alavida', 'Y-Age Carnosine':'carnosine', 'Y-Age Glutathione':'glutathione', 'Silent Nights':'silentnight', 'Cellergize Morning':'cellergizemorning', 'Cellergize Night':'cellergizenight', 'Negócio':'negocio', Outro:'outro' };
+  const btnId = 'tm-filtro-' + (idMap[filtro] || filtro.toLowerCase().replace(/\s+/g, ''));
   const btn = document.getElementById(btnId);
   if (btn) btn.classList.add('active');
   renderTestemunhos();
@@ -22686,6 +22692,15 @@ const SUGESTOES_ACAO = {
     texto: (l) => `❄️ <strong>${escapeHtml(l.nome)}</strong> (mercado frio) foi contactado há ${diasSemContacto(l) || 0} dias. Envia um follow-up leve antes que esfrie.`,
     guiaoTipo: 'follow-up'
   },
+  // Sem resposta registada ao contacto anterior (sem Análise de Conversa nem rasto de
+  // resposta no histórico) — ver objetivoSugeridoPeloHistorico(). Aplica-se tanto a
+  // 'contactado' como a 'interessado' quando, na prática, ainda não há confirmação de
+  // que a pessoa respondeu; evita sugerir "apresenta o produto" a quem ainda nem
+  // respondeu ao primeiro contacto.
+  sem_resposta: {
+    texto: (l) => `📅 <strong>${escapeHtml(l.nome)}</strong> ainda não respondeu há ${diasSemContacto(l) || 0} dias. Faz um follow-up leve, sem assumir que já viu a mensagem.`,
+    guiaoTipo: 'follow-up'
+  },
   interessado: {
     texto: (l) => `⚡ <strong>${escapeHtml(l.nome)}</strong> mostrou interesse! Está a ${diasSemContacto(l) || 0} dias sem contacto — apresenta o produto ou marca uma conversa.`,
     guiaoTipo: 'apresentacao-produto'
@@ -22727,9 +22742,20 @@ function getSugestaoAcao(l) {
     };
   }
   if (l.estado === 'novo') return SUGESTOES_ACAO.novo;
-  if (l.estado === 'contactado' && mq) return SUGESTOES_ACAO.contactado_quente;
-  if (l.estado === 'contactado') return SUGESTOES_ACAO.contactado_frio;
-  if (l.estado === 'interessado') return SUGESTOES_ACAO.interessado;
+
+  // 'contactado' e 'interessado' partilham o mesmo risco: assumir "apresenta o
+  // produto" quando, na realidade, ainda não há confirmação de resposta. Usa o
+  // mesmo sinal já fiável do gerador de mensagens (Análise de Conversa guardada,
+  // ou rasto de resposta no histórico) — só quando a função indicar 'ponte'
+  // (já respondeu) é que se mantém a sugestão de apresentação/avanço.
+  if (l.estado === 'contactado' || l.estado === 'interessado') {
+    const sugestaoHist = (typeof objetivoSugeridoPeloHistorico === 'function') ? objetivoSugeridoPeloHistorico(l) : null;
+    const jaRespondeu = sugestaoHist && sugestaoHist.objetivo === 'ponte';
+    if (!jaRespondeu) return SUGESTOES_ACAO.sem_resposta;
+    if (l.estado === 'contactado' && mq) return SUGESTOES_ACAO.contactado_quente;
+    if (l.estado === 'contactado') return SUGESTOES_ACAO.contactado_frio;
+    return SUGESTOES_ACAO.interessado;
+  }
   if (l.estado === 'negociacao') return SUGESTOES_ACAO.negociacao;
   if (dias >= 21) return SUGESTOES_ACAO.inativo_longo;
   return SUGESTOES_ACAO.contactado_frio;
@@ -24820,14 +24846,20 @@ function renderDigestDiario() {
     }
     const tel = l.tel ? limparTelefone(l.tel) : '';
 
-    // Ação sugerida com base no estado
-    const acaoMap = {
-      novo:        { txt: '👋 Fazer o primeiro contacto', emoji: '👋' },
-      contactado:  { txt: '🌉 Enviar apresentação do produto', emoji: '🌉' },
-      interessado: { txt: '⚡ Marcar conversa ou apresentação', emoji: '⚡' },
-      negociacao:  { txt: '💰 Fechar a venda hoje', emoji: '💰' }
+    // Ação sugerida — baseada no HISTÓRICO REAL da conversa (objetivoSugeridoPeloHistorico),
+    // não só no estado do funil. Isto evita sugerir "Enviar apresentação" a um lead que ainda
+    // nem respondeu ao primeiro contacto: sem Análise de Conversa guardada, o objetivo cai em
+    // 'followup', que aqui mostra "ainda sem resposta" em vez de assumir que já houve resposta.
+    const sugestaoHist = (typeof objetivoSugeridoPeloHistorico === 'function') ? objetivoSugeridoPeloHistorico(l) : null;
+    const acaoPorObjetivo = {
+      primeiro: { txt: '👋 Fazer o primeiro contacto', emoji: '👋' },
+      followup: { txt: '📅 Ainda sem resposta — follow-up leve', emoji: '📅' },
+      ponte:    { txt: '🌉 Já respondeu — dar seguimento (ponte)', emoji: '🌉' },
+      cliente:  { txt: '💰 Fechar a venda hoje', emoji: '💰' }
     };
-    const acao = acaoMap[l.estado] || { txt: '📞 Entrar em contacto', emoji: '📞' };
+    const acao = (sugestaoHist && acaoPorObjetivo[sugestaoHist.objetivo])
+      ? acaoPorObjetivo[sugestaoHist.objetivo]
+      : { txt: '📞 Entrar em contacto', emoji: '📞' };
     const diasTxt = dias !== null ? `${dias}d sem contacto` : 'Novo';
     const diasCor = dias === null ? 'var(--accent)' : dias >= 7 ? '#ff5555' : dias >= 3 ? '#f59e0b' : 'var(--accent)';
 
@@ -31890,6 +31922,12 @@ function renderPrevisaoComissao() {
           <option>X49</option>
           <option>Aeon</option>
           <option>IceWave</option>
+          <option>Alavida</option>
+          <option>Y-Age Carnosine</option>
+          <option>Y-Age Glutathione</option>
+          <option>Silent Nights</option>
+          <option>Cellergize Morning</option>
+          <option>Cellergize Night</option>
           <option>Negócio</option>
           <option>Outro</option>
         </select>
@@ -42590,10 +42628,13 @@ function acGuardarNoLead() {
     // ficava sempre presa ao resumo da conversa que criou o lead originalmente,
     // mesmo depois de várias análises mais recentes serem guardadas por cima,
     // o que causa confusão sobre o que se passou na conversa mais recente.
+    // Acrescenta ao que já lá está em vez de substituir — caso contrário, uma nota
+    // escrita à mão pelo distribuidor na caixa "Nota Rápida" era apagada sempre
+    // que corria uma nova Análise de Conversa sobre o mesmo lead.
     if (r.resumo) {
       var notasAtualizadasAC = r.resumo;
       if (r.objecoes && r.objecoes.length) notasAtualizadasAC += '\nObjeções: ' + r.objecoes.join('; ');
-      lead.notas = notasAtualizadasAC;
+      lead.notas = lead.notas && lead.notas.trim() ? (lead.notas.trim() + '\n\n' + notasAtualizadasAC) : notasAtualizadasAC;
     }
   } else {
     // Bloqueia duplicado exato por nome, tal como ao criar manualmente
@@ -42606,7 +42647,7 @@ function acGuardarNoLead() {
       if (r.resumo) {
         var notasAtualizadasDupAC = r.resumo;
         if (r.objecoes && r.objecoes.length) notasAtualizadasDupAC += '\nObjeções: ' + r.objecoes.join('; ');
-        lead.notas = notasAtualizadasDupAC;
+        lead.notas = lead.notas && lead.notas.trim() ? (lead.notas.trim() + '\n\n' + notasAtualizadasDupAC) : notasAtualizadasDupAC;
       }
     } else {
       // P3 — Preencher campos com dados já detetados pela IA
