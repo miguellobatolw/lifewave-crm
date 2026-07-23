@@ -25,6 +25,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <!-- Geração de QR code local no browser (sem enviar o link a nenhum servidor externo).
      Biblioteca embutida diretamente (em vez de carregada de um CDN externo) para funcionar
      mesmo quando a app é aberta como ficheiro local (ex: content://downloads/... no Android),
@@ -5515,6 +5516,10 @@ var QRCode=function(t){"use strict";var r,e=function(){return"function"==typeof 
               <option>Silent Nights</option>
               <option>SP6 Complete</option>
               <option>Y-Age Glutathione</option>
+              <option>Alavida</option>
+              <option>AcuLife</option>
+              <option>Cellergize Morning</option>
+              <option>Cellergize Night</option>
               <option>Pack Starter</option>
               <option>Outro</option>
             </select>
@@ -5947,6 +5952,9 @@ var QRCode=function(t){"use strict";var r,e=function(){return"function"==typeof 
                 <option value="y-age-kit">Y-Age® System Kit</option>
                 <option value="x39x49-bundle">X39® + X49™ Bundle</option>
                 <option value="alavida-trio">Alavida® Regenerating Trio</option>
+                <option value="cellergize_morning">Cellergize™ Morning</option>
+                <option value="cellergize_night">Cellergize™ Evening</option>
+                <option value="cellergize-duo">Cellergize® Duo</option>
               </select>
             </div>
 
@@ -5974,14 +5982,26 @@ var QRCode=function(t){"use strict";var r,e=function(){return"function"==typeof 
 
             <div class="form-group">
               <label class="form-label">Moeda</label>
-              <div style="display:flex;gap:8px;">
-                <button id="sim-moeda-eur" onclick="simSetMoeda('eur')"
-                  style="flex:1;padding:8px;border:2px solid var(--accent);border-radius:8px;background:rgba(0,212,170,0.12);color:var(--accent);font-size:13px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;">
+              <div style="display:flex;gap:6px;flex-wrap:wrap;">
+                <button id="sim-moeda-eur" onclick="simSetMoeda('eur',true)"
+                  style="flex:1;min-width:60px;padding:8px 4px;border:2px solid var(--accent);border-radius:8px;background:rgba(0,212,170,0.12);color:var(--accent);font-size:12px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;">
                   € EUR
                 </button>
-                <button id="sim-moeda-usd" onclick="simSetMoeda('usd')"
-                  style="flex:1;padding:8px;border:2px solid var(--border);border-radius:8px;background:transparent;color:var(--text2);font-size:13px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;">
+                <button id="sim-moeda-usd" onclick="simSetMoeda('usd',true)"
+                  style="flex:1;min-width:60px;padding:8px 4px;border:2px solid var(--border);border-radius:8px;background:transparent;color:var(--text2);font-size:12px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;">
                   $ USD
+                </button>
+                <button id="sim-moeda-gbp" onclick="simSetMoeda('gbp',true)"
+                  style="flex:1;min-width:60px;padding:8px 4px;border:2px solid var(--border);border-radius:8px;background:transparent;color:var(--text2);font-size:12px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;">
+                  £ GBP
+                </button>
+                <button id="sim-moeda-cad" onclick="simSetMoeda('cad',true)"
+                  style="flex:1;min-width:60px;padding:8px 4px;border:2px solid var(--border);border-radius:8px;background:transparent;color:var(--text2);font-size:12px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;">
+                  CA$ CAD
+                </button>
+                <button id="sim-moeda-aud" onclick="simSetMoeda('aud',true)"
+                  style="flex:1;min-width:60px;padding:8px 4px;border:2px solid var(--border);border-radius:8px;background:transparent;color:var(--text2);font-size:12px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;">
+                  AU$ AUD
                 </button>
               </div>
             </div>
@@ -6326,10 +6346,15 @@ var QRCode=function(t){"use strict";var r,e=function(){return"function"==typeof 
             <option value="preferencial">⭐ Cliente Preferencial / CP+</option>
             <option value="bp">🤝 Brand Partner</option>
           </select>
-          <select id="cat-moeda" onchange="renderCatalogo()" style="background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:7px 10px;font-size:12px;font-family:'DM Sans',sans-serif;cursor:pointer;">
+          <select id="cat-moeda" onchange="this.dataset.tocado='1';renderCatalogo()" style="background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:7px 10px;font-size:12px;font-family:'DM Sans',sans-serif;cursor:pointer;">
             <option value="eur">€ EUR</option>
             <option value="usd">$ USD</option>
+            <option value="gbp">£ GBP</option>
+            <option value="cad">CA$ CAD</option>
+            <option value="aud">AU$ AUD</option>
           </select>
+          <button class="btn btn-secondary btn-sm" onclick="document.getElementById('precos-import-input').click()" title="Atualiza os preços em toda a app a partir de um PDF/CSV/Excel">📥 Importar Tabela de Preços</button>
+          <input type="file" id="precos-import-input" accept=".csv,.xlsx,.xls,.pdf" style="display:none;" onchange="precosHandleImportFile(this)">
         </div>
       </div>
 
@@ -6337,6 +6362,7 @@ var QRCode=function(t){"use strict";var r,e=function(){return"function"==typeof 
       <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px;">
         <button class="btn btn-secondary btn-sm cat-filtro-btn active" onclick="filtrarCatalogo('todos',this)">Todos</button>
         <button class="btn btn-secondary btn-sm cat-filtro-btn" onclick="filtrarCatalogo('patches',this)">🩹 Patches</button>
+        <button class="btn btn-secondary btn-sm cat-filtro-btn" onclick="filtrarCatalogo('suplementos',this)">🥤 Suplementos</button>
         <button class="btn btn-secondary btn-sm cat-filtro-btn" onclick="filtrarCatalogo('sistemas',this)">📦 Sistemas</button>
         <button class="btn btn-secondary btn-sm cat-filtro-btn" onclick="filtrarCatalogo('pele',this)">✨ Cuidados da Pele</button>
         <button class="btn btn-secondary btn-sm cat-filtro-btn" onclick="filtrarCatalogo('pib',this)">🆕 Pacotes Inscrição (PIB)</button>
@@ -6673,6 +6699,18 @@ var QRCode=function(t){"use strict";var r,e=function(){return"function"==typeof 
           </select>
         </div>
       </div>
+
+      <!-- BARRA DE VERSÃO DO PLANO + ATUALIZAÇÃO POR PDF -->
+      <div class="card" style="margin-bottom:16px;padding:12px 14px;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;">
+        <div style="font-size:11.5px;color:var(--text3);">
+          📄 Plano de Compensação: <strong id="comp-plan-versao-label" style="color:var(--text2);">—</strong>
+          <span style="opacity:0.7;"> · atualizado em <strong id="comp-plan-data-label" style="color:var(--text2);">—</strong></span>
+        </div>
+        <div style="display:flex;gap:8px;">
+          <button class="btn btn-secondary btn-sm" onclick="document.getElementById('comp-plan-pdf-input').click()">🔄 Atualizar por PDF Oficial</button>
+        </div>
+      </div>
+      <input type="file" id="comp-plan-pdf-input" accept="application/pdf" style="display:none;" onchange="compPlanHandlePdfUpload(this)">
 
       <!-- BANNER posição atual -->
       <div id="perc-banner" style="margin-bottom:20px;"></div>
@@ -8561,6 +8599,9 @@ var QRCode=function(t){"use strict";var r,e=function(){return"function"==typeof 
           <option value="sp6">SP6® Complete</option>
           <option value="alavida">Alavida®</option>
           <option value="aculife">AcuLife®</option>
+          <option value="cellergize_morning">Cellergize™ Morning</option>
+          <option value="cellergize_night">Cellergize™ Night</option>
+          <option value="cellergize-duo">Cellergize® Duo</option>
           <option value="y-age-kit">Y-Age® System Kit</option>
           <option value="x39x49-bundle">X39® + X49™ Bundle</option>
           <option value="alavida-trio">Alavida® Regenerating Trio</option>
@@ -9917,7 +9958,7 @@ function goTo(page, opts) {
   if (page === 'recomendador') recomInit();
   if (page === 'testemunhos') renderTestemunhos();
   if (page === 'agendamento') agCarregarFormulario();
-  if (page === 'percurso') renderPercurso();
+  if (page === 'percurso') { renderPercurso(); compPlanAtualizarLabelVersao(); }
   if (page === 'stories') storiesInit();
   if (page === 'objecoes') objecoesInit();
   if (page === 'auditoria') renderAuditoria();
@@ -12172,6 +12213,8 @@ const PRODUTOS_LABELS = {
   'energy': 'Energy Enhancer®', 'silent': 'Silent Nights®', 'aeon': 'Y-Age Aeon®',
   'gluta': 'Y-Age® Glutathione', 'carno': 'Y-Age® Carnosine', 'sp6': 'SP6® Complete',
   'alavida': 'Alavida®', 'aculife': 'AcuLife®', 'y-age-kit': 'Y-Age® System Kit',
+  'cellergize_morning': 'Cellergize™ Morning', 'cellergize_night': 'Cellergize™ Night',
+  'cellergize-duo': 'Cellergize® Duo',
   'x39x49-bundle': 'X39® + X49™ Bundle', 'alavida-trio': 'Alavida® Regenerating Trio',
   'oportunidade': '🧲 Oportunidade de negócio'
 };
@@ -13886,6 +13929,8 @@ function getDefaultPerfil() {
     slug: '',           // LifeWave affiliate slug, e.g. "MiguelLobato"
     idioma: lang,       // 'pt', 'en', 'es', 'fr', 'de', 'it', ...
     pais: '',           // e.g. "Portugal", "Brazil", "Spain"
+    mercado: '',        // mercado oficial LifeWave selecionado no Perfil (determina a moeda em toda a app)
+    moeda: '',          // moeda resolvida a partir do mercado (ou escolhida manualmente se mercado='Outro')
     nomeDisplay: '',    // Display name used in AI prompts
     pv: 0, qdv: 0, secL: 0, secR: 0, olxl: 0, bvBinario: 0, // Compensação 2.0 volumes
     dataInscricao: '',        // Data de inscrição como Brand Partner (YYYY-MM-DD)
@@ -21047,6 +21092,19 @@ function abrirPerfilModal(isPrimeiraVez) {
   document.getElementById('perfil-slug').value = p.slug || '';
   document.getElementById('perfil-nome').value = p.nomeDisplay || currentUser.name || '';
   document.getElementById('perfil-pais').value = p.pais || '';
+  const mercadoSel = document.getElementById('perfil-mercado');
+  if (mercadoSel) {
+    mercadoSel.value = p.mercado || '';
+    const manualGroup = document.getElementById('perfil-moeda-manual-group');
+    const manualSel = document.getElementById('perfil-moeda-manual');
+    if (p.mercado === 'Outro' && manualGroup) {
+      manualGroup.style.display = '';
+      if (manualSel) manualSel.value = p.moeda || MOEDA_PADRAO;
+    } else if (manualGroup) {
+      manualGroup.style.display = 'none';
+    }
+    perfilMercadoAlterado();
+  }
   document.getElementById('perfil-data-inscricao').value = p.dataInscricao || '';
   document.getElementById('perfil-data-proxima-encomenda').value = p.dataProximaEncomenda || '';
   document.getElementById('perfil-ciclo-encomenda').value = p.cicloEncomendaDias || 31;
@@ -21232,7 +21290,12 @@ function atualizarPerfilCategoriaPreview() {
 function salvarPerfil() {
   const slug = document.getElementById('perfil-slug').value.trim();
   const nome = document.getElementById('perfil-nome').value.trim();
-  const pais = document.getElementById('perfil-pais').value.trim();
+  const mercado = document.getElementById('perfil-mercado')?.value || '';
+  const moedaManual = document.getElementById('perfil-moeda-manual')?.value || '';
+  const moedaResolvida = mercado === 'Outro' ? (moedaManual || MOEDA_PADRAO) : (MERCADO_PARA_MOEDA[mercado] || MOEDA_PADRAO);
+  // 'pais' fica derivado do mercado escolhido (mantém compatibilidade com prompts de IA
+  // e outras partes da app que ainda leem perfil.pais como texto livre).
+  const pais = mercado || document.getElementById('perfil-pais').value.trim();
   const idioma = document.getElementById('perfil-idioma').value;
   const pv = parseFloat(document.getElementById('perfil-pv').value) || 0;
   const qdv = parseFloat(document.getElementById('perfil-qdv').value) || 0;
@@ -21285,11 +21348,12 @@ function salvarPerfil() {
   const linksExtra = _linksExtraPerfilState
     .map(l => ({ nome: (l.nome || '').trim(), url: (l.url || '').trim() }))
     .filter(l => l.nome && l.url);
-  const perfil = { slug, nomeDisplay: nome, emailLW, telemovel, pais, idioma, pv, qdv, secL, secR, olxl, bvBinario, upline, pastaEquipa,
+  const perfil = { slug, nomeDisplay: nome, emailLW, telemovel, pais, mercado, moeda: moedaResolvida, idioma, pv, qdv, secL, secR, olxl, bvBinario, upline, pastaEquipa,
     dataInscricao, dataProximaEncomenda, cicloEncomendaDias, urlAppOverride,
     linkInstagram, linkInstagramPage, linkFacebook, linkFacebookPage,
     linkWhatsapp, linkYoutube, linkTiktok, linkWebsite, linksExtra };
   saveUserPerfil(perfil);
+  setMoedaAtual(moedaResolvida);
   // Save upline in persistent storage too
   if (upline) localStorage.setItem('lw_upline_ref', upline);
 
@@ -25590,22 +25654,480 @@ function renderPipeline(leadsArr) {
 // ===================================================
 // COMPENSAÇÃO 2.0 — CALCULADORA DE CATEGORIA
 // ===================================================
-// Tabela "Percurso para o Sucesso" (Plano de Compensação EMEA PT, pág.5)
-const PERCURSO_SUCESSO = [
-  { cat: '3-Star Presidential', pv: 200, qdv: 3500000, mvr: 1750000, secVal: 500000, secCount: 3, olxl: 500000, equilibrio: 40000 },
-  { cat: '2-Star Presidential', pv: 200, qdv: 1500000, mvr: 750000,  secVal: 240000, secCount: 2, olxl: 240000, equilibrio: 40000 },
-  { cat: '1-Star Presidential', pv: 200, qdv: 600000,  mvr: 300000,  secVal: 100000, secCount: 2, olxl: 100000, equilibrio: 40000 },
-  { cat: '3-Star Executive',    pv: 200, qdv: 250000,  mvr: 125000,  secVal: 40000,  secCount: 2, olxl: 40000,  equilibrio: 40000 },
-  { cat: '2-Star Executive',    pv: 200, qdv: 100000,  mvr: 50000,   secVal: 15000,  secCount: 2, olxl: 15000,  equilibrio: 15000 },
-  { cat: '1-Star Executive',    pv: 200, qdv: 40000,   mvr: 20000,   secVal: 6000,   secCount: 2, olxl: 6000,   equilibrio: 6000 },
-  { cat: '3-Star Director',     pv: 110, qdv: 20000,   mvr: 10000,   secVal: 3000,   secCount: 2, olxl: 3000,   equilibrio: 3000 },
-  { cat: '2-Star Director',     pv: 110, qdv: 10000,   mvr: 5000,    secVal: 2000,   secCount: 2, olxl: 2000,   equilibrio: 2000 },
-  { cat: '1-Star Director',     pv: 110, qdv: 5000,    mvr: 2500,    secVal: 1000,   secCount: 2, olxl: 1000,   equilibrio: 1000 },
-  { cat: '3-Star Manager',      pv: 110, qdv: 2500,    mvr: 0,       secVal: 1000,   secCount: 1, olxl: 0,      equilibrio: 0 },
-  { cat: '2-Star Manager',      pv: 110, qdv: 1500,    mvr: 0,       secVal: 0,      secCount: 0, olxl: 0,      equilibrio: 0 },
-  { cat: '1-Star Manager',      pv: 110, qdv: 750,     mvr: 0,       secVal: 0,      secCount: 0, olxl: 0,      equilibrio: 0 },
-  { cat: 'Brand Partner Ativo', pv: 55,  qdv: 0,       mvr: 0,       secVal: 0,      secCount: 0, olxl: 0,      equilibrio: 0 },
+// ---------------------------------------------------------------
+// FONTE ÚNICA DE VERDADE do Plano de Compensação LifeWave EMEA.
+// PERCURSO_SUCESSO, TABELA_NIVEL, TABELA_BINARIO, TABELA_MENTOR e
+// PERC_META são DERIVADOS deste objeto — nunca dados soltos
+// duplicados. Isto permite atualizar o plano inteiro a partir de um
+// PDF oficial novo (ver "Atualizar Plano de Compensação" na página
+// Percurso), substituindo só este objeto em vez de caçar valores
+// em 6 sítios do código.
+//
+// Pode ser sobrescrito em runtime por localStorage (chave
+// 'compPlanConfig') quando o utilizador confirma uma importação —
+// ver compPlanAplicarConfig(). Sem isso usa-se este valor por defeito.
+// ---------------------------------------------------------------
+const COMP_PLAN_DEFAULT = {
+  versao: 'LW0052-EMEA-EN R02',
+  atualizadoEm: '2026-07-22',
+  categorias: [
+    { cat: '3-Star Presidential', pv: 200, qdv: 3500000, mvr: 1750000, secVal: 500000, secCount: 3, olxl: 500000, equilibrio: 40000,
+      n1: 7, n2: 5, n3: 3, binPct: 10, binMaxEur: 23750, binMaxUsd: 25000,
+      mentorGer: [20,18,15,12,10,7], mentorMaxEur: 19000, mentorMaxUsd: 20000,
+      incEur: 95000, incUsd: 100000, emoji: '👑👑👑', grupo: 'presidential', cor: '#a855f7',
+      desc: 'O pináculo da LifeWave. QDV 3,5M. 3 Secções.' },
+    { cat: '2-Star Presidential', pv: 200, qdv: 1500000, mvr: 750000,  secVal: 240000, secCount: 2, olxl: 240000, equilibrio: 40000,
+      n1: 7, n2: 5, n3: 3, binPct: 10, binMaxEur: 23750, binMaxUsd: 25000,
+      mentorGer: [20,18,15,12,7,5], mentorMaxEur: 14250, mentorMaxUsd: 15000,
+      incEur: 71250, incUsd: 75000, emoji: '👑👑', grupo: 'presidential', cor: '#a855f7',
+      desc: 'Topo absoluto. Binário máx 23.750€. Mentor até Gen6.' },
+    { cat: '1-Star Presidential', pv: 200, qdv: 600000,  mvr: 300000,  secVal: 100000, secCount: 2, olxl: 100000, equilibrio: 40000,
+      n1: 7, n2: 5, n3: 3, binPct: 10, binMaxEur: 19000, binMaxUsd: 20000,
+      mentorGer: [20,18,15,12,10], mentorMaxEur: 9500, mentorMaxUsd: 10000,
+      incEur: 47500, incUsd: 50000, emoji: '👑', grupo: 'presidential', cor: '#a855f7',
+      desc: 'Elite LifeWave! Binário máx 19.000€. Leadership Pool.' },
+    { cat: '3-Star Executive',    pv: 200, qdv: 250000,  mvr: 125000,  secVal: 40000,  secCount: 2, olxl: 40000,  equilibrio: 40000,
+      n1: 7, n2: 5, n3: 3, binPct: 10, binMaxEur: 14250, binMaxUsd: 15000,
+      mentorGer: [18,15,12,10], mentorMaxEur: 7125, mentorMaxUsd: 7500,
+      incEur: 0, incUsd: 0, emoji: '💎💎💎', grupo: 'executive', cor: '#ff6b35',
+      desc: 'Binário máx 14.250€. Mentor até Gen4 (18%).' },
+    { cat: '2-Star Executive',    pv: 200, qdv: 100000,  mvr: 50000,   secVal: 15000,  secCount: 2, olxl: 15000,  equilibrio: 15000,
+      n1: 7, n2: 5, n3: 3, binPct: 10, binMaxEur: 9500,  binMaxUsd: 10000,
+      mentorGer: [15,12,10,7], mentorMaxEur: 4750, mentorMaxUsd: 5000,
+      incEur: 0, incUsd: 0, emoji: '💎💎', grupo: 'executive', cor: '#ff6b35',
+      desc: 'Binário máx 9.500€. Mentor até Gen5 (12%).' },
+    { cat: '1-Star Executive',    pv: 200, qdv: 40000,   mvr: 20000,   secVal: 6000,   secCount: 2, olxl: 6000,   equilibrio: 6000,
+      n1: 7, n2: 5, n3: 3, binPct: 10, binMaxEur: 7125,  binMaxUsd: 7500,
+      mentorGer: [12,10,7,5], mentorMaxEur: 3325, mentorMaxUsd: 3500,
+      incEur: 4750, incUsd: 5000, emoji: '💎', grupo: 'executive', cor: '#ff6b35',
+      desc: 'PV sobe para 200. Binário máx 7.125€. Incentivo 4.750€!' },
+    { cat: '3-Star Director',     pv: 110, qdv: 20000,   mvr: 10000,   secVal: 3000,   secCount: 1, olxl: 0,      equilibrio: 3000,
+      n1: 7, n2: 5, n3: 3, binPct: 10, binMaxEur: 4750,  binMaxUsd: 5000,
+      mentorGer: [10,7,5], mentorMaxEur: 1900, mentorMaxUsd: 2000,
+      incEur: 0, incUsd: 0, emoji: '🎖️🎖️🎖️', grupo: 'director', cor: '#f5c842',
+      desc: 'Binário 10% (máx 4.750€). Mentor até Gen3 (5%).' },
+    { cat: '2-Star Director',     pv: 110, qdv: 10000,   mvr: 5000,    secVal: 2000,   secCount: 1, olxl: 0,      equilibrio: 2000,
+      n1: 7, n2: 5, n3: 2, binPct: 9,  binMaxEur: 3325,  binMaxUsd: 3500,
+      mentorGer: [7,5], mentorMaxEur: 950, mentorMaxUsd: 1000,
+      incEur: 0, incUsd: 0, emoji: '🎖️🎖️', grupo: 'director', cor: '#f5c842',
+      desc: 'Binário 9% (máx 3.325€). Mentor Gen2: 5%.' },
+    { cat: '1-Star Director',     pv: 110, qdv: 5000,    mvr: 2500,    secVal: 1000,   secCount: 1, olxl: 0,      equilibrio: 500,
+      n1: 7, n2: 5, n3: 1, binPct: 7,  binMaxEur: 2375,  binMaxUsd: 2500,
+      mentorGer: [5], mentorMaxEur: 475, mentorMaxUsd: 500,
+      incEur: 475, incUsd: 500, emoji: '🎖️', grupo: 'director', cor: '#f5c842',
+      desc: 'Desbloqueia Nível 3 (1%) e Mentor Matching. Incentivo 475€!' },
+    { cat: '3-Star Manager',      pv: 75,  qdv: 2500,    mvr: 0,       secVal: 0,      secCount: 0, olxl: 0,      equilibrio: 0,
+      n1: 7, n2: 3, n3: 0, binPct: 5,  binMaxEur: 1425,  binMaxUsd: 1500,
+      mentorGer: [], mentorMaxEur: 0, mentorMaxUsd: 0,
+      incEur: 0, incUsd: 0, emoji: '⭐⭐⭐', grupo: 'manager', cor: '#0084ff',
+      desc: 'Desbloqueia Bónus Binário (5%, máx 1.425€/sem)!' },
+    { cat: '2-Star Manager',      pv: 75,  qdv: 1500,    mvr: 0,       secVal: 0,      secCount: 0, olxl: 0,      equilibrio: 0,
+      n1: 7, n2: 2, n3: 0, binPct: 0,  binMaxEur: 0,     binMaxUsd: 0,
+      mentorGer: [], mentorMaxEur: 0, mentorMaxUsd: 0,
+      incEur: 0, incUsd: 0, emoji: '⭐⭐', grupo: 'manager', cor: '#0084ff',
+      desc: 'Desbloqueia Nível 2 (2%). Negócio a ganhar profundidade.' },
+    { cat: '1-Star Manager',      pv: 75,  qdv: 750,     mvr: 0,       secVal: 0,      secCount: 0, olxl: 0,      equilibrio: 0,
+      n1: 5, n2: 0, n3: 0, binPct: 0,  binMaxEur: 0,     binMaxUsd: 0,
+      mentorGer: [], mentorMaxEur: 0, mentorMaxUsd: 0,
+      incEur: 0, incUsd: 0, emoji: '⭐', grupo: 'manager', cor: '#0084ff',
+      desc: 'Primeiro marco real. Nível 1 sobe para 5%.' },
+    { cat: 'Brand Partner Ativo', pv: 55,  qdv: 0,       mvr: 0,       secVal: 0,      secCount: 0, olxl: 0,      equilibrio: 0,
+      n1: 3, n2: 0, n3: 0, binPct: 0,  binMaxEur: 0,     binMaxUsd: 0,
+      mentorGer: [], mentorMaxEur: 0, mentorMaxUsd: 0,
+      incEur: 0, incUsd: 0, emoji: '⚡', grupo: 'start', cor: '#8b9cf7',
+      desc: '55 PV em 31 dias. Começas a ganhar Nível 1 (3%).' },
+  ],
+  // Product Introduction Bonus (PIB) — por pacote de inscrição
+  pib: {
+    starter:      { precoUsd: 25,   precoEur: 24,   qv: 0,   valorUsd: 0,   valorEur: 0 },
+    core:         { precoUsd: 295,  precoEur: 280,  qv: 180, valorUsd: 35,  valorEur: 33 },
+    advanced:     { precoUsd: 535,  precoEur: 508,  qv: 300, valorUsd: 75,  valorEur: 71 },
+    advancedPlus: { precoUsd: 975,  precoEur: 926,  qv: 500, valorUsd: 165, valorEur: 157 },
+    premium:      { precoUsd: 1750, precoEur: 1663, qv: 775, valorUsd: 405, valorEur: 385 },
+  },
+  // Customer Premium — limiares de QV de cliente e % de prémio
+  customerPremium: [
+    { min: 300,  max: 599,  pct: 5 },
+    { min: 600,  max: 1199, pct: 10 },
+    { min: 1200, max: null, pct: 20 },
+  ],
+  // Business Launch Bonus
+  blb: {
+    novoBP:      { manager1: { usd: 25,    eur: 24 }, manager2Plus: { usd: 50,  eur: 48 } },
+    inscritor:   { manager1: { usd: 12.50, eur: 12 }, manager2Plus: { usd: 25,  eur: 24 } },
+    semanas: 9,
+  },
+  // Company-wide caps (informativo)
+  caps: { binarioPctBV: 27, mentorPctBV: 14 },
+};
+
+// Ordem (do topo para a base) usada nos grids/linhas visuais.
+const PERC_ORDEM_DEFAULT = [
+  'Brand Partner Ativo','1-Star Manager','2-Star Manager','3-Star Manager',
+  '1-Star Director','2-Star Director','3-Star Director',
+  '1-Star Executive','2-Star Executive','3-Star Executive',
+  '1-Star Presidential','2-Star Presidential','3-Star Presidential',
 ];
+
+// ---------------------------------------------------------------
+// Carrega a config ativa: localStorage (se o utilizador já importou
+// um PDF oficial e confirmou) ou o valor por defeito embutido no código.
+// ---------------------------------------------------------------
+function compPlanCarregarConfig() {
+  try {
+    const raw = localStorage.getItem('compPlanConfig');
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (parsed && Array.isArray(parsed.categorias) && parsed.categorias.length) return parsed;
+    }
+  } catch (e) { console.error('Erro ao carregar compPlanConfig do localStorage:', e); }
+  return COMP_PLAN_DEFAULT;
+}
+
+let COMP_PLAN_CONFIG = compPlanCarregarConfig();
+
+// Tabelas derivadas — construídas a partir de COMP_PLAN_CONFIG.categorias.
+// Todo o resto do código (calcularCategoria, calcularBonusNivel, etc.)
+// usa estas variáveis, nunca valores soltos.
+let PERCURSO_SUCESSO = [];
+let TABELA_NIVEL = {};
+let TABELA_BINARIO = {};
+let TABELA_MENTOR = {};
+let PERC_META = {};
+const PERC_ORDEM = PERC_ORDEM_DEFAULT;
+
+function compPlanReconstruirTabelas() {
+  PERCURSO_SUCESSO = COMP_PLAN_CONFIG.categorias.map(c => ({
+    cat: c.cat, pv: c.pv, qdv: c.qdv, mvr: c.mvr, secVal: c.secVal, secCount: c.secCount, olxl: c.olxl, equilibrio: c.equilibrio,
+  }));
+  TABELA_NIVEL = {};
+  TABELA_BINARIO = {};
+  TABELA_MENTOR = {};
+  PERC_META = {};
+  COMP_PLAN_CONFIG.categorias.forEach(c => {
+    TABELA_NIVEL[c.cat] = [c.n1 || 0, c.n2 || 0, c.n3 || 0];
+    if (c.binPct > 0) TABELA_BINARIO[c.cat] = { pct: c.binPct, max: c.binMaxEur };
+    if (c.mentorGer && c.mentorGer.length) TABELA_MENTOR[c.cat] = { ger: c.mentorGer, max: c.mentorMaxEur };
+    PERC_META[c.cat] = {
+      emoji: c.emoji, grupo: c.grupo, cor: c.cor,
+      binPct: c.binPct || 0, binMaxEur: c.binMaxEur || 0,
+      n1: c.n1 || 0, n2: c.n2 || 0, n3: c.n3 || 0,
+      incEur: c.incEur || 0, incUsd: c.incUsd || 0,
+      desc: c.desc || '',
+    };
+  });
+}
+compPlanReconstruirTabelas();
+
+// ===================================================================
+// ATUALIZAÇÃO DO PLANO DE COMPENSAÇÃO A PARTIR DE PDF OFICIAL
+// ===================================================================
+// Fluxo: o utilizador carrega um PDF oficial da LifeWave (ex: "EMEA
+// Compensation Plan") → extraímos o texto/estrutura via IA (a mesma
+// chamada usada no resto da app, chamarIADocumento, Gemini-first com
+// fallback Claude) → mostramos um preview lado a lado "valor atual vs
+// valor no PDF" para CADA categoria/campo → só depois de o utilizador
+// confirmar é que o COMP_PLAN_CONFIG é substituído e persistido em
+// localStorage. Nunca se aplica automaticamente sem revisão humana,
+// porque um erro de leitura aqui propaga-se a todos os cálculos de
+// comissões mostrados à equipa e a leads.
+let _compPlanImportPendente = null; // { categorias: [...], versao, atualizadoEm, diffs: [...] }
+
+function compPlanFecharModalImport() {
+  closeModal('modal-comp-plan-import');
+  _compPlanImportPendente = null;
+}
+
+// Atualiza a barra "Plano de Compensação: X · atualizado em Y" no topo da página Percurso.
+function compPlanAtualizarLabelVersao() {
+  const elV = document.getElementById('comp-plan-versao-label');
+  const elD = document.getElementById('comp-plan-data-label');
+  if (elV) elV.textContent = COMP_PLAN_CONFIG.versao || '—';
+  if (elD) {
+    const d = COMP_PLAN_CONFIG.atualizadoEm;
+    elD.textContent = d ? new Date(d + 'T00:00:00').toLocaleDateString('pt-PT') : '—';
+  }
+}
+
+async function compPlanHandlePdfUpload(input) {
+  const file = input.files[0];
+  if (!file) return;
+  input.value = ''; // permite re-selecionar o mesmo ficheiro depois
+
+  openModal('modal-comp-plan-import');
+  const body = document.getElementById('comp-plan-import-body');
+
+  // Sem chave de IA configurada, mostra logo o atalho em vez de deixar
+  // rebentar com um erro técnico (ex: "GEMINI_NO_KEY").
+  if (!geminiKey && !claudeKey) {
+    body.innerHTML = `
+      <div style="text-align:center;padding:24px 10px;">
+        <div style="font-size:28px;margin-bottom:10px;">🔑</div>
+        <div style="font-size:13px;color:var(--text2);margin-bottom:14px;">Para atualizar o plano de compensação a partir de um PDF é preciso configurar uma chave de IA (Gemini ou Claude) — é grátis e demora 1 minuto.</div>
+        <button class="btn btn-secondary" style="width:100%;justify-content:center;" onclick="closeModal('modal-comp-plan-import');abrirGuiaChaveIA();">🔑 Configurar chave de IA agora</button>
+      </div>
+    `;
+    return;
+  }
+
+  body.innerHTML = `
+    <div style="text-align:center;padding:30px 10px;">
+      <div style="font-size:32px;margin-bottom:10px;">🔎</div>
+      <div style="font-size:13px;color:var(--text2);">A ler <strong>${file.name}</strong> e a extrair os valores do plano de compensação...</div>
+      <div style="font-size:11.5px;color:var(--text3);margin-top:6px;">Isto pode demorar 15–30 segundos em documentos grandes.</div>
+    </div>
+  `;
+
+  try {
+    const base64 = await new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result.split(',')[1]);
+      reader.onerror = () => reject(new Error('Falha ao ler o ficheiro.'));
+      reader.readAsDataURL(file);
+    });
+
+    const prompt = compPlanPromptExtracao();
+    const respostaTexto = await chamarIADocumento({
+      ai: 'gemini', fallback: true, base64, isPdf: true, maxTokens: 4000, prompt,
+    });
+
+    const config = compPlanParseRespostaIA(respostaTexto);
+    if (!config || !Array.isArray(config.categorias) || !config.categorias.length) {
+      throw new Error('A IA não devolveu uma tabela de categorias reconhecível. Tenta um PDF com texto selecionável (não uma imagem digitalizada).');
+    }
+
+    const diffs = compPlanCalcularDiffs(COMP_PLAN_CONFIG, config);
+    _compPlanImportPendente = { config, diffs };
+    compPlanRenderPreview(config, diffs, file.name);
+
+  } catch (err) {
+    console.error('Erro ao extrair plano de compensação do PDF:', err);
+    const semChave = err && (err.message === 'GEMINI_NO_KEY' || err.message === 'claude_no_key' || err.message === 'CLAUDE_NO_KEY');
+    if (semChave) {
+      body.innerHTML = `
+        <div style="text-align:center;padding:24px 10px;">
+          <div style="font-size:28px;margin-bottom:10px;">🔑</div>
+          <div style="font-size:13px;color:var(--text2);margin-bottom:14px;">Para atualizar o plano de compensação a partir de um PDF é preciso configurar uma chave de IA (Gemini ou Claude) — é grátis e demora 1 minuto.</div>
+          <button class="btn btn-secondary" style="width:100%;justify-content:center;" onclick="closeModal('modal-comp-plan-import');abrirGuiaChaveIA();">🔑 Configurar chave de IA agora</button>
+        </div>
+      `;
+    } else {
+      body.innerHTML = `
+        <div style="text-align:center;padding:24px 10px;">
+          <div style="font-size:28px;margin-bottom:10px;">❌</div>
+          <div style="font-size:13px;color:var(--text2);margin-bottom:14px;">Não foi possível extrair os dados deste PDF.<br>${(err.message || 'Erro desconhecido').replace(/</g,'&lt;')}</div>
+          <button class="btn btn-secondary" style="width:100%;justify-content:center;" onclick="compPlanFecharModalImport()">Fechar</button>
+        </div>
+      `;
+    }
+  }
+}
+
+// Prompt enviado à IA — pede APENAS JSON, sem preâmbulo, com a mesma
+// estrutura do COMP_PLAN_DEFAULT para poder ser aplicado diretamente.
+function compPlanPromptExtracao() {
+  return `Este PDF é um "Plano de Compensação" (Compensation Plan) oficial da LifeWave, com tabelas de percentagens e valores em USD/EUR por Categoria/Rank (ex: Brand Partner Ativo, 1-Star Manager, 2-Star Manager, 3-Star Manager, 1-Star Director, 2-Star Director, 3-Star Director, 1-Star Executive, 2-Star Executive, 3-Star Executive, 1-Star Presidential, 2-Star Presidential, 3-Star Presidential).
+
+Extrai TODOS os valores numéricos destas tabelas e devolve APENAS um objeto JSON válido, sem nenhum texto antes ou depois, sem markdown, sem \`\`\`json, começando diretamente por "{".
+
+Estrutura exata a devolver (usa exatamente estas chaves; usa 0 ou [] quando um campo não se aplica a uma categoria; nunca omitas uma categoria):
+
+{
+  "versao": "string — código/versão do documento se visível (ex: LW0052-EMEA-EN R02), senão null",
+  "atualizadoEm": "string — data no formato YYYY-MM-DD; usa a data de hoje se não houver data no documento",
+  "categorias": [
+    {
+      "cat": "nome exato da categoria, ex: '3-Star Presidential'",
+      "pv": number (Personal Volume / Volume Pessoal exigido),
+      "qdv": number (Qualified/Qualifying Downline Volume),
+      "mvr": number (Max Volume Rule, 0 se não aplicável),
+      "secVal": number (valor exigido por Secção/Volume Leg),
+      "secCount": number (quantas Secções/Volume Legs são exigidas),
+      "olxl": number (Outside Largest Leg(s) Volume, 0 se não aplicável),
+      "equilibrio": number (Binary Balancing, 0 se não aplicável),
+      "n1": number (% Level 1 / Nível 1 do Level Earning Bonus),
+      "n2": number (% Level 2 / Nível 2),
+      "n3": number (% Level 3 / Nível 3),
+      "binPct": number (% do Binary Bonus, 0 se a categoria não é elegível),
+      "binMaxEur": number (limite máximo semanal do Binary Bonus em EUR, 0 se não aplicável),
+      "binMaxUsd": number (limite máximo semanal do Binary Bonus em USD, 0 se não aplicável),
+      "mentorGer": [array de números — % do Mentor Matching Bonus por geração 1,2,3... nesta ordem; array vazio [] se não elegível],
+      "mentorMaxEur": number (máximo de correspondência por indivíduo, EUR, 0 se não aplicável),
+      "mentorMaxUsd": number (idem em USD),
+      "incEur": number (Breakthrough Incentive total em EUR para esta categoria, 0 se não aplicável),
+      "incUsd": number (idem em USD)
+    }
+  ],
+  "pib": {
+    "starter":      { "precoUsd": number, "precoEur": number, "qv": number, "valorUsd": number, "valorEur": number },
+    "core":         { "precoUsd": number, "precoEur": number, "qv": number, "valorUsd": number, "valorEur": number },
+    "advanced":     { "precoUsd": number, "precoEur": number, "qv": number, "valorUsd": number, "valorEur": number },
+    "advancedPlus": { "precoUsd": number, "precoEur": number, "qv": number, "valorUsd": number, "valorEur": number },
+    "premium":      { "precoUsd": number, "precoEur": number, "qv": number, "valorUsd": number, "valorEur": number }
+  },
+  "customerPremium": [
+    { "min": number, "max": number ou null, "pct": number }
+  ]
+}
+
+Regras importantes:
+- Não incluas explicações, só o JSON.
+- Se o PDF não tiver uma tabela PIB ou Customer Premium, devolve os valores já existentes tal como aparecem no documento, ou 0 se realmente ausentes.
+- Números sempre como number, nunca como string com símbolo de moeda (remove $, €, vírgulas de milhar).
+- Mantém a ordem das categorias do maior (3-Star Presidential) para o menor (Brand Partner Ativo).`;
+}
+
+// Faz parse defensivo da resposta da IA (remove markdown fences se vierem, tenta JSON.parse).
+function compPlanParseRespostaIA(texto) {
+  if (!texto) return null;
+  let limpo = texto.trim().replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/```\s*$/i, '').trim();
+  const inicio = limpo.indexOf('{');
+  const fim = limpo.lastIndexOf('}');
+  if (inicio === -1 || fim === -1) return null;
+  limpo = limpo.slice(inicio, fim + 1);
+  try {
+    return JSON.parse(limpo);
+  } catch (e) {
+    console.error('Falha ao fazer parse do JSON devolvido pela IA:', e, limpo);
+    return null;
+  }
+}
+
+// Compara a config atual com a extraída, campo a campo, por categoria.
+// Devolve só as diferenças reais (para não sobrecarregar o preview com
+// linhas iguais). Cada diff: { cat, campo, label, atual, novo }.
+function compPlanCalcularDiffs(atual, novo) {
+  const CAMPOS = [
+    { k: 'pv', label: 'PV' }, { k: 'qdv', label: 'QDV' }, { k: 'mvr', label: 'MVR' },
+    { k: 'secVal', label: 'Valor Secção' }, { k: 'secCount', label: 'Nº Secções' },
+    { k: 'olxl', label: 'OLXL' }, { k: 'equilibrio', label: 'Equilíbrio Binário' },
+    { k: 'n1', label: 'Nível 1 %' }, { k: 'n2', label: 'Nível 2 %' }, { k: 'n3', label: 'Nível 3 %' },
+    { k: 'binPct', label: 'Binário %' }, { k: 'binMaxEur', label: 'Binário Máx €' },
+    { k: 'mentorMaxEur', label: 'Mentor Máx €' },
+    { k: 'incEur', label: 'Incentivo €' },
+  ];
+  const porCatAtual = {};
+  (atual.categorias || []).forEach(c => porCatAtual[c.cat] = c);
+
+  const diffs = [];
+  (novo.categorias || []).forEach(c => {
+    const catAtual = porCatAtual[c.cat];
+    if (!catAtual) {
+      diffs.push({ cat: c.cat, campo: '_nova', label: 'Categoria nova', atual: '—', novo: 'adicionada' });
+      return;
+    }
+    CAMPOS.forEach(({ k, label }) => {
+      const vAtual = catAtual[k] ?? 0;
+      const vNovo = c[k] ?? 0;
+      if (vAtual !== vNovo) diffs.push({ cat: c.cat, campo: k, label, atual: vAtual, novo: vNovo });
+    });
+    // mentorGer é array — compara como string
+    const gerAtual = JSON.stringify(catAtual.mentorGer || []);
+    const gerNovo = JSON.stringify(c.mentorGer || []);
+    if (gerAtual !== gerNovo) {
+      diffs.push({ cat: c.cat, campo: 'mentorGer', label: 'Gerações Mentor %', atual: (catAtual.mentorGer||[]).join('/') || '—', novo: (c.mentorGer||[]).join('/') || '—' });
+    }
+  });
+  return diffs;
+}
+
+// Renderiza o preview de confirmação: resumo + tabela de diffs + botões.
+function compPlanRenderPreview(config, diffs, nomeFicheiro) {
+  const body = document.getElementById('comp-plan-import-body');
+  const semAlteracoes = diffs.length === 0;
+
+  const linhasDiff = diffs.map(d => `
+    <tr style="border-bottom:1px solid var(--border);">
+      <td style="padding:6px 8px;font-size:11.5px;color:var(--text2);">${d.cat}</td>
+      <td style="padding:6px 8px;font-size:11.5px;color:var(--text3);">${d.label}</td>
+      <td style="padding:6px 8px;font-size:11.5px;color:#ff6b6b;text-align:right;">${d.atual}</td>
+      <td style="padding:6px 8px;font-size:11.5px;color:#4ade80;text-align:right;font-weight:700;">${d.novo}</td>
+    </tr>
+  `).join('');
+
+  body.innerHTML = `
+    <div style="font-size:12px;color:var(--text2);margin-bottom:14px;line-height:1.6;">
+      Extraído de <strong>${nomeFicheiro}</strong>${config.versao ? ` — versão detetada: <strong>${config.versao}</strong>` : ''}.
+      Revê as diferenças abaixo antes de aplicar. Isto substitui a Calculadora de Categoria, o Percurso para o Sucesso, o Bónus Binário, o Bónus de Nível e o Mentor Matching em toda a app.
+    </div>
+    ${semAlteracoes ? `
+      <div style="text-align:center;padding:20px 10px;color:var(--text2);font-size:12.5px;">
+        ✅ Não foram encontradas diferenças face ao plano atual — os valores já estão atualizados.
+      </div>
+    ` : `
+      <div style="max-height:320px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;margin-bottom:8px;">
+        <table style="width:100%;border-collapse:collapse;">
+          <thead style="position:sticky;top:0;background:var(--surface2);">
+            <tr>
+              <th style="padding:8px;text-align:left;font-size:10.5px;color:var(--text3);">Categoria</th>
+              <th style="padding:8px;text-align:left;font-size:10.5px;color:var(--text3);">Campo</th>
+              <th style="padding:8px;text-align:right;font-size:10.5px;color:var(--text3);">Atual</th>
+              <th style="padding:8px;text-align:right;font-size:10.5px;color:var(--text3);">Novo (PDF)</th>
+            </tr>
+          </thead>
+          <tbody>${linhasDiff}</tbody>
+        </table>
+      </div>
+      <div style="font-size:11px;color:var(--text3);margin-bottom:14px;">${diffs.length} diferença(s) encontrada(s).</div>
+    `}
+    <div style="display:flex;gap:10px;">
+      <button class="btn btn-secondary" style="flex:1;justify-content:center;" onclick="compPlanFecharModalImport()">Cancelar</button>
+      <button class="btn btn-primary" style="flex:1;justify-content:center;" ${semAlteracoes ? 'disabled' : ''} onclick="compPlanConfirmarImport()">✅ Aplicar Plano Novo</button>
+    </div>
+  `;
+}
+
+// Aplica a config pendente: substitui COMP_PLAN_CONFIG, persiste em
+// localStorage, reconstrói todas as tabelas derivadas e re-renderiza
+// a página Percurso se estiver aberta.
+function compPlanConfirmarImport() {
+  if (!_compPlanImportPendente) return;
+  const { config } = _compPlanImportPendente;
+
+  // Preenche campos em falta com defaults sensatos antes de gravar,
+  // para nunca deixar a app com undefined nalgum cálculo.
+  config.categorias = config.categorias.map(c => ({
+    pv: 0, qdv: 0, mvr: 0, secVal: 0, secCount: 0, olxl: 0, equilibrio: 0,
+    n1: 0, n2: 0, n3: 0, binPct: 0, binMaxEur: 0, binMaxUsd: 0,
+    mentorGer: [], mentorMaxEur: 0, mentorMaxUsd: 0, incEur: 0, incUsd: 0,
+    emoji: '⭐', grupo: 'manager', cor: '#0084ff', desc: '',
+    ...c,
+  }));
+  if (!config.atualizadoEm) config.atualizadoEm = new Date().toISOString().slice(0, 10);
+  if (!config.pib) config.pib = COMP_PLAN_CONFIG.pib;
+  if (!config.customerPremium) config.customerPremium = COMP_PLAN_CONFIG.customerPremium;
+  if (!config.blb) config.blb = COMP_PLAN_CONFIG.blb;
+  if (!config.caps) config.caps = COMP_PLAN_CONFIG.caps;
+
+  try {
+    localStorage.setItem('compPlanConfig', JSON.stringify(config));
+  } catch (e) {
+    console.error('Erro ao gravar compPlanConfig em localStorage:', e);
+    showToast('❌ Erro ao gravar. Verifica o espaço de armazenamento do dispositivo.');
+    return;
+  }
+
+  COMP_PLAN_CONFIG = config;
+  compPlanReconstruirTabelas();
+  compPlanAtualizarLabelVersao();
+  if (typeof renderPercurso === 'function') renderPercurso();
+
+  showToast('✅ Plano de Compensação atualizado com sucesso!');
+  compPlanFecharModalImport();
+}
+
+// Repõe o plano por defeito embutido no código, descartando qualquer
+// importação anterior guardada em localStorage. Útil se uma importação
+// anterior ficou incorreta e não há PDF novo à mão para corrigir.
+function compPlanRepor() {
+  if (!confirm('Repor o Plano de Compensação para a versão original da app? Isto descarta qualquer atualização feita por PDF.')) return;
+  localStorage.removeItem('compPlanConfig');
+  COMP_PLAN_CONFIG = COMP_PLAN_DEFAULT;
+  compPlanReconstruirTabelas();
+  compPlanAtualizarLabelVersao();
+  if (typeof renderPercurso === 'function') renderPercurso();
+  showToast('↩️ Plano de Compensação reposto para a versão original.');
+}
 
 // Calcula a Categoria de Pagamento atingida com base nos volumes introduzidos.
 // secL / secR = volume das duas Secções da Linha de Patrocínio (esquerda/direita).
@@ -25736,23 +26258,7 @@ function riscoDescidaCategoria({ pv, qdv, secL, secR, olxl }) {
 }
 
 // --- BÓNUS DE GANHOS POR NÍVEL ---
-// Percentagens por Categoria de pagamento (Nível 1 / Nível 2 / Nível 3)
-// Fonte: Plano de Compensação EMEA PT, pág.9
-const TABELA_NIVEL = {
-  'Brand Partner Ativo': [3, 0, 0],
-  '1-Star Manager':      [5, 0, 0],
-  '2-Star Manager':      [7, 2, 0],
-  '3-Star Manager':      [7, 3, 0],
-  '1-Star Director':     [7, 5, 1],
-  '2-Star Director':     [7, 5, 2],
-  '3-Star Director':     [7, 5, 3],
-  '1-Star Executive':    [7, 5, 3],
-  '2-Star Executive':    [7, 5, 3],
-  '3-Star Executive':    [7, 5, 3],
-  '1-Star Presidential': [7, 5, 3],
-  '2-Star Presidential':  [7, 5, 3],
-  '3-Star Presidential':  [7, 5, 3],
-};
+// TABELA_NIVEL agora é derivada de COMP_PLAN_CONFIG (ver compPlanReconstruirTabelas).
 
 // Calcula o Bónus de Ganhos por Nível para "eu" com base na minha categoria
 // e nos meus membros da equipa (níveis 1, 2 e 3 da Árvore de Inscrições).
@@ -25779,20 +26285,7 @@ function calcularBonusNivel(minhaCategoria, membrosLista) {
 }
 
 // --- BÓNUS BINÁRIO ---
-// % de ganhos semanais e limite máximo semanal, por Categoria de pagamento
-// Fonte: Plano de Compensação EMEA PT, pág.10 (valores em EUR)
-const TABELA_BINARIO = {
-  '3-Star Manager':      { pct: 5,  max: 1425 },
-  '1-Star Director':     { pct: 7,  max: 2375 },
-  '2-Star Director':     { pct: 9,  max: 3325 },
-  '3-Star Director':     { pct: 10, max: 4750 },
-  '1-Star Executive':    { pct: 10, max: 7125 },
-  '2-Star Executive':    { pct: 10, max: 9500 },
-  '3-Star Executive':    { pct: 10, max: 14250 },
-  '1-Star Presidential': { pct: 10, max: 19000 },
-  '2-Star Presidential': { pct: 10, max: 23750 },
-  '3-Star Presidential': { pct: 10, max: 23750 },
-};
+// TABELA_BINARIO agora é derivada de COMP_PLAN_CONFIG (ver compPlanReconstruirTabelas).
 
 // Calcula o Bónus Binário: precisa de Categoria >= 3-Star Manager e BV mínimo de 300
 // na secção de pagamento binária (a secção mais fraca).
@@ -25845,19 +26338,7 @@ function calcularDesequilibrioBinario(minhaCategoria, secL, secR) {
 }
 
 // --- MENTOR MATCHING BONUS ---
-// % por Geração (1-6) e correspondência máxima por indivíduo, por Categoria de pagamento
-// Fonte: Plano de Compensação EMEA PT, pág.12 (valores em EUR)
-const TABELA_MENTOR = {
-  '1-Star Director':     { ger: [5],                              max: 475 },
-  '2-Star Director':     { ger: [7,5],                            max: 950 },
-  '3-Star Director':     { ger: [10,7,5],                         max: 1900 },
-  '1-Star Executive':    { ger: [12,10,7,5],                      max: 3325 },
-  '2-Star Executive':    { ger: [15,12,10,7],                     max: 4750 },
-  '3-Star Executive':    { ger: [18,15,12,10,3],                  max: 7125 },
-  '1-Star Presidential': { ger: [20,18,15,12,5,3],                 max: 9500 },
-  '2-Star Presidential': { ger: [20,18,15,12,7,5],                 max: 14250 },
-  '3-Star Presidential': { ger: [20,18,15,12,10,7],                max: 19000 },
-};
+// TABELA_MENTOR agora é derivada de COMP_PLAN_CONFIG (ver compPlanReconstruirTabelas).
 
 // Calcula o Mentor Matching Bonus: para cada líder elegível (1-Star Director+)
 // na Geração 1-6, aplica a % correspondente aos ganhos de Nível+Binário desse líder,
@@ -29685,35 +30166,337 @@ function calcTab(tab) {
 // ===================================================
 // SIMULADOR DE LUCRO POR PRODUTO
 // ===================================================
+// ===================================================
+// CATÁLOGO DE PREÇOS — FONTE ÚNICA DE VERDADE
+// ===================================================
+// Todos os preços da app (Simulador de Lucro, Catálogo de Produtos,
+// Registo de Vendas) leem SEMPRE daqui, em vez de terem cada um a sua
+// própria tabela. Isto garante que os valores estão sempre consistentes
+// entre si, e que uma importação de tabela nova (botão "Importar Tabela
+// de Preços" no Catálogo) atualiza a app inteira de uma só vez.
+//
+// direto_eur/usd    = preço de venda direta (retalho, sem subscrição)
+// pref_eur/usd       = preço para Cliente Preferencial / CP+ (mensalidade)
+// bp_eur/usd         = preço para Brand Partner
+// lucro_direto_eur/usd = lucro do distribuidor numa venda direta
+// lucro_pref_eur/usd   = lucro do distribuidor numa venda a Cliente Preferencial
+// direto_3_eur/usd, lucro_3_eur/usd = preço/lucro por embalagem ao vender pack de 3
+//   (só produtos com multi:true)
+// pib_eur/usd        = Bónus por Introdução (só pacotes de inscrição, cat 'pib')
+// qv                 = Volume de Qualificação
+// Um valor a 0 (ou 'porConfirmar:true') significa que ainda não foi importada
+// a tabela oficial para este produto — a app mostra "—" em vez de "0€".
+// Fonte: "Tabela de Preços Global LifeWave" (documento oficial consolidado
+// multimercados). EUR e USD têm paridade fixa (mesmo valor numérico) segundo
+// o próprio documento. GBP e AUD vêm diretamente da tabela. CAD não consta no
+// documento oficial — está marcado com `cadEstimado:true` (estimativa própria,
+// não confirmada) até termos a tabela CAD real.
+// ===================================================
+// SISTEMA MULTI-MERCADO / MULTI-MOEDA
+// ===================================================
+// A moeda usada em toda a app (Catálogo, Simulador, etc.) é determinada pelo
+// Mercado LifeWave escolhido no Perfil do utilizador — não precisa de ser
+// escolhida manualmente em cada ecrã. Isto garante que um utilizador dos EUA
+// vê logo $ e valores USD, um do Reino Unido vê £ GBP, etc.
+const MOEDAS = {
+  eur: { simbolo: '€', nome: 'Euro',             posicao: 'depois' },
+  usd: { simbolo: '$', nome: 'Dólar Americano',   posicao: 'antes' },
+  gbp: { simbolo: '£', nome: 'Libra Esterlina',   posicao: 'antes' },
+  cad: { simbolo: 'CA$', nome: 'Dólar Canadiano', posicao: 'antes' },
+  aud: { simbolo: 'AU$', nome: 'Dólar Australiano', posicao: 'antes' },
+};
+const MOEDA_PADRAO = 'eur';
+
+const MERCADO_PARA_MOEDA = {
+  'Portugal': 'eur', 'Espanha': 'eur', 'França': 'eur', 'Alemanha': 'eur',
+  'Itália': 'eur', 'Europa (zona Euro)': 'eur',
+  'EUA': 'usd', 'Reino Unido': 'gbp', 'Canadá': 'cad', 'Austrália': 'aud',
+};
+
+function getMoedaAtual() {
+  try {
+    const p = getUserPerfil();
+    if (p && p.moeda && MOEDAS[p.moeda]) return p.moeda;
+  } catch (e) {}
+  return localStorage.getItem(getUserStorageKey('lw_moeda_global')) || MOEDA_PADRAO;
+}
+
+function setMoedaAtual(m) {
+  if (!MOEDAS[m]) return;
+  localStorage.setItem(getUserStorageKey('lw_moeda_global'), m);
+  if (typeof renderCatalogo === 'function' && document.getElementById('cat-grid')) {
+    const sel = document.getElementById('cat-moeda');
+    if (sel && !sel.dataset.tocado) sel.value = m;
+    renderCatalogo();
+  }
+  if (typeof simSetMoeda === 'function' && document.getElementById('sim-produto') && !window._simMoedaTocada) {
+    simSetMoeda(m);
+  }
+}
+
+function formatarPreco(valor, moeda) {
+  moeda = moeda || getMoedaAtual();
+  if (valor === undefined || valor === null || isNaN(valor)) return '—';
+  const cfg = MOEDAS[moeda] || MOEDAS[MOEDA_PADRAO];
+  const num = Number(valor).toLocaleString('pt-PT', { minimumFractionDigits: valor % 1 !== 0 ? 2 : 0, maximumFractionDigits: 2 });
+  return cfg.posicao === 'antes' ? `${cfg.simbolo}${num}` : `${num}${cfg.simbolo}`;
+}
+
+// Chamado a partir do select de Mercado no modal de Perfil.
+function perfilMercadoAlterado() {
+  const mercadoSel = document.getElementById('perfil-mercado')?.value || '';
+  const manualGroup = document.getElementById('perfil-moeda-manual-group');
+  const info = document.getElementById('perfil-mercado-moeda-info');
+  let moeda = MERCADO_PARA_MOEDA[mercadoSel];
+  if (mercadoSel === 'Outro') {
+    if (manualGroup) manualGroup.style.display = '';
+    moeda = document.getElementById('perfil-moeda-manual')?.value || MOEDA_PADRAO;
+  } else if (manualGroup) {
+    manualGroup.style.display = 'none';
+  }
+  if (moeda && info) {
+    info.textContent = `A app vai usar ${MOEDAS[moeda].nome} (${MOEDAS[moeda].simbolo}) em todo o lado — catálogo, simulador, comissões, etc.`;
+  } else if (info) {
+    info.textContent = '';
+  }
+  if (moeda) setMoedaAtual(moeda);
+}
+
+// Fonte: "EMEA Compensation Plan — Product Pricing Breakdown" (LW0056-R01),
+// documento oficial LifeWave com preços Direct / Preferred Customer (PC+) /
+// Brand Partner para 1/2/3 packs. USD e EUR vêm diretamente do documento.
+// GBP, CAD e AUD NÃO constam neste documento — são ESTIMATIVAS calculadas a
+// partir do EUR oficial (taxas aproximadas) e ficam marcadas `cadEstimado`,
+// `gbpEstimado`, `audEstimado` até importares uma tabela oficial desses mercados.
+const CATALOGO_PRECOS_DEFAULT = {
+  // ===== PATCHES =====
+  // X39 / X49 — só vendidos em pack único (sem desconto por quantidade)
+  x39: {
+    direto_eur:142, direto_usd:149.95, direto_gbp:122, direto_cad:209, direto_aud:230,
+    pref_eur:95,    pref_usd:99.95,   pref_gbp:82,   pref_cad:140,  pref_aud:154,
+    bp_eur:95,      bp_usd:99.95,     bp_gbp:82,     bp_cad:140,    bp_aud:154,
+    lucro_direto_eur:48, lucro_direto_usd:50, lucro_direto_gbp:41, lucro_direto_cad:71, lucro_direto_aud:78,
+    lucro_pref_eur:19,   lucro_pref_usd:20,   lucro_pref_gbp:16,  lucro_pref_cad:28,  lucro_pref_aud:31,
+    qv:77, bv_direto:77, bv_pref:43, gbpEstimado:true, cadEstimado:true, audEstimado:true,
+  },
+  x49: {
+    direto_eur:142, direto_usd:149.95, direto_gbp:122, direto_cad:209, direto_aud:230,
+    pref_eur:95,    pref_usd:99.95,   pref_gbp:82,   pref_cad:140,  pref_aud:154,
+    bp_eur:95,      bp_usd:99.95,     bp_gbp:82,     bp_cad:140,    bp_aud:154,
+    lucro_direto_eur:48, lucro_direto_usd:50, lucro_direto_gbp:41, lucro_direto_cad:71, lucro_direto_aud:78,
+    lucro_pref_eur:19,   lucro_pref_usd:20,   lucro_pref_gbp:16,  lucro_pref_cad:28,  lucro_pref_aud:31,
+    qv:77, bv_direto:77, bv_pref:43, gbpEstimado:true, cadEstimado:true, audEstimado:true,
+  },
+};
+// Patches "clássicos" (IceWave, Energy Enhancer, Silent Nights, Y-Age Aeon,
+// Y-Age Glutathione, Y-Age Carnosine, SP6 Complete, Alavida patch, AcuLife) —
+// têm TODOS o mesmo preço oficial e suportam desconto por 1/2/3 packs.
+const PATCHES_CLASSICOS_PRECO = {
+  // Direct
+  direto_eur:76,   direto_usd:79.95,  direto_gbp:65,  direto_cad:112, direto_aud:123,
+  direto_3_eur:66, direto_3_usd:69.95, direto_3_gbp:57, direto_3_cad:97, direto_3_aud:107,
+  lucro_direto_eur:14, lucro_direto_usd:15, lucro_direto_gbp:12, lucro_direto_cad:21, lucro_direto_aud:23,
+  lucro_3_eur:19,      lucro_3_usd:20,      lucro_3_gbp:16,      lucro_3_cad:28,      lucro_3_aud:31,
+  // Preferred / PC+
+  pref_eur:66,   pref_usd:69.95,  pref_gbp:57,  pref_cad:97,  pref_aud:107,
+  pref_3_eur:47, pref_3_usd:49.95, pref_3_gbp:40, pref_3_cad:69, pref_3_aud:76,
+  lucro_pref_eur:10,   lucro_pref_usd:10,   lucro_pref_gbp:9,  lucro_pref_cad:15,  lucro_pref_aud:16,
+  lucro_pref_3_eur:10, lucro_pref_3_usd:10, lucro_pref_3_gbp:9, lucro_pref_3_cad:15, lucro_pref_3_aud:16,
+  // Brand Partner
+  bp_eur:66,   bp_usd:69.95,  bp_gbp:57,  bp_cad:97,  bp_aud:107,
+  bp_3_eur:47, bp_3_usd:49.95, bp_3_gbp:40, bp_3_cad:69, bp_3_aud:76,
+  qv:55, bv_direto:55, bv_pref:39, multi:true, gbpEstimado:true, cadEstimado:true, audEstimado:true,
+};
+['icewave','energy','silent','aeon','gluta','carno','sp6','alavida','aculife'].forEach(id => {
+  CATALOGO_PRECOS_DEFAULT[id] = Object.assign({}, PATCHES_CLASSICOS_PRECO);
+});
+
+// ===== CELLERGIZE =====
+// Ainda não consta no "EMEA Compensation Plan" oficial em PDF — lançamento em
+// curso. Preço Direct e Preferred CONFIRMADOS pelo utilizador a partir do site
+// oficial da loja LifeWave (mercado Portugal, jul/2026): Direct (preço normal)
+// 93,48€ e Preferred/subscrição ("Subscreva e Poupe") 81,18€ — IGUAL para
+// Morning e Evening (ao contrário da estimativa anterior, que assumia Morning
+// mais caro que Evening por ter mais peso — não é o caso).
+// USD convertido à mesma taxa EUR→USD usada no resto do catálogo (~1.056,
+// derivada do X39: 142€ = $149.95).
+// Brand Partner: por decisão do utilizador, assumido = preço Preferred (prática
+// comum da LifeWave) até haver confirmação oficial — fica marcado "por
+// confirmar" apenas nesse campo e no QV/BV (que continuam por confirmar).
+CATALOGO_PRECOS_DEFAULT.cellergize_morning = {
+  direto_eur:93.48, direto_usd:98.71, direto_gbp:80, direto_cad:137, direto_aud:151,
+  pref_eur:81.18,   pref_usd:85.72,  pref_gbp:70,   pref_cad:120,  pref_aud:132,
+  bp_eur:81.18,     bp_usd:85.72,    bp_gbp:70,     bp_cad:120,    bp_aud:132,
+  lucro_direto_eur:12.30, lucro_direto_usd:12.99, lucro_direto_gbp:11, lucro_direto_cad:18, lucro_direto_aud:20,
+  lucro_pref_eur:0,   lucro_pref_usd:0,   lucro_pref_gbp:0,  lucro_pref_cad:0,  lucro_pref_aud:0,
+  qv:33, multi:true, bpPorConfirmar:true, qvPorConfirmar:true, gbpEstimado:true, cadEstimado:true, audEstimado:true,
+};
+CATALOGO_PRECOS_DEFAULT.cellergize_night = {
+  direto_eur:93.48, direto_usd:98.71, direto_gbp:80, direto_cad:137, direto_aud:151,
+  pref_eur:81.18,   pref_usd:85.72,  pref_gbp:70,   pref_cad:120,  pref_aud:132,
+  bp_eur:81.18,     bp_usd:85.72,    bp_gbp:70,     bp_cad:120,    bp_aud:132,
+  lucro_direto_eur:12.30, lucro_direto_usd:12.99, lucro_direto_gbp:11, lucro_direto_cad:18, lucro_direto_aud:20,
+  lucro_pref_eur:0,   lucro_pref_usd:0,   lucro_pref_gbp:0,  lucro_pref_cad:0,  lucro_pref_aud:0,
+  qv:22, multi:true, bpPorConfirmar:true, qvPorConfirmar:true, gbpEstimado:true, cadEstimado:true, audEstimado:true,
+};
+// Cellergize Duo (Morning + Evening juntos) — preços CONFIRMADOS pelo
+// utilizador a partir do site oficial (mercado Portugal, jul/2026): Direct
+// 174,66€ / Preferred (subscrição) 140,22€. QV = soma dos individuais
+// (33+22=55), mesmo padrão dos outros bundles (ex: x39x49-bundle), até
+// confirmação oficial — por isso qvPorConfirmar também aqui.
+CATALOGO_PRECOS_DEFAULT['cellergize-duo'] = {
+  direto_eur:174.66, direto_usd:184.44, direto_gbp:150, direto_cad:257, direto_aud:283,
+  pref_eur:140.22,   pref_usd:148.07,  pref_gbp:120,   pref_cad:206,  pref_aud:227,
+  bp_eur:140.22,     bp_usd:148.07,    bp_gbp:121,     bp_cad:206,    bp_aud:227,
+  lucro_direto_eur:34.44, lucro_direto_usd:36.37, lucro_direto_gbp:29, lucro_direto_cad:51, lucro_direto_aud:56,
+  lucro_pref_eur:0,   lucro_pref_usd:0,   lucro_pref_gbp:0,  lucro_pref_cad:0,  lucro_pref_aud:0,
+  qv:55, multi:false, bpPorConfirmar:true, qvPorConfirmar:true, gbpEstimado:true, cadEstimado:true, audEstimado:true,
+};
+
+// ===== SISTEMAS / BUNDLES =====
+CATALOGO_PRECOS_DEFAULT['y-age-kit'] = {
+  direto_eur:199, direto_usd:209.85, direto_gbp:171, direto_cad:293, direto_aud:322,
+  pref_eur:142,   pref_usd:149.85,  pref_gbp:122,   pref_cad:209,  pref_aud:230,
+  bp_eur:142,     bp_usd:149.85,    bp_gbp:122,     bp_cad:209,    bp_aud:230,
+  lucro_direto_eur:57, lucro_direto_usd:60, lucro_direto_gbp:49, lucro_direto_cad:84, lucro_direto_aud:92,
+  lucro_pref_eur:29,   lucro_pref_usd:30,   lucro_pref_gbp:25,  lucro_pref_cad:43,  lucro_pref_aud:47,
+  qv:117, bv_direto:117, bv_pref:66, gbpEstimado:true, cadEstimado:true, audEstimado:true,
+};
+CATALOGO_PRECOS_DEFAULT['x39x49-bundle'] = {
+  direto_eur:266, direto_usd:279.95, direto_gbp:229, direto_cad:391, direto_aud:431,
+  pref_eur:171,   pref_usd:171.95,  pref_gbp:147,   pref_cad:251,  pref_aud:277,
+  bp_eur:171,     bp_usd:179.95,    bp_gbp:147,     bp_cad:251,    bp_aud:277,
+  lucro_direto_eur:95, lucro_direto_usd:100, lucro_direto_gbp:82, lucro_direto_cad:140, lucro_direto_aud:154,
+  lucro_pref_eur:38,   lucro_pref_usd:40,   lucro_pref_gbp:33,  lucro_pref_cad:56,  lucro_pref_aud:62,
+  qv:140, bv_direto:140, bv_pref:73, gbpEstimado:true, cadEstimado:true, audEstimado:true,
+};
+
+// ===== SKIN CARE (Alavida) =====
+CATALOGO_PRECOS_DEFAULT['alavida-trio'] = {
+  direto_eur:190, direto_usd:199.95, direto_gbp:163, direto_cad:279, direto_aud:308,
+  pref_eur:142,   pref_usd:149.95,  pref_gbp:122,   pref_cad:209,  pref_aud:230,
+  bp_eur:142,     bp_usd:149.95,    bp_gbp:122,     bp_cad:209,    bp_aud:230,
+  lucro_direto_eur:48, lucro_direto_usd:50, lucro_direto_gbp:41, lucro_direto_cad:71, lucro_direto_aud:78,
+  lucro_pref_eur:38,   lucro_pref_usd:40,   lucro_pref_gbp:33,  lucro_pref_cad:56,  lucro_pref_aud:62,
+  qv:119, bv_direto:119, bv_pref:51, gbpEstimado:true, cadEstimado:true, audEstimado:true,
+};
+CATALOGO_PRECOS_DEFAULT['alavida-nectar'] = {
+  direto_eur:76, direto_usd:79.95, direto_gbp:65, direto_cad:112, direto_aud:123,
+  pref_eur:57,   pref_usd:59.95,  pref_gbp:49,   pref_cad:84,  pref_aud:92,
+  bp_eur:57,     bp_usd:59.95,    bp_gbp:49,     bp_cad:84,    bp_aud:92,
+  lucro_direto_eur:19, lucro_direto_usd:20, lucro_direto_gbp:16, lucro_direto_cad:28, lucro_direto_aud:31,
+  lucro_pref_eur:14,   lucro_pref_usd:15,   lucro_pref_gbp:12,  lucro_pref_cad:21,  lucro_pref_aud:23,
+  qv:42, bv_direto:42, bv_pref:25, gbpEstimado:true, cadEstimado:true, audEstimado:true,
+};
+CATALOGO_PRECOS_DEFAULT['alavida-nightly'] = {
+  direto_eur:95, direto_usd:99.95, direto_gbp:82, direto_cad:140, direto_aud:154,
+  pref_eur:76,   pref_usd:79.95,  pref_gbp:65,   pref_cad:112, pref_aud:123,
+  bp_eur:76,     bp_usd:79.95,    bp_gbp:65,     bp_cad:112,   bp_aud:123,
+  lucro_direto_eur:19, lucro_direto_usd:20, lucro_direto_gbp:16, lucro_direto_cad:28, lucro_direto_aud:31,
+  lucro_pref_eur:19,   lucro_pref_usd:20,   lucro_pref_gbp:16,  lucro_pref_cad:28,  lucro_pref_aud:31,
+  qv:55, bv_direto:55, bv_pref:21, gbpEstimado:true, cadEstimado:true, audEstimado:true,
+};
+CATALOGO_PRECOS_DEFAULT['alavida-eye'] = {
+  direto_eur:85, direto_usd:89.95, direto_gbp:73, direto_cad:125, direto_aud:138,
+  pref_eur:66,   pref_usd:69.95,  pref_gbp:57,   pref_cad:97,  pref_aud:107,
+  bp_eur:66,     bp_usd:69.95,    bp_gbp:57,     bp_cad:97,    bp_aud:107,
+  lucro_direto_eur:19, lucro_direto_usd:20, lucro_direto_gbp:16, lucro_direto_cad:28, lucro_direto_aud:31,
+  lucro_pref_eur:14,   lucro_pref_usd:15,   lucro_pref_gbp:12,  lucro_pref_cad:21,  lucro_pref_aud:23,
+  qv:42, bv_direto:42, bv_pref:17, gbpEstimado:true, cadEstimado:true, audEstimado:true,
+};
+
+// ===== PACOTES DE INSCRIÇÃO (PIB) =====
+// Mantidos como no plano de compensação atual (não correspondem 1:1 aos kits
+// Bronze/Silver/Gold/Platinum/Diamond do documento de preços global, que são
+// referentes a créditos de produto).
+Object.assign(CATALOGO_PRECOS_DEFAULT, {
+  'pib-starter':  { direto_eur:24,   direto_usd:25,   direto_gbp:21,  direto_aud:38,   direto_cad:33,  pib_eur:0,   pib_usd:0,   pib_gbp:0,   pib_aud:0,   pib_cad:0,   qv:0, cadEstimado:true, gbpEstimado:true, audEstimado:true },
+  'pib-core':     { direto_eur:280,  direto_usd:295,  direto_gbp:245, direto_aud:440,  direto_cad:390, pib_eur:33,  pib_usd:35,  pib_gbp:29,  pib_aud:52,  pib_cad:44,  qv:180, cadEstimado:true, gbpEstimado:true, audEstimado:true },
+  'pib-adv':      { direto_eur:508,  direto_usd:535,  direto_gbp:445, direto_aud:795,  direto_cad:705, pib_eur:71,  pib_usd:75,  pib_gbp:62,  pib_aud:112, pib_cad:94,  qv:300, cadEstimado:true, gbpEstimado:true, audEstimado:true },
+  'pib-advp':     { direto_eur:926,  direto_usd:975,  direto_gbp:810, direto_aud:1450, direto_cad:1285,pib_eur:157, pib_usd:165, pib_gbp:137, pib_aud:247, pib_cad:207, qv:500, cadEstimado:true, gbpEstimado:true, audEstimado:true },
+  'pib-premium':  { direto_eur:1663, direto_usd:1750, direto_gbp:1455,direto_aud:2610, direto_cad:2310,pib_eur:385, pib_usd:405, pib_gbp:336, pib_aud:606, pib_cad:507, qv:775, cadEstimado:true, gbpEstimado:true, audEstimado:true },
+});
+
+let CATALOGO_PRECOS = {};
+
+function getCatalogoPrecos() {
+  try {
+    const guardado = JSON.parse(localStorage.getItem(getUserStorageKey('lw_catalogo_precos')) || 'null');
+    // Faz merge com os defaults, para produtos novos adicionados numa
+    // atualização da app (ex: Cellergize) aparecerem mesmo que o utilizador
+    // já tenha uma tabela guardada de antes dessa atualização.
+    CATALOGO_PRECOS = Object.assign({}, CATALOGO_PRECOS_DEFAULT, guardado || {});
+  } catch(e) {
+    CATALOGO_PRECOS = Object.assign({}, CATALOGO_PRECOS_DEFAULT);
+  }
+  return CATALOGO_PRECOS;
+}
+
+function saveCatalogoPrecos(precos) {
+  CATALOGO_PRECOS = precos;
+  localStorage.setItem(getUserStorageKey('lw_catalogo_precos'), JSON.stringify(precos));
+  // Propaga a mudança de imediato a todas as áreas da app que mostram preços.
+  try { if (typeof simularLucro === 'function') simularLucro(); } catch(e) {}
+  try { if (typeof simRenderTabela === 'function') simRenderTabela(); } catch(e) {}
+  try { if (typeof renderCatalogo === 'function') renderCatalogo(); } catch(e) {}
+}
+
+// Lê o preço de um produto para um dado tipo de cliente/moeda. Devolve 0
+// (nunca undefined) para os cálculos poderem confiar sempre num número,
+// e quem apresenta o valor decide mostrar "—" consultando precoPorConfirmar().
+const MOEDAS_SUPORTADAS = ['eur', 'usd', 'gbp', 'cad', 'aud'];
+function precoProduto(id, campo, moeda) {
+  const p = CATALOGO_PRECOS[id] || CATALOGO_PRECOS_DEFAULT[id];
+  if (!p) return 0;
+  const m = MOEDAS_SUPORTADAS.includes(moeda) ? moeda : 'eur';
+  const chave = campo + '_' + m;
+  if (p[chave] !== undefined) return p[chave];
+  // Fallback: se faltar esta moeda especificamente (ex: catálogo do
+  // utilizador ainda não tem CAD numa importação antiga), usa o EUR como base.
+  return p[campo + '_eur'] || 0;
+}
+
+function precoProdutoPorConfirmar(id) {
+  const p = CATALOGO_PRECOS[id] || CATALOGO_PRECOS_DEFAULT[id];
+  return !!(p && p.porConfirmar);
+}
+
+// Indica se o valor mostrado nesta moeda é uma estimativa não-oficial
+// (ex: CAD, quando ainda não foi importada uma tabela real desse mercado).
+function precoProdutoEstimado(id, moeda) {
+  const p = CATALOGO_PRECOS[id] || CATALOGO_PRECOS_DEFAULT[id];
+  return !!(p && p.cadEstimado && moeda === 'cad');
+}
+
+// ===================================================
+// SIMULADOR DE LUCRO POR PRODUTO
+// ===================================================
 const SIM_PRODUTOS_REF = [
-  { id:'x39',          nome:'X39®',              qv:77, direto_eur:142, lucro_direto_eur:48, pref_eur:95,  lucro_pref_eur:19, multi:false },
-  { id:'x49',          nome:'X49®',              qv:77, direto_eur:142, lucro_direto_eur:48, pref_eur:95,  lucro_pref_eur:19, multi:false },
-  { id:'icewave',      nome:'IceWave®',           qv:55, direto_eur:76,  lucro_direto_eur:14, pref_eur:66,  lucro_pref_eur:10, multi:true, direto_3_eur:66, lucro_3_eur:19 },
-  { id:'energy',       nome:'Energy Enhancer®',   qv:55, direto_eur:76,  lucro_direto_eur:14, pref_eur:66,  lucro_pref_eur:10, multi:true, direto_3_eur:66, lucro_3_eur:19 },
-  { id:'silent',       nome:'Silent Nights®',     qv:55, direto_eur:76,  lucro_direto_eur:14, pref_eur:66,  lucro_pref_eur:10, multi:true, direto_3_eur:66, lucro_3_eur:19 },
-  { id:'aeon',         nome:'Y-Age Aeon®',        qv:55, direto_eur:76,  lucro_direto_eur:14, pref_eur:66,  lucro_pref_eur:10, multi:true, direto_3_eur:66, lucro_3_eur:19 },
-  { id:'gluta',        nome:'Y-Age® Glutathione', qv:55, direto_eur:76,  lucro_direto_eur:14, pref_eur:66,  lucro_pref_eur:10, multi:true, direto_3_eur:66, lucro_3_eur:19 },
-  { id:'carno',        nome:'Y-Age® Carnosine',   qv:55, direto_eur:76,  lucro_direto_eur:14, pref_eur:66,  lucro_pref_eur:10, multi:true, direto_3_eur:66, lucro_3_eur:19 },
-  { id:'sp6',          nome:'SP6® Complete',      qv:55, direto_eur:76,  lucro_direto_eur:14, pref_eur:66,  lucro_pref_eur:10, multi:true, direto_3_eur:66, lucro_3_eur:19 },
-  { id:'alavida',      nome:'Alavida®',           qv:55, direto_eur:76,  lucro_direto_eur:14, pref_eur:66,  lucro_pref_eur:10, multi:true, direto_3_eur:66, lucro_3_eur:19 },
-  { id:'aculife',      nome:'AcuLife®',           qv:55, direto_eur:76,  lucro_direto_eur:14, pref_eur:66,  lucro_pref_eur:10, multi:true, direto_3_eur:66, lucro_3_eur:19 },
-  { id:'y-age-kit',    nome:'Y-Age® System Kit',  qv:117, direto_eur:199, lucro_direto_eur:57, pref_eur:142, lucro_pref_eur:29, multi:false },
-  { id:'x39x49-bundle',nome:'X39® + X49™ Bundle',qv:140, direto_eur:266, lucro_direto_eur:95, pref_eur:171, lucro_pref_eur:38, multi:false },
-  { id:'alavida-trio', nome:'Alavida® Trio',      qv:119, direto_eur:190, lucro_direto_eur:48, pref_eur:142, lucro_pref_eur:38, multi:false },
+  { id:'x39',                 nome:'X39®',                       qv:77,  multi:false },
+  { id:'x49',                 nome:'X49®',                       qv:77,  multi:false },
+  { id:'icewave',             nome:'IceWave®',                   qv:55,  multi:true },
+  { id:'energy',              nome:'Energy Enhancer®',           qv:55,  multi:true },
+  { id:'silent',              nome:'Silent Nights®',             qv:55,  multi:true },
+  { id:'aeon',                nome:'Y-Age Aeon®',                qv:55,  multi:true },
+  { id:'gluta',               nome:'Y-Age® Glutathione',         qv:55,  multi:true },
+  { id:'carno',               nome:'Y-Age® Carnosine',           qv:55,  multi:true },
+  { id:'sp6',                 nome:'SP6® Complete',              qv:55,  multi:true },
+  { id:'alavida',             nome:'Alavida®',                   qv:55,  multi:true },
+  { id:'aculife',             nome:'AcuLife®',                   qv:55,  multi:true },
+  { id:'cellergize_morning',  nome:'Cellergize™ Morning',        qv:0,   multi:true },
+  { id:'cellergize_night',    nome:'Cellergize™ Night',          qv:0,   multi:true },
+  { id:'cellergize-duo',      nome:'Cellergize® Duo',            qv:55,  multi:false },
+  { id:'y-age-kit',           nome:'Y-Age® System Kit',          qv:117, multi:false },
+  { id:'x39x49-bundle',       nome:'X39® + X49™ Bundle',         qv:140, multi:false },
+  { id:'alavida-trio',        nome:'Alavida® Regenerating Trio', qv:119, multi:false },
+  { id:'alavida-nectar',      nome:'Alavida® Daily Refresh Facial Nectar', qv:42, multi:false },
+  { id:'alavida-nightly',     nome:'Alavida® Nightly Restore Facial Creme', qv:55, multi:false },
+  { id:'alavida-eye',         nome:'Alavida® Revive Eye Cream',  qv:42,  multi:false },
 ];
 
-// USD equivalents (approx from PDF)
-const SIM_USD_MAP = {
-  x39:148, x49:148, icewave:15, energy:15, silent:15, aeon:15, gluta:15, carno:15, sp6:15, alavida:15, aculife:15,
-  'y-age-kit':57, 'x39x49-bundle':95, 'alavida-trio':48
-};
-const SIM_PREF_USD_MAP = {
-  x39:19, x49:19, icewave:10, energy:10, silent:10, aeon:10, gluta:10, carno:10, sp6:10, alavida:10, aculife:10,
-  'y-age-kit':29, 'x39x49-bundle':38, 'alavida-trio':38
-};
-
 function simIniciar() {
-  simularLucro();
+  if (!window._simMoedaTocada) simMoeda = getMoedaAtual();
+  simSetMoeda(simMoeda);
   simRenderTabela();
   simRenderCesto();
 }
@@ -29735,16 +30518,17 @@ function simSetTipo(tipo) {
   simularLucro();
 }
 
-function simSetMoeda(m) {
+function simSetMoeda(m, manual) {
   simMoeda = m;
-  const bE = document.getElementById('sim-moeda-eur');
-  const bU = document.getElementById('sim-moeda-usd');
-  bE.style.border = m==='eur' ? '2px solid var(--accent)' : '2px solid var(--border)';
-  bE.style.background = m==='eur' ? 'rgba(0,212,170,0.12)' : 'transparent';
-  bE.style.color = m==='eur' ? 'var(--accent)' : 'var(--text2)';
-  bU.style.border = m==='usd' ? '2px solid var(--accent)' : '2px solid var(--border)';
-  bU.style.background = m==='usd' ? 'rgba(0,212,170,0.12)' : 'transparent';
-  bU.style.color = m==='usd' ? 'var(--accent)' : 'var(--text2)';
+  if (manual) window._simMoedaTocada = true;
+  Object.keys(MOEDAS).forEach(k => {
+    const btn = document.getElementById('sim-moeda-' + k);
+    if (!btn) return;
+    const ativo = k === m;
+    btn.style.border = ativo ? '2px solid var(--accent)' : '2px solid var(--border)';
+    btn.style.background = ativo ? 'rgba(0,212,170,0.12)' : 'transparent';
+    btn.style.color = ativo ? 'var(--accent)' : 'var(--text2)';
+  });
   simularLucro();
 }
 
@@ -29753,8 +30537,6 @@ function simularLucro() {
   const qtdVend = parseInt(document.getElementById('sim-qtd-vendas')?.value) || 1;
   const prod    = SIM_PRODUTOS_REF.find(p => p.id === prodId);
   if (!prod) return;
-
-  const sym = simMoeda === 'eur' ? '€' : '$';
 
   // Render qty buttons
   const qtyWrap = document.getElementById('sim-qty-btns');
@@ -29776,52 +30558,71 @@ function simularLucro() {
 
   const qty = prod.multi ? (window._simQty || 1) : 1;
 
-  // Calcular preço e lucro
+  // Se ainda não há tabela de preços oficial importada para este produto
+  // (ex: Cellergize antes da comercialização na Europa), mostra um aviso
+  // em vez de fingir que o preço é 0€.
+  if (precoProdutoPorConfirmar(prod.id)) {
+    document.getElementById('sim-resultado-content').innerHTML = `
+      <div style="padding:20px;text-align:center;background:var(--surface2);border-radius:10px;border:1px dashed var(--border);">
+        <div style="font-size:28px;margin-bottom:8px;">⏳</div>
+        <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:6px;">Preço ainda por confirmar</div>
+        <div style="font-size:12px;color:var(--text2);line-height:1.6;">Este produto ainda não tem tabela de preços oficial importada. Assim que importares a tabela mais recente em <strong>Catálogo → Importar Tabela de Preços</strong>, o simulador atualiza-se automaticamente.</div>
+      </div>`;
+    document.getElementById('sim-dica-card').style.display = 'none';
+    return;
+  }
+
+  // Calcular preço e lucro (lidos sempre de CATALOGO_PRECOS via precoProduto,
+  // nunca fixos aqui — assim uma tabela nova importada atualiza tudo)
   let preco = 0, lucro = 0, precoBase = 0;
   if (simTipo === 'direto') {
     if (qty === 3 && prod.multi) {
-      preco = simMoeda === 'eur' ? prod.direto_3_eur * 3 : (prod.direto_3_usd||prod.direto_3_eur) * 3;
-      lucro = simMoeda === 'eur' ? (prod.lucro_3_eur || prod.lucro_direto_eur) : (SIM_USD_MAP[prod.id] || prod.lucro_direto_eur);
-      if (qty === 3) lucro = simMoeda === 'eur' ? (prod.lucro_3_eur||prod.lucro_direto_eur) : lucro;
+      preco = precoProduto(prod.id, 'direto_3', simMoeda) * 3;
+      lucro = precoProduto(prod.id, 'lucro_3', simMoeda) || precoProduto(prod.id, 'lucro_direto', simMoeda);
     } else {
-      preco = simMoeda === 'eur' ? prod.direto_eur * qty : (prod.direto_usd||prod.direto_eur) * qty;
-      lucro = simMoeda === 'eur' ? prod.lucro_direto_eur : (SIM_USD_MAP[prod.id] || prod.lucro_direto_eur);
+      preco = precoProduto(prod.id, 'direto', simMoeda) * qty;
+      lucro = precoProduto(prod.id, 'lucro_direto', simMoeda);
     }
-    precoBase = simMoeda === 'eur' ? prod.direto_eur : (prod.direto_usd||prod.direto_eur);
+    precoBase = precoProduto(prod.id, 'direto', simMoeda);
   } else {
-    preco = simMoeda === 'eur' ? prod.pref_eur * qty : (prod.pref_usd||prod.pref_eur) * qty;
-    lucro = simMoeda === 'eur' ? prod.lucro_pref_eur : (SIM_PREF_USD_MAP[prod.id] || prod.lucro_pref_eur);
-    precoBase = simMoeda === 'eur' ? prod.pref_eur : (prod.pref_usd||prod.pref_eur);
+    preco = precoProduto(prod.id, 'pref', simMoeda) * qty;
+    lucro = precoProduto(prod.id, 'lucro_pref', simMoeda);
+    precoBase = precoProduto(prod.id, 'pref', simMoeda);
   }
 
   const lucroTotal   = lucro * qtdVend;
   const margem       = precoBase > 0 ? Math.round((lucro / precoBase) * 100) : 0;
   const qvTotal      = prod.qv * qty * qtdVend;
   const corMargem    = margem >= 30 ? 'var(--accent)' : margem >= 15 ? 'var(--gold)' : 'var(--accent3)';
+  const estimado     = precoProdutoEstimado(prod.id, simMoeda);
 
   // Dica de vendas
+  const lucro3 = precoProduto(prod.id, 'lucro_3', simMoeda) || precoProduto(prod.id, 'lucro_direto', simMoeda);
   let dica = '';
-  if (prod.multi && qty === 1) dica = `💡 <strong>Dica:</strong> Se o cliente comprar 3 embalagens o teu lucro por embalagem sobe para ${simMoeda==='eur'?(prod.lucro_3_eur||prod.lucro_direto_eur)+'€':prod.lucro_direto_eur+'$'}! Apresenta sempre a opção de 3 embalagens.`;
+  if (prod.multi && qty === 1) dica = `💡 <strong>Dica:</strong> Se o cliente comprar 3 embalagens o teu lucro por embalagem sobe para ${formatarPreco(lucro3, simMoeda)}! Apresenta sempre a opção de 3 embalagens.`;
   else if (simTipo === 'direto') dica = `💡 <strong>Dica:</strong> Convida este cliente a tornar-se <strong>Preferencial</strong> para ter preço reduzido — e tu continuas a ganhar o lucro da subscrição.`;
-  else dica = `✅ <strong>Cliente Preferencial</strong> garante compras recorrentes todo o mês — recebes ${sym}${lucro} em cada renovação sem precisares de vender novamente!`;
+  else dica = `✅ <strong>Cliente Preferencial</strong> garante compras recorrentes todo o mês — recebes ${formatarPreco(lucro, simMoeda)} em cada renovação sem precisares de vender novamente!`;
+
+  const avisoEstimado = estimado ? `<div style="margin-bottom:12px;padding:8px 10px;background:rgba(245,200,66,0.1);border:1px solid rgba(245,200,66,0.3);border-radius:8px;font-size:11px;color:#f5c842;">⚠️ Valor em CA$ ainda é uma estimativa não oficial — confirma via <strong>Importar Tabela de Preços</strong>.</div>` : '';
 
   document.getElementById('sim-resultado-content').innerHTML = `
+    ${avisoEstimado}
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;">
       <div style="text-align:center;padding:16px;background:var(--surface2);border-radius:10px;border:1px solid var(--border);">
         <div style="font-size:11px;color:var(--text2);margin-bottom:4px;">Preço pago pelo cliente</div>
-        <div style="font-size:22px;font-weight:800;color:var(--text);">${sym}${(preco).toFixed(0)}</div>
+        <div style="font-size:22px;font-weight:800;color:var(--text);">${formatarPreco(preco, simMoeda)}</div>
         <div style="font-size:10px;color:var(--text3);">${qty > 1 ? qty+' embalagens' : '1 embalagem'}</div>
       </div>
       <div style="text-align:center;padding:16px;background:rgba(0,212,170,0.1);border-radius:10px;border:1px solid rgba(0,212,170,0.3);">
         <div style="font-size:11px;color:var(--text2);margin-bottom:4px;">O teu lucro / embalagem</div>
-        <div style="font-size:22px;font-weight:800;color:var(--accent);">${sym}${lucro}</div>
+        <div style="font-size:22px;font-weight:800;color:var(--accent);">${formatarPreco(lucro, simMoeda)}</div>
         <div style="font-size:10px;color:${corMargem};">Margem: ${margem}%</div>
       </div>
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;">
       <div style="text-align:center;padding:14px;background:rgba(245,200,66,0.1);border-radius:10px;border:1px solid rgba(245,200,66,0.25);">
         <div style="font-size:11px;color:var(--text2);margin-bottom:4px;">Lucro total (${qtdVend} venda${qtdVend>1?'s':''})</div>
-        <div style="font-size:28px;font-weight:800;color:var(--gold);">${sym}${lucroTotal}</div>
+        <div style="font-size:28px;font-weight:800;color:var(--gold);">${formatarPreco(lucroTotal, simMoeda)}</div>
       </div>
       <div style="text-align:center;padding:14px;background:rgba(0,132,255,0.08);border-radius:10px;border:1px solid rgba(0,132,255,0.2);">
         <div style="font-size:11px;color:var(--text2);margin-bottom:4px;">Volume QV gerado</div>
@@ -29844,14 +30645,24 @@ function simSetQty(qty) {
 function simRenderTabela() {
   const tbody = document.getElementById('sim-tabela-ref');
   if (!tbody) return;
+  const moeda = simMoeda || getMoedaAtual();
   tbody.innerHTML = SIM_PRODUTOS_REF.map(p => {
-    const margem = p.direto_eur > 0 ? Math.round((p.lucro_direto_eur / p.direto_eur) * 100) : 0;
+    if (precoProdutoPorConfirmar(p.id)) {
+      return `
+      <tr style="border-bottom:1px solid rgba(255,255,255,0.04);cursor:pointer;opacity:0.6;" onclick="simSelecionarProd('${p.id}')" title="Preço ainda por confirmar">
+        <td style="padding:7px 10px;color:var(--text);font-weight:500;">${p.nome}</td>
+        <td style="text-align:center;color:var(--text3);" colspan="3">⏳ Preço por confirmar</td>
+      </tr>`;
+    }
+    const direto = precoProduto(p.id, 'direto', moeda);
+    const lucroDireto = precoProduto(p.id, 'lucro_direto', moeda);
+    const margem = direto > 0 ? Math.round((lucroDireto / direto) * 100) : 0;
     const corM = margem >= 30 ? 'var(--accent)' : margem >= 15 ? 'var(--gold)' : 'var(--text2)';
     return `
       <tr style="border-bottom:1px solid rgba(255,255,255,0.04);cursor:pointer;" onclick="simSelecionarProd('${p.id}')">
         <td style="padding:7px 10px;color:var(--text);font-weight:500;">${p.nome}</td>
-        <td style="text-align:center;color:var(--text2);">€${p.direto_eur}</td>
-        <td style="text-align:center;color:var(--accent);font-weight:700;">€${p.lucro_direto_eur}</td>
+        <td style="text-align:center;color:var(--text2);">${formatarPreco(direto, moeda)}</td>
+        <td style="text-align:center;color:var(--accent);font-weight:700;">${formatarPreco(lucroDireto, moeda)}</td>
         <td style="text-align:center;color:${corM};font-weight:600;">${margem}%</td>
       </tr>
     `;
@@ -29877,10 +30688,11 @@ function simRenderCesto() {
   }
 
   let lucroSum = 0, qvSum = 0;
+  const moeda = simMoeda || getMoedaAtual();
   lista.innerHTML = simCesto.map((item, i) => {
     const prod = SIM_PRODUTOS_REF.find(p => p.id === item.id);
     if (!prod) return '';
-    const lucro = item.tipo === 'direto' ? prod.lucro_direto_eur : prod.lucro_pref_eur;
+    const lucro = item.tipo === 'direto' ? precoProduto(prod.id, 'lucro_direto', moeda) : precoProduto(prod.id, 'lucro_pref', moeda);
     const lucroItem = lucro * item.qtd;
     const qvItem = prod.qv * item.qtd;
     lucroSum += lucroItem;
@@ -29892,7 +30704,7 @@ function simRenderCesto() {
           <div style="font-size:11px;color:var(--text2);">${item.tipo === 'direto' ? '🛒 Direto' : '⭐ Preferencial'} · ${item.qtd} venda${item.qtd>1?'s':''}</div>
         </div>
         <div style="text-align:right;min-width:70px;">
-          <div style="font-size:15px;font-weight:700;color:var(--accent);">€${lucroItem}</div>
+          <div style="font-size:15px;font-weight:700;color:var(--accent);">${formatarPreco(lucroItem, moeda)}</div>
           <div style="font-size:10px;color:var(--text3);">${qvItem} QV</div>
         </div>
         <button onclick="simRemoveCesto(${i})" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:16px;padding:4px;" title="Remover">✕</button>
@@ -29901,7 +30713,7 @@ function simRenderCesto() {
   }).join('');
 
   total.style.display = '';
-  document.getElementById('sim-cesto-total-val').textContent = `€${lucroSum}`;
+  document.getElementById('sim-cesto-total-val').textContent = formatarPreco(lucroSum, moeda);
   document.getElementById('sim-cesto-qv-val').textContent = `${qvSum} QV`;
 }
 
@@ -29924,6 +30736,11 @@ function simRemoveCesto(idx) {
 // ===================================================
 // CATÁLOGO DE PRODUTOS
 // ===================================================
+// Nota: os campos de preço (direto_1_eur, lucro_direto_eur, etc.) já não
+// vivem aqui — vêm sempre de CATALOGO_PRECOS via precoProduto(id, campo, moeda),
+// para que este catálogo, o Simulador de Lucro e o Registo de Vendas nunca
+// fiquem dessincronizados entre si. Este array guarda só o que é descritivo
+// (nome, categoria, cor, benefícios, script de venda).
 const CATALOGO_PRODUTOS = [
   // PATCHES
   { id:'x39', nome:'LifeWave X39®', cat:'patches', emoji:'🩹',
@@ -29931,10 +30748,7 @@ const CATALOGO_PRODUTOS = [
     desc:'O patch mais avançado da LifeWave. Tecnologia patenteada de fotobiomodulação que suporta o bem-estar geral. Resultados reportados: mais energia, melhor recuperação, sono e vitalidade.',
     beneficios:['Suporta o bem-estar geral','Mais energia e vitalidade','Melhoria do sono','Recuperação mais rápida','Patch não-transdérmico, sem medicamentos'],
     uso:'Aplicar no ponto BL-23 (zona lombar) ou em pontos de dor. 12h com patch, 12h sem.',
-    direto_1_eur:142, direto_1_usd:149.95, lucro_direto_eur:48, lucro_direto_usd:50,
-    pref_1_eur:95, pref_1_usd:99.95, lucro_pref_eur:19, lucro_pref_usd:20,
-    bp_1_eur:95, bp_1_usd:99.95,
-    qv:77, bv_direto:77, bv_pref:43,
+    bv_direto:77, bv_pref:43,
     script:'Olá [Nome]! Deixa-me partilhar algo incrível — o X39 é um patch que usa a luz infravermelha do teu próprio corpo, com tecnologia patenteada de fotobiomodulação, para suportar o bem-estar geral. Sem agulhas, sem comprimidos. Só colocas na pele 12 horas. Muitas pessoas reportam mais energia, melhor sono e melhor recuperação. Posso enviar-te mais informação?'
   },
   { id:'x49', nome:'LifeWave X49®', cat:'patches', emoji:'🏋️',
@@ -29942,10 +30756,7 @@ const CATALOGO_PRODUTOS = [
     desc:'Foco em performance, força muscular e energia. Ideal para desportistas ou quem quer maximizar o desempenho físico. Complemento perfeito ao X39.',
     beneficios:['Aumento de força e massa muscular','Melhoria da performance física','Energia sustentada','Recuperação muscular acelerada','Composição corporal melhorada'],
     uso:'Aplicar no ponto ST-36 (abaixo do joelho) ou em zona de treino. 12h com patch, 12h sem.',
-    direto_1_eur:142, direto_1_usd:149.95, lucro_direto_eur:48, lucro_direto_usd:50,
-    pref_1_eur:95, pref_1_usd:99.95, lucro_pref_eur:19, lucro_pref_usd:20,
-    bp_1_eur:95, bp_1_usd:99.95,
-    qv:77, bv_direto:77, bv_pref:43,
+    bv_direto:77, bv_pref:43,
     script:'Para quem quer performance e resultados físicos, o X49 é revolucionário. Atletas e pessoas activas usam-no para recuperar mais rápido e ter mais força. Funciona com a luz do teu próprio corpo. Queres experimentar?'
   },
   { id:'icewave', nome:'IceWave®', cat:'patches', emoji:'❄️',
@@ -29953,11 +30764,7 @@ const CATALOGO_PRODUTOS = [
     desc:'Alívio rápido de dores musculares e articulares. Dois patches (branco e bege) que criam um campo bioelétrico para reduzir a inflamação local sem medicamentos.',
     beneficios:['Alívio rápido de dores','Sem medicamentos ou efeitos secundários','Redução de inflamação local','Ideal para dores crónicas','Funciona em minutos'],
     uso:'Usar 2 patches em simultâneo: 1 branco e 1 bege na zona de dor. Máx 12h.',
-    direto_1_eur:76, direto_1_usd:79.95, lucro_direto_eur:14, lucro_direto_usd:15,
-    direto_3_eur:66, direto_3_usd:69.95, lucro_3_eur:19, lucro_3_usd:20,
-    pref_1_eur:66, pref_1_usd:69.95, lucro_pref_eur:10, lucro_pref_usd:10,
-    bp_1_eur:66, bp_1_usd:69.95,
-    qv:55, bv_direto:55, bv_pref:39,
+    bv_direto:55, bv_pref:39,
     script:'Tens dores musculares ou articulares? O IceWave é um patch de fotobiomodulação que suporta o alívio de dores menores sem medicamentos. Muitas pessoas usam para costas, joelhos, pescoço. Sem estimulantes. Queres saber como funciona?'
   },
   { id:'energy', nome:'Energy Enhancer®', cat:'patches', emoji:'⚡',
@@ -29965,11 +30772,7 @@ const CATALOGO_PRODUTOS = [
     desc:'Aumenta a energia e reduz a fadiga de forma natural, através da tecnologia de fotobiomodulação, dando energia sustentada ao longo do dia.',
     beneficios:['Energia natural e sustentada','Redução de fadiga','Melhoria de resistência','Sem cafeína ou estimulantes','Ideal para o dia a dia'],
     uso:'Aplicar um patch branco à esquerda e um bege à direita no abdómen. 12h máx.',
-    direto_1_eur:76, direto_1_usd:79.95, lucro_direto_eur:14, lucro_direto_usd:15,
-    direto_3_eur:66, direto_3_usd:69.95, lucro_3_eur:19, lucro_3_usd:20,
-    pref_1_eur:66, pref_1_usd:69.95, lucro_pref_eur:10, lucro_pref_usd:10,
-    bp_1_eur:66, bp_1_usd:69.95,
-    qv:55, bv_direto:55, bv_pref:39,
+    bv_direto:55, bv_pref:39,
     script:'Sentes-te cansado com frequência? O Energy Enhancer aumenta a energia de forma natural, sem cafeína. Muitas pessoas sentem a diferença logo no 1º dia. É um patch simples que colocas no abdómen de manhã.'
   },
   { id:'silent', nome:'Silent Nights®', cat:'patches', emoji:'🌙',
@@ -29977,11 +30780,7 @@ const CATALOGO_PRODUTOS = [
     desc:'Melhora a qualidade do sono de forma natural. Estimula a produção de melatonina através de fotobiomodulação, sem hormonas externas.',
     beneficios:['Adormecimento mais rápido','Sono mais profundo e reparador','Sem dependência','Sem hormonas externas','Acorda com mais energia'],
     uso:'Aplicar no pescoço (ponto GV-14) 30 minutos antes de dormir. Retirar ao acordar.',
-    direto_1_eur:76, direto_1_usd:79.95, lucro_direto_eur:14, lucro_direto_usd:15,
-    direto_3_eur:66, direto_3_usd:69.95, lucro_3_eur:19, lucro_3_usd:20,
-    pref_1_eur:66, pref_1_usd:69.95, lucro_pref_eur:10, lucro_pref_usd:10,
-    bp_1_eur:66, bp_1_usd:69.95,
-    qv:55, bv_direto:55, bv_pref:39,
+    bv_direto:55, bv_pref:39,
     script:'Tens dificuldade em dormir? O Silent Nights é um patch natural que colocas no pescoço antes de dormir e ajuda o teu corpo a produzir a sua própria melatonina. Sem comprimidos, sem dependência. Funciona mesmo!'
   },
   { id:'aeon', nome:'Y-Age Aeon®', cat:'patches', emoji:'✨',
@@ -29989,35 +30788,23 @@ const CATALOGO_PRODUTOS = [
     desc:'Anti-inflamatório e anti-envelhecimento. Reduz o stress oxidativo e a inflamação sistémica, apoiando a longevidade e o bem-estar geral.',
     beneficios:['Redução da inflamação sistémica','Apoia a longevidade','Redução do stress oxidativo','Melhoria do bem-estar geral','Complemento ideal ao X39'],
     uso:'Aplicar no ponto GV-14 (nuca) ou ponto CV-6 (abdómen). 12h máx. Ideal com X39.',
-    direto_1_eur:76, direto_1_usd:79.95, lucro_direto_eur:14, lucro_direto_usd:15,
-    direto_3_eur:66, direto_3_usd:69.95, lucro_3_eur:19, lucro_3_usd:20,
-    pref_1_eur:66, pref_1_usd:69.95, lucro_pref_eur:10, lucro_pref_usd:10,
-    bp_1_eur:66, bp_1_usd:69.95,
-    qv:55, bv_direto:55, bv_pref:39,
+    bv_direto:55, bv_pref:39,
     script:'O Aeon é o patch anti-inflamatório da LifeWave. Reduz o stress oxidativo e ajuda o corpo a combater a inflamação crónica — que está na base de muitas doenças. Muitos usam-no com o X39 para potenciar os resultados.'
   },
-  { id:'glut', nome:'Y-Age® Glutathione', cat:'patches', emoji:'🛡️',
+  { id:'gluta', nome:'Y-Age® Glutathione', cat:'patches', emoji:'🛡️',
     cor:'#ff6b35',
     desc:'Estimula a produção do "antioxidante mestre" do corpo — a glutationa. Essencial para desintoxicação e imunidade.',
     beneficios:['Aumento da glutationa endógena','Apoia a desintoxicação natural','Reforço imunitário','Saúde hepática','Apoia o bem-estar geral'],
     uso:'Aplicar no ponto CV-6 (5cm abaixo do umbigo). 12h máx.',
-    direto_1_eur:76, direto_1_usd:79.95, lucro_direto_eur:14, lucro_direto_usd:15,
-    direto_3_eur:66, direto_3_usd:69.95, lucro_3_eur:19, lucro_3_usd:20,
-    pref_1_eur:66, pref_1_usd:69.95, lucro_pref_eur:10, lucro_pref_usd:10,
-    bp_1_eur:66, bp_1_usd:69.95,
-    qv:55, bv_direto:55, bv_pref:39,
+    bv_direto:55, bv_pref:39,
     script:'A glutationa é o antioxidante mais poderoso do corpo. Com a idade, os níveis caem. O patch Glutathione estimula o teu corpo a produzir mais, naturalmente. Resulta em desintoxicação, imunidade mais forte e anti-envelhecimento.'
   },
-  { id:'carn', nome:'Y-Age® Carnosine', cat:'patches', emoji:'🧬',
+  { id:'carno', nome:'Y-Age® Carnosine', cat:'patches', emoji:'🧬',
     cor:'#0084ff',
     desc:'Apoia o desempenho cognitivo e a saúde muscular. A carnosina é essencial para a saúde do cérebro e dos músculos.',
     beneficios:['Melhoria cognitiva e memória','Saúde muscular e recuperação','Apoia a longevidade','Anti-envelhecimento neurológico','Complemento ao X39 e X49'],
     uso:'Aplicar no ponto GV-24.5 (entre as sobrancelhas) ou ponto SI-19 (orelha). 12h máx.',
-    direto_1_eur:76, direto_1_usd:79.95, lucro_direto_eur:14, lucro_direto_usd:15,
-    direto_3_eur:66, direto_3_usd:69.95, lucro_3_eur:19, lucro_3_usd:20,
-    pref_1_eur:66, pref_1_usd:69.95, lucro_pref_eur:10, lucro_pref_usd:10,
-    bp_1_eur:66, bp_1_usd:69.95,
-    qv:55, bv_direto:55, bv_pref:39,
+    bv_direto:55, bv_pref:39,
     script:'O Carnosine apoia o cérebro e os músculos. Muitos utilizadores reportam maior clareza mental, melhor memória e mais vitalidade muscular. É excelente para quem quer performance mental e física.'
   },
   { id:'sp6', nome:'SP6® Complete', cat:'patches', emoji:'🌿',
@@ -30025,34 +30812,65 @@ const CATALOGO_PRODUTOS = [
     desc:'Apoia o controlo do apetite e o equilíbrio hormonal. Ideal para quem quer gerir o peso de forma natural e reduzir os desejos alimentares.',
     beneficios:['Controlo natural do apetite','Equilíbrio hormonal','Gestão de peso','Redução de desejos alimentares','Sem estimulantes'],
     uso:'Aplicar no ponto SP-6 (tornozelo interno). 12h máx. Não usar em grávidas.',
-    direto_1_eur:76, direto_1_usd:79.95, lucro_direto_eur:14, lucro_direto_usd:15,
-    direto_3_eur:66, direto_3_usd:69.95, lucro_3_eur:19, lucro_3_usd:20,
-    pref_1_eur:66, pref_1_usd:69.95, lucro_pref_eur:10, lucro_pref_usd:10,
-    bp_1_eur:66, bp_1_usd:69.95,
-    qv:55, bv_direto:55, bv_pref:39,
+    bv_direto:55, bv_pref:39,
     script:'Lutas com desejos alimentares ou controlo do peso? O SP6 Complete é um patch natural que ajuda a equilibrar o apetite e os hormônios. Muitas pessoas usam-no como parte do seu plano de bem-estar.'
   },
+  { id:'alavida', nome:'Alavida®', cat:'patches', emoji:'💧',
+    cor:'#f472b6',
+    desc:'Patch de fotobiomodulação focado no equilíbrio hormonal feminino e no bem-estar durante a menopausa e perimenopausa.',
+    beneficios:['Apoia o equilíbrio hormonal feminino','Conforto durante a menopausa/perimenopausa','Bem-estar geral','Sem hormonas externas'],
+    uso:'Aplicar conforme protocolo indicado. 12h com patch, 12h sem.',
+    bv_direto:55, bv_pref:39,
+    script:'Para mulheres em menopausa ou perimenopausa, o Alavida é um patch que apoia o equilíbrio hormonal de forma natural, sem hormonas externas. Muitas sentem mais conforto e bem-estar no dia a dia. Queres saber mais?'
+  },
+  { id:'aculife', nome:'AcuLife®', cat:'patches', emoji:'🎯',
+    cor:'#14b8a6',
+    desc:'Patch de fotobiomodulação para alívio localizado, com foco em pontos de acupuntura tradicionais.',
+    beneficios:['Alívio localizado','Baseado em pontos de acupuntura tradicionais','Sem medicamentos','Fácil de usar'],
+    uso:'Aplicar no ponto de desconforto indicado. 12h com patch, 12h sem.',
+    bv_direto:55, bv_pref:39,
+    script:'O AcuLife é um patch que se aplica em pontos de acupuntura tradicionais para apoiar o alívio localizado, sem medicamentos. Simples de usar e complementa bem outros patches LifeWave. Queres experimentar?'
+  },
+  // SUPLEMENTOS
+  { id:'cellergize_morning', nome:'Cellergize™ Morning', cat:'suplementos', emoji:'☀️',
+    cor:'#f5c842', destaque:true,
+    desc:'Suplemento em pó para dissolver em água, pensado para o início do dia — apoia a energia e a hidratação de forma natural. Já disponível na loja oficial LifeWave para o mercado europeu.',
+    beneficios:['Apoia a energia ao longo da manhã','Apoia a hidratação','Fácil de preparar (mistura para bebida)','Sem estimulantes fortes'],
+    uso:'Dissolver uma porção em água de manhã, conforme indicação da embalagem.',
+    bv_direto:0, bv_pref:0,
+    script:'O Cellergize Morning é a mistura para bebida da LifeWave pensada para o início do dia — dissolves em água e ajuda a sentir-te com mais energia e hidratação. Já está disponível! Combina muito bem com o Cellergize Evening para o pack Duo.'
+  },
+  { id:'cellergize_night', nome:'Cellergize™ Night', cat:'suplementos', emoji:'🌌',
+    cor:'#7c3aed', destaque:true,
+    desc:'Suplemento em pó para dissolver em água, pensado para a noite — apoia o relaxamento e a hidratação antes de dormir. Já disponível na loja oficial LifeWave para o mercado europeu.',
+    beneficios:['Apoia o relaxamento antes de dormir','Apoia a hidratação','Fácil de preparar (mistura para bebida)','Sem hormonas externas'],
+    uso:'Dissolver uma porção em água à noite, conforme indicação da embalagem.',
+    bv_direto:0, bv_pref:0,
+    script:'O Cellergize Evening é o complemento perfeito ao Morning — uma mistura para bebida pensada para a noite, que ajuda a relaxar e a hidratar antes de dormir. Já está disponível! Combina muito bem com o Silent Nights.'
+  },
+  { id:'cellergize-duo', nome:'Cellergize® Duo', cat:'suplementos', emoji:'☀️🌌',
+    cor:'#00d4aa', destaque:true,
+    desc:'O Morning e o Evening juntos num só pack, com o melhor preço — energia e hidratação de dia, relaxamento e hidratação à noite. Já disponível na loja oficial LifeWave para o mercado europeu.',
+    beneficios:['Ciclo completo dia+noite','Apoia energia de manhã e relaxamento à noite','Apoia a hidratação ao longo do dia todo','Melhor relação qualidade-preço que comprar separado'],
+    uso:'Cellergize Morning dissolvido em água de manhã + Cellergize Evening dissolvido em água à noite.',
+    bv_direto:0, bv_pref:0,
+    script:'O Cellergize Duo dá-te o Morning e o Evening juntos, com desconto face a comprar separado — energia de manhã, relaxamento à noite, hidratação o dia todo. É o pack mais completo e mais em conta para começar com o Cellergize.'
+  },
   // SISTEMAS
-  { id:'yage-system', nome:'Y-Age® System Kit', cat:'sistemas', emoji:'🎁',
+  { id:'y-age-kit', nome:'Y-Age® System Kit', cat:'sistemas', emoji:'🎁',
     cor:'#f5c842', destaque:true,
     desc:'O kit completo com os 3 patches Y-Age: Aeon, Glutathione e Carnosine. A combinação mais poderosa para anti-envelhecimento, imunidade e bem-estar geral.',
     beneficios:['Anti-envelhecimento completo','Máxima desintoxicação','Saúde cognitiva e muscular','Imunidade reforçada','Melhor relação qualidade-preço'],
     uso:'Rotacionar os 3 patches: Aeon (2ª/5ª), Glutathione (3ª/6ª), Carnosine (4ª/7ª). Ou conforme protocolo do teu upline.',
-    direto_1_eur:199, direto_1_usd:209.85, lucro_direto_eur:57, lucro_direto_usd:60,
-    pref_1_eur:142, pref_1_usd:149.85, lucro_pref_eur:29, lucro_pref_usd:30,
-    bp_1_eur:142, bp_1_usd:149.85,
-    qv:117, bv_direto:117, bv_pref:66,
+    bv_direto:117, bv_pref:66,
     script:'O Y-Age System Kit inclui os 3 patches de anti-envelhecimento mais poderosos da LifeWave num preço especial. Em vez de comprar separado, poupas e tens um protocolo completo para imunidade, desintoxicação e saúde cerebral.'
   },
-  { id:'x39x49', nome:'X39® + X49® Performance Bundle', cat:'sistemas', emoji:'💪',
+  { id:'x39x49-bundle', nome:'X39® + X49® Performance Bundle', cat:'sistemas', emoji:'💪',
     cor:'#00d4aa', destaque:true,
     desc:'A combinação definitiva para quem quer suportar o bem-estar geral (X39) E maximizar a performance física (X49). O pack mais vendido para desportistas e pessoas ativas.',
     beneficios:['Suporte ao bem-estar geral','Máxima performance física','Recuperação acelerada','Energia e vitalidade','O melhor dos dois mundos'],
     uso:'X39 de manhã + X49 antes do treino ou na tarde. Retirar ao fim de 12h cada.',
-    direto_1_eur:266, direto_1_usd:279.95, lucro_direto_eur:95, lucro_direto_usd:100,
-    pref_1_eur:171, pref_1_usd:171.95, lucro_pref_eur:38, lucro_pref_usd:40,
-    bp_1_eur:171, bp_1_usd:179.95,
-    qv:140, bv_direto:140, bv_pref:73,
+    bv_direto:140, bv_pref:73,
     script:'Para quem quer o máximo, o bundle X39+X49 é imbatível. Fotobiomodulação + performance física num só protocolo. Os atletas adoram. E sai muito mais em conta do que comprar separado!'
   },
   // PELE
@@ -30061,51 +30879,62 @@ const CATALOGO_PRODUTOS = [
     desc:'O kit completo de cuidado da pele LifeWave. Inclui creme de dia, creme de noite e creme de olhos com tecnologia de fotobiomodulação integrada nos produtos.',
     beneficios:['Apoia a renovação natural da pele','Redução de rugas e linhas','Hidratação profunda','Luminosidade e firmeza','Tecnologia LifeWave aplicada à pele'],
     uso:'Manhã: Facial Nectar. Noite: Restore Creme. Manhã e noite: Eye Cream. Usar diariamente.',
-    direto_1_eur:190, direto_1_usd:199.95, lucro_direto_eur:48, lucro_direto_usd:50,
-    pref_1_eur:142, pref_1_usd:149.95, lucro_pref_eur:38, lucro_pref_usd:40,
-    bp_1_eur:142, bp_1_usd:149.95,
-    qv:119, bv_direto:119, bv_pref:51,
+    bv_direto:119, bv_pref:51,
     script:'Para quem quer cuidar da pele com a tecnologia LifeWave, o Trio Alavida é perfeito. Resultados visíveis em poucas semanas — pele mais firme, luminosa e hidratada. Ideal como presente ou para complementar o uso do X39.'
+  },
+  { id:'alavida-nectar', nome:'Alavida® Daily Refresh Facial Nectar', cat:'pele', emoji:'🌤️',
+    cor:'#a855f7',
+    desc:'Sérum facial de dia com tecnologia de fotobiomodulação LifeWave. Refresca e hidrata a pele logo pela manhã, preparando-a para o dia.',
+    beneficios:['Hidratação e frescura imediatas','Prepara a pele para maquilhagem','Tecnologia LifeWave de dia','Complementa o Trio Alavida'],
+    uso:'Aplicar de manhã, no rosto limpo, antes do resto da rotina de cuidados.',
+    bv_direto:42, bv_pref:25,
+    script:'O Facial Nectar é o passo da manhã do Alavida — refresca e prepara a pele para o dia. Ótimo produto de entrada para quem quer experimentar a linha Alavida sem comprar o Trio completo.'
+  },
+  { id:'alavida-nightly', nome:'Alavida® Nightly Restore Facial Creme', cat:'pele', emoji:'🌙',
+    cor:'#a855f7',
+    desc:'Creme facial de noite regenerador com tecnologia de fotobiomodulação LifeWave. Apoia a renovação da pele durante o sono.',
+    beneficios:['Regeneração noturna da pele','Redução de rugas e linhas finas','Textura e firmeza melhoradas','Tecnologia LifeWave à noite'],
+    uso:'Aplicar à noite, no rosto limpo, antes de dormir.',
+    bv_direto:55, bv_pref:21,
+    script:'O Nightly Restore trabalha enquanto dormes — regeneração e firmeza da pele durante a noite. É o creme mais popular da linha Alavida vendido isoladamente.'
+  },
+  { id:'alavida-eye', nome:'Alavida® Revive Eye Cream', cat:'pele', emoji:'👁️',
+    cor:'#a855f7',
+    desc:'Creme de olhos com tecnologia de fotobiomodulação LifeWave. Reduz o aspeto de olheiras, inchaço e linhas finas na zona dos olhos.',
+    beneficios:['Reduz olheiras e inchaço','Suaviza linhas finas','Zona dos olhos mais revitalizada','Complementa o Trio Alavida'],
+    uso:'Aplicar manhã e noite, com toques suaves, na zona dos olhos.',
+    bv_direto:42, bv_pref:17,
+    script:'O Revive Eye Cream ataca especificamente olheiras e inchaço — ótimo produto complementar para quem já usa o Nightly Restore ou o Trio completo.'
   },
   // PACOTES DE INSCRIÇÃO (PIB)
   { id:'pib-starter', nome:'Pacote Starter', cat:'pib', emoji:'🌱',
     cor:'#8b9cf7',
     desc:'Entrada sem produtos. Apenas o acesso ao negócio LifeWave. Ideal para quem quer começar sem investimento em stock.',
     beneficios:['Acesso ao backoffice','Link de afiliado','Sem stock inicial','Boa para testar o negócio'],
-    direto_1_eur:24, direto_1_usd:25, lucro_direto_eur:0, lucro_direto_usd:0,
-    pib_eur:0, pib_usd:0, qv:0,
     script:'O Starter é a forma mais simples de começar. Sem investimento em produtos, só tens acesso ao negócio e ao teu link. Perfeito para quem quer testar primeiro.'
   },
   { id:'pib-core', nome:'Pacote Core', cat:'pib', emoji:'📦',
     cor:'#0084ff',
     desc:'3 ou 6 embalagens de produtos à escolha. Bom equilíbrio entre investimento e resultado. Activa o Bónus por Introdução de 33€.',
     beneficios:['3 a 6 embalagens incluídas','PIB de 33€ para o teu inscrito','QV de 180 para qualificação','Bom para começar com produto'],
-    direto_1_eur:280, direto_1_usd:295, lucro_direto_eur:0, lucro_direto_usd:0,
-    pib_eur:33, pib_usd:35, qv:180,
     script:'O Core é um ótimo início — inclui 3 a 6 embalagens para experimentar os produtos e partilhar com quem queres apresentar. E tu, como inscrito, recebes já 33€ de bónus!'
   },
   { id:'pib-adv', nome:'Pacote Advanced', cat:'pib', emoji:'🚀',
     cor:'#f5c842',
     desc:'6 ou 12 embalagens. Ideal para quem quer arrancar com mais produto e stock. PIB de 71€ para o Brand Partner que faz a inscrição.',
     beneficios:['6 a 12 embalagens incluídas','PIB de 71€','QV de 300','Mais stock para demonstrações','Melhor para arranque sólido'],
-    direto_1_eur:508, direto_1_usd:535, lucro_direto_eur:0, lucro_direto_usd:0,
-    pib_eur:71, pib_usd:75, qv:300,
     script:'O Advanced é o mais escolhido para quem quer arrancar a sério. 6 a 12 embalagens, QV alto e tu recebes 71€ de PIB imediato. É o investimento que faz sentido quando a pessoa está comprometida.'
   },
   { id:'pib-advp', nome:'Pacote Advanced Plus', cat:'pib', emoji:'⭐',
     cor:'#ff6b35',
     desc:'11 ou 22 embalagens. Para quem quer arrancar com máxima força e stock para toda a equipa e clientes. PIB de 157€.',
     beneficios:['11 a 22 embalagens','PIB de 157€','QV de 500','Stock para clientes e equipa','Posicionamento forte desde o 1º dia'],
-    direto_1_eur:926, direto_1_usd:975, lucro_direto_eur:0, lucro_direto_usd:0,
-    pib_eur:157, pib_usd:165, qv:500,
     script:'O Advanced Plus é para líderes que querem começar a todo o gás. Stock para toda a equipa, QV de 500 e tu ganhas 157€ de PIB. É o pacote dos que têm visão!'
   },
   { id:'pib-premium', nome:'Pacote Premium', cat:'pib', emoji:'👑',
     cor:'#a855f7', destaque:true,
     desc:'O maior pacote. 20 a 40 embalagens. PIB de 385€ — o maior bónus de inscrição. QV de 775 distribuído em 3 meses para manter o estatuto Ativo.',
     beneficios:['20 a 40 embalagens','PIB de 385€ — máximo!','QV de 775 (3 meses)','Arranque com máxima credibilidade','Para líderes com ambição'],
-    direto_1_eur:1663, direto_1_usd:1750, lucro_direto_eur:0, lucro_direto_usd:0,
-    pib_eur:385, pib_usd:405, qv:775,
     script:'O Premium é o topo! 385€ de bónus imediato para mim, e o novo membro arranca com stock para meses. É o pacote dos Presidentials em formação. Quem pega no Premium está a dizer que é a sério.'
   },
 ];
@@ -30114,7 +30943,9 @@ let catFiltroAtual = 'todos';
 
 function renderCatalogo() {
   const tipo = document.getElementById('cat-tipo-cliente')?.value || 'direto';
-  const moeda = document.getElementById('cat-moeda')?.value || 'eur';
+  const moedaSelect = document.getElementById('cat-moeda');
+  if (moedaSelect && !moedaSelect.dataset.tocado) moedaSelect.value = getMoedaAtual();
+  const moeda = moedaSelect?.value || getMoedaAtual();
   const grid = document.getElementById('cat-grid');
   if (!grid) return;
 
@@ -30123,28 +30954,33 @@ function renderCatalogo() {
     : CATALOGO_PRODUTOS.filter(p => p.cat === catFiltroAtual);
 
   grid.innerHTML = filtrados.map(p => {
+    const porConfirmar = precoProdutoPorConfirmar(p.id);
+    const estimado = precoProdutoEstimado(p.id, moeda);
+    const qv = precoProduto(p.id, 'direto', 'eur') >= 0 ? (CATALOGO_PRECOS[p.id]?.qv ?? CATALOGO_PRECOS_DEFAULT[p.id]?.qv ?? 0) : 0;
+
     // Preço e lucro conforme tipo
     let preco = 0, lucro = 0, precoLabel = '', lucroLabel = '';
-    const sym = moeda === 'eur' ? '€' : '$';
-    if (p.cat === 'pib') {
-      preco = moeda === 'eur' ? p.direto_1_eur : p.direto_1_usd;
-      lucro = moeda === 'eur' ? (p.pib_eur||0) : (p.pib_usd||0);
-      precoLabel = `Preço do pacote: <strong>${preco}${sym}</strong>`;
-      lucroLabel = lucro > 0 ? `PIB (teu bónus): <strong style="color:var(--accent);">${lucro}${sym}</strong>` : 'Sem PIB neste pacote';
-    } else if (tipo === 'direto') {
-      preco = moeda === 'eur' ? p.direto_1_eur : p.direto_1_usd;
-      lucro = moeda === 'eur' ? p.lucro_direto_eur : p.lucro_direto_usd;
-      precoLabel = `Preço venda direta: <strong>${preco}${sym}</strong>`;
-      lucroLabel = `Lucro direto: <strong style="color:var(--accent);">${lucro}${sym}</strong>`;
-    } else if (tipo === 'preferencial') {
-      preco = moeda === 'eur' ? p.pref_1_eur : p.pref_1_usd;
-      lucro = moeda === 'eur' ? (p.lucro_pref_eur||0) : (p.lucro_pref_usd||0);
-      precoLabel = `Preço CP: <strong>${preco}${sym}</strong>`;
-      lucroLabel = `Lucro retalho: <strong style="color:var(--accent);">${lucro}${sym}</strong>`;
-    } else {
-      preco = moeda === 'eur' ? p.bp_1_eur : p.bp_1_usd;
-      precoLabel = `Preço BP: <strong>${preco}${sym}</strong>`;
-      lucroLabel = `QV: <strong style="color:var(--accent2);">${p.qv||0}</strong>`;
+    if (!porConfirmar) {
+      if (p.cat === 'pib') {
+        preco = precoProduto(p.id, 'direto', moeda);
+        lucro = precoProduto(p.id, 'pib', moeda);
+        precoLabel = `Preço do pacote: <strong>${formatarPreco(preco, moeda)}</strong>`;
+        lucroLabel = lucro > 0 ? `PIB (teu bónus): <strong style="color:var(--accent);">${formatarPreco(lucro, moeda)}</strong>` : 'Sem PIB neste pacote';
+      } else if (tipo === 'direto') {
+        preco = precoProduto(p.id, 'direto', moeda);
+        lucro = precoProduto(p.id, 'lucro_direto', moeda);
+        precoLabel = `Preço venda direta: <strong>${formatarPreco(preco, moeda)}</strong>`;
+        lucroLabel = `Lucro direto: <strong style="color:var(--accent);">${formatarPreco(lucro, moeda)}</strong>`;
+      } else if (tipo === 'preferencial') {
+        preco = precoProduto(p.id, 'pref', moeda);
+        lucro = precoProduto(p.id, 'lucro_pref', moeda);
+        precoLabel = `Preço CP: <strong>${formatarPreco(preco, moeda)}</strong>`;
+        lucroLabel = `Lucro retalho: <strong style="color:var(--accent);">${formatarPreco(lucro, moeda)}</strong>`;
+      } else {
+        preco = precoProduto(p.id, 'bp', moeda);
+        precoLabel = `Preço BP: <strong>${formatarPreco(preco, moeda)}</strong>`;
+        lucroLabel = `QV: <strong style="color:var(--accent2);">${qv||0}</strong>`;
+      }
     }
 
     return `
@@ -30155,13 +30991,15 @@ function renderCatalogo() {
       <!-- Header colorido -->
       <div style="background:linear-gradient(135deg,${p.cor}22,${p.cor}08);padding:16px 18px;border-bottom:1px solid ${p.cor}33;display:flex;justify-content:space-between;align-items:flex-start;">
         <div>
-          ${p.destaque ? `<div style="font-size:10px;font-weight:700;color:${p.cor};text-transform:uppercase;letter-spacing:0.7px;margin-bottom:4px;">⭐ Mais Vendido</div>` : ''}
+          ${p.destaque && !porConfirmar ? `<div style="font-size:10px;font-weight:700;color:${p.cor};text-transform:uppercase;letter-spacing:0.7px;margin-bottom:4px;">⭐ Mais Vendido</div>` : ''}
+          ${porConfirmar ? `<div style="font-size:10px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:0.7px;margin-bottom:4px;">⏳ Já disponível na Europa · preço a confirmar</div>` : ''}
+          ${!porConfirmar && estimado ? `<div style="font-size:9px;font-weight:700;color:#f5c842;text-transform:uppercase;letter-spacing:0.6px;margin-bottom:4px;">⚠️ Valor CAD estimado (não oficial)</div>` : ''}
           <div style="font-size:22px;margin-bottom:4px;">${p.emoji}</div>
           <div style="font-family:'Syne',sans-serif;font-size:15px;font-weight:700;color:var(--text);">${p.nome}</div>
         </div>
         <div style="text-align:right;">
-          <div style="font-family:'Syne',sans-serif;font-size:22px;font-weight:800;color:${p.cor};">${preco > 0 ? preco + sym : '—'}</div>
-          ${lucro > 0 ? `<div style="font-size:12px;font-weight:700;color:var(--accent);">+${lucro}${sym} ${p.cat==='pib'?'PIB':'lucro'}</div>` : ''}
+          <div style="font-family:'Syne',sans-serif;font-size:22px;font-weight:800;color:${p.cor};">${porConfirmar ? '—' : (preco > 0 ? formatarPreco(preco, moeda) : '—')}</div>
+          ${!porConfirmar && lucro > 0 ? `<div style="font-size:12px;font-weight:700;color:var(--accent);">+${formatarPreco(lucro, moeda)} ${p.cat==='pib'?'PIB':'lucro'}</div>` : ''}
         </div>
       </div>
       <!-- Body -->
@@ -30171,10 +31009,9 @@ function renderCatalogo() {
           ${(p.beneficios||[]).slice(0,3).map(b => `<span style="font-size:10px;background:${p.cor}15;color:${p.cor};padding:3px 8px;border-radius:20px;">✓ ${b}</span>`).join('')}
         </div>
         <div style="font-size:11px;color:var(--text2);border-top:1px solid var(--border);padding-top:10px;display:flex;justify-content:space-between;flex-wrap:wrap;gap:6px;">
-          <span>${precoLabel}</span>
-          <span>${lucroLabel}</span>
+          ${porConfirmar ? '<span>Importa a tabela de preços para ver valores</span>' : `<span>${precoLabel}</span><span>${lucroLabel}</span>`}
         </div>
-        ${p.qv && p.cat !== 'pib' ? `<div style="font-size:10px;color:var(--text3);margin-top:4px;">QV: ${p.qv} · BV: ${p.bv_direto||p.qv}</div>` : ''}
+        ${qv && p.cat !== 'pib' ? `<div style="font-size:10px;color:var(--text3);margin-top:4px;">QV: ${qv} · BV: ${p.bv_direto||qv}</div>` : ''}
       </div>
       <div style="padding:0 18px 14px;">
         <button class="btn btn-primary btn-sm" style="width:100%;" onclick="event.stopPropagation();abrirDetalhe('${p.id}')">Ver detalhes + Script de venda</button>
@@ -30194,13 +31031,15 @@ function abrirDetalhe(id) {
   const p = CATALOGO_PRODUTOS.find(x => x.id === id);
   if (!p) return;
   const tipo = document.getElementById('cat-tipo-cliente')?.value || 'direto';
-  const moeda = document.getElementById('cat-moeda')?.value || 'eur';
-  const sym = moeda === 'eur' ? '€' : '$';
-  let preco = moeda === 'eur' ? p.direto_1_eur : p.direto_1_usd;
-  let lucro = moeda === 'eur' ? p.lucro_direto_eur : p.lucro_direto_usd;
-  if (tipo === 'preferencial') { preco = moeda==='eur'?p.pref_1_eur:p.pref_1_usd; lucro = moeda==='eur'?(p.lucro_pref_eur||0):(p.lucro_pref_usd||0); }
-  if (tipo === 'bp') { preco = moeda==='eur'?p.bp_1_eur:p.bp_1_usd; lucro = 0; }
-  const pib = p.cat === 'pib' ? (moeda==='eur'?(p.pib_eur||0):(p.pib_usd||0)) : 0;
+  const moeda = document.getElementById('cat-moeda')?.value || getMoedaAtual();
+  const porConfirmar = precoProdutoPorConfirmar(p.id);
+  const estimado = precoProdutoEstimado(p.id, moeda);
+  let preco = precoProduto(p.id, 'direto', moeda);
+  let lucro = precoProduto(p.id, 'lucro_direto', moeda);
+  if (tipo === 'preferencial') { preco = precoProduto(p.id, 'pref', moeda); lucro = precoProduto(p.id, 'lucro_pref', moeda); }
+  if (tipo === 'bp') { preco = precoProduto(p.id, 'bp', moeda); lucro = 0; }
+  const pib = p.cat === 'pib' ? precoProduto(p.id, 'pib', moeda) : 0;
+  const qv = CATALOGO_PRECOS[p.id]?.qv ?? CATALOGO_PRECOS_DEFAULT[p.id]?.qv ?? 0;
 
   document.getElementById('cat-modal-content').innerHTML = `
     <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px;">
@@ -30208,22 +31047,28 @@ function abrirDetalhe(id) {
         <span style="font-size:32px;">${p.emoji}</span>
         <div>
           <div style="font-family:'Syne',sans-serif;font-size:18px;font-weight:800;color:var(--text);">${p.nome}</div>
-          <div style="font-size:12px;color:${p.cor};font-weight:600;text-transform:uppercase;">${{patches:'Patch',sistemas:'Sistema/Bundle',pele:'Cuidados da Pele',pib:'Pacote de Inscrição'}[p.cat]||p.cat}</div>
+          <div style="font-size:12px;color:${p.cor};font-weight:600;text-transform:uppercase;">${{patches:'Patch',suplementos:'Suplemento',sistemas:'Sistema/Bundle',pele:'Cuidados da Pele',pib:'Pacote de Inscrição'}[p.cat]||p.cat}</div>
         </div>
       </div>
       <button onclick="fecharDetalhe()" style="background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:6px 12px;cursor:pointer;font-size:13px;">✕ Fechar</button>
     </div>
     <p style="font-size:13px;color:var(--text2);line-height:1.7;margin-bottom:16px;">${p.desc}</p>
+    ${estimado && !porConfirmar ? `
+    <div style="background:rgba(245,200,66,0.1);border:1px solid rgba(245,200,66,0.35);border-radius:8px;padding:10px 12px;margin-bottom:14px;font-size:11.5px;color:#f5c842;line-height:1.5;">⚠️ O valor em CA$ ainda é uma <strong>estimativa não oficial</strong> — importa a tabela de preços do mercado Canadá para confirmar.</div>` : ''}
+    ${porConfirmar ? `
+    <div style="background:var(--surface2);border:1px dashed var(--border);border-radius:8px;padding:12px;margin-bottom:16px;font-size:12px;color:var(--text2);text-align:center;">
+      ⏳ Ainda sem tabela de preços oficial importada para este produto. Importa a tabela mais recente em <strong>Catálogo → Importar Tabela de Preços</strong> para veres aqui o preço e o lucro.
+    </div>` : `
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;">
       <div style="background:var(--surface2);border-radius:8px;padding:12px;text-align:center;">
         <div style="font-size:10px;color:var(--text2);text-transform:uppercase;margin-bottom:4px;">Preço</div>
-        <div style="font-family:'Syne',sans-serif;font-size:22px;font-weight:800;color:var(--text);">${preco > 0 ? preco+sym : '—'}</div>
+        <div style="font-family:'Syne',sans-serif;font-size:22px;font-weight:800;color:var(--text);">${preco > 0 ? formatarPreco(preco, moeda) : '—'}</div>
       </div>
       <div style="background:rgba(0,212,170,0.08);border-radius:8px;padding:12px;text-align:center;border:1px solid rgba(0,212,170,0.2);">
         <div style="font-size:10px;color:var(--text2);text-transform:uppercase;margin-bottom:4px;">${p.cat==='pib'?'PIB (teu bónus)':'Lucro Direto'}</div>
-        <div style="font-family:'Syne',sans-serif;font-size:22px;font-weight:800;color:var(--accent);">${(pib||lucro) > 0 ? '+'+(pib||lucro)+sym : '—'}</div>
+        <div style="font-family:'Syne',sans-serif;font-size:22px;font-weight:800;color:var(--accent);">${(pib||lucro) > 0 ? '+'+formatarPreco(pib||lucro, moeda) : '—'}</div>
       </div>
-    </div>
+    </div>`}
     ${p.beneficios?.length ? `
     <div style="margin-bottom:16px;">
       <div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:8px;">✅ Benefícios</div>
@@ -30243,7 +31088,7 @@ function abrirDetalhe(id) {
         <button class="btn btn-wa btn-sm" onclick="enviarWhatsAppInteligente('${p.script.replace(/'/g,'').replace(/\n/g,' ').substring(0,300)}')">💬 Enviar WA</button>
       </div>
     </div>` : ''}
-    <div style="font-size:11px;color:var(--text3);">QV: ${p.qv||0} · BV Direto: ${p.bv_direto||0} · BV Pref: ${p.bv_pref||0}</div>
+    <div style="font-size:11px;color:var(--text3);">QV: ${qv||0} · BV Direto: ${p.bv_direto||0} · BV Pref: ${p.bv_pref||0}</div>
     <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--border);">
       <div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:10px;">✨ Gerador de Conteúdo IA</div>
       <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px;" id="cat-gen-tabs">
@@ -31252,8 +32097,22 @@ function renderPrevisaoComissao() {
 
     <div class="form-row">
       <div class="form-group">
-        <label class="form-label">🌍 País / Mercado Principal</label>
-        <input class="form-input" id="perfil-pais" placeholder="Ex: Portugal, Brasil, España...">
+        <label class="form-label">🌍 Mercado LifeWave (país onde compras/vendes)</label>
+        <select class="form-select" id="perfil-mercado" onchange="perfilMercadoAlterado()">
+          <option value="">— Selecionar —</option>
+          <option value="Portugal">🇵🇹 Portugal (EUR)</option>
+          <option value="Espanha">🇪🇸 Espanha (EUR)</option>
+          <option value="França">🇫🇷 França (EUR)</option>
+          <option value="Alemanha">🇩🇪 Alemanha (EUR)</option>
+          <option value="Itália">🇮🇹 Itália (EUR)</option>
+          <option value="Europa (zona Euro)">🇪🇺 Outro país da zona Euro (EUR)</option>
+          <option value="EUA">🇺🇸 EUA (USD)</option>
+          <option value="Reino Unido">🇬🇧 Reino Unido (GBP)</option>
+          <option value="Canadá">🇨🇦 Canadá (CAD)</option>
+          <option value="Austrália">🇦🇺 Austrália (AUD)</option>
+          <option value="Outro">🌐 Outro (define a moeda manualmente)</option>
+        </select>
+        <div style="font-size:11px;color:var(--text2);margin-top:4px;" id="perfil-mercado-moeda-info"></div>
       </div>
       <div class="form-group">
         <label class="form-label">🗣️ Idioma do Coach IA</label>
@@ -31268,6 +32127,17 @@ function renderPrevisaoComissao() {
         </select>
       </div>
     </div>
+    <div class="form-group" id="perfil-moeda-manual-group" style="display:none;">
+      <label class="form-label">💱 Moeda a usar na app</label>
+      <select class="form-select" id="perfil-moeda-manual" onchange="perfilMercadoAlterado()">
+        <option value="eur">€ EUR</option>
+        <option value="usd">$ USD</option>
+        <option value="gbp">£ GBP</option>
+        <option value="cad">CA$ CAD</option>
+        <option value="aud">AU$ AUD</option>
+      </select>
+    </div>
+    <input type="hidden" id="perfil-pais">
 
     <div style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px;margin:14px 0;">
       <div style="font-size:11px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:0.7px;margin-bottom:10px;">📅 Datas de Inscrição e Encomendas</div>
@@ -31726,6 +32596,37 @@ function renderPrevisaoComissao() {
   </div>
 </div>
 
+<!-- MODAL: IMPORTAR TABELA DE PREÇOS -->
+<div class="modal-overlay" id="modal-import-precos">
+  <div class="modal" style="max-width:560px;">
+    <div class="modal-title">
+      <span>📥 Importar Tabela de Preços</span>
+      <button class="modal-close" onclick="closeModal('modal-import-precos')">✕</button>
+    </div>
+    <div style="font-size:12px;color:var(--text2);margin-bottom:14px;line-height:1.6;">
+      Confirma os valores antes de aplicar. Isto atualiza o Simulador de Lucro, o Catálogo de Produtos e o Registo de Vendas de uma só vez — em toda a app.
+    </div>
+    <div id="import-precos-preview"></div>
+    <div style="display:flex;gap:10px;margin-top:16px;">
+      <button class="btn btn-secondary" style="flex:1;" onclick="closeModal('modal-import-precos')">Cancelar</button>
+      <button class="btn btn-primary" id="btn-confirmar-import-precos" style="flex:1;" onclick="precosConfirmarImport()">✅ Aplicar Preços</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Atualização do Plano de Compensação a partir de PDF oficial -->
+<div class="modal-overlay" id="modal-comp-plan-import">
+  <div class="modal" style="max-width:640px;">
+    <div class="modal-title">
+      <span>🔄 Atualizar Plano de Compensação</span>
+      <button class="modal-close" onclick="compPlanFecharModalImport()">✕</button>
+    </div>
+    <div id="comp-plan-import-body">
+      <!-- estado inicial / a extrair / preview / erro — preenchido por JS -->
+    </div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="modal-nova-venda">
   <div class="modal" style="max-width:500px;">
     <div class="modal-title">
@@ -31756,6 +32657,10 @@ function renderPrevisaoComissao() {
           <option>Silent Nights</option>
           <option>SP6 Complete</option>
           <option>Y-Age Glutathione</option>
+          <option>Alavida</option>
+          <option>AcuLife</option>
+          <option>Cellergize Morning</option>
+          <option>Cellergize Night</option>
           <option>Pack Starter</option>
           <option>Outro</option>
         </select>
@@ -34797,29 +35702,8 @@ function gerarLembretesAutomaticos() {
 // PERCURSO PARA O SUCESSO — página visual interativa
 // ===================================================
 
-// Dados completos (estende PERCURSO_SUCESSO existente com meta-info)
-const PERC_META = {
-  '3-Star Presidential': { emoji:'👑👑👑', grupo:'presidential', cor:'#a855f7', binPct:10, binMaxEur:23750, n1:7, n2:5, n3:3, incEur:95000, incUsd:100000, desc:'O pináculo da LifeWave. QDV 3,5M. 3 Secções.' },
-  '2-Star Presidential': { emoji:'👑👑',   grupo:'presidential', cor:'#a855f7', binPct:10, binMaxEur:23750, n1:7, n2:5, n3:3, incEur:71250, incUsd:75000,  desc:'Topo absoluto. Binário máx 23.750€. Mentor até Gen6.' },
-  '1-Star Presidential': { emoji:'👑',     grupo:'presidential', cor:'#a855f7', binPct:10, binMaxEur:19000, n1:7, n2:5, n3:3, incEur:47500, incUsd:50000,  desc:'Elite LifeWave! Binário máx 19.000€. Leadership Pool.' },
-  '3-Star Executive':    { emoji:'💎💎💎', grupo:'executive',    cor:'#ff6b35', binPct:10, binMaxEur:14250, n1:7, n2:5, n3:3, incEur:0,     incUsd:0,      desc:'Binário máx 14.250€. Mentor até Gen5 (18%).' },
-  '2-Star Executive':    { emoji:'💎💎',   grupo:'executive',    cor:'#ff6b35', binPct:10, binMaxEur:9500,  n1:7, n2:5, n3:3, incEur:0,     incUsd:0,      desc:'Binário máx 9.500€. Mentor até Gen5 (12%).' },
-  '1-Star Executive':    { emoji:'💎',     grupo:'executive',    cor:'#ff6b35', binPct:10, binMaxEur:7125,  n1:7, n2:5, n3:3, incEur:4750,  incUsd:5000,   desc:'PV sobe para 200. Binário máx 7.125€. Incentivo 4.750€!' },
-  '3-Star Director':     { emoji:'🎖️🎖️🎖️', grupo:'director',   cor:'#f5c842', binPct:10, binMaxEur:4750,  n1:7, n2:5, n3:3, incEur:0,     incUsd:0,      desc:'Binário 10% (máx 4.750€). Mentor até Gen3 (5%).' },
-  '2-Star Director':     { emoji:'🎖️🎖️',  grupo:'director',    cor:'#f5c842', binPct:9,  binMaxEur:3325,  n1:7, n2:5, n3:2, incEur:0,     incUsd:0,      desc:'Binário 9% (máx 3.325€). Mentor Gen2: 5%.' },
-  '1-Star Director':     { emoji:'🎖️',    grupo:'director',    cor:'#f5c842', binPct:7,  binMaxEur:2375,  n1:7, n2:5, n3:1, incEur:475,   incUsd:500,    desc:'Desbloqueia Nível 3 (1%) e Mentor Matching. Incentivo 475€!' },
-  '3-Star Manager':      { emoji:'⭐⭐⭐', grupo:'manager',      cor:'#0084ff', binPct:5,  binMaxEur:1425,  n1:7, n2:3, n3:0, incEur:0,     incUsd:0,      desc:'Desbloqueia Bónus Binário (5%, máx 1.425€/sem)!' },
-  '2-Star Manager':      { emoji:'⭐⭐',   grupo:'manager',      cor:'#0084ff', binPct:0,  binMaxEur:0,     n1:7, n2:2, n3:0, incEur:0,     incUsd:0,      desc:'Desbloqueia Nível 2 (2%). Negócio a ganhar profundidade.' },
-  '1-Star Manager':      { emoji:'⭐',     grupo:'manager',      cor:'#0084ff', binPct:0,  binMaxEur:0,     n1:5, n2:0, n3:0, incEur:0,     incUsd:0,      desc:'Primeiro marco real. Nível 1 sobe para 5%.' },
-  'Brand Partner Ativo': { emoji:'⚡',     grupo:'start',        cor:'#8b9cf7', binPct:0,  binMaxEur:0,     n1:3, n2:0, n3:0, incEur:0,     incUsd:0,      desc:'55 PV em 31 dias. Começas a ganhar Nível 1 (3%).' },
-};
-
-const PERC_ORDEM = [
-  'Brand Partner Ativo','1-Star Manager','2-Star Manager','3-Star Manager',
-  '1-Star Director','2-Star Director','3-Star Director',
-  '1-Star Executive','2-Star Executive','3-Star Executive',
-  '1-Star Presidential','2-Star Presidential','3-Star Presidential'
-];
+// PERC_META e PERC_ORDEM agora são derivados de COMP_PLAN_CONFIG
+// (ver compPlanReconstruirTabelas, mais acima no ficheiro).
 
 const GRUPO_COR  = { start:'#8b9cf7', manager:'#0084ff', director:'#f5c842', executive:'#ff6b35', presidential:'#a855f7' };
 const GRUPO_NOME = { start:'Início', manager:'Manager', director:'Director', executive:'Executive', presidential:'Presidential' };
@@ -40884,6 +41768,18 @@ function renderDashVendas() {
 }
 
 // ===== AUTO-PREÇO CATÁLOGO LIFEWAVE =====
+// Mapa do nome mostrado no dropdown "Produto" do Registo de Vendas para o id
+// canónico usado em CATALOGO_PRECOS — assim este formulário lê sempre da
+// mesma fonte de preços que o Simulador de Lucro e o Catálogo de Produtos,
+// em vez de ter a sua própria tabela (que antes ficava dessincronizada).
+const VENDA_PRODUTO_ID_MAP = {
+  'X39':'x39', 'X49':'x49', 'Aeon':'aeon', 'Carnosine':'carno',
+  'Energy Enhancer':'energy', 'IceWave':'icewave', 'Silent Nights':'silent',
+  'SP6 Complete':'sp6', 'Y-Age Glutathione':'gluta', 'Alavida':'alavida',
+  'AcuLife':'aculife', 'Cellergize Morning':'cellergize_morning',
+  'Cellergize Night':'cellergize_night', 'Pack Starter':'pib-starter',
+};
+
 function vendaAutoPreco() {
   const produto = document.getElementById('v-produto')?.value || '';
   const tipo = document.getElementById('v-tipo')?.value || '';
@@ -40892,32 +41788,693 @@ function vendaAutoPreco() {
   // Não sobrescreve se o utilizador já editou manualmente
   // (apenas preenche se estiver vazio ou igual ao último auto-valor)
 
-  // Preços EMEA PT (€) por produto × tipo
-  // Preferido = mensalidade cliente preferido
-  // Distribuidor/Retalhista = preço de venda ao público
-  // Kit = pack inicial
-  const precos = {
-    'X39':               { preferido: 99,  distribuidor: 149, retalhista: 149, kit: 299 },
-    'X49':               { preferido: 99,  distribuidor: 149, retalhista: 149, kit: 299 },
-    'Aeon':              { preferido: 99,  distribuidor: 149, retalhista: 149, kit: 0   },
-    'Carnosine':         { preferido: 99,  distribuidor: 149, retalhista: 149, kit: 0   },
-    'Energy Enhancer':   { preferido: 79,  distribuidor: 119, retalhista: 119, kit: 0   },
-    'IceWave':           { preferido: 79,  distribuidor: 119, retalhista: 119, kit: 0   },
-    'Silent Nights':     { preferido: 79,  distribuidor: 119, retalhista: 119, kit: 0   },
-    'SP6 Complete':      { preferido: 79,  distribuidor: 119, retalhista: 119, kit: 0   },
-    'Y-Age Glutathione': { preferido: 99,  distribuidor: 149, retalhista: 149, kit: 0   },
-    'Pack Starter':      { preferido: 0,   distribuidor: 349, retalhista: 349, kit: 349 },
-    'Outro':             { preferido: 0,   distribuidor: 0,   retalhista: 0,   kit: 0   },
-  };
+  const id = VENDA_PRODUTO_ID_MAP[produto];
+  if (!id) return; // 'Outro' ou produto sem preço de catálogo associado
+  if (precoProdutoPorConfirmar(id)) return; // ex: Cellergize antes da tabela oficial ser importada
 
-  const p = precos[produto];
-  if (!p) return;
-  const valor = p[tipo] || 0;
+  // 'preferido' = mensalidade Cliente Preferencial; 'distribuidor'/'retalhista'
+  // = preço de venda direta ao público; 'kit' = pacote de inscrição inicial.
+  const campo = tipo === 'preferido' ? 'pref' : (tipo === 'kit' ? 'direto' : 'direto');
+  const valor = precoProduto(id, campo, 'eur');
   if (valor > 0) {
     valorEl.value = valor;
     // Trigger comissão preview
     if (typeof calcComissaoPreview === 'function') calcComissaoPreview();
   }
+}
+
+// ===================================================
+// IMPORTADOR DE TABELA DE PREÇOS — atualiza CATALOGO_PRECOS
+// (e por isso o Simulador, o Catálogo e o Registo de Vendas) a partir
+// de um ficheiro CSV/Excel exportado do backoffice LifeWave.
+// ===================================================
+
+// Aceita variações comuns de nome de coluna (maiúsculas/minúsculas, com ou
+// sem acento, PT/EN) para não obrigar o utilizador a formatar o ficheiro
+// exatamente à mão antes de importar.
+const PRECOS_IMPORT_COLUNAS = {
+  id:            ['id','produto_id','sku','codigo','código'],
+  nome:          ['nome','produto','product','name','descricao','descrição'],
+  direto_eur:    ['direto_eur','preco_direto_eur','retalho_eur','retail_eur','preco_eur','preço_eur','eur_direto','direto','europa','europa (eur)'],
+  direto_usd:    ['direto_usd','preco_direto_usd','retalho_usd','retail_usd','preco_usd','preço_usd','usd_direto','eua','eua (usd)','eua (usd)'],
+  direto_gbp:    ['direto_gbp','preco_direto_gbp','retalho_gbp','retail_gbp','gbp_direto','reino unido','r. unido','r. unido (gbp)'],
+  direto_cad:    ['direto_cad','preco_direto_cad','retalho_cad','cad_direto','canada','canadá'],
+  direto_aud:    ['direto_aud','preco_direto_aud','retalho_aud','aud_direto','australia','austrália','austrália (aud)'],
+  pref_eur:      ['pref_eur','preferencial_eur','cp_eur','preferred_eur','membro_eur','membro (eur)'],
+  pref_usd:      ['pref_usd','preferencial_usd','cp_usd','preferred_usd','membro_usd','membro (usd)'],
+  pref_gbp:      ['pref_gbp','preferencial_gbp','cp_gbp','membro_gbp','membro (gbp)'],
+  pref_cad:      ['pref_cad','preferencial_cad','cp_cad','membro_cad','membro (cad)'],
+  pref_aud:      ['pref_aud','preferencial_aud','cp_aud','membro_aud','membro (aud)'],
+  bp_eur:        ['bp_eur','brand_partner_eur','distribuidor_eur'],
+  bp_usd:        ['bp_usd','brand_partner_usd','distribuidor_usd'],
+  bp_gbp:        ['bp_gbp','brand_partner_gbp','distribuidor_gbp'],
+  bp_cad:        ['bp_cad','brand_partner_cad','distribuidor_cad'],
+  bp_aud:        ['bp_aud','brand_partner_aud','distribuidor_aud'],
+  lucro_direto_eur: ['lucro_direto_eur','lucro_eur','profit_eur'],
+  lucro_direto_usd: ['lucro_direto_usd','lucro_usd','profit_usd'],
+  lucro_direto_gbp: ['lucro_direto_gbp','lucro_gbp','profit_gbp'],
+  lucro_direto_cad: ['lucro_direto_cad','lucro_cad','profit_cad'],
+  lucro_direto_aud: ['lucro_direto_aud','lucro_aud','profit_aud'],
+  lucro_pref_eur:   ['lucro_pref_eur','lucro_preferencial_eur'],
+  lucro_pref_usd:   ['lucro_pref_usd','lucro_preferencial_usd'],
+  lucro_pref_gbp:   ['lucro_pref_gbp','lucro_preferencial_gbp'],
+  lucro_pref_cad:   ['lucro_pref_cad','lucro_preferencial_cad'],
+  lucro_pref_aud:   ['lucro_pref_aud','lucro_preferencial_aud'],
+  qv:            ['qv','volume_qualificacao','volume_qualificação'],
+  pib_eur:       ['pib_eur','bonus_inscricao_eur','bónus_inscrição_eur'],
+  pib_usd:       ['pib_usd','bonus_inscricao_usd'],
+  pib_gbp:       ['pib_gbp','bonus_inscricao_gbp','bónus_inscrição_gbp'],
+  pib_cad:       ['pib_cad','bonus_inscricao_cad'],
+  pib_aud:       ['pib_aud','bonus_inscricao_aud'],
+};
+
+// Nomes conhecidos de produtos → id canónico, para o caso de o ficheiro só
+// ter o nome (ex: "LifeWave X39®", "Cellergize Morning") e não um id/SKU.
+const PRECOS_IMPORT_NOME_ID = {
+  'x39':'x39', 'lifewave x39':'x39', 'lifewave x39®':'x39',
+  'x49':'x49', 'lifewave x49':'x49', 'lifewave x49®':'x49',
+  'icewave':'icewave', 'icewave®':'icewave',
+  'energy enhancer':'energy', 'energy enhancer®':'energy',
+  'silent nights':'silent', 'silent nights®':'silent',
+  'aeon':'aeon', 'y-age aeon':'aeon', 'y-age aeon®':'aeon',
+  'glutathione':'gluta', 'y-age glutathione':'gluta', 'y-age® glutathione':'gluta',
+  'carnosine':'carno', 'y-age carnosine':'carno', 'y-age® carnosine':'carno',
+  'sp6':'sp6', 'sp6 complete':'sp6', 'sp6® complete':'sp6',
+  'alavida':'alavida', 'alavida®':'alavida',
+  'aculife':'aculife', 'aculife®':'aculife',
+  'cellergize morning':'cellergize_morning', 'cellergize™ morning':'cellergize_morning', 'cellergize® morning':'cellergize_morning',
+  'cellergize night':'cellergize_night', 'cellergize™ night':'cellergize_night', 'cellergize® night':'cellergize_night',
+  'cellergize evening':'cellergize_night', 'cellergize™ evening':'cellergize_night', 'cellergize® evening':'cellergize_night',
+  'cellergize duo':'cellergize-duo', 'cellergize® duo':'cellergize-duo', 'cellergize™ duo':'cellergize-duo',
+  'y-age system kit':'y-age-kit', 'y-age® system kit':'y-age-kit',
+  'x39+x49 bundle':'x39x49-bundle', 'x39 + x49 bundle':'x39x49-bundle',
+  'alavida trio':'alavida-trio', 'alavida regenerating trio':'alavida-trio', 'alavida® regenerating trio':'alavida-trio',
+  'pacote starter':'pib-starter', 'pack starter':'pib-starter',
+  'pacote core':'pib-core', 'pacote advanced':'pib-adv',
+  'pacote advanced plus':'pib-advp', 'pacote premium':'pib-premium',
+};
+
+let _precosImportLinhas = [];
+
+// --- Importação a partir de PDF via IA (ex: "EMEA Compensation Plan —
+// Product Pricing Breakdown", LW0056-R01) ---
+// Este é o formato oficial mais comum: 3 blocos de tabela (Direct /
+// Preferred Customer / PC+ / Brand Partner), cada um com colunas
+// 1 PACK / 2 PACKS / 3 PACKS, e por produto um preço "$X/€Y", um lucro
+// "$A/€B" (só nos blocos Direct e Preferred) e "NNQV / MMBV". Como isto
+// é regex-hostil (o mesmo produto aparece 3x com layouts ligeiramente
+// diferentes por bloco), extraímos com a mesma IA usada no importador
+// do Plano de Compensação (chamarIADocumento, Gemini-first com fallback
+// Claude) em vez de tentar cobrir tudo com expressões regulares.
+function precosPromptExtracao() {
+  const idsConhecidos = CATALOGO_PRODUTOS.map(p => `"${p.id}"=${p.nome}`).join('; ');
+  // NOTA IMPORTANTE: o formato pedido à IA é deliberadamente COMPACTO
+  // (arrays de números, não objetos com 41 chaves nomeadas por produto).
+  // Numa primeira versão pedíamos ~29 campos nomeados por produto
+  // ("direto_1_usd": number|null, "direto_1_eur": number|null, ...) o que,
+  // para os 10-15 produtos típicos de um PDF de preços, gera uma resposta
+  // JSON enorme que facilmente ultrapassa o limite de tokens e é cortada a
+  // meio — e um JSON cortado nunca dá parse. O formato de arrays abaixo é
+  // 3-4x mais compacto para a mesma informação.
+  return `Este PDF é uma "Tabela de Preços de Produtos" (Product Pricing Breakdown) oficial da LifeWave. Tem normalmente 3 secções — "Direct" (preço a retalho/público), "Preferred Customer / PC+" (preço de cliente preferencial) e "Brand Partner" (preço de distribuidor) — cada uma com colunas para 1, 2 e 3 embalagens ("packs").
+
+Para cada produto, cada secção mostra: um preço "$X/€Y" (USD/EUR), por vezes um "Direct Profit/Lucro" também em "$A/€B", e um volume "NNQV / MMBV".
+
+IDs de produtos conhecidos por esta app (usa EXATAMENTE um destes ids quando o nome do PDF corresponder; ignora produtos sem correspondência): ${idsConhecidos}.
+
+Devolve APENAS um JSON válido, compacto, sem texto antes/depois, sem markdown, sem \`\`\`json, começando por "{". Usa este formato EXATO (arrays de números, nesta ordem fixa — omite um array inteiro com [] se essa secção não existir para o produto):
+
+{
+  "versao": "código do documento se visível (ex: LW0056-R01), senão null",
+  "produtos": [
+    {
+      "id": "id canónico da lista acima (ou o nome do PDF se não houver correspondência)",
+      "d1": [usd, eur, qv, bv, lucroUsd, lucroEur],
+      "d2": [usd, eur, qv, bv, lucroUsd, lucroEur],
+      "d3": [usd, eur, qv, bv, lucroUsd, lucroEur],
+      "p1": [usd, eur, qv, bv, lucroUsd, lucroEur],
+      "p2": [usd, eur, qv, bv, lucroUsd, lucroEur],
+      "p3": [usd, eur, qv, bv, lucroUsd, lucroEur],
+      "b1": [usd, eur, qv, bv],
+      "b2": [usd, eur, qv, bv],
+      "b3": [usd, eur, qv, bv]
+    }
+  ]
+}
+
+Onde: d1/d2/d3 = Direct 1/2/3 packs; p1/p2/p3 = Preferred 1/2/3 packs; b1/b2/b3 = Brand Partner 1/2/3 packs.
+
+Regras importantes:
+- Omite arrays de packs que não existam para o produto (ex: X39/X49 só têm d1/p1/b1 — não incluas "d2"/"d3"/"p2"/"p3"/"b2"/"b3" nesse caso, nem sequer como null).
+- Usa 0 (não null) quando um valor individual dentro de um array existir mas não houver lucro nessa secção (ex: Brand Partner nunca tem lucro — mas como "b1" já só tem 4 posições, isso não se aplica lá).
+- Números sempre limpos (sem $, €, vírgulas de milhar).
+- Não incluas explicações nem comentários, só o JSON.
+- Sê o mais conciso possível: nomes de chaves curtos como pedido acima, sem espaços extra.`;
+}
+
+// Converte a resposta da IA (produtos com campos direto_1_usd, etc.) para o
+// mesmo formato { idOriginal, idProduto, nomeConhecido, precos } usado pelo
+// resto do fluxo de import (preview + precosConfirmarImport), que já espera
+// os campos "canónicos" de CATALOGO_PRECOS (direto_eur, direto_3_usd, etc.).
+function precosConverterRespostaIA(json) {
+  if (!json || !Array.isArray(json.produtos)) return [];
+  const idsValidos = new Set(CATALOGO_PRODUTOS.map(p => p.id));
+
+  // Lê um valor de um array na posição i, só se o array existir e o valor
+  // não for null/undefined/NaN (mas aceita 0, que é um valor válido — ex:
+  // lucro 0 num pacote sem desconto adicional).
+  function ler(arr, i) {
+    if (!Array.isArray(arr)) return undefined;
+    const v = arr[i];
+    if (v === null || v === undefined || v === '' || isNaN(v)) return undefined;
+    return Number(v);
+  }
+
+  return json.produtos.map(p => {
+    const idBruto = String(p.id || p.nome || '').trim();
+    const idProduto = idsValidos.has(idBruto) ? idBruto : (PRECOS_IMPORT_NOME_ID[idBruto.toLowerCase()] || PRECOS_IMPORT_NOME_ID[(p.nome||'').toLowerCase()] || null);
+    const precos = {};
+
+    // Cada entrada: [chaveNoJSON, [usd,eur,qv,bv,lucroUsd,lucroEur] -> campos-destino em CATALOGO_PRECOS]
+    // d1 (Direct pack 1) → campos "base" sem sufixo de pack
+    const d1 = p.d1; if (Array.isArray(d1)) {
+      if (ler(d1,0)!==undefined) precos.direto_usd = ler(d1,0);
+      if (ler(d1,1)!==undefined) precos.direto_eur = ler(d1,1);
+      if (ler(d1,2)!==undefined) precos.qv = ler(d1,2);
+      if (ler(d1,3)!==undefined) precos.bv_direto = ler(d1,3);
+      if (ler(d1,4)!==undefined) precos.lucro_direto_usd = ler(d1,4);
+      if (ler(d1,5)!==undefined) precos.lucro_direto_eur = ler(d1,5);
+    }
+    const d2 = p.d2; if (Array.isArray(d2)) {
+      if (ler(d2,0)!==undefined) precos.direto_2_usd = ler(d2,0);
+      if (ler(d2,1)!==undefined) precos.direto_2_eur = ler(d2,1);
+    }
+    const d3 = p.d3; if (Array.isArray(d3)) {
+      if (ler(d3,0)!==undefined) precos.direto_3_usd = ler(d3,0);
+      if (ler(d3,1)!==undefined) precos.direto_3_eur = ler(d3,1);
+      if (ler(d3,4)!==undefined) precos.lucro_3_usd = ler(d3,4);
+      if (ler(d3,5)!==undefined) precos.lucro_3_eur = ler(d3,5);
+    }
+    const p1 = p.p1; if (Array.isArray(p1)) {
+      if (ler(p1,0)!==undefined) precos.pref_usd = ler(p1,0);
+      if (ler(p1,1)!==undefined) precos.pref_eur = ler(p1,1);
+      if (ler(p1,3)!==undefined) precos.bv_pref = ler(p1,3);
+      if (ler(p1,4)!==undefined) precos.lucro_pref_usd = ler(p1,4);
+      if (ler(p1,5)!==undefined) precos.lucro_pref_eur = ler(p1,5);
+    }
+    const p2 = p.p2; if (Array.isArray(p2)) {
+      if (ler(p2,0)!==undefined) precos.pref_2_usd = ler(p2,0);
+      if (ler(p2,1)!==undefined) precos.pref_2_eur = ler(p2,1);
+    }
+    const p3 = p.p3; if (Array.isArray(p3)) {
+      if (ler(p3,0)!==undefined) precos.pref_3_usd = ler(p3,0);
+      if (ler(p3,1)!==undefined) precos.pref_3_eur = ler(p3,1);
+      if (ler(p3,4)!==undefined) precos.lucro_pref_3_usd = ler(p3,4);
+      if (ler(p3,5)!==undefined) precos.lucro_pref_3_eur = ler(p3,5);
+    }
+    const b1 = p.b1; if (Array.isArray(b1)) {
+      if (ler(b1,0)!==undefined) precos.bp_usd = ler(b1,0);
+      if (ler(b1,1)!==undefined) precos.bp_eur = ler(b1,1);
+    }
+    const b2 = p.b2; if (Array.isArray(b2)) {
+      if (ler(b2,0)!==undefined) precos.bp_2_usd = ler(b2,0);
+      if (ler(b2,1)!==undefined) precos.bp_2_eur = ler(b2,1);
+    }
+    const b3 = p.b3; if (Array.isArray(b3)) {
+      if (ler(b3,0)!==undefined) precos.bp_3_usd = ler(b3,0);
+      if (ler(b3,1)!==undefined) precos.bp_3_eur = ler(b3,1);
+    }
+
+    return {
+      idOriginal: p.nome || idBruto,
+      idProduto,
+      nomeConhecido: idProduto ? (CATALOGO_PRODUTOS.find(x => x.id === idProduto)?.nome || p.nome || idProduto) : null,
+      precos,
+    };
+  });
+}
+
+// Ponto de entrada da importação de preços por PDF via IA — lê o ficheiro em
+// base64 e envia à mesma pipeline usada pelo Plano de Compensação.
+async function precosExtrairDoPDFviaIA(file) {
+  const base64 = await new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result.split(',')[1]);
+    reader.onerror = () => reject(new Error('Falha ao ler o ficheiro.'));
+    reader.readAsDataURL(file);
+  });
+
+  const prompt = precosPromptExtracao();
+  // maxTokens generoso: o JSON pedido tem ~29 campos por produto e um PDF
+  // típico tem 10-15 produtos, o que facilmente ultrapassa os 4000 tokens
+  // e cortava a resposta a meio (causando falha de parse). 8000 dá margem.
+  const respostaTexto = await chamarIADocumento({
+    ai: 'gemini', fallback: true, base64, isPdf: true, maxTokens: 8000, prompt,
+  });
+
+  let json;
+  try {
+    json = _precosParseJsonTolerante(respostaTexto);
+  } catch (e) {
+    console.error('Falha ao fazer parse do JSON de preços devolvido pela IA:', e, respostaTexto);
+    // Mostra as primeiras linhas da resposta bruta no próprio erro, para dar
+    // para diagnosticar no telemóvel sem precisar de abrir a consola.
+    const amostra = (respostaTexto || '(resposta vazia)').slice(0, 220).replace(/\s+/g, ' ').trim();
+    const err = new Error('Não foi possível interpretar a resposta da IA para este PDF.');
+    err.amostraResposta = amostra;
+    throw err;
+  }
+
+  const linhas = precosConverterRespostaIA(json);
+  if (!linhas.length) throw new Error('A IA não encontrou produtos reconhecíveis neste PDF. Tenta um PDF com texto selecionável (não uma imagem digitalizada).');
+  return linhas;
+}
+
+// Faz parse de JSON devolvido por IA de forma tolerante a:
+// - blocos ```json ... ``` (markdown)
+// - texto antes/depois do JSON (preâmbulo/explicações)
+// - vírgula a mais antes de "}" ou "]" (erro comum de LLMs)
+// - JSON CORTADO A MEIO (resposta truncada por limite de tokens) — neste
+//   caso tenta fechar as chaves/colchetes em aberto e reaproveitar os
+//   produtos já completos em vez de descartar tudo.
+function _precosParseJsonTolerante(respostaTexto) {
+  let limpo = (respostaTexto || '').trim()
+    .replace(/^```json/i, '').replace(/^```/, '').replace(/```$/, '').trim();
+  const inicio = limpo.indexOf('{');
+  if (inicio === -1) throw new Error('Resposta sem JSON reconhecível.');
+  limpo = limpo.slice(inicio);
+
+  // Tentativa 1: parse direto (caso mais comum, resposta bem formada)
+  try { return JSON.parse(limpo); } catch (e) { /* segue para as tentativas seguintes */ }
+
+  // Tentativa 2: cortar no último "}" válido e remover vírgulas penduradas
+  const fim = limpo.lastIndexOf('}');
+  if (fim !== -1) {
+    const tentativa2 = limpo.slice(0, fim + 1).replace(/,(\s*[}\]])/g, '$1');
+    try { return JSON.parse(tentativa2); } catch (e) { /* segue */ }
+  }
+
+  // Tentativa 3: resposta truncada a meio de um produto — corta no último
+  // "}" que fecha um objeto de produto completo dentro do array "produtos",
+  // fecha o array e o objeto exterior manualmente.
+  const idxProdutos = limpo.indexOf('"produtos"');
+  if (idxProdutos !== -1) {
+    const ultimoFechaObjeto = limpo.lastIndexOf('}');
+    if (ultimoFechaObjeto !== -1) {
+      let candidato = limpo.slice(0, ultimoFechaObjeto + 1);
+      candidato = candidato.replace(/,(\s*)$/, ''); // remove vírgula final pendurada
+      candidato += ']}'; // fecha o array "produtos" e o objeto raiz
+      try { return JSON.parse(candidato); } catch (e) { /* esgotou as tentativas */ }
+    }
+  }
+
+  throw new Error('JSON malformado e irrecuperável.');
+}
+
+// --- Fallback: extração por regex (ex: "Tabela de Preços Global LifeWave") ---
+// Extrai o texto do PDF com pdf.js, reconstrói linhas por proximidade
+// vertical, e tenta casar cada linha com um produto conhecido + valores
+// monetários em qualquer das 5 moedas suportadas (€, $, £, CA$, AU$).
+// Como cada linha do PDF costuma trazer VÁRIOS valores lado a lado
+// (um por mercado: EUA/Europa/RU/Austrália), assume-se a ordem
+// USD, EUR, GBP, AUD quando há 4 valores — a mesma ordem da tabela oficial
+// LifeWave — e o utilizador pode sempre corrigir depois na pré-visualização.
+// Usado apenas se a extração via IA falhar (ex: sem ligação à internet).
+async function precosExtrairDoPDF_Regex(file) {
+  if (typeof pdfjsLib === 'undefined') throw new Error('pdf.js não carregado');
+  pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+  const buf = await file.arrayBuffer();
+  const pdf = await pdfjsLib.getDocument({ data: buf }).promise;
+  const linhasTexto = [];
+  for (let i = 1; i <= pdf.numPages; i++) {
+    const page = await pdf.getPage(i);
+    const content = await page.getTextContent();
+    const porLinha = {};
+    content.items.forEach(item => {
+      const y = Math.round(item.transform[5] / 3) * 3;
+      if (!porLinha[y]) porLinha[y] = [];
+      porLinha[y].push(item.str);
+    });
+    Object.keys(porLinha).sort((a,b) => b - a).forEach(y => {
+      const linha = porLinha[y].join(' ').replace(/\s+/g, ' ').trim();
+      if (linha) linhasTexto.push(linha);
+    });
+  }
+
+  // Regex para valores com símbolo de moeda explícito: $149.95, €149.95, £131.00, ¥21,500
+  const regexValor = /(\$|€|£|¥|CA\$|AU\$)\s?([\d.,]+)/g;
+  const resultados = [];
+  const mapaSimbolo = { '$':'usd', '€':'eur', '£':'gbp', 'CA$':'cad', 'AU$':'aud' };
+  const gruposParaIds = {
+    '__grupo_x39x49__': ['x39', 'x49'],
+    '__grupo_classicos__': ['icewave','energy','silent','aeon','gluta','carno','sp6','alavida','aculife'],
+  };
+
+  // A "Tabela de Preços Global" tem o nome do produto numa linha (título de
+  // bloco) e os valores em 1–2 linhas seguintes ("Retalho ..." / "Membro
+  // ..."). Por isso percorremos as linhas sequencialmente e mantemos o
+  // "produto/grupo atual" em memória, em vez de tentar reconhecer produto
+  // E preço na mesma linha (que falha, pois raramente coexistem).
+  let idProdutoAtual = null;
+
+  linhasTexto.forEach(linhaOriginal => {
+    const linhaMin = linhaOriginal.toLowerCase();
+    if (linhaMin.length < 3) return;
+
+    // 1) Esta linha começa por "Retalho"/"Membro"? Então é uma linha de
+    //    valores para o produto/grupo atualmente em memória.
+    const ehRetalho = /^retalho\b/.test(linhaMin.trim());
+    const ehMembro  = /^membro\b/.test(linhaMin.trim());
+    if ((ehRetalho || ehMembro) && idProdutoAtual) {
+      const valores = [];
+      let m;
+      regexValor.lastIndex = 0;
+      while ((m = regexValor.exec(linhaOriginal)) !== null) {
+        const simbolo = m[1];
+        const num = parseFloat(m[2].replace(/,/g, ''));
+        if (!isNaN(num) && num > 0 && num < 1000000) valores.push({ simbolo, num });
+      }
+      if (!valores.length) return;
+
+      const precosLinha = {};
+      const campoBase = ehMembro ? 'pref' : 'direto';
+      // A "Tabela de Preços Global LifeWave" lista sempre os valores na mesma
+      // ordem fixa: EUA (USD) / Europa (EUR) / R. Unido (GBP) / Austrália (AUD) / Japão (JPY).
+      // Como o símbolo "$" sozinho é ambíguo entre USD e AUD (a app usa "AU$"
+      // só como convenção interna, o PDF real usa "$" para os dois), a posição
+      // na linha é o sinal mais fiável — só cai de volta para o símbolo quando
+      // a linha não tem exatamente esse padrão de 4-5 valores.
+      const simbolosNaoYen = valores.filter(v => v.simbolo !== '¥');
+      const pareceOrdemOficial = simbolosNaoYen.length === 4 &&
+        simbolosNaoYen[0].simbolo === '$' && simbolosNaoYen[1].simbolo === '€' &&
+        simbolosNaoYen[2].simbolo === '£' && simbolosNaoYen[3].simbolo === '$';
+      if (pareceOrdemOficial) {
+        precosLinha[`${campoBase}_usd`] = simbolosNaoYen[0].num;
+        precosLinha[`${campoBase}_eur`] = simbolosNaoYen[1].num;
+        precosLinha[`${campoBase}_gbp`] = simbolosNaoYen[2].num;
+        precosLinha[`${campoBase}_aud`] = simbolosNaoYen[3].num;
+      } else {
+        valores.forEach(v => {
+          if (v.simbolo === '¥') return; // Yen não é uma das 5 moedas suportadas pela app
+          const moeda = mapaSimbolo[v.simbolo];
+          if (!moeda) return;
+          precosLinha[`${campoBase}_${moeda}`] = v.num;
+        });
+      }
+      if (!Object.keys(precosLinha).length) return;
+
+      const idsAlvo = gruposParaIds[idProdutoAtual] || [idProdutoAtual];
+      idsAlvo.forEach(id => {
+        resultados.push({
+          idOriginal: linhaOriginal,
+          idProduto: id,
+          nomeConhecido: CATALOGO_PRODUTOS.find(p => p.id === id)?.nome || id,
+          precos: precosLinha,
+        });
+      });
+      return;
+    }
+
+    // 2) Caso contrário, tenta reconhecer se esta linha É um título de
+    //    produto/grupo, e atualiza idProdutoAtual para as próximas linhas.
+    //    Verifica primeiro os grupos específicos da tabela oficial (mais
+    //    específicos), só depois os nomes individuais de produto — assim
+    //    "Tecnologia Principal X39 / X49" não é lido apenas como "x39".
+    if (linhaMin.includes('tecnologia principal') || (linhaMin.includes('x39') && linhaMin.includes('x49') && linhaMin.includes('pack'))) {
+      idProdutoAtual = '__grupo_x39x49__'; return;
+    }
+    if (linhaMin.includes('patches clássicos') || linhaMin.includes('patches classicos')) {
+      idProdutoAtual = '__grupo_classicos__'; return;
+    }
+    if (linhaMin.includes('combos') || linhaMin.includes('performance bundle')) {
+      idProdutoAtual = 'x39x49-bundle'; return;
+    }
+    if (linhaMin.includes('sistema y-age') || (linhaMin.includes('y-age') && linhaMin.includes('trio'))) {
+      idProdutoAtual = 'y-age-kit'; return;
+    }
+    if (linhaMin.includes('linha alavida') || (linhaMin.includes('alavida') && linhaMin.includes('creme'))) {
+      idProdutoAtual = 'alavida-trio'; return;
+    }
+    if (linhaMin.includes('bronze') || linhaMin.includes('silver') || linhaMin.includes('gold') ||
+        linhaMin.includes('platinum') || linhaMin.includes('diamond')) {
+      idProdutoAtual = null; return; // kits de inscrição não mapeados 1:1 — ignorados na importação automática
+    }
+    // Nomes individuais de produto (Cellergize, etc.) — só depois dos grupos,
+    // para não roubar o contexto a blocos maiores como "Tecnologia Principal".
+    for (const [nome, id] of Object.entries(PRECOS_IMPORT_NOME_ID)) {
+      if (linhaMin.includes(nome)) { idProdutoAtual = id; return; }
+    }
+    // Linha não reconhecida como título nem como valores — não mexe no contexto atual.
+  });
+
+  // Faz merge de linhas "Retalho" + "Membro" do mesmo produto num único registo,
+  // para o preview mostrar já os dois preços juntos em vez de duas linhas parciais.
+  const porId = {};
+  resultados.forEach(r => {
+    if (!porId[r.idProduto]) porId[r.idProduto] = { idOriginal: r.idOriginal, idProduto: r.idProduto, nomeConhecido: r.nomeConhecido, precos: {} };
+    Object.assign(porId[r.idProduto].precos, r.precos);
+  });
+  return Object.values(porId);
+}
+
+// Ordem de tentativa para PDF: 1) IA (cobre o "Product Pricing Breakdown"
+// oficial, com blocos Direct/Preferred/Brand Partner) → 2) regex/pdf.js puro
+// (cobre a "Tabela de Preços Global", formato mais antigo com linhas
+// "Retalho"/"Membro") como fallback caso a IA falhe (ex: sem internet) ou
+// não reconheça nada. Mostra sempre um estado de "a processar" enquanto a
+// IA trabalha, porque pode demorar 15-30 segundos em PDFs grandes.
+async function precosHandleImportFilePDF(file, input) {
+  openModal('modal-import-precos');
+  const wrap = document.getElementById('import-precos-preview');
+  if (wrap) {
+    wrap.innerHTML = `
+      <div style="text-align:center;padding:30px 10px;">
+        <div style="font-size:32px;margin-bottom:10px;">🔎</div>
+        <div style="font-size:13px;color:var(--text2);">A ler <strong>${escapeHtml(file.name)}</strong> e a extrair os preços dos produtos...</div>
+        <div style="font-size:11.5px;color:var(--text3);margin-top:6px;">Isto pode demorar 15–30 segundos em documentos grandes.</div>
+      </div>
+    `;
+  }
+  const btnConfirmar = document.getElementById('btn-confirmar-import-precos');
+  if (btnConfirmar) btnConfirmar.disabled = true;
+
+  // Sem chave de IA configurada (Gemini nem Claude), nem vale a pena tentar —
+  // mostra logo o aviso com atalho para o assistente de configuração, em vez
+  // de deixar cair no fallback por regex e mostrar um erro confuso no fim.
+  if (!geminiKey && !claudeKey) {
+    if (wrap) {
+      wrap.innerHTML = `
+        <div style="text-align:center;padding:24px 10px;">
+          <div style="font-size:28px;margin-bottom:10px;">🔑</div>
+          <div style="font-size:13px;color:var(--text2);margin-bottom:14px;">Para importar preços a partir de um PDF é preciso configurar uma chave de IA (Gemini ou Claude) — é grátis e demora 1 minuto.</div>
+          <button class="btn btn-secondary" style="width:100%;justify-content:center;" onclick="closeModal('modal-import-precos');abrirGuiaChaveIA();">🔑 Configurar chave de IA agora</button>
+        </div>
+      `;
+    }
+    if (input) input.value = '';
+    return;
+  }
+
+  try {
+    _precosImportLinhas = await precosExtrairDoPDFviaIA(file);
+    precosRenderPreview();
+  } catch (errIA) {
+    console.warn('Extração de preços via IA falhou, a tentar fallback por regex:', errIA);
+    const semChave = errIA && (errIA.message === 'GEMINI_NO_KEY' || errIA.message === 'claude_no_key' || errIA.message === 'CLAUDE_NO_KEY');
+    try {
+      if (semChave) throw errIA; // não vale a pena tentar o fallback regex, o problema é a chave
+      _precosImportLinhas = await precosExtrairDoPDF_Regex(file);
+      if (!_precosImportLinhas.length) throw new Error('Nenhum produto reconhecido.');
+      precosRenderPreview();
+    } catch (errRegex) {
+      console.error('Fallback por regex também falhou:', errRegex);
+      if (wrap) {
+        if (semChave) {
+          wrap.innerHTML = `
+            <div style="text-align:center;padding:24px 10px;">
+              <div style="font-size:28px;margin-bottom:10px;">🔑</div>
+              <div style="font-size:13px;color:var(--text2);margin-bottom:14px;">Para importar preços a partir de um PDF é preciso configurar uma chave de IA (Gemini ou Claude) — é grátis e demora 1 minuto.</div>
+              <button class="btn btn-secondary" style="width:100%;justify-content:center;" onclick="closeModal('modal-import-precos');abrirGuiaChaveIA();">🔑 Configurar chave de IA agora</button>
+            </div>
+          `;
+        } else {
+          wrap.innerHTML = `
+            <div style="text-align:center;padding:24px 10px;">
+              <div style="font-size:28px;margin-bottom:10px;">❌</div>
+              <div style="font-size:13px;color:var(--text2);margin-bottom:14px;">Não foi possível extrair os preços deste PDF.<br>${((errIA && errIA.message) || 'Erro desconhecido').replace(/</g,'&lt;')}</div>
+              ${errIA && errIA.amostraResposta ? `<div style="font-size:10.5px;color:var(--text3);background:var(--surface2);border-radius:6px;padding:8px 10px;margin-bottom:12px;text-align:left;font-family:monospace;word-break:break-all;">${escapeHtml(errIA.amostraResposta)}...</div>` : ''}
+              <div style="font-size:11.5px;color:var(--text3);">Tenta um PDF com texto selecionável (não uma imagem digitalizada), ou usa um CSV/Excel em alternativa.</div>
+            </div>
+          `;
+        }
+      }
+    }
+  } finally {
+    if (input) input.value = ''; // permite re-selecionar o mesmo ficheiro depois
+  }
+}
+
+function precosHandleImportFile(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const ext = file.name.split('.').pop().toLowerCase();
+  const isExcel = ext === 'xlsx' || ext === 'xls';
+  const isPdf = ext === 'pdf';
+
+  function processar(headers, rows) {
+    _precosImportLinhas = precosMapearLinhas(headers, rows);
+    precosRenderPreview();
+    openModal('modal-import-precos');
+    input.value = ''; // permite re-selecionar o mesmo ficheiro depois
+  }
+
+  if (isPdf) {
+    precosHandleImportFilePDF(file, input);
+  } else if (isExcel) {
+    if (typeof XLSX === 'undefined') {
+      showToast('❌ Biblioteca Excel não carregada. Verifica a ligação à internet.');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      try {
+        const wb = XLSX.read(e.target.result, { type: 'array' });
+        const ws = wb.Sheets[wb.SheetNames[0]];
+        const data = XLSX.utils.sheet_to_json(ws, { defval: '' });
+        if (!data.length) { showToast('❌ Ficheiro Excel vazio ou sem dados.'); return; }
+        const headers = Object.keys(data[0]).map(h => h.trim().toLowerCase());
+        const rows = data.map(row => {
+          const r = {};
+          Object.keys(row).forEach(k => { r[k.trim().toLowerCase()] = String(row[k] ?? '').trim(); });
+          return r;
+        });
+        processar(headers, rows);
+      } catch(err) {
+        showToast('❌ Erro ao ler Excel: ' + err.message);
+      }
+    };
+    reader.readAsArrayBuffer(file);
+  } else {
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      try {
+        const { headers, rows } = lwParseCSV(e.target.result);
+        processar(headers.map(h => h.toLowerCase()), rows);
+      } catch(err) {
+        showToast('❌ Erro ao ler CSV: ' + err.message);
+      }
+    };
+    reader.readAsText(file, 'UTF-8');
+  }
+}
+
+// Faz corresponder cada linha do ficheiro a um produto conhecido (por id ou
+// nome) e extrai os campos de preço reconhecidos. Linhas sem produto
+// correspondente ficam marcadas para o utilizador decidir (não são
+// aplicadas silenciosamente).
+function precosMapearLinhas(headers, rows) {
+  function acharColuna(chaves) {
+    return headers.find(h => chaves.includes(h)) || null;
+  }
+  const colMap = {};
+  Object.keys(PRECOS_IMPORT_COLUNAS).forEach(campo => {
+    colMap[campo] = acharColuna(PRECOS_IMPORT_COLUNAS[campo]);
+  });
+
+  return rows.map(row => {
+    const idBruto = colMap.id ? String(row[colMap.id] || '').trim() : '';
+    const nomeBruto = colMap.nome ? String(row[colMap.nome] || '').trim() : '';
+    let idProduto = null;
+    if (idBruto && (CATALOGO_PRECOS_DEFAULT[idBruto.toLowerCase()] || PRECOS_IMPORT_NOME_ID[idBruto.toLowerCase()])) {
+      idProduto = CATALOGO_PRECOS_DEFAULT[idBruto.toLowerCase()] ? idBruto.toLowerCase() : PRECOS_IMPORT_NOME_ID[idBruto.toLowerCase()];
+    } else if (nomeBruto) {
+      idProduto = PRECOS_IMPORT_NOME_ID[nomeBruto.toLowerCase()] || null;
+    }
+
+    const precosLinha = {};
+    Object.keys(colMap).forEach(campo => {
+      if (campo === 'id' || campo === 'nome') return;
+      const col = colMap[campo];
+      if (!col) return;
+      const val = parseFloat(String(row[col]).replace(',', '.'));
+      if (!isNaN(val)) precosLinha[campo] = val;
+    });
+
+    return {
+      idOriginal: idBruto || nomeBruto || '(linha sem identificador)',
+      idProduto,
+      nomeConhecido: idProduto ? (CATALOGO_PRODUTOS.find(p => p.id === idProduto)?.nome || idProduto) : null,
+      precos: precosLinha,
+    };
+  });
+}
+
+function precosRenderPreview() {
+  const wrap = document.getElementById('import-precos-preview');
+  if (!wrap) return;
+  const reconhecidas = _precosImportLinhas.filter(l => l.idProduto);
+  const naoReconhecidas = _precosImportLinhas.filter(l => !l.idProduto);
+
+  wrap.innerHTML = `
+    <div style="font-size:12px;color:var(--text2);margin-bottom:12px;">
+      ${reconhecidas.length} produto${reconhecidas.length !== 1 ? 's' : ''} reconhecido${reconhecidas.length !== 1 ? 's' : ''} e prontos a atualizar.
+      ${naoReconhecidas.length ? `<strong style="color:var(--gold);">${naoReconhecidas.length} linha${naoReconhecidas.length !== 1 ? 's' : ''} não reconhecida${naoReconhecidas.length !== 1 ? 's' : ''}</strong> (não serão alteradas).` : ''}
+    </div>
+    ${reconhecidas.length ? `
+    <div style="max-height:320px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;">
+      <table style="width:100%;border-collapse:collapse;font-size:11.5px;">
+        <thead style="position:sticky;top:0;background:var(--surface2);">
+          <tr>
+            <th style="text-align:left;padding:8px;">Produto</th>
+            <th style="text-align:center;padding:8px;">Direct 1pk<br><span style="font-weight:400;color:var(--text3);">€/$</span></th>
+            <th style="text-align:center;padding:8px;">Direct 2pk<br><span style="font-weight:400;color:var(--text3);">€/$</span></th>
+            <th style="text-align:center;padding:8px;">Direct 3pk<br><span style="font-weight:400;color:var(--text3);">€/$</span></th>
+            <th style="text-align:center;padding:8px;">Preferred<br><span style="font-weight:400;color:var(--text3);">€/$</span></th>
+            <th style="text-align:center;padding:8px;">Brand Partner<br><span style="font-weight:400;color:var(--text3);">€/$</span></th>
+            <th style="text-align:center;padding:8px;">QV/BV</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${reconhecidas.map(l => {
+            const p = l.precos;
+            const par = (eur, usd) => (eur == null && usd == null) ? '—' : `${eur ?? '—'}€/${usd ?? '—'}$`;
+            return `
+            <tr style="border-top:1px solid var(--border);">
+              <td style="padding:7px 8px;color:var(--text);">${escapeHtml(l.nomeConhecido)}</td>
+              <td style="text-align:center;padding:7px 8px;color:var(--text2);">${par(p.direto_eur, p.direto_usd)}</td>
+              <td style="text-align:center;padding:7px 8px;color:var(--text2);">${par(p.direto_2_eur, p.direto_2_usd)}</td>
+              <td style="text-align:center;padding:7px 8px;color:var(--text2);">${par(p.direto_3_eur, p.direto_3_usd)}</td>
+              <td style="text-align:center;padding:7px 8px;color:var(--text2);">${par(p.pref_eur, p.pref_usd)}</td>
+              <td style="text-align:center;padding:7px 8px;color:var(--text2);">${par(p.bp_eur, p.bp_usd)}</td>
+              <td style="text-align:center;padding:7px 8px;color:var(--text3);">${p.qv ?? '—'}/${p.bv_direto ?? '—'}</td>
+            </tr>`;
+          }).join('')}
+        </tbody>
+      </table>
+    </div>` : '<div style="padding:12px;color:var(--text2);font-size:12px;">Nenhum produto reconhecido neste ficheiro — confirma se tens uma coluna "id" ou "nome" com os nomes dos produtos LifeWave.</div>'}
+    ${naoReconhecidas.length ? `
+    <div style="margin-top:10px;font-size:11px;color:var(--text3);">Não reconhecidas: ${naoReconhecidas.map(l => escapeHtml(l.idOriginal)).join(', ')}</div>` : ''}
+  `;
+  document.getElementById('btn-confirmar-import-precos').disabled = !reconhecidas.length;
+}
+
+function precosConfirmarImport() {
+  const precos = getCatalogoPrecos();
+  const novos = Object.assign({}, precos);
+  let atualizados = 0;
+
+  _precosImportLinhas.filter(l => l.idProduto).forEach(l => {
+    const atual = novos[l.idProduto] || {};
+    // Se este ficheiro trouxe um valor CAD real, o produto deixa de ter CAD
+    // "estimado" — passa a ter um valor confirmado por importação oficial.
+    const deixaDeSerEstimadoCad = l.precos.direto_cad !== undefined ? { cadEstimado: false } : {};
+    novos[l.idProduto] = Object.assign({}, atual, l.precos, { porConfirmar: false }, deixaDeSerEstimadoCad);
+    atualizados++;
+  });
+
+  saveCatalogoPrecos(novos);
+  closeModal('modal-import-precos');
+  showToast(`✅ ${atualizados} produto${atualizados !== 1 ? 's' : ''} atualizado${atualizados !== 1 ? 's' : ''} — preços refletidos em toda a app.`);
 }
 
 // ===================================================
