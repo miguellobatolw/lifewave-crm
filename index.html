@@ -8,7 +8,7 @@
   // Versão única da app — muda só aqui a cada release; o título da página
   // e o rodapé do ecrã de login lêem sempre deste valor, para nunca ficarem
   // dessincronizados um do outro.
-  window.APP_VERSION = 'v104';
+  window.APP_VERSION = 'v105';
 </script>
 
 <!-- ===== PWA: manifest, ícones e meta tags ===== -->
@@ -11768,7 +11768,7 @@ function renderTopLeadsWidget() {
             </div>
           </div>
           <div style="display:flex;flex-direction:column;gap:4px;flex-shrink:0;">
-            ${tel ? `<button onclick="event.stopPropagation();abrirMensagemFollowUp('${l.id}')" style="background:rgba(0,212,170,0.12);border:1px solid rgba(0,212,170,0.25);border-radius:8px;color:var(--accent);font-size:15px;padding:5px 7px;cursor:pointer;" title="Gerar mensagem com IA">🤖💬</button>` : ''}
+            ${tel ? `<button onclick="event.stopPropagation();abrirMensagemFollowUp('${l.id}')" style="background:rgba(0,212,170,0.12);border:1px solid rgba(0,212,170,0.25);border-radius:8px;color:var(--accent);font-size:15px;padding:5px 7px;cursor:pointer;" title="Gerar mensagem com IA">🤖💬</button>` : `<button onclick="event.stopPropagation();abrirMensagemFollowUpRedeSocial('${l.id}')" style="background:rgba(0,212,170,0.12);border:1px solid rgba(0,212,170,0.25);border-radius:8px;color:var(--accent);font-size:15px;padding:5px 7px;cursor:pointer;" title="Gerar mensagem com IA (sem telefone)">🤖📸</button>`}
             ${alerta ? `<button onclick="event.stopPropagation();snoozeEsfriar('${l.id}',2)" style="background:rgba(255,255,255,0.05);border:1px solid var(--border);border-radius:8px;color:var(--text3);font-size:10px;padding:4px 6px;cursor:pointer;" title="Adiar 2 dias">⏸2d</button>` : ''}
           </div>
         </div>`;
@@ -12015,7 +12015,7 @@ function renderProximaAcao() {
           <div style="font-size:12px;color:var(--text2);line-height:1.5;">${escapeHtml(motivo)}</div>
         </div>
         <div style="display:flex;gap:7px;flex-shrink:0;">
-          ${tel ? `<button class="btn-acao-wa" onclick="abrirMensagemFollowUp('${escolhido.id}')">🤖💬 Contactar</button>` : `<button class="btn-acao-ver" onclick="verLead('${escolhido.id}')">👁 Ver lead</button>`}
+          ${tel ? `<button class="btn-acao-wa" onclick="abrirMensagemFollowUp('${escolhido.id}')">🤖💬 Contactar</button>` : `<button class="btn-acao-wa" onclick="abrirMensagemFollowUpRedeSocial('${escolhido.id}')">🤖📸 Contactar</button>`}
           <button class="btn-acao-snooze" onclick="dispensarProximaAcao()">Hoje não</button>
         </div>
       </div>
@@ -17674,6 +17674,55 @@ function abrirMensagemFollowUp(leadId) {
     if (sel) { sel.value = _sugestao.objetivo; mostrarSugestaoObjetivoBadge(_sugestao.motivo); toggleCampoRespostaLead(); }
     gerarMsgIA();
   }, 200);
+}
+
+// Mesmo fluxo de abrirMensagemFollowUp, para leads SEM telefone (ex: capturados
+// em redes sociais) — abre o mesmo modal (que já trata bem este caso, mostrando
+// o aviso "sem telefone" com os botões de copiar+abrir Instagram/Messenger em vez
+// da linha de destino de WhatsApp) e gera a mensagem com IA da mesma forma.
+function abrirMensagemFollowUpRedeSocial(leadId) {
+  abrirMensagem(leadId, 'whatsapp');
+  const lead = leads.find(l => l.id === leadId);
+  const _sugestao = objetivoSugeridoPeloHistorico(lead);
+  setTimeout(() => {
+    const sel = document.getElementById('msg-ia-objetivo');
+    if (sel) { sel.value = _sugestao.objetivo; mostrarSugestaoObjetivoBadge(_sugestao.motivo); toggleCampoRespostaLead(); }
+    gerarMsgIA();
+  }, 200);
+}
+
+// Copia o texto já gerado em #msg-texto e abre a app de rede social (Instagram
+// ou Messenger), tal como acEnviarMsgAgora() já faz na Análise de Conversa —
+// sem deep-link com texto pré-preenchido nestas duas apps, o fluxo possível é
+// copiar e o distribuidor colar manualmente na conversa certa. Também regista
+// no histórico do lead, igual ao que acontece ao enviar por WhatsApp.
+function copiarMsgEAbrirRedeSocial(canal) {
+  const texto = (document.getElementById('msg-texto').value || '').trim();
+  if (!texto) { showToast('❌ Escreve ou gera uma mensagem primeiro'); return; }
+
+  const l = leads.find(x => x.id === msgLeadId);
+  if (l) {
+    l.historico = l.historico || [];
+    const canalLbl = canal === 'messenger' ? '💙 Messenger' : '📸 Instagram DM';
+    l.historico.push({
+      tipo: 'mensagem',
+      msg: `${canalLbl} enviado: "${texto.slice(0, 60)}${texto.length > 60 ? '…' : ''}"`,
+      data: new Date().toLocaleString('pt-PT')
+    });
+    if (msgTemplateTipoAtual) l.historico[l.historico.length - 1].templateTipo = msgTemplateTipoAtual;
+    l.ultimoContacto = new Date().toISOString();
+    avancarEstadoAposPrimeiroContacto(l);
+    saveleads();
+  }
+  if (typeof renderResumoDia === 'function') renderResumoDia();
+  if (typeof renderProximaAcao === 'function') renderProximaAcao();
+
+  copiarTextoSeguro(texto, 'Mensagem copiada!');
+  const destinoLbl = canal === 'messenger' ? 'Messenger' : 'Instagram';
+  showToast('📋 Copiado — cola na conversa de ' + destinoLbl);
+  setTimeout(() => {
+    abrirAppNativa(canal, canal === 'messenger' ? 'https://www.messenger.com/' : 'https://www.instagram.com/direct/inbox/');
+  }, 600);
 }
 
 function setMsgCanal(canal) {
@@ -24450,7 +24499,7 @@ function renderFollowUps() {
         </div>
         <div class="followup-item-days ${daysClass}">${daysLabel} sem contacto</div>
         <div class="followup-item-actions">
-          ${tel ? `<button class="btn btn-sm btn-wa-sm" onclick="abrirMensagemFollowUp('${l.id}')" title="Gerar mensagem de follow-up com IA e abrir WhatsApp">🤖💬</button>` : ''}
+          ${tel ? `<button class="btn btn-sm btn-wa-sm" onclick="abrirMensagemFollowUp('${l.id}')" title="Gerar mensagem de follow-up com IA e abrir WhatsApp">🤖💬</button>` : `<button class="btn btn-sm btn-wa-sm" onclick="abrirMensagemFollowUpRedeSocial('${l.id}')" title="Gerar mensagem de follow-up com IA (sem telefone)">🤖📸</button>`}
           <button class="btn btn-secondary btn-sm" onclick="verLead('${l.id}')" title="Ver lead">👁</button>
           <button class="btn-snooze" onclick="snoozeFollowUp('${l.id}',3)" title="Adiar 3 dias">⏸ 3d</button>
         </div>
@@ -24966,7 +25015,7 @@ function renderDigestDiario() {
           <div style="display:flex;flex-direction:column;gap:6px;flex-shrink:0;align-items:flex-end;">
             <span style="font-size:13px;font-weight:800;color:${sc>=8?'#ff5555':sc>=6?'#ff9300':'#f5c842'};">${scoreEmoji(sc)} ${sc}/10</span>
             <div style="display:flex;gap:6px;">
-              ${tel ? `<button onclick="abrirMensagemFollowUp('${l.id}')" style="background:var(--accent);border:none;border-radius:8px;color:#000;font-size:12px;font-weight:700;padding:6px 12px;cursor:pointer;white-space:nowrap;">🤖💬 Agir</button>` : `<button onclick="verLead('${l.id}')" style="background:var(--surface3);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:12px;font-weight:600;padding:6px 12px;cursor:pointer;">👁 Ver</button>`}
+              ${tel ? `<button onclick="abrirMensagemFollowUp('${l.id}')" style="background:var(--accent);border:none;border-radius:8px;color:#000;font-size:12px;font-weight:700;padding:6px 12px;cursor:pointer;white-space:nowrap;">🤖💬 Agir</button>` : `<button onclick="abrirMensagemFollowUpRedeSocial('${l.id}')" style="background:var(--accent);border:none;border-radius:8px;color:#000;font-size:12px;font-weight:700;padding:6px 12px;cursor:pointer;white-space:nowrap;">🤖📸 Agir</button>`}
               <button onclick="pularLeadDoDia('${l.id}')" title="Já contactado offline ou sem interesse — sugerir outro lead" style="background:var(--surface3);border:1px solid var(--border);border-radius:8px;color:var(--text2);font-size:12px;font-weight:600;padding:6px 10px;cursor:pointer;white-space:nowrap;">⏭️ Passar</button>
             </div>
           </div>
@@ -31904,6 +31953,10 @@ function renderPrevisaoComissao() {
     <!-- Aviso sem telefone -->
     <div class="msg-no-tel" id="msg-no-tel-warn" style="display:none;">
       ⚠️ Este contacto não tem número de telefone. <button class="btn btn-secondary btn-sm" style="margin-left:8px;" onclick="editarLead(msgLeadId); closeModal('modal-mensagem')">Adicionar número</button>
+      <div style="margin-top:8px;">
+        <button class="btn btn-primary btn-sm" onclick="copiarMsgEAbrirRedeSocial('instagram')">📸 Copiar e abrir Instagram</button>
+        <button class="btn btn-secondary btn-sm" style="margin-left:6px;" onclick="copiarMsgEAbrirRedeSocial('messenger')">💙 Copiar e abrir Messenger</button>
+      </div>
     </div>
 
     <!-- Destino -->
