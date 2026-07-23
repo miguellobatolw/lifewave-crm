@@ -11770,7 +11770,7 @@ function renderTopLeadsWidget() {
             </div>
           </div>
           <div style="display:flex;flex-direction:column;gap:4px;flex-shrink:0;">
-            ${tel ? `<button onclick="event.stopPropagation();abrirMensagemFollowUp('${l.id}')" style="background:rgba(0,212,170,0.12);border:1px solid rgba(0,212,170,0.25);border-radius:8px;color:var(--accent);font-size:15px;padding:5px 7px;cursor:pointer;" title="Gerar mensagem com IA">🤖💬</button>` : ''}
+            ${tel ? `<button onclick="event.stopPropagation();abrirMensagemFollowUp('${l.id}')" style="background:rgba(0,212,170,0.12);border:1px solid rgba(0,212,170,0.25);border-radius:8px;color:var(--accent);font-size:15px;padding:5px 7px;cursor:pointer;" title="Gerar mensagem com IA">🤖💬</button>` : `<button onclick="event.stopPropagation();abrirMensagemFollowUpCanal('${l.id}')" style="background:rgba(0,212,170,0.12);border:1px solid rgba(0,212,170,0.25);border-radius:8px;color:var(--accent);font-size:15px;padding:5px 7px;cursor:pointer;" title="Gerar mensagem com IA">🤖${ultimoCanalDoLead(l) === 'messenger' ? '💙' : '📸'}</button>`}
             ${alerta ? `<button onclick="event.stopPropagation();snoozeEsfriar('${l.id}',2)" style="background:rgba(255,255,255,0.05);border:1px solid var(--border);border-radius:8px;color:var(--text3);font-size:10px;padding:4px 6px;cursor:pointer;" title="Adiar 2 dias">⏸2d</button>` : ''}
           </div>
         </div>`;
@@ -12017,7 +12017,7 @@ function renderProximaAcao() {
           <div style="font-size:12px;color:var(--text2);line-height:1.5;">${escapeHtml(motivo)}</div>
         </div>
         <div style="display:flex;gap:7px;flex-shrink:0;">
-          ${tel ? `<button class="btn-acao-wa" onclick="abrirMensagemFollowUp('${escolhido.id}')">🤖💬 Contactar</button>` : `<button class="btn-acao-ver" onclick="verLead('${escolhido.id}')">👁 Ver lead</button>`}
+          ${tel ? `<button class="btn-acao-wa" onclick="abrirMensagemFollowUp('${escolhido.id}')">🤖💬 Contactar</button>` : `<button class="btn-acao-wa" onclick="abrirMensagemFollowUpCanal('${escolhido.id}')">🤖${ultimoCanalDoLead(escolhido) === 'messenger' ? '💙' : '📸'} Contactar</button>`}
           <button class="btn-acao-snooze" onclick="dispensarProximaAcao()">Hoje não</button>
         </div>
       </div>
@@ -17504,6 +17504,30 @@ const TEMPLATES = {
   cliente_frio:  () => `Olá {nome}! 🎉\n\nBem-vindo/a à LifeWave! Estou muito disponível para o/a acompanhar nesta jornada.\n\nQualquer dúvida sobre o X39, estarei aqui 💚`,
 };
 
+// Devolve o último canal (whatsapp/instagram/messenger) por onde se falou
+// com este lead, olhando para a entrada mais recente do histórico com
+// "plataforma" gravada de forma estruturada (ver acGuardarNoLead). Serve
+// para o card "Próxima melhor ação" saber que app abrir quando o lead não
+// tem telefone (então "Contactar via WhatsApp" não é opção). Sem nenhum
+// registo anterior, assume 'instagram' — o canal alternativo mais comum
+// para leads sem WhatsApp guardado.
+function ultimoCanalDoLead(l) {
+  if (!l) return 'instagram';
+  const hist = l.historico || [];
+  let maisRecenteData = null;
+  let maisRecenteCanal = null;
+  hist.forEach(function(h) {
+    if (h && h.tipo === 'analise_ia' && h.plataforma) {
+      const d = parseDataContactoLead(h.data);
+      if (d && !isNaN(d.getTime()) && (!maisRecenteData || d > maisRecenteData)) {
+        maisRecenteData = d;
+        maisRecenteCanal = h.plataforma;
+      }
+    }
+  });
+  return maisRecenteCanal || 'instagram';
+}
+
 // Decide qual objetivo (primeiro/ponte/followup/cliente) faz mais sentido
 // pré-selecionar no gerador de mensagens, olhando para o HISTÓRICO REAL da
 // conversa em vez de só o estado do funil (que só muda quando o distribuidor
@@ -17679,11 +17703,30 @@ function abrirMensagemFollowUp(leadId) {
   }, 200);
 }
 
+// Variante de abrirMensagemFollowUp() para leads SEM TELEFONE guardado —
+// usada no card "Próxima melhor ação" em vez do fallback "👁 Ver lead".
+// Abre o mesmo modal e a mesma geração de mensagem via IA, mas já
+// configurado no canal por onde este lead foi realmente contactado da
+// última vez (Instagram ou Messenger, via ultimoCanalDoLead()), para o
+// botão "Enviar" copiar o texto e abrir a app certa em vez de pedir um
+// número de telefone que este lead não tem.
+function abrirMensagemFollowUpCanal(leadId) {
+  const lead = leads.find(l => l.id === leadId);
+  const canal = ultimoCanalDoLead(lead); // 'instagram' ou 'messenger' (fallback: 'instagram')
+  abrirMensagem(leadId, canal);
+  const _sugestao = objetivoSugeridoPeloHistorico(lead);
+  setTimeout(() => {
+    const sel = document.getElementById('msg-ia-objetivo');
+    if (sel) { sel.value = _sugestao.objetivo; mostrarSugestaoObjetivoBadge(_sugestao.motivo); toggleCampoRespostaLead(); }
+    gerarMsgIA();
+  }, 200);
+}
+
 function setMsgCanal(canal) {
   msgCanal = canal;
-  ['whatsapp','sms','tel'].forEach(c => {
+  ['whatsapp','sms','instagram','messenger'].forEach(c => {
     const pill = document.getElementById('msg-pill-' + c);
-    if (pill) pill.className = 'msg-pill' + (c === canal ? ` active-${c}` : '');
+    if (pill) pill.className = 'msg-pill' + (c === canal ? ` active-${c === 'instagram' || c === 'messenger' ? 'wa' : c}` : '');
   });
   const btn = document.getElementById('msg-enviar-btn');
   if (canal === 'whatsapp') {
@@ -17692,9 +17735,25 @@ function setMsgCanal(canal) {
   } else if (canal === 'sms') {
     btn.className = 'btn btn-sms';
     btn.textContent = '📱 Enviar SMS';
+  } else if (canal === 'instagram') {
+    btn.className = 'btn btn-wa';
+    btn.textContent = '📸 Copiar e abrir Instagram';
+  } else if (canal === 'messenger') {
+    btn.className = 'btn btn-wa';
+    btn.textContent = '💙 Copiar e abrir Messenger';
   }
-  document.getElementById('msg-modal-title').textContent =
-    canal === 'whatsapp' ? '💬 Enviar WhatsApp' : '📱 Enviar SMS';
+  const titulos = { whatsapp: '💬 Enviar WhatsApp', sms: '📱 Enviar SMS', instagram: '📸 Enviar por Instagram', messenger: '💙 Enviar por Messenger' };
+  document.getElementById('msg-modal-title').textContent = titulos[canal] || '💬 Enviar Mensagem';
+  // Instagram/Messenger não têm "número de telefone" — não faz sentido
+  // mostrar o campo "Para" com placeholder de telefone nesses canais nem o
+  // aviso "sem telefone" (que sugere adicionar número, o que é irrelevante
+  // aqui). O texto ainda é gerado normalmente, só a forma de entrega muda.
+  const destinoRow = document.getElementById('msg-destino-row');
+  const semTelWarn = document.getElementById('msg-no-tel-warn');
+  if (canal === 'instagram' || canal === 'messenger') {
+    if (destinoRow) destinoRow.style.display = 'none';
+    if (semTelWarn) semTelWarn.style.display = 'none';
+  }
 }
 
 function limparTelefone(tel) {
@@ -18354,11 +18413,46 @@ Responde APENAS com o texto da mensagem, sem título nem explicação.`;
 
 function enviarMensagem() {
   const texto = document.getElementById('msg-texto').value.trim();
+  if (!texto) { showToast('❌ Escreve ou gera uma mensagem primeiro'); return; }
+
+  // Instagram/Messenger não usam número de telefone — validam-se e
+  // despacham-se à parte, replicando o mesmo padrão de acEnviarMsgAgora()
+  // (copiar texto + abrir a app nativa, já que estes canais não têm
+  // deep-link que aceite o texto da mensagem como o wa.me aceita).
+  if (msgCanal === 'instagram' || msgCanal === 'messenger') {
+    const lIG = leads.find(x => x.id === msgLeadId);
+    if (lIG) {
+      lIG.historico = lIG.historico || [];
+      const canalLblIG = msgCanal === 'instagram' ? '📸 Instagram DM' : '💙 Messenger';
+      const entradaMsgIG = {
+        tipo: 'mensagem',
+        msg: `${canalLblIG} enviado: "${texto.slice(0, 60)}${texto.length > 60 ? '…' : ''}"`,
+        data: new Date().toLocaleString('pt-PT'),
+        plataforma: msgCanal, // grava de forma estruturada p/ ultimoCanalDoLead()
+      };
+      if (msgTemplateTipoAtual) entradaMsgIG.templateTipo = msgTemplateTipoAtual;
+      lIG.historico.push(entradaMsgIG);
+      lIG.ultimoContacto = new Date().toISOString();
+      avancarEstadoAposPrimeiroContacto(lIG);
+      saveleads();
+    }
+    if (typeof renderResumoDia === 'function') renderResumoDia();
+    if (typeof renderProximaAcao === 'function') renderProximaAcao();
+
+    copiarTextoSeguro(texto, 'Mensagem copiada!');
+    const destinoLblIG = msgCanal === 'messenger' ? 'Messenger (dentro da app do Facebook)' : 'Instagram';
+    showToast('📋 Copiado — cola na conversa de ' + destinoLblIG);
+    closeModal('modal-mensagem');
+    setTimeout(function() {
+      abrirAppNativa(msgCanal, msgCanal === 'messenger' ? 'https://www.messenger.com/' : 'https://www.instagram.com/direct/inbox/');
+    }, 600);
+    return;
+  }
+
   const numInput = document.getElementById('msg-numero').value.trim();
   const tel = limparTelefone(numInput);
 
   if (!tel) { showToast('❌ Número de telefone em falta'); return; }
-  if (!texto) { showToast('❌ Escreve ou gera uma mensagem primeiro'); return; }
 
   const encodedTexto = encodeURIComponent(texto);
 
@@ -24423,7 +24517,7 @@ function renderFollowUps() {
         </div>
         <div class="followup-item-days ${daysClass}">${daysLabel} sem contacto</div>
         <div class="followup-item-actions">
-          ${tel ? `<button class="btn btn-sm btn-wa-sm" onclick="abrirMensagemFollowUp('${l.id}')" title="Gerar mensagem de follow-up com IA e abrir WhatsApp">🤖💬</button>` : ''}
+          ${tel ? `<button class="btn btn-sm btn-wa-sm" onclick="abrirMensagemFollowUp('${l.id}')" title="Gerar mensagem de follow-up com IA e abrir WhatsApp">🤖💬</button>` : `<button class="btn btn-sm btn-wa-sm" onclick="abrirMensagemFollowUpCanal('${l.id}')" title="Gerar mensagem de follow-up com IA e abrir ${ultimoCanalDoLead(l) === 'messenger' ? 'Messenger' : 'Instagram'}">🤖${ultimoCanalDoLead(l) === 'messenger' ? '💙' : '📸'}</button>`}
           <button class="btn btn-secondary btn-sm" onclick="verLead('${l.id}')" title="Ver lead">👁</button>
           <button class="btn-snooze" onclick="snoozeFollowUp('${l.id}',3)" title="Adiar 3 dias">⏸ 3d</button>
         </div>
@@ -24939,7 +25033,7 @@ function renderDigestDiario() {
           <div style="display:flex;flex-direction:column;gap:6px;flex-shrink:0;align-items:flex-end;">
             <span style="font-size:13px;font-weight:800;color:${sc>=8?'#ff5555':sc>=6?'#ff9300':'#f5c842'};">${scoreEmoji(sc)} ${sc}/10</span>
             <div style="display:flex;gap:6px;">
-              ${tel ? `<button onclick="abrirMensagemFollowUp('${l.id}')" style="background:var(--accent);border:none;border-radius:8px;color:#000;font-size:12px;font-weight:700;padding:6px 12px;cursor:pointer;white-space:nowrap;">🤖💬 Agir</button>` : `<button onclick="verLead('${l.id}')" style="background:var(--surface3);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:12px;font-weight:600;padding:6px 12px;cursor:pointer;">👁 Ver</button>`}
+              ${tel ? `<button onclick="abrirMensagemFollowUp('${l.id}')" style="background:var(--accent);border:none;border-radius:8px;color:#000;font-size:12px;font-weight:700;padding:6px 12px;cursor:pointer;white-space:nowrap;">🤖💬 Agir</button>` : `<button onclick="abrirMensagemFollowUpCanal('${l.id}')" style="background:var(--accent);border:none;border-radius:8px;color:#000;font-size:12px;font-weight:700;padding:6px 12px;cursor:pointer;white-space:nowrap;">🤖${ultimoCanalDoLead(l) === 'messenger' ? '💙' : '📸'} Agir</button>`}
               <button onclick="pularLeadDoDia('${l.id}')" title="Já contactado offline ou sem interesse — sugerir outro lead" style="background:var(--surface3);border:1px solid var(--border);border-radius:8px;color:var(--text2);font-size:12px;font-weight:600;padding:6px 10px;cursor:pointer;white-space:nowrap;">⏭️ Passar</button>
             </div>
           </div>
@@ -31889,6 +31983,8 @@ function renderPrevisaoComissao() {
     <div class="msg-channel-pills">
       <div class="msg-pill active-wa" id="msg-pill-whatsapp" onclick="setMsgCanal('whatsapp')">💬 WhatsApp</div>
       <div class="msg-pill" id="msg-pill-sms" onclick="setMsgCanal('sms')">📱 SMS</div>
+      <div class="msg-pill" id="msg-pill-instagram" onclick="setMsgCanal('instagram')">📸 Instagram</div>
+      <div class="msg-pill" id="msg-pill-messenger" onclick="setMsgCanal('messenger')">💙 Messenger</div>
       <div class="msg-pill" id="msg-pill-tel" onclick="ligarAtual()">📞 Ligar</div>
     </div>
 
@@ -44182,6 +44278,11 @@ function acGuardarNoLead() {
     + (r.proxima_mensagem ? '\n➡️ Sugestão enviada/preparada: "' + r.proxima_mensagem.slice(0,200) + (r.proxima_mensagem.length > 200 ? '…' : '') + '"' : '');
 
   var entrada = { tipo: 'analise_ia', msg: resumoMsg, data: new Date().toLocaleString('pt-PT') };
+  // Grava a plataforma de forma ESTRUTURADA (não só dentro do texto livre em
+  // "msg" acima) para que outras partes da app (ex: card "Próxima melhor
+  // ação") saibam por que canal contactar este lead sem telefone guardado,
+  // sem terem de fazer parsing de texto livre em português.
+  if (_acUltimaAnalise && _acUltimaAnalise.plataforma) entrada.plataforma = _acUltimaAnalise.plataforma;
   var templateDetectadoAC = (r.template_detectado || '').trim();
   if (templateDetectadoAC) {
     entrada.templateTipoDetectado = templateDetectadoAC; // vem da IA, distinto de templateTipo (escolhido manualmente em usarTemplate)
