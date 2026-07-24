@@ -8,7 +8,7 @@
   // Versão única da app — muda só aqui a cada release; o título da página
   // e o rodapé do ecrã de login lêem sempre deste valor, para nunca ficarem
   // dessincronizados um do outro.
-  window.APP_VERSION = 'v107';
+  window.APP_VERSION = 'v108';
 </script>
 
 <!-- ===== PWA: manifest, ícones e meta tags ===== -->
@@ -18321,16 +18321,28 @@ async function gerarMsgIA() {
   // para morno/quente é uma RECONEXÃO com alguém que o distribuidor já conhece;
   // para frio é uma ABORDAGEM a um desconhecido (ex: lead captado no Facebook)
   // — não existe "há algum tempo que não falamos" porque nunca houve conversa.
+  const notasLead = (l.notas || '').toLowerCase();
+  const ehLeadFormularioFacebookEvento = /formul[áa]rio/.test(notasLead) && /facebook/.test(notasLead) && /evento|webinar|conven[çc][ãa]o|palestra/.test(notasLead);
+
   const instrucaoPrimeiroFrio = (l.notas || '').trim()
-    ? 'É um PRIMEIRO CONTACTO com um DESCONHECIDO (lead frio, ex: captado nas redes sociais) — nunca houve conversa antes, por isso NÃO uses frases de reconexão como "há algum tempo que não falamos" ou "espero que esteja tudo bem contigo". NÃO menciones negócio, produto, LifeWave ou "oportunidade" nesta mensagem. Apresenta-te com o teu nome e usa as notas existentes sobre este lead para tornar a abertura específica e genuína (não genérica), mas NUNCA inventes detalhes do perfil que não estejam nas notas — se não tiveres a certeza de algo, não o menciones. ATENÇÃO: se as notas mencionarem outra empresa de vendas diretas/network marketing, um evento, webinar, "convenção" ou "oportunidade" de outra marca (mesmo que o nome pareça vago ou seja só uma sigla) — NUNCA menciones esse evento/empresa na mensagem, mesmo de forma neutra ou como pergunta ("o que achou?", "conseguiu ir?"). Fazer isso valida e dá palco ao interesse da pessoa nessa outra oportunidade, o oposto do que queremos. Se as notas só tiverem esse tipo de informação sensível, ignora-a por completo e usa uma abertura genérica e simples (ex: pelo nome, ou apenas cumprimenta e diz o motivo do contacto).'
+    ? (ehLeadFormularioFacebookEvento
+        ? 'É um PRIMEIRO CONTACTO com um DESCONHECIDO (lead frio, veio de um formulário do Facebook sobre um evento) — nunca houve conversa antes, por isso NÃO uses frases de reconexão como "há algum tempo que não falamos" ou "espero que esteja tudo bem contigo". NÃO menciones negócio, produto, LifeWave ou "oportunidade" nesta mensagem. Apresenta-te com o teu nome. REGRA ABSOLUTA: NÃO nomeies o evento, webinar, "convenção" ou palestra em si, nem a empresa/marca por trás dele, mesmo de forma neutra ("conseguiu ir?", "o que achou?", "como correu?") — isso dá palco a uma oportunidade de outra marca. Em vez disso, usa como motivo do contacto que o lead reagiu ou mostrou interesse num anúncio/publicação do próprio remetente no Facebook ou Instagram há algum tempo (nunca inventes qual foi o conteúdo exato do anúncio). IMPORTANTE: NÃO perguntes diretamente "ainda tem interesse?" nem faças qualquer pergunta que soe a qualificação de negócio ou pedido de decisão — isso é para a fase seguinte ("Ponte para negócio"), não para esta. Usa o anúncio só como motivo leve e honesto do contacto, seguido de um cumprimento simples (ex: "como está?", "tudo bem?"), sem pedir resposta sobre a oportunidade em si.'
+        : 'É um PRIMEIRO CONTACTO com um DESCONHECIDO (lead frio, ex: captado nas redes sociais) — nunca houve conversa antes, por isso NÃO uses frases de reconexão como "há algum tempo que não falamos" ou "espero que esteja tudo bem contigo". NÃO menciones negócio, produto, LifeWave ou "oportunidade" nesta mensagem. Apresenta-te com o teu nome e usa as notas existentes sobre este lead para tornar a abertura específica e genuína (não genérica), mas NUNCA inventes detalhes do perfil que não estejam nas notas — se não tiveres a certeza de algo, não o menciones. Se as notas mencionarem outra empresa de vendas diretas/network marketing, evento, webinar ou "oportunidade" de outra marca, NÃO menciones esse evento/empresa na mensagem, mesmo de forma neutra ou como pergunta — nesse caso ignora essa parte da nota e usa uma abertura genérica e simples (ex: pelo nome, ou apenas cumprimenta e diz o motivo do contacto). IMPORTANTE: NÃO perguntes diretamente "ainda tem interesse?" nem faças qualquer pergunta que soe a qualificação de negócio ou pedido de decisão — isso é para a fase seguinte ("Ponte para negócio"), não para esta.')
     : 'É um PRIMEIRO CONTACTO com um DESCONHECIDO (lead frio, ex: captado nas redes sociais) — nunca houve conversa antes, por isso NÃO uses frases de reconexão como "há algum tempo que não falamos" ou "espero que esteja tudo bem contigo", e NÃO finjas ter reparado em algo específico do perfil da pessoa (nenhuma nota disponível sobre este lead). Apresenta-te com o teu nome e vai direto ao motivo do contacto de forma simples e honesta, sem negócio/produto/LifeWave nesta mensagem — o objetivo é só abrir a conversa e gerar uma resposta.';
+
+
+  const instrucaoRetomarAnuncio = ehLeadFormularioFacebookEvento
+    ? ' Este lead veio de um formulário do Facebook sobre um evento — no primeiro contacto foi mencionado que reagiu a um anúncio/publicação. Retoma esse fio de forma natural (ex: "aproveito para lhe falar sobre o motivo do meu contacto..."), sem nomear o evento em si nem a empresa/marca por trás dele.'
+    : '';
+
+  const ponteFrioBase = `É uma mensagem de TRANSIÇÃO/PONTE — a pessoa já respondeu bem ao primeiro contacto${respostaLead ? ` (respondeu: "${respostaLead}")` : ''}, e agora vais introduzir o tema do negócio/produto pela primeira vez, com naturalidade. Como é um lead frio (desconhecido, sem histórico anterior a este primeiro contacto), reage brevemente ao que a pessoa disse, depois pede permissão para partilhar algo ("posso partilhar consigo uma coisa?"), sem ainda dar detalhes do negócio — só abrir a porta. Mantém o tratamento por "você".${instrucaoRetomarAnuncio}`;
 
   const objetivoInstrucao = {
     primeiro: msgTempEscolhida === 'frio'
       ? instrucaoPrimeiroFrio
       : 'É um PRIMEIRO CONTACTO depois de algum tempo sem falar. NÃO menciones negócio, produto, LifeWave ou "oportunidade" nesta mensagem — o único objetivo é reconectar como pessoa. Pergunta genuinamente como a pessoa está. Se houver notas com contexto pessoal (ex: filho, trabalho, viagem), usa isso para tornar a mensagem específica a ela, em vez de genérica.',
     ponte: msgTempEscolhida === 'frio'
-      ? `É uma mensagem de TRANSIÇÃO/PONTE — a pessoa já respondeu bem ao primeiro contacto${respostaLead ? ` (respondeu: "${respostaLead}")` : ''}, e agora vais introduzir o tema do negócio/produto pela primeira vez, com naturalidade. Como é um lead frio (desconhecido, sem histórico anterior a este primeiro contacto), reage brevemente ao que a pessoa disse, depois pede permissão para partilhar algo ("posso partilhar consigo uma coisa?"), sem ainda dar detalhes do negócio — só abrir a porta. Mantém o tratamento por "você".`
+      ? ponteFrioBase
       : `É uma mensagem de TRANSIÇÃO/PONTE — a pessoa já respondeu bem-disposta à reconexão${respostaLead ? ` (respondeu: "${respostaLead}")` : ''}, e agora vais introduzir o tema do negócio/produto pela primeira vez, com naturalidade. Reage brevemente ao que ela disse, depois pede permissão para partilhar algo ("posso contar-te uma coisa?"), sem ainda dar detalhes do negócio — só abrir a porta.`,
     followup: 'É um FOLLOW-UP — referencia que já falámos antes, retoma o interesse com suavidade, pergunta como está.',
     info: 'É para partilhar INFO DO PRODUTO X39 — foca nos benefícios, resultados, como funciona, sem pressão.',
