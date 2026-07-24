@@ -8,7 +8,7 @@
   // Versão única da app — muda só aqui a cada release; o título da página
   // e o rodapé do ecrã de login lêem sempre deste valor, para nunca ficarem
   // dessincronizados um do outro.
-  window.APP_VERSION = 'v105';
+  window.APP_VERSION = 'v107';
 </script>
 
 <!-- ===== PWA: manifest, ícones e meta tags ===== -->
@@ -11768,7 +11768,7 @@ function renderTopLeadsWidget() {
             </div>
           </div>
           <div style="display:flex;flex-direction:column;gap:4px;flex-shrink:0;">
-            ${tel ? `<button onclick="event.stopPropagation();abrirMensagemFollowUp('${l.id}')" style="background:rgba(0,212,170,0.12);border:1px solid rgba(0,212,170,0.25);border-radius:8px;color:var(--accent);font-size:15px;padding:5px 7px;cursor:pointer;" title="Gerar mensagem com IA">🤖💬</button>` : `<button onclick="event.stopPropagation();abrirMensagemFollowUpRedeSocial('${l.id}')" style="background:rgba(0,212,170,0.12);border:1px solid rgba(0,212,170,0.25);border-radius:8px;color:var(--accent);font-size:15px;padding:5px 7px;cursor:pointer;" title="Gerar mensagem com IA (sem telefone)">🤖📸</button>`}
+            ${tel ? `<button onclick="event.stopPropagation();abrirMensagemFollowUp('${l.id}')" style="background:rgba(0,212,170,0.12);border:1px solid rgba(0,212,170,0.25);border-radius:8px;color:var(--accent);font-size:15px;padding:5px 7px;cursor:pointer;" title="Gerar mensagem com IA">🤖💬</button>` : ''}
             ${alerta ? `<button onclick="event.stopPropagation();snoozeEsfriar('${l.id}',2)" style="background:rgba(255,255,255,0.05);border:1px solid var(--border);border-radius:8px;color:var(--text3);font-size:10px;padding:4px 6px;cursor:pointer;" title="Adiar 2 dias">⏸2d</button>` : ''}
           </div>
         </div>`;
@@ -12015,7 +12015,7 @@ function renderProximaAcao() {
           <div style="font-size:12px;color:var(--text2);line-height:1.5;">${escapeHtml(motivo)}</div>
         </div>
         <div style="display:flex;gap:7px;flex-shrink:0;">
-          ${tel ? `<button class="btn-acao-wa" onclick="abrirMensagemFollowUp('${escolhido.id}')">🤖💬 Contactar</button>` : `<button class="btn-acao-wa" onclick="abrirMensagemFollowUpRedeSocial('${escolhido.id}')">🤖📸 Contactar</button>`}
+          ${tel ? `<button class="btn-acao-wa" onclick="abrirMensagemFollowUp('${escolhido.id}')">🤖💬 Contactar</button>` : `<button class="btn-acao-ver" onclick="verLead('${escolhido.id}')">👁 Ver lead</button>`}
           <button class="btn-acao-snooze" onclick="dispensarProximaAcao()">Hoje não</button>
         </div>
       </div>
@@ -18322,7 +18322,7 @@ async function gerarMsgIA() {
   // para frio é uma ABORDAGEM a um desconhecido (ex: lead captado no Facebook)
   // — não existe "há algum tempo que não falamos" porque nunca houve conversa.
   const instrucaoPrimeiroFrio = (l.notas || '').trim()
-    ? 'É um PRIMEIRO CONTACTO com um DESCONHECIDO (lead frio, ex: captado nas redes sociais) — nunca houve conversa antes, por isso NÃO uses frases de reconexão como "há algum tempo que não falamos" ou "espero que esteja tudo bem contigo". NÃO menciones negócio, produto, LifeWave ou "oportunidade" nesta mensagem. Apresenta-te com o teu nome e usa as notas existentes sobre este lead para tornar a abertura específica e genuína (não genérica), mas NUNCA inventes detalhes do perfil que não estejam nas notas — se não tiveres a certeza de algo, não o menciones.'
+    ? 'É um PRIMEIRO CONTACTO com um DESCONHECIDO (lead frio, ex: captado nas redes sociais) — nunca houve conversa antes, por isso NÃO uses frases de reconexão como "há algum tempo que não falamos" ou "espero que esteja tudo bem contigo". NÃO menciones negócio, produto, LifeWave ou "oportunidade" nesta mensagem. Apresenta-te com o teu nome e usa as notas existentes sobre este lead para tornar a abertura específica e genuína (não genérica), mas NUNCA inventes detalhes do perfil que não estejam nas notas — se não tiveres a certeza de algo, não o menciones. ATENÇÃO: se as notas mencionarem outra empresa de vendas diretas/network marketing, um evento, webinar, "convenção" ou "oportunidade" de outra marca (mesmo que o nome pareça vago ou seja só uma sigla) — NUNCA menciones esse evento/empresa na mensagem, mesmo de forma neutra ou como pergunta ("o que achou?", "conseguiu ir?"). Fazer isso valida e dá palco ao interesse da pessoa nessa outra oportunidade, o oposto do que queremos. Se as notas só tiverem esse tipo de informação sensível, ignora-a por completo e usa uma abertura genérica e simples (ex: pelo nome, ou apenas cumprimenta e diz o motivo do contacto).'
     : 'É um PRIMEIRO CONTACTO com um DESCONHECIDO (lead frio, ex: captado nas redes sociais) — nunca houve conversa antes, por isso NÃO uses frases de reconexão como "há algum tempo que não falamos" ou "espero que esteja tudo bem contigo", e NÃO finjas ter reparado em algo específico do perfil da pessoa (nenhuma nota disponível sobre este lead). Apresenta-te com o teu nome e vai direto ao motivo do contacto de forma simples e honesta, sem negócio/produto/LifeWave nesta mensagem — o objetivo é só abrir a conversa e gerar uma resposta.';
 
   const objetivoInstrucao = {
@@ -18400,15 +18400,13 @@ ${perfilDetectado.includes('INDEFINIDO') ? '→ Não há sinais claros ainda. Us
 Regras:
 - Escreve em Português de Portugal
 ${instrucaoTratamento}
-- O teu nome é ${nomeDistribuidor} — é quem está a enviar esta mensagem
-${objetivo === 'primeiro'
-  ? `- A mensagem tem SEMPRE de terminar assinada com este nome próprio (ex: "- ${nomeDistribuidor}" ou "${nomeDistribuidor} 😊" numa linha final), mesmo sendo uma mensagem curta e informal — nunca envies sem assinatura, e nunca uses um username ou nome inventado. Isto é um primeiro contacto (ou reconexão após muito tempo), por isso o destinatário precisa de saber quem está a escrever.`
-  : `- NÃO assines a mensagem com o teu nome (ex: nunca terminar com "- ${nomeDistribuidor}" ou similar) — já existe conversa/histórico com esta pessoa, ela já sabe quem és, e assinar aqui soa artificial e desnecessário, como se fosse a primeira vez a falar.`}
+- O teu nome é ${nomeDistribuidor} — é quem está a enviar esta mensagem, mas isso é só para tua referência
+- NÃO assines a mensagem com o teu nome em nenhuma circunstância (ex: nunca terminar com "- ${nomeDistribuidor}", "${nomeDistribuidor} 😊" ou similar) — isto é uma mensagem de chat/WhatsApp, não uma carta ou email; ninguém assina mensagens de WhatsApp com o próprio nome, mesmo em primeiro contacto. Se for útil identificares-te, fá-lo naturalmente dentro do texto (ex: "Olá, sou o ${nomeDistribuidor}...") e nunca numa linha final separada.
 - Tom pessoal, caloroso e sem pressão de vendas
-- Comprimento: ${limite}${objetivo === 'primeiro' ? ' (a assinatura conta para este limite)' : ''}
+- Comprimento: ${limite}
 - ${canal === 'SMS' ? 'Sem emojis, texto simples' : 'Podes usar alguns emojis (máximo 3)'}
 - Evita frases que pareçam um script copiado (ex: "pergunta aleatória", "espero que estejas bem!! 😊" genérico)
-- Termina com uma pergunta aberta ou convite suave${objetivo === 'primeiro' ? ', seguida da assinatura' : ''}
+- Termina com uma pergunta aberta ou convite suave
 - Não repitas factos óbvios do histórico de forma mecânica — usa-os com naturalidade
 
 Responde APENAS com o texto da mensagem, sem título nem explicação.`;
@@ -18752,16 +18750,14 @@ Regras:
 ${massaLeadType === 'frio'
   ? '- Trata a pessoa por "você" (tratamento formal/distante) em todo o texto — não uses "tu". É mercado frio (desconhecidos), sem relação de proximidade estabelecida, por isso o registo deve ser mais cortês e menos íntimo.'
   : '- Trata a pessoa por "tu" (tratamento informal)'}
-- O teu nome é ${nomeDistribuidorMassa} — é quem está a enviar esta mensagem
-${objetivo === 'primeiro'
-  ? `- A mensagem tem SEMPRE de terminar assinada com este nome próprio (ex: "- ${nomeDistribuidorMassa}" ou "${nomeDistribuidorMassa} 😊" numa linha final), mesmo sendo curta e informal — nunca envies sem assinatura, e nunca uses um username ou nome inventado. É um primeiro contacto, por isso o destinatário precisa de saber quem está a escrever.`
-  : `- NÃO assines a mensagem com o teu nome (ex: nunca terminar com "- ${nomeDistribuidorMassa}" ou similar) — já existe conversa/histórico com estes contactos, por isso assinar aqui soa artificial, como se fosse a primeira vez a falar.`}
+- O teu nome é ${nomeDistribuidorMassa} — é quem está a enviar esta mensagem, mas isso é só para tua referência
+- NÃO assines a mensagem com o teu nome em nenhuma circunstância (ex: nunca terminar com "- ${nomeDistribuidorMassa}", "${nomeDistribuidorMassa} 😊" ou similar) — isto é uma mensagem de chat/WhatsApp, não uma carta ou email; ninguém assina mensagens de WhatsApp com o próprio nome, mesmo em primeiro contacto. Se for útil identificares-te, fá-lo naturalmente dentro do texto (ex: "Olá, sou o ${nomeDistribuidorMassa}...") e nunca numa linha final separada.
 - Tom pessoal, caloroso e sem pressão de vendas
 - Adapta o tom ao mercado: quente=mais pessoal e direto, morno=mais explicativo, frio=mais cuidadoso e não invasivo
 - Personaliza a abertura com {nome}, mas VARIA a construção da frase (não uses sempre "Olá {nome}!" — alterna com formas como "{nome}, ...", "Ei {nome}!", ou entra direto no assunto mencionando {nome} a meio da 1ª frase). Pessoas que recebem mensagens em massa por vezes comparam notas; abertura sempre idêntica denuncia script.
-- Comprimento: ${limite}${objetivo === 'primeiro' ? ' (a assinatura conta para este limite)' : ''}
+- Comprimento: ${limite}
 - ${canal === 'SMS' ? 'Sem emojis, texto simples' : 'Podes usar alguns emojis (máximo 3)'}
-- Termina com uma pergunta aberta ou convite suave${objetivo === 'primeiro' ? ', seguida da assinatura' : ''}
+- Termina com uma pergunta aberta ou convite suave
 - Usa {nome} como placeholder para o nome da pessoa
 
 Responde APENAS com o texto da mensagem, sem título nem explicação.`;
@@ -24499,7 +24495,7 @@ function renderFollowUps() {
         </div>
         <div class="followup-item-days ${daysClass}">${daysLabel} sem contacto</div>
         <div class="followup-item-actions">
-          ${tel ? `<button class="btn btn-sm btn-wa-sm" onclick="abrirMensagemFollowUp('${l.id}')" title="Gerar mensagem de follow-up com IA e abrir WhatsApp">🤖💬</button>` : `<button class="btn btn-sm btn-wa-sm" onclick="abrirMensagemFollowUpRedeSocial('${l.id}')" title="Gerar mensagem de follow-up com IA (sem telefone)">🤖📸</button>`}
+          ${tel ? `<button class="btn btn-sm btn-wa-sm" onclick="abrirMensagemFollowUp('${l.id}')" title="Gerar mensagem de follow-up com IA e abrir WhatsApp">🤖💬</button>` : ''}
           <button class="btn btn-secondary btn-sm" onclick="verLead('${l.id}')" title="Ver lead">👁</button>
           <button class="btn-snooze" onclick="snoozeFollowUp('${l.id}',3)" title="Adiar 3 dias">⏸ 3d</button>
         </div>
