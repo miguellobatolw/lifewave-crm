@@ -8,7 +8,7 @@
   // Versão única da app — muda só aqui a cada release; o título da página
   // e o rodapé do ecrã de login lêem sempre deste valor, para nunca ficarem
   // dessincronizados um do outro.
-  window.APP_VERSION = 'v112';
+  window.APP_VERSION = 'v119';
 </script>
 
 <!-- ===== PWA: manifest, ícones e meta tags ===== -->
@@ -8957,13 +8957,26 @@ var QRCode=function(t){"use strict";var r,e=function(){return"function"==typeof 
         <span>Suporta ficheiros <strong>CSV, VCF (vCard)</strong> e <strong>Excel (.xlsx / .xls)</strong>. Colunas reconhecidas: nome, telefone, email, notas.</span>
       </div>
       <div class="import-zone" id="import-zone">
-        <input type="file" accept=".csv,.vcf,.xlsx,.xls" id="import-file-input" onchange="handleImportFile(this)">
+        <input type="file" accept=".csv,.vcf,.vcard,.xlsx,.xls,text/csv,text/vcard,text/x-vcard,text/plain,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" id="import-file-input" onchange="handleImportFile(this)">
         <div class="img-upload-label">
           <span class="upload-icon">📁</span>
           <span style="font-weight:600;color:var(--text);">Clica ou arrasta o ficheiro aqui</span>
           <span style="font-size:11px;">CSV · VCF · XLSX · XLS</span>
         </div>
       </div>
+      <div id="import-progresso" style="display:none;margin-top:14px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px;text-align:center;">
+        <div style="font-size:13px;color:var(--text);font-weight:600;margin-bottom:10px;" id="import-progresso-texto">📂 A ler o ficheiro...</div>
+        <div style="background:var(--surface3);border-radius:20px;height:6px;overflow:hidden;">
+          <div style="width:40%;height:100%;background:var(--accent);border-radius:20px;animation:importBarraIndeterminada 1.2s ease-in-out infinite;"></div>
+        </div>
+      </div>
+      <style>
+        @keyframes importBarraIndeterminada {
+          0% { margin-left: 0%; width: 30%; }
+          50% { margin-left: 70%; width: 30%; }
+          100% { margin-left: 0%; width: 30%; }
+        }
+      </style>
       <div id="import-preview-area" style="display:none;margin-top:14px;">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
           <div class="section-title" style="margin-bottom:0;" id="import-count-label">0 contactos encontrados</div>
@@ -16251,15 +16264,150 @@ function limparVideo() {
 // ===== FEATURE 2: IMPORTAR CONTACTOS =====
 let importContactos = [];
 
+function importMostrarProgresso(texto) {
+  const el = document.getElementById('import-progresso');
+  const txt = document.getElementById('import-progresso-texto');
+  if (txt && texto) txt.textContent = texto;
+  if (el) el.style.display = 'block';
+}
+function importEsconderProgresso() {
+  const el = document.getElementById('import-progresso');
+  if (el) el.style.display = 'none';
+}
+
 function handleImportFile(input) {
   const file = input.files[0];
   if (!file) return;
 
+  // Limitação conhecida do Android: ficheiros .vcf acedidos via content://
+  // (picker de ficheiros/partilha da app de Contactos) por vezes chegam ao
+  // browser com 0 bytes reais no objeto File. Isto não é só um metadado
+  // errado — em muitos casos os bytes mesmo não ficam acessíveis por
+  // FileReader porque o content provider da app de Contactos gera o vCard
+  // "on-demand" e só responde de forma fiável a quem o pediu originalmente.
+  // Antes de desistir, tentamos 3 formas diferentes de ler o mesmo File:
+  // FileReader (legacy), Blob.arrayBuffer() e Blob.stream() — cada uma usa
+  // um caminho interno diferente no Chrome e por vezes uma funciona quando
+  // as outras falham.
+  if (file.size === 0) {
+    const ext = file.name.split('.').pop().toLowerCase();
+    const isVcf = (ext === 'vcf' || ext === 'vcard');
+    const msgAviso = isVcf
+      ? '⚠️ O ficheiro .vcf chegou vazio (limitação do Android).'
+      : '⚠️ O ficheiro está vazio (0 bytes).';
+    showToast(msgAviso + ' A tentar ler o conteúdo de ' + (isVcf ? '3' : '1') + ' formas diferentes...');
+    tentarLerFicheiroVazioMultiplasFormas(file, function(sucesso) {
+      if (!sucesso) {
+        showToast(msgAviso + ' Nenhuma forma de leitura funcionou — o Android não expõe o conteúdo real deste ficheiro ao browser. Tenta: 1) partilhar o vCard por email/Drive e importar a partir daí, ou 2) usar "Exportar para ficheiro" na app de Contactos em vez de partilhar diretamente, ou 3) renomear a extensão para .csv (contorno conhecido).');
+      }
+    });
+    return;
+  }
+
+  processarFicheiroImportacao(file, null);
+}
+
+// Tenta ler um File que reportou size===0 usando 3 APIs diferentes do
+// browser, por ordem, avançando para a próxima só se a anterior não
+// devolver conteúdo real. Chama onResultado(sucesso) no fim.
+function tentarLerFicheiroVazioMultiplasFormas(file, onResultado) {
+  // Tentativa 1: FileReader clássico (o caminho original já existente)
+  processarFicheiroImportacao(file, function(sucesso1) {
+    if (sucesso1) { onResultado(true); return; }
+
+    // Tentativa 2: Blob.arrayBuffer() — API baseada em Promises, usa um
+    // caminho de leitura interno diferente do FileReader no Chromium e por
+    // vezes consegue aceder a bytes que o FileReader não conseguiu.
+    file.arrayBuffer().then(buffer => {
+      if (buffer && buffer.byteLength > 0) {
+        processarBufferComoFicheiro(buffer, file.name, onResultado);
+      } else {
+        // Tentativa 3: Blob.stream() lido em chunks — último recurso.
+        tentarLerViaStream(file, onResultado);
+      }
+    }).catch(() => {
+      tentarLerViaStream(file, onResultado);
+    });
+  });
+}
+
+// Tentativa 3 (último recurso): lê o ficheiro via ReadableStream em chunks.
+// Alguns content providers do Android só libertam bytes de forma incremental
+// via stream, mesmo quando arrayBuffer()/FileReader devolvem vazio de imediato.
+function tentarLerViaStream(file, onResultado) {
+  if (!file.stream) { onResultado(false); return; }
+  try {
+    const reader = file.stream().getReader();
+    const chunks = [];
+    let totalLen = 0;
+    const lerProximo = () => {
+      reader.read().then(({ done, value }) => {
+        if (done) {
+          if (totalLen === 0) { onResultado(false); return; }
+          const buffer = new Uint8Array(totalLen);
+          let offset = 0;
+          chunks.forEach(c => { buffer.set(c, offset); offset += c.length; });
+          processarBufferComoFicheiro(buffer.buffer, file.name, onResultado);
+          return;
+        }
+        chunks.push(value);
+        totalLen += value.length;
+        lerProximo();
+      }).catch(() => onResultado(false));
+    };
+    lerProximo();
+  } catch (e) {
+    onResultado(false);
+  }
+}
+
+// Processa um ArrayBuffer já lido com sucesso (por arrayBuffer() ou stream())
+// como se fosse o resultado de um FileReader normal, reaproveitando toda a
+// lógica de deteção de formato (conteúdo real, não extensão) e parsing.
+function processarBufferComoFicheiro(buffer, nomeFicheiro, onResultado) {
+  importMostrarProgresso('⚙️ A processar ' + nomeFicheiro + '... (pode demorar alguns segundos em ficheiros grandes)');
+  // Mesmo motivo do setTimeout em processarFicheiroImportacao: dar ao browser
+  // uma oportunidade de pintar a barra de progresso antes do parsing pesado
+  // e síncrono (parseVCF/parseCSV) bloquear o thread principal.
+  setTimeout(() => {
+    const content = decodeTextFile(buffer);
+    let resultado;
+    if (conteudoPareceVCard(content)) {
+      resultado = parseVCF(content);
+    } else {
+      resultado = parseCSV(content);
+    }
+    importEsconderProgresso();
+    if (resultado.length > 0) {
+      importContactos = resultado;
+      showToast('✅ Conseguiu ler ' + resultado.length + ' contacto(s)!');
+      renderImportPreview();
+      onResultado(true);
+    } else {
+      onResultado(false);
+    }
+  }, 30);
+}
+
+// Lógica real de leitura do ficheiro de importação (CSV/VCF/Excel), extraída
+// de handleImportFile para poder ser chamada tanto no caminho normal como no
+// fallback "tentar mesmo assim" quando o ficheiro reporta 0 bytes.
+// onResultado(sucesso) é opcional — usado pelo fallback para saber se a
+// tentativa produziu algum contacto real ou continuou vazia.
+function processarFicheiroImportacao(file, onResultado) {
   // Reset filtros de importação a cada novo ficheiro carregado
   const fInd = document.getElementById('imp-filtro-indicativo');
   const fCom = document.getElementById('imp-filtro-com-contacto');
   if (fInd) fInd.value = '';
   if (fCom) fCom.checked = false;
+
+  importMostrarProgresso('📂 A ler ' + file.name + '...');
+  // Ponto único de saída: esconde sempre a barra de progresso, quer o
+  // resultado seja sucesso, falha, ou erro — nunca fica presa visível.
+  const finalizar = (sucesso) => {
+    importEsconderProgresso();
+    if (onResultado) onResultado(sucesso);
+  };
 
   const ext = file.name.split('.').pop().toLowerCase();
   const isExcel = ext === 'xlsx' || ext === 'xls';
@@ -16267,15 +16415,20 @@ function handleImportFile(input) {
   if (isExcel) {
     if (typeof XLSX === 'undefined') {
       showToast('❌ Biblioteca Excel não carregada. Verifica a ligação à internet.');
+      finalizar(false);
       return;
     }
     const reader = new FileReader();
     reader.onload = e => {
+      // Mesmo motivo dos outros dois pontos: dar ao browser oportunidade de
+      // pintar a barra de progresso antes do parsing síncrono e pesado
+      // (XLSX.read + sheet_to_json) bloquear o thread principal.
+      setTimeout(() => {
       try {
         const wb = XLSX.read(e.target.result, { type: 'array' });
         const ws = wb.Sheets[wb.SheetNames[0]];
         const data = XLSX.utils.sheet_to_json(ws, { defval: '' });
-        if (!data.length) { showToast('❌ Ficheiro Excel vazio.'); return; }
+        if (!data.length) { showToast('❌ Ficheiro Excel vazio.'); finalizar(false); return; }
         const headers = Object.keys(data[0]).map(h => h.trim().toLowerCase());
         const idxNome  = headers.findIndex(h => h.includes('nome') || h.includes('name'));
         const idxTel   = headers.findIndex(h => h.includes('tel') || h.includes('phone') || h.includes('mob'));
@@ -16288,29 +16441,87 @@ function handleImportFile(input) {
           email: String(row[hKeys[idxEmail >= 0 ? idxEmail : -1]] ?? '').trim(),
           notas: String(row[hKeys[idxNotas >= 0 ? idxNotas : -1]] ?? '').trim(),
         })).filter(c => c.nome);
-        renderImportPreview();
+        if (onResultado) {
+          if (importContactos.length > 0) { showToast('✅ Conseguiu ler ' + importContactos.length + ' contacto(s) apesar do aviso!'); renderImportPreview(); finalizar(true); }
+          else finalizar(false);
+        } else {
+          renderImportPreview();
+          finalizar(true);
+        }
       } catch(err) {
         showToast('❌ Erro ao ler Excel: ' + err.message);
+        finalizar(false);
       }
+      }, 30);
     };
+    reader.onerror = () => { showToast('❌ Erro ao ler o ficheiro.'); finalizar(false); };
     reader.readAsArrayBuffer(file);
     return;
   }
 
   const reader = new FileReader();
   reader.onload = e => {
-    const content = decodeTextFile(e.target.result);
-    if (ext === 'vcf') {
-      importContactos = parseVCF(content);
-    } else if (ext === 'csv') {
-      importContactos = parseCSV(content);
-    } else {
-      showToast('❌ Formato não suportado. Usa CSV, VCF ou Excel (.xlsx/.xls).');
-      return;
-    }
-    renderImportPreview();
+    // Ficheiros grandes (ex: exports de vCard com milhares de contactos, como
+    // o "contacts.csv" de 14+ MB) fazem o parseVCF/parseCSV correr de forma
+    // síncrona durante vários segundos. Sem este pequeno atraso, a barra de
+    // progresso é tornada visível (importMostrarProgresso) mas o browser
+    // nunca chega a pintá-la no ecrã, porque o parsing pesado começa
+    // imediatamente a seguir no mesmo ciclo — bloqueando o repaint. O
+    // setTimeout(0) devolve o controlo ao browser por um instante,
+    // permitindo-lhe desenhar a barra antes do trabalho pesado arrancar.
+    importMostrarProgresso('⚙️ A processar ' + file.name + '... (pode demorar alguns segundos em ficheiros grandes)');
+    setTimeout(() => {
+      const content = decodeTextFile(e.target.result);
+      // A extensão do nome do ficheiro NÃO é fiável para decidir o parser: no
+      // Android, ficheiros .vcf que chegam com 0 bytes reportados levam a
+      // pessoa a renomear para .csv como contorno, mas o conteúdo continua a
+      // ser vCard. Por isso o conteúdo real manda sempre — só cai no "formato
+      // não suportado" se nem o conteúdo nem a extensão indicarem CSV/VCF.
+      if (conteudoPareceVCard(content)) {
+        importContactos = parseVCF(content);
+      } else if (ext === 'vcf' || ext === 'vcard' || ext === 'csv' || ext === 'txt') {
+        importContactos = parseCSV(content);
+      } else {
+        showToast('❌ Formato não suportado. Usa CSV, VCF ou Excel (.xlsx/.xls).');
+        finalizar(false);
+        return;
+      }
+      if (onResultado) {
+        // Fallback "tentar mesmo assim": só avança para a pré-visualização se
+        // a leitura produziu algo real — caso contrário, deixa o aviso original
+        // (ficheiro vazio) ser mostrado, sem gerar um ecrã de preview vazio.
+        if (importContactos.length > 0) {
+          showToast('✅ Conseguiu ler ' + importContactos.length + ' contacto(s) apesar do aviso!');
+          renderImportPreview();
+          finalizar(true);
+        } else {
+          finalizar(false);
+        }
+        return;
+      }
+      renderImportPreview();
+      finalizar(true);
+    }, 30);
   };
+  reader.onerror = () => { showToast('❌ Erro ao ler o ficheiro.'); finalizar(false); };
   reader.readAsArrayBuffer(file);
+}
+
+// Deteta se o CONTEÚDO do ficheiro é vCard, independentemente da extensão que
+// o ficheiro tenha. Isto é essencial porque, no Android, ficheiros .vcf
+// exportados via content:// por vezes chegam ao browser reportando 0 bytes
+// (limitação conhecida do picker), levando a pessoa a renomear manualmente
+// para .csv como contorno — mas o conteúdo continua a ser vCard puro, e um
+// parser de CSV sobre esse texto produz resultados absurdos (ex: linhas
+// "PHOTO;ENCODING=BASE64;JPEG:/9j/4AAQ..." interpretadas como nome de
+// contacto, gerando centenas de milhares de "contactos" ilegíveis).
+// Confiar só na extensão do nome do ficheiro nunca é seguro para decidir
+// como interpretar o conteúdo; o conteúdo real manda sempre.
+function conteudoPareceVCard(content) {
+  // BEGIN:VCARD deve aparecer nos primeiros ~200 caracteres não-vazios do
+  // ficheiro (permite BOM/espaço em branco antes, mas não faz sentido só
+  // aparecer depois de muito conteúdo já lido como outra coisa).
+  return /^\s*BEGIN:VCARD/i.test(content.slice(0, 200));
 }
 
 // Decodifica um ficheiro de texto detetando o encoding pelo BOM (Byte Order Mark).
@@ -16394,12 +16605,22 @@ function parseVCF(text) {
     }
     const tel = extrairPropriedadeVCF(card, 'TEL').replace(/\s/g, '');
     const email = extrairPropriedadeVCF(card, 'EMAIL');
+    const notas = extrairPropriedadeVCF(card, 'NOTE');
+    // Fallback ao "nome_completo"/"full_name" DENTRO das notas: exports do
+    // Facebook Ads Manager para vCard por vezes despejam todos os campos do
+    // formulário (nome_completo, nome_da_empresa, etc.) como texto corrido
+    // dentro do campo NOTE, sem preencher FN/N — nesse caso o Google Contacts
+    // e este parser ficam só com o número. Sem isto o lead entra "Sem nome".
+    if (!nome && notas) {
+      const mNome = notas.match(/nome[_\s]?completo\s*:\s*([^\n\r\\]+)/i) || notas.match(/full[_\s]?name\s*:\s*([^\n\r\\]+)/i);
+      if (mNome) nome = mNome[1].trim();
+    }
     if (nome || tel) {
       contacts.push({
         nome: nome || 'Sem nome',
         tel,
         email,
-        notas: ''
+        notas
       });
     }
   });
@@ -16447,6 +16668,17 @@ function detetarSeparadorCSV(headerLine) {
 // telefone/ids (ex: "p:+351935786565" -> "+351935786565").
 function limparPrefixoFacebook(valor) {
   return (valor || '').replace(/^[a-z]{1,3}:/i, '').trim();
+}
+
+// Rede de segurança: um "nome" real de contacto nunca é uma string longa,
+// sem espaços e cheia de caracteres típicos de base64 (isto acontece quando
+// um ficheiro binário ou vCard com fotos embutidas (PHOTO;ENCODING=BASE64...)
+// é lido erradamente como CSV simples). Evita que esse lixo entre como lead.
+function pareceValorBinarioOuBase64(valor) {
+  if (!valor || valor.length < 40) return false;
+  if (valor.includes(' ')) return false; // nomes reais costumam ter espaços
+  const proporcaoBase64 = (valor.match(/[A-Za-z0-9+/=]/g) || []).length / valor.length;
+  return proporcaoBase64 > 0.95;
 }
 
 function parseCSV(text) {
@@ -16500,7 +16732,7 @@ function parseCSV(text) {
     }
 
     return { nome, tel, email, notas };
-  }).filter(c => c.nome);
+  }).filter(c => c.nome && !pareceValorBinarioOuBase64(c.nome) && !pareceValorBinarioOuBase64(c.tel));
 }
 
 // Mantém referência da lista atualmente filtrada (índices relativos a importContactos)
