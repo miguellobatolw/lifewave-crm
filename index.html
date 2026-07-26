@@ -8,7 +8,7 @@
   // Versão única da app — muda só aqui a cada release; o título da página
   // e o rodapé do ecrã de login lêem sempre deste valor, para nunca ficarem
   // dessincronizados um do outro.
-  window.APP_VERSION = 'v108';
+  window.APP_VERSION = 'v112';
 </script>
 
 <!-- ===== PWA: manifest, ícones e meta tags ===== -->
@@ -28434,7 +28434,7 @@ function verMembro(id) {
   document.getElementById('ver-membro-actions').innerHTML = `
     <button class="btn btn-secondary btn-sm" onclick="editarMembro('${id}')">✏️ Editar</button>
     ${m.tel ? `<button class="btn btn-sm btn-wa" onclick="abrirWAMembro('${id}', ${(() => { const t = tipoAlertaPrincipalMembro(m); return t ? `'${t}'` : 'null'; })()}, ${(() => { const s2 = calcSaudeBP(m); return s2.pvEmRisco ? Math.max(0, 55 - s2.pv) : 'null'; })()})">💬 WhatsApp</button>` : ''}
-    <button class="btn btn-sm btn-ai" onclick="gerarMsgApoioMembro('${id}');closeModal('modal-ver-membro');">🤖 Msg IA</button>
+    <button class="btn btn-sm btn-ai" onclick="gerarMsgApoioMembro('${id}', ${(() => { const t = tipoAlertaPrincipalMembro(m); return t ? `'${t}'` : 'null'; })()});closeModal('modal-ver-membro');">🤖 Msg IA</button>
     <button class="btn btn-danger btn-sm" onclick="eliminarMembro('${id}')">🗑 Remover</button>
   `;
   openModal('modal-ver-membro');
@@ -34794,26 +34794,26 @@ function renderMiniCRM() {
         tier1.push({ m, s, tipo:'inativo',
           icon:'😴', cor:'#ff6b6b', corFundo:'rgba(255,107,107,0.06)',
           msg:`Membro inativo — sem atividade registada. Liga ou envia mensagem de motivação.`,
-          acao: m.tel ? `<button class="btn btn-sm btn-wa" onclick="abrirWAMembro('${m.id}','inativo')">💬 WhatsApp</button><button class="btn btn-sm btn-ai" onclick="gerarMsgApoioMembro('${m.id}')">🤖 Msg IA</button>` : `<button class="btn btn-sm btn-ai" onclick="gerarMsgApoioMembro('${m.id}')">🤖 Msg IA</button>`
+          acao: m.tel ? `<button class="btn btn-sm btn-wa" onclick="abrirWAMembro('${m.id}','inativo')">💬 WhatsApp</button><button class="btn btn-sm btn-ai" onclick="gerarMsgApoioMembro('${m.id}','inativo')">🤖 Msg IA</button>` : `<button class="btn btn-sm btn-ai" onclick="gerarMsgApoioMembro('${m.id}','inativo')">🤖 Msg IA</button>`
         });
       } else if (s.pv === 0 && m.estado !== 'inativo') {
         tier1.push({ m, s, tipo:'sem-pv',
           icon:'❌', cor:'#ff6b6b', corFundo:'rgba(255,107,107,0.06)',
           msg:`Sem PV registado — pode perder o estado Ativo. Verifica se comprou recentemente.`,
-          acao: m.tel ? `<button class="btn btn-sm btn-wa" onclick="abrirWAMembro('${m.id}','sem-pv')">💬 WA</button><button class="btn btn-sm btn-secondary" onclick="verMembro('${m.id}')">🩺 Ver</button>` : `<button class="btn btn-sm btn-secondary" onclick="verMembro('${m.id}')">🩺 Ver</button>`
+          acao: m.tel ? `<button class="btn btn-sm btn-wa" onclick="abrirWAMembro('${m.id}','sem-pv')">💬 WA</button><button class="btn btn-sm btn-secondary" onclick="verMembro('${m.id}')">🩺 Ver</button>` : `<button class="btn btn-sm btn-ai" onclick="gerarMsgApoioMembro('${m.id}','sem-pv')">🤖 Msg IA</button><button class="btn btn-sm btn-secondary" onclick="verMembro('${m.id}')">🩺 Ver</button>`
         });
       } else if (s.pvEmRisco) {
         const falta = 55 - s.pv;
         tier2.push({ m, s, tipo:'pv-risco',
           icon:'⚠️', cor:'var(--gold)', corFundo:'rgba(245,200,66,0.05)',
           msg:`PV em risco — ${s.pv}/55 · Faltam ${falta} PV para manter estado Ativo este mês.`,
-          acao: m.tel ? `<button class="btn btn-sm btn-wa" onclick="abrirWAMembro('${m.id}','pv-risco','${falta}')">💬 WA</button><button class="btn btn-sm btn-secondary" onclick="verMembro('${m.id}')">🩺 Saúde</button>` : `<button class="btn btn-sm btn-secondary" onclick="verMembro('${m.id}')">🩺 Saúde</button>`
+          acao: m.tel ? `<button class="btn btn-sm btn-wa" onclick="abrirWAMembro('${m.id}','pv-risco','${falta}')">💬 WA</button><button class="btn btn-sm btn-secondary" onclick="verMembro('${m.id}')">🩺 Saúde</button>` : `<button class="btn btn-sm btn-ai" onclick="gerarMsgApoioMembro('${m.id}','pv-risco')">🤖 Msg IA</button><button class="btn btn-sm btn-secondary" onclick="verMembro('${m.id}')">🩺 Saúde</button>`
         });
       } else if (s.arranqueAtivo && s.semanasRestantes <= 2) {
         tier2.push({ m, s, tipo:'blb-expira',
           icon:'🚀', cor:'var(--gold)', corFundo:'rgba(245,200,66,0.05)',
           msg:`BLB ${s.semanasRestantes===0?'expira esta semana':s.semanasRestantes===1?'expira na próxima semana':'expira em 2 semanas'} — ${s.semanasDecorridas} de 9 semanas. Última fase de arranque!`,
-          acao: m.tel ? `<button class="btn btn-sm btn-wa" onclick="abrirWAMembro('${m.id}','blb-expira')">💬 WA</button><button class="btn btn-sm btn-secondary" onclick="verMembro('${m.id}')">🩺 Ver BLB</button>` : `<button class="btn btn-sm btn-secondary" onclick="verMembro('${m.id}')">🩺 Ver BLB</button>`
+          acao: m.tel ? `<button class="btn btn-sm btn-wa" onclick="abrirWAMembro('${m.id}','blb-expira')">💬 WA</button><button class="btn btn-sm btn-secondary" onclick="verMembro('${m.id}')">🩺 Ver BLB</button>` : `<button class="btn btn-sm btn-ai" onclick="gerarMsgApoioMembro('${m.id}','blb-expira')">🤖 Msg IA</button><button class="btn btn-sm btn-secondary" onclick="verMembro('${m.id}')">🩺 Ver BLB</button>`
         });
       }
 
@@ -35063,7 +35063,7 @@ function guardarNotaMembro() {
   showToast('✅ Nota guardada!');
 }
 
-async function gerarMsgApoioMembro(id) {
+async function gerarMsgApoioMembro(id, tipoAlerta) {
   const m = membros.find(x => x.id === id);
   if (!m) return;
   const claudeKey = localStorage.getItem('lw_claudeKey') || '';
@@ -35071,8 +35071,17 @@ async function gerarMsgApoioMembro(id) {
   if (!claudeKey && !geminiKey) { showToast('⚠️ Configura a chave API primeiro'); return; }
 
   const estadoLabel = { ativo:'ativo e a vender bem', iniciante:'iniciante a dar os primeiros passos', inativo:'inativo e a precisar de motivação' }[m.estado] || m.estado;
+  // Contexto extra consoante o tipo de alerta que despoletou este pedido — sem
+  // isto a mensagem ficava sempre genérica ("motivação"), mesmo quando o alerta
+  // real é PV em risco ou BLB a expirar, que precisam de uma mensagem diferente.
+  const contextoAlerta = {
+    'pv-risco': ` O membro está com o PV (Volume Pessoal) em risco este mês e pode perder o estado Ativo — a mensagem deve alertar para isso com gentileza, sem pressão excessiva.`,
+    'sem-pv': ` O membro ainda não registou nenhum PV este mês e pode perder o estado Ativo — pergunta se já comprou ou se precisa de ajuda para o fazer.`,
+    'blb-expira': ` O prazo de arranque (BLB) do membro está prestes a terminar — a mensagem deve incentivá-lo a aproveitar as últimas semanas do arranque.`,
+    'inativo': ''
+  }[tipoAlerta] || '';
   const prompt = `Cria uma mensagem de apoio e motivação para enviar por WhatsApp a um membro da minha equipa LifeWave chamado(a) ${m.nome}.
-O membro está ${estadoLabel}, tem ${m.clientes||0} clientes e recrutou ${m.recrutados||0} pessoas.
+O membro está ${estadoLabel}, tem ${m.clientes||0} clientes e recrutou ${m.recrutados||0} pessoas.${contextoAlerta}
 A mensagem deve ser curta (3-5 frases), autêntica, motivadora e pessoal — não genérica.
 Responde APENAS com o texto da mensagem, em Português de Portugal.`;
 
@@ -35081,14 +35090,20 @@ Responde APENAS com o texto da mensagem, em Português de Portugal.`;
     let resposta = await callIARapida(prompt, claudeKey && claudeKey.length > 10 ? 400 : 600);
     if (resposta) {
       copiarTextoSeguro(resposta, '');
-      showToast('📋 Mensagem copiada! Cola no WhatsApp do ' + m.nome);
       if (m.tel) {
+        showToast('📋 Mensagem copiada! Cola no WhatsApp do ' + m.nome);
         setTimeout(() => {
           if (confirm('Abrir WhatsApp com ' + m.nome + '?')) {
             const tel = telParaWaMe(m.tel);
             window.location.href = 'https://wa.me/' + tel + '?text=' + encodeURIComponent(resposta);
           }
         }, 500);
+      } else {
+        // Sem telefone (ex: membro só com Instagram/Messenger) — mesmo padrão
+        // já usado em copiarMsgEAbrirRedeSocial()/abrirRedeSocialAcaoIA(): copia
+        // e abre a app, já que não há deep-link com texto pré-preenchido nestas apps.
+        showToast('📋 Copiado — cola na conversa de ' + m.nome);
+        setTimeout(() => abrirAppNativa('instagram', 'https://www.instagram.com/direct/inbox/'), 600);
       }
     }
   } catch(err) {
@@ -43611,7 +43626,8 @@ async function acAnalisar() {
       + ' 2) Write the field "proxima_mensagem" EXCLUSIVELY in that detected language — never translate it to another language.'
       + ' 3) Write ALL other JSON fields (resumo, objecoes, pontos_positivos, erros_cometidos, proximo_passo, dica_extra) in ' + uiLangName + '.'
       + ' 4) Also extract the contact/prospect name if visible (e.g. chat header name in a screenshot, or a name mentioned in the pasted text). If no name is identifiable, return an empty string.'
-      + ' 5) If a phone number or email address is visible in the conversation (e.g. shared by the prospect), extract it; otherwise return empty string.'
+      + ' 5) If a phone number, @username or email address is visible ANYWHERE in the conversation — including the chat header at the top of a screenshot (e.g. WhatsApp/Messenger/Instagram often show the contact phone number or @username right below/next to their name in the header, even when no one typed it as a message), or shared as text by the prospect — extract it; otherwise return empty string. Check the header explicitly, the same way you already do for the name in rule 4 — do not limit this search to message bubbles only.'
+      + ' 5a) DO NOT SKIP THE HEADER, EVEN WHEN THE IMAGE HAS OTHER PROMINENT TEXT (critical): a screenshot may contain a shared LINK PREVIEW CARD inside a message bubble — a rectangle with its own bold title, a short description and a URL (e.g. a card titled "Lifewave Results Vault" linking to lifewaveresults.com). This bold title belongs to the LINK CARD, not to the contact — never confuse it with the prospect\'s name, and never let its visual prominence distract from checking the actual chat header at the top of the screenshot. Regardless of how many bubbles, link cards or other visual elements the screenshot contains, always explicitly look at the top header bar for the contact name and phone number/@username before concluding nothing is identifiable — a busy or content-heavy conversation is not a valid reason to skip or under-scan the header.'
       + ' 6) ROLE DEFINITION (critical, applies to the entire analysis, both image and text): there are exactly two roles in this conversation — the DISTRIBUTOR (the app owner, "Tu"/"You"' + (perfNome ? ', "' + perfNome + '"' : '') + ', the LifeWave business owner who is requesting this analysis) and the PROSPECT (the destinatário — the contact/lead/customer receiving the distributor\'s outreach, whose name may appear in the "Contexto" field, an imported file name, or a chat header). Never invert these two roles. Every coaching field ("resumo", "pontos_positivos", "erros_cometidos", "dica_extra") and "proxima_mensagem" must be written strictly FROM the distributor\'s point of view and addressed TO the prospect — the distributor is always "I/me" in this analysis, the prospect is always "them".'
       + ' 6a) SCREENSHOT SENDER/RECEIVER RULE (critical, only applies when analyzing an image, most common failure mode — check this explicitly before writing ANY field): identify who sent each message by visual position and styling — in WhatsApp, Messenger and Instagram, messages sent by the distributor appear on the RIGHT side in a colored bubble (blue/green), while messages from the prospect appear on the LEFT in a gray/white bubble. The chat header name at the top of the screenshot is the PROSPECT, not the distributor. MANDATORY SELF-CHECK: after drafting the analysis, re-read each specific claim, quote or paraphrase you are about to attribute to the prospect (in "resumo", "pontos_positivos", "objecoes", etc.) and verify it actually came from a LEFT/gray bubble in the image, not from the distributor\'s own RIGHT/colored bubble — a very common error is crediting the prospect with an idea, question or phrase that the distributor wrote (e.g. the distributor asking "outras pessoas que já resolveram X complementam com Y, achas que vale a pena explorar?" gets wrongly summarized as the PROSPECT showing interest in that exact framing). If a bubble is cut off at the top or bottom edge of the screenshot and its full side/color cannot be confirmed, do not guess its authorship from position alone — corroborate using conversational logic (a message asking a qualifying question in a sales-coach tone is the distributor; a message answering a personal question about symptoms/health/experience is the prospect) and note any real ambiguity briefly in "resumo" instead of silently attributing it to the wrong person.'
       + (isAudio ? ' 6c) AUDIO VOICE-NOTE RULE (critical, only applies when analyzing an audio clip): the audio is a voice note recorded and sent by the PROSPECT to the distributor (never the other way around) — analyze it entirely as the prospect speaking. First, produce a verbatim transcript of exactly what is said, in the field "transcricao", in the ORIGINAL language spoken (do not translate the transcript itself). Second, analyze vocal tone/delivery — hesitation, pauses, speed, confidence, enthusiasm, irritation, warmth — and summarize it in the field "tom_voz" (in ' + uiLangName + '), noting anything the words alone would not convey (e.g. "fala devagar e hesita antes de mencionar o preço, sugerindo desconforto real, não apenas educação"). Use both the transcript AND the vocal delivery together to inform "sentimento", "fase", "objecoes" and the rest of the analysis — a hesitant or reluctant tone can contradict polite words and should be weighted accordingly.' : '')
@@ -44096,8 +44112,11 @@ function acMostrarResultado(r) {
     }
   }
 
-  // Popula o select de leads existentes (mais recentes primeiro) e tenta
-  // pré-selecionar um match pelo nome detetado pela IA.
+  // Popula o select de leads existentes (mais recentes primeiro) e pré-seleciona
+  // o MESMO lead já calculado em leadPreSelecionado (via acEncontrarLeadPorPistas,
+  // que prioriza telefone sobre nome) — antes havia aqui uma segunda lógica de
+  // match duplicada, só por nome, que nunca olhava para o telefone e por isso
+  // escolhia o lead errado quando havia dois leads com o mesmo primeiro nome.
   var selEl = document.getElementById('ac-lead-existente');
   if (selEl && typeof leads !== 'undefined') {
     var opts = ['<option value="">+ Criar novo lead com este nome</option>'];
@@ -44107,19 +44126,7 @@ function acMostrarResultado(r) {
     });
     selEl.innerHTML = opts.join('');
 
-    var match = null;
-    if (leadIdConfirmado) {
-      match = leads.find(function(l) { return l.id === leadIdConfirmado; }) || null;
-    }
-    if (!match && nomeDetectado) {
-      var nomeNorm = nomeDetectado.trim().toLowerCase();
-      match = leads.find(function(l) { return l.nome && l.nome.trim().toLowerCase() === nomeNorm; });
-      if (!match) {
-        match = leads.find(function(l) {
-          return l.nome && (l.nome.toLowerCase().indexOf(nomeNorm) !== -1 || nomeNorm.indexOf(l.nome.toLowerCase()) !== -1);
-        });
-      }
-    }
+    var match = leadPreSelecionado || null;
     if (match) {
       selEl.value = match.id;
       var buscaPre = document.getElementById('ac-lead-busca');
