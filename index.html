@@ -8,7 +8,7 @@
   // Versão única da app — muda só aqui a cada release; o título da página
   // e o rodapé do ecrã de login lêem sempre deste valor, para nunca ficarem
   // dessincronizados um do outro.
-  window.APP_VERSION = 'v122';
+  window.APP_VERSION = 'v123';
 </script>
 
 <!-- ===== PWA: manifest, ícones e meta tags ===== -->
@@ -16517,6 +16517,41 @@ function processarFicheiroImportacao(file, onResultado) {
 // contacto, gerando centenas de milhares de "contactos" ilegíveis).
 // Confiar só na extensão do nome do ficheiro nunca é seguro para decidir
 // como interpretar o conteúdo; o conteúdo real manda sempre.
+// Deteta se um texto escrito pelo LEAD (não pela distribuidora) usa
+// tratamento "tu" ou "você", para a IA espelhar o mesmo registo em vez de
+// assumir sempre "você". Reutilizável em qualquer sítio da app que precise
+// desta deteção (mensagens individuais, guiões, análise de conversa, etc.).
+// Devolve 'tu', 'você' ou null se não houver sinal suficiente no texto para
+// decidir com confiança (nesse caso quem chama deve usar um critério de
+// segurança à parte, nunca assumir).
+function detectarTratamentoLead(texto) {
+  if (!texto || texto.trim().length < 3) return null;
+  const t = ' ' + texto.toLowerCase() + ' ';
+
+  // Sinais fortes de "você": pronome explícito, verbos na 3ª pessoa usados
+  // como tratamento direto, ou contrações típicas de PT-PT formal.
+  const sinaisVoce = [
+    /\bvocê\b/, /\bvcs\b/, /\bo senhor\b/, /\ba senhora\b/,
+    /\bpara si\b/, /\bconsigo\b/, /\bo seu\b/, /\ba sua\b/, /\bos seus\b/, /\bas suas\b/
+  ];
+  // Sinais fortes de "tu": pronome explícito ou conjugações muito específicas
+  // da 2ª pessoa do singular que só fazem sentido com "tu" (ex: "-aste",
+  // "tens", "queres", "achas"), evitando falsos positivos com formas que
+  // também existem no imperativo/3ª pessoa.
+  const sinaisTu = [
+    /\btu\b/, /\bcontigo\b/, /\bteu\b/, /\bteus\b/, /\btua\b/, /\btuas\b/,
+    /\bachaste\b/, /\bqueres\b/, /\bpodes\b/, /\btens\b/, /\bvais\b/, /\bestás\b/
+  ];
+
+  const pontosVoce = sinaisVoce.filter(re => re.test(t)).length;
+  const pontosTu = sinaisTu.filter(re => re.test(t)).length;
+
+  if (pontosTu > 0 && pontosVoce === 0) return 'tu';
+  if (pontosVoce > 0 && pontosTu === 0) return 'você';
+  // Empate ou sem sinais claros — não decide (quem chama usa fallback próprio).
+  return null;
+}
+
 function conteudoPareceVCard(content) {
   // BEGIN:VCARD deve aparecer nos primeiros ~200 caracteres não-vazios do
   // ficheiro (permite BOM/espaço em branco antes, mas não faz sentido só
@@ -18609,15 +18644,29 @@ async function gerarMsgIA() {
     ? `\n⚠️ CONTEXTO DE RETENÇÃO: Este cliente tem AutoShip/encomenda em risco (${ultimaRetencao._retencao === 'critico' ? 'CRÍTICO' : 'EM RISCO'}). A última renovação foi há mais de ${ultimaRetencao.msg?.match(/(\d+) dias/)?.[1] || '30'} dias. O objetivo desta mensagem é perceber se tudo está bem com o produto, reforçar o valor que já recebe, e garantir a continuidade — sem pressão direta para renovar.`
     : '';
 
-  // ── Tratamento (tu/você) consoante a temperatura do lead ──────────────
-  // A pill de temperatura escolhida no modal (msgTempEscolhida) é a fonte de
-  // verdade explícita do distribuidor — igual ao que já acontece ao aplicar
-  // l.mercado no envio (ver enviarMensagem()). Lead "frio" = pouca ou nenhuma
-  // relação estabelecida, por isso o tratamento formal ("você") é mais seguro
-  // e profissional do que assumir a intimidade do "tu".
-  const instrucaoTratamento = msgTempEscolhida === 'frio'
-    ? '- Trata a pessoa por "você" (tratamento formal/distante) em todo o texto — não uses "tu". É um contacto frio, sem relação de proximidade estabelecida, por isso o registo deve ser mais cortês e menos íntimo.'
-    : '- Trata a pessoa por "tu" (tratamento informal, como já é costume nestas mensagens)';
+  // ── Tratamento (tu/você) consoante como o LEAD trata a distribuidora ──────
+  // Antes disto, a app assumia sempre "você" para leads frios e "tu" para os
+  // restantes, com base só na pill de temperatura escolhida — isso ignora
+  // como a pessoa realmente fala. Agora tenta detetar o tratamento real a
+  // partir do texto que o próprio lead escreveu (campo "resposta do lead" no
+  // modal, preenchido manualmente pela distribuidora com o que recebeu, e/ou
+  // histórico com respostas guardadas). Só cai no critério antigo (por
+  // temperatura) se não houver texto do lead suficiente para decidir com
+  // confiança — mantém-se seguro nesse caso.
+  const textosLeadParaTratamento = [
+    respostaLead,
+    ...hist.map(h => h.resposta || '').filter(Boolean)
+  ].filter(Boolean).join(' \n ').toLowerCase();
+
+  const tratamentoDetetado = detectarTratamentoLead(textosLeadParaTratamento);
+
+  const instrucaoTratamento = tratamentoDetetado === 'tu'
+    ? '- Trata a pessoa por "tu" (tratamento informal) em todo o texto — não uses "você". Isto porque a própria pessoa já usou "tu" nas mensagens dela, por isso responde no mesmo registo em que ela fala.'
+    : tratamentoDetetado === 'você'
+    ? '- Trata a pessoa por "você" (tratamento formal/distante) em todo o texto — não uses "tu". Isto porque a própria pessoa já usou "você" nas mensagens dela, por isso responde no mesmo registo em que ela fala.'
+    : (msgTempEscolhida === 'frio'
+        ? '- Trata a pessoa por "você" (tratamento formal/distante) em todo o texto — não uses "tu". É um contacto frio, sem relação de proximidade estabelecida nem texto suficiente da pessoa para confirmar o tratamento que prefere, por isso o registo deve ser mais cortês e menos íntimo por defeito.'
+        : '- Trata a pessoa por "tu" (tratamento informal, como já é costume nestas mensagens) — não há texto suficiente da própria pessoa para confirmar o tratamento exato que usa, por isso mantém-se o registo habitual.');
 
   const prompt = `Cria uma mensagem de ${canal} para enviar a ${l.nome}, ${foco}.
 ${objetivoInstrucao}
@@ -22444,6 +22493,16 @@ async function gerarGuiaoIA() {
     : 'Nenhuma objeção conhecida ainda.';
   const tomDesc = { informal: 'descontraído e amigável, como conversa entre amigos — usa a 1ª pessoa (eu)', formal: 'profissional e respeitoso — escreve sempre na 1ª pessoa (eu/meu), mas trata o destinatário por "você" em vez de "tu"', empatico: 'muito empático, foca nas emoções e dores da pessoa — usa a 1ª pessoa (eu)', direto: 'direto ao ponto, sem rodeios, mas gentil — usa a 1ª pessoa (eu)' }[guiaoTom] || 'descontraído e amigável';
 
+  // Deteção do tratamento real usado pelo próprio lead nas respostas
+  // guardadas no histórico — serve como sinal extra para a IA, mas nunca
+  // sobrepõe a escolha explícita de tom que a distribuidora fez no modal
+  // (guiaoTom); só é mencionado ao prompt como contexto de apoio.
+  const _guiaoTextoLead = (l.historico || []).map(h => h.resposta || '').filter(Boolean).join(' \n ');
+  const _guiaoTratamentoDetetado = detectarTratamentoLead(_guiaoTextoLead);
+  const instrucaoTratamentoGuiao = _guiaoTratamentoDetetado
+    ? `\nNOTA IMPORTANTE: nas respostas anteriores registadas, este lead usou o tratamento "${_guiaoTratamentoDetetado}" ao falar contigo — a não ser que o tom escolhido acima exija explicitamente o oposto, prefere espelhar esse mesmo tratamento ("${_guiaoTratamentoDetetado}") no guião, porque responder no registo em que a pessoa já fala soa mais natural.`
+    : '';
+
   const prompt = `És um coach especialista em vendas LifeWave X39. Gera um guião de mensagem PRONTO A ENVIAR para ${guiaoCanal}.
 
 DADOS DO LEAD:
@@ -22534,7 +22593,7 @@ guiaoTipoAtivo === 'fechar-venda' ? `
 
 INSTRUÇÕES:
 1. Escreve uma mensagem para ${guiaoCanal} em Português de Portugal. O teu nome é ${nomeDistribuidor} (usa APENAS este nome, nunca usernames)
-2. Tom: ${tomDesc}
+2. Tom: ${tomDesc}${instrucaoTratamentoGuiao}
 3. Adapta TOTALMENTE ao estado atual e histórico do lead — não sejas genérico
 4. Se há objeções conhecidas, inclui uma forma natural de as antecipar/responder
 5. Inclui o link correto apenas se for natural e o objetivo o justificar (não forçar)
@@ -43880,6 +43939,7 @@ async function acAnalisar() {
       + ' 8) UNRELATED CONTENT RULE (critical): a screenshot or pasted conversation may contain messages that have nothing to do with LifeWave — personal chit-chat, work topics, family matters, an entirely different business/project/opportunity, or an unrelated subject mixed into the same thread. IGNORE all such unrelated messages completely when producing resumo, objecoes, pontos_positivos, erros_cometidos, proximo_passo, probabilidade_conversao and proxima_mensagem. Base the ENTIRE analysis only on messages that EXPLICITLY reference LifeWave, X39 or other named LifeWave products/patches, phototherapy/photobiomodulation, or an unambiguous LifeWave business/compensation-plan opportunity. Do NOT assume something is LifeWave-related just because it is generically about "a business opportunity", "a project", "a video to watch" or "money" — those words alone are not evidence. If the name, brand or product is not identifiable and nothing in the visible text ties it to LifeWave, treat it as UNRELATED, even if it looks superficially similar (e.g. another company\'s pre-launch project, a different MLM, a generic investment pitch). NEVER speculate or stretch an ambiguous or unrelated item into a LifeWave interpretation (e.g. do not write things like "in a LifeWave context this could be interpreted as..." — if it is not explicitly LifeWave, it is not part of this analysis). If there are multiple separate LifeWave-related exchanges at different points in the thread, focus on the MOST RECENT one — that is the current live opportunity. If, after excluding unrelated content, there is no LifeWave-related material left at all, set "fase" to "sem_contexto", leave objecoes/pontos_positivos/erros_cometidos as empty arrays, set probabilidade_conversao to 0, and explain in "resumo" that no LifeWave-related conversation was found in the screenshot/text provided — do not describe or summarize the unrelated content instead.'
       + ' 8a) FACTUAL CORRECTION ABOUT THE LEAD, EVEN IN UNRELATED/SOCIAL CONTENT (critical exception to rule 8 — check this even when "fase" ends up "sem_contexto"): although unrelated chit-chat is excluded from the LifeWave-focused analysis, still scan it for any explicit correction the prospect makes about a basic fact the distributor assumed about them — most commonly their current location/city, but also job, name spelling, or similar — that contradicts what the distributor\'s opening message or the CRM data assumed (e.g. the distributor wrote "aí em Chaves" and the prospect replies "não moro em Chaves há 3 anos"). When this happens, "dica_extra" must name the outdated/wrong fact plainly and suggest updating the lead\'s record (e.g. "O Nuno já não mora em Chaves há 3 anos — vale a pena corrigir isto no CRM antes do próximo contacto, para não repetir o mesmo erro."). This is the ONLY thing rule 8a allows through the unrelated-content filter — it never justifies inventing a LifeWave angle, changing "fase" away from "sem_contexto", or filling objecoes/pontos_positivos/erros_cometidos with unrelated content; it is strictly a data-hygiene note in "dica_extra" (and briefly in "resumo" if natural), nothing else.'
       + (_acLinksStr ? ' 9) LINK INCLUSION RULE (mandatory, not optional): if "fase" is "pronto_para_comprar" or "interesse", the "proxima_mensagem" field MUST include one of the distributor\'s personal links below — this is a hard requirement, not a suggestion. Choosing WHICH link, in this order of priority: (a) FIRST check if any of the named extra links below (each with its own descriptive name, e.g. "Funil Cellergize", "Testemunhos") clearly matches what the prospect is specifically interested in — if so, use that one. (b) If none of the extra links match, decide between a CAPTURE link (produto/negocio) and a DIRECT link (produto-direto/negocio-direto): this conversation is a DIRECT one-on-one exchange with an identified prospect (WhatsApp, Instagram DM, Messenger, SMS, email, or a call) — the distributor ALREADY has this person\'s contact and is already talking to them, so ALWAYS prefer the DIRECT link (produto-direto or negocio-direto) over the capture-form one; sending a capture-form link that asks again for a name/phone/email the prospect already gave is redundant and a poor experience. Only fall back to a capture-form link (produto/negocio) if no direct-link equivalent exists for the relevant angle. Between direct-produto and direct-negocio (or their capture equivalents if no direct link exists): use the produto angle if the prospect is leaning toward the product/wellness side, or the negocio angle if leaning toward the business/partnership side; use registo only if the prospect has already clearly decided to join/buy. Weave the link naturally into the message (e.g. "Aqui tens o link com toda a informação: [link]"), never omit it in these two phases. If "fase" is "descoberta" or "consideracao", do NOT include any link yet — keep the conversation going first. 9a) NEVER PROMISE TO SEND SOMETHING WITHOUT ACTUALLY INCLUDING IT (critical, very common failure mode): if "proxima_mensagem" says or implies that information, a link, testimonials, an explanation or material will be sent — in ANY phrasing ("vou enviar-te", "aqui tens", "deixo-te aqui", "vou mandar", "segue o link", "envio-te já", "I\'ll send you") — that same message MUST contain the actual link right there, not a promise to send it in a future, separate message. A message that says "vou enviar-te um resumo com testemunhos" but contains no actual link or content is incomplete and unacceptable — either include the real link/content immediately in this same "proxima_mensagem", or rewrite the message to not promise something it does not deliver (e.g. ask a question instead). This applies regardless of "fase" — if the message text itself promises to send something, the promise and the delivery must be in the same message.' + _acLinksStr : '')
+      + ' 10) PORTUGUESE FORMALITY MATCHING (mandatory when Portuguese): before writing "proxima_mensagem" in Portuguese, look at the PROSPECT\'s own messages in the conversation (not the distributor\'s) and determine whether the prospect writes using "tu" (informal — verb forms like "tens", "queres", "achaste", pronouns "tu"/"teu"/"contigo") or "você" (formal — pronoun "você", verb forms like "tem", "quer", "achou", possessives "seu"/"sua"). Mirror that SAME form of address in "proxima_mensagem" — if the prospect uses "tu", write with "tu"; if the prospect uses "você", write with "você". If the prospect has not written enough for either form to be clear (e.g. very short replies, no verbs conjugated for 2nd person, or this is the very first message with no prior reply from the prospect at all), default to "você" as the safer, more professional choice for an uncertain relationship. Never mix "tu" and "você" forms within the same message.'
       + ' 9b) TEMPLATE DETECTION RULE: compare the distributor\'s messages in this conversation against the reference list below (id, title, opening words of each app template). If one of them is a clear match — even if the distributor personalized it (changed the name, added/removed a sentence, reworded slightly) — return its exact id in "template_detectado". Judge by structure and core intent, not exact wording. If no template is a reasonably close match, or the distributor wrote something clearly original, return an empty string. Never guess a weak match just to fill the field.\n\nREFERENCE TEMPLATES:\n' + JSON.stringify(getListaReferenciaTemplates())
       + '\n\n10) PROXIMA_MENSAGEM QUALITY RULES (critical — write it like an experienced LifeWave distributor who has closed real sales, not like a generic marketing bot):'
       + '\n\nTOM E CONTEÚDO:'
