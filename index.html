@@ -8,7 +8,7 @@
   // Versão única da app — muda só aqui a cada release; o título da página
   // e o rodapé do ecrã de login lêem sempre deste valor, para nunca ficarem
   // dessincronizados um do outro.
-  window.APP_VERSION = 'v124';
+  window.APP_VERSION = 'v125';
 </script>
 
 <!-- ===== PWA: manifest, ícones e meta tags ===== -->
@@ -21104,18 +21104,41 @@ async function driveSync(mode) {
         const ids = new Set(local.map(x => x.id));
         return [...local, ...remFiltrado.filter(x => !ids.has(x.id))];
       };
+      // Merge "preferir o que existe": para dados não-array (objeto único,
+      // como o perfil), nunca deixa um valor local vazio (null/undefined,
+      // ex: primeiro login com Google neste dispositivo, antes do perfil
+      // ainda ter sido sincronizado) apagar um valor remoto já existente.
+      // Sem isto, um dispositivo "novo" a sincronizar apagava o perfil
+      // (nome, API keys, links) tanto localmente como no próprio Drive,
+      // porque o valor local vazio era escrito por cima do remoto.
+      const mergeObjPreferirExistente = (local, rem) => {
+        if (local && typeof local === 'object' && Object.keys(local).length > 0) return local;
+        return rem || local;
+      };
       const payload = getDrivePayload();
       const totalLocalAntes = (payload.leads || []).length;
       payload.leads            = merge(payload.leads,            remote.leads,   idsEliminadosLead);
-      payload.posts            = merge(payload.posts,            remote.posts);
-      payload.membros          = merge(payload.membros,          remote.membros, idsEliminadosMembro);
-      payload.eventos          = merge(payload.eventos,          remote.eventos);
-      payload.vendas           = merge(payload.vendas,           remote.vendas);
+      payload.posts             = merge(payload.posts,             remote.posts);
+      payload.membros           = merge(payload.membros,           remote.membros, idsEliminadosMembro);
+      payload.eventos           = merge(payload.eventos,           remote.eventos);
+      payload.vendas            = merge(payload.vendas,            remote.vendas);
+      payload.despesas          = merge(payload.despesas,          remote.despesas);
+      payload.testemunhos       = merge(payload.testemunhos,       remote.testemunhos);
+      payload.agendamentoPedidos = merge(payload.agendamentoPedidos, remote.agendamentoPedidos);
+      payload.perfil             = mergeObjPreferirExistente(payload.perfil,             remote.perfil);
+      payload.agendamentoConfig  = mergeObjPreferirExistente(payload.agendamentoConfig,  remote.agendamentoConfig);
+      payload.revista             = mergeObjPreferirExistente(payload.revista,             remote.revista);
+      payload.metaMensal          = mergeObjPreferirExistente(payload.metaMensal,          remote.metaMensal);
+      payload.viagens             = (Array.isArray(payload.viagens) && payload.viagens.length > 0) ? payload.viagens : (remote.viagens || payload.viagens);
+      payload.viagemAtividades   = merge(payload.viagemAtividades, remote.viagemAtividades);
       applyDrivePayload(payload);
       driveFileId = await driveWriteFile(googleAccessToken, driveFileId, getDrivePayload());
       // Re-renderiza tudo
       renderDashboardSeVisivel(); renderFollowUps(); renderAniversarios(); renderMetas();
       renderAgenda(); renderAcoes(); updateBadge(); updateBadgeLuminate();
+      // Se o perfil veio do remoto (não existia neste dispositivo até agora),
+      // atualiza a sidebar/nome imediatamente em vez de exigir refresh manual.
+      if (typeof atualizarSidebarUser === 'function' && currentUser) atualizarSidebarUser(currentUser);
       if (mode === 'manual') {
         showToast('☁️ Dados sincronizados com Google Drive!');
       } else if (payload.leads.length > totalLocalAntes) {
