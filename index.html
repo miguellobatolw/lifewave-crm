@@ -8,7 +8,7 @@
   // Versão única da app — muda só aqui a cada release; o título da página
   // e o rodapé do ecrã de login lêem sempre deste valor, para nunca ficarem
   // dessincronizados um do outro.
-  window.APP_VERSION = 'v125';
+  window.APP_VERSION = 'v137';
 </script>
 
 <!-- ===== PWA: manifest, ícones e meta tags ===== -->
@@ -4109,7 +4109,7 @@ var QRCode=function(t){"use strict";var r,e=function(){return"function"==typeof 
         <div style="display:flex;align-items:flex-start;gap:10px;">
           <span style="font-size:20px;flex-shrink:0;">☁️⚠️</span>
           <div style="flex:1;min-width:0;">
-            <div style="font-size:13px;font-weight:700;color:#ef4444;margin-bottom:4px;">Os teus dados só existem neste dispositivo</div>
+            <div id="drive-sync-falhou-aviso-titulo" style="font-size:13px;font-weight:700;color:#ef4444;margin-bottom:4px;">Os teus dados só existem neste dispositivo</div>
             <div id="drive-sync-falhou-aviso-texto" style="font-size:12px;color:var(--text2);line-height:1.5;margin-bottom:8px;">A sincronização automática com o Google Drive ainda não foi autorizada — se perderes ou trocares de telemóvel, estes contactos não estarão noutro lado.</div>
             <div style="display:flex;gap:8px;flex-wrap:wrap;">
               <button class="btn btn-primary btn-sm" onclick="cloudSyncManual()">☁️ Autorizar e Guardar na Cloud</button>
@@ -5052,6 +5052,14 @@ var QRCode=function(t){"use strict";var r,e=function(){return"function"==typeof 
         <div class="section-title" style="margin-bottom:4px;">💎 Valor de Cliente</div>
         <div style="font-size:11px;color:var(--text2);margin-bottom:16px;">Quem compra uma vez vs quem fica — e de onde vêm os teus melhores clientes</div>
         <div id="stats-valor-cliente"></div>
+      </div>
+
+      <!-- Motivos de Perda -->
+      <div class="card" id="stats-motivos-perda-card" style="margin-bottom:20px;display:none;">
+        <div class="section-title" style="margin-bottom:4px;">🔍 Porque perco leads</div>
+        <div style="font-size:11px;color:var(--text2);margin-bottom:16px;">Distribuição dos motivos registados quando um lead é marcado como perdido</div>
+        <div id="stats-motivos-perda-chart"></div>
+        <div id="stats-motivos-perda-insight" style="display:none;align-items:flex-start;gap:8px;margin-top:14px;padding-top:14px;border-top:1px solid var(--border);font-size:11.5px;color:var(--text2);line-height:1.5;"></div>
       </div>
 
       <!-- LINHA 2: Evolução temporal + Mercado -->
@@ -7408,6 +7416,7 @@ var QRCode=function(t){"use strict";var r,e=function(){return"function"==typeof 
           <select class="form-select" id="regra-trigger" onchange="atualizarRegraBuilderUI()">
             <option value="estado_muda">Lead muda de estado no funil</option>
             <option value="lead_criado">Um novo lead é adicionado</option>
+            <option value="lead_novo_sem_contacto_horas">Lead novo fica X horas sem 1º contacto</option>
             <option value="sem_contacto_dias">Lead fica X dias sem contacto</option>
             <option value="aniversario">É o aniversário do lead</option>
           </select>
@@ -9215,6 +9224,10 @@ var QRCode=function(t){"use strict";var r,e=function(){return"function"==typeof 
     <div class="card" style="margin-bottom:14px;">
       <div style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:6px;">💾 Criar Backup</div>
       <div style="font-size:12px;color:var(--text2);margin-bottom:12px;line-height:1.6;">Descarrega um ficheiro .json com todos os dados desta conta.</div>
+      <label style="display:flex;align-items:flex-start;gap:8px;margin-bottom:12px;cursor:pointer;font-size:12px;color:var(--text2);line-height:1.5;">
+        <input type="checkbox" id="backup-incluir-api-keys" style="margin-top:2px;flex-shrink:0;">
+        <span>Incluir chaves API (Claude/Gemini) neste backup. <strong style="color:var(--warning, #f5a524);">⚠️ O ficheiro passa a conter segredos</strong> — guarda-o em local seguro e não o partilhes. Sem esta opção, as chaves API não são recuperáveis por backup e só sobrevivem se não limpares a cache do navegador.</span>
+      </label>
       <button class="btn btn-primary" style="width:100%;justify-content:center;" onclick="exportarBackupCompleto()">🛡️ Descarregar Backup Completo</button>
     </div>
 
@@ -9277,6 +9290,13 @@ var QRCode=function(t){"use strict";var r,e=function(){return"function"==typeof 
         <div>
           <div style="font-size:13.5px;font-weight:700;color:var(--text);margin-bottom:3px;">Botão deste Guia</div>
           <div style="font-size:12.5px;color:var(--text2);line-height:1.6;">O botão verde flutuante 🗺️ (canto inferior direito) traz-te de volta a este Guia Rápido sempre que precisares de rever os passos.</div>
+        </div>
+      </div>
+      <div style="display:flex;gap:14px;align-items:flex-start;">
+        <div style="width:38px;height:38px;border-radius:10px;background:var(--surface2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;">📊</div>
+        <div>
+          <div style="font-size:13.5px;font-weight:700;color:var(--text);margin-bottom:3px;">Relatórios</div>
+          <div style="font-size:12.5px;color:var(--text2);line-height:1.6;">Toca no ícone 📊 "Relatórios" no menu para veres de onde vêm os teus melhores leads, quais convertem mais e onde vale a pena investir mais tempo.</div>
         </div>
       </div>
     </div>
@@ -11357,12 +11377,19 @@ function exportarBackupCompleto() {
   const prefixo = 'lw_';
   const dados = {};
   let totalChaves = 0;
+  // Por defeito as chaves API ficam de fora (são segredos específicos do
+  // dispositivo) — mas se o utilizador marcar explicitamente a opção, incluímo-las,
+  // já que sem isso não há NENHUMA forma de as recuperar após uma limpeza de
+  // cache/dados do navegador (ao contrário do resto, que também pode ser
+  // resposto a partir do Drive/backup). O aviso sobre segredos fica no próprio
+  // checkbox do modal, visível antes de o utilizador decidir marcar.
+  const incluirApiKeys = document.getElementById('backup-incluir-api-keys')?.checked || false;
 
   for (let i = 0; i < localStorage.length; i++) {
     const key = localStorage.key(i);
     if (!key || !key.startsWith(prefixo)) continue;
-    // Não incluir chaves de API keys (sensíveis e específicas do dispositivo)
-    if (/claudeKey|claude_key|geminiKey|gemini_key|google_client_id|grokKey|groqKey|mistralKey|openrouterKey/i.test(key)) continue;
+    const isApiKey = /claudeKey|claude_key|geminiKey|gemini_key|google_client_id|grokKey|groqKey|mistralKey|openrouterKey/i.test(key);
+    if (isApiKey && !incluirApiKeys) continue;
     try {
       dados[key] = localStorage.getItem(key);
       totalChaves++;
@@ -11372,6 +11399,7 @@ function exportarBackupCompleto() {
   const data = {
     versao: 'lifewave-crm-backup-v1',
     tipo: 'completo',
+    contemApiKeys: incluirApiKeys,
     data: new Date().toISOString(),
     utilizador: currentUser ? currentUser.email : null,
     totalChaves,
@@ -11390,7 +11418,9 @@ function exportarBackupCompleto() {
   localStorage.setItem(getBackupLastKey(), new Date().toISOString());
   const dot = document.getElementById('backup-alert-dot');
   if (dot) dot.style.display = 'none';
-  showToast(`✅ Backup completo guardado! (${totalChaves} itens)`);
+  showToast(incluirApiKeys
+    ? `✅ Backup completo guardado com chaves API! (${totalChaves} itens) — guarda este ficheiro com cuidado.`
+    : `✅ Backup completo guardado! (${totalChaves} itens)`);
   abrirModalBackup();
 }
 
@@ -11407,7 +11437,7 @@ function importarBackupCompleto(event) {
       const chaves = Object.keys(dados);
       if (!chaves.length) throw new Error('Backup vazio.');
 
-      if (!confirm(`Este backup tem ${chaves.length} itens (de ${parsed.data ? new Date(parsed.data).toLocaleString('pt-PT') : 'data desconhecida'}).
+      if (!confirm(`Este backup tem ${chaves.length} itens (de ${parsed.data ? new Date(parsed.data).toLocaleString('pt-PT') : 'data desconhecida'}).${parsed.contemApiKeys ? '\n\nEste ficheiro também contém as tuas chaves API.' : ''}
 
 Isto vai SUBSTITUIR os dados atuais desta conta (contactos, formação, metas, comissões, perfil, etc).
 
@@ -12028,7 +12058,7 @@ function renderProximaAcao() {
           <div style="font-size:12px;color:var(--text2);line-height:1.5;">${escapeHtml(motivo)}</div>
         </div>
         <div style="display:flex;gap:7px;flex-shrink:0;">
-          ${tel ? `<button class="btn-acao-wa" onclick="abrirMensagemFollowUp('${escolhido.id}')">🤖💬 Contactar</button>` : `<button class="btn-acao-ver" onclick="verLead('${escolhido.id}')">👁 Ver lead</button>`}
+          ${tel ? `<button class="btn-acao-wa" onclick="abrirMensagemFollowUp('${escolhido.id}')">🤖💬 Contactar</button>` : `<button class="btn-acao-wa" onclick="abrirMensagemFollowUpRedeSocial('${escolhido.id}')">🤖📸 Contactar</button>`}
           <button class="btn-acao-snooze" onclick="dispensarProximaAcao()">Hoje não</button>
         </div>
       </div>
@@ -12113,7 +12143,59 @@ function renderFunilConversao() {
       ` : ''}
       ${renderTempoPorEtapaHTML(ETAPAS, ordemKeys)}
     </div>
-    ${renderConversaoPorProdutoHTML()}`;
+    ${renderConversaoPorProdutoHTML()}
+    ${renderConversaoPorFonteHTML()}`;
+}
+
+// Conversão por Fonte do lead (campo 'fonte', já preenchido ao criar/editar
+// cada lead — não introduz nenhum dado novo). Mesmo padrão exato de
+// renderConversaoPorProdutoHTML(): amostra mínima de 2 por fonte, ignora
+// fontes com menos, destaca a que mais converte.
+function renderConversaoPorFonteHTML() {
+  const comFonte = leads.filter(l => l.fonte && l.estado !== 'frio');
+  if (comFonte.length < 3) {
+    return `<div style="margin-top:14px;padding:12px 14px;background:var(--surface2);border:1px solid var(--border);border-radius:12px;font-size:12px;color:var(--text2);">
+      📡 Define a <strong style="color:var(--text);">fonte</strong> nos leads (ao criar/editar) para veres aqui que fontes convertem melhor.
+    </div>`;
+  }
+  const porFonte = {};
+  comFonte.forEach(l => {
+    const key = l.fonte;
+    if (!porFonte[key]) porFonte[key] = { total: 0, clientes: 0 };
+    porFonte[key].total++;
+    if (l.estado === 'cliente') porFonte[key].clientes++;
+  });
+  const linhasFonte = Object.entries(porFonte)
+    .map(([key, d]) => ({ key, label: escapeHtml(key), total: d.total, clientes: d.clientes, pct: Math.round((d.clientes / d.total) * 100) }))
+    .filter(f => f.total >= 2) // ignora fontes com amostra demasiado pequena para ser fiável
+    .sort((a, b) => b.pct - a.pct);
+
+  if (linhasFonte.length === 0) {
+    return `<div style="margin-top:14px;padding:12px 14px;background:var(--surface2);border:1px solid var(--border);border-radius:12px;font-size:12px;color:var(--text2);">
+      📡 Ainda há poucos leads por fonte para uma comparação fiável (mínimo 2 por fonte).
+    </div>`;
+  }
+
+  const melhor = linhasFonte[0];
+  return `
+    <div style="margin-top:14px;background:var(--surface2);border:1px solid var(--border);border-radius:14px;padding:16px 18px;">
+      <div style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:4px;">📡 Conversão por Fonte do Lead</div>
+      <div style="font-size:11px;color:var(--text2);margin-bottom:14px;">% de leads desta fonte que já se tornaram Cliente</div>
+      ${linhasFonte.map(f => `
+        <div style="margin-bottom:10px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+            <span style="font-size:12.5px;color:var(--text);">${f.label}</span>
+            <span style="font-size:12px;color:var(--text2);">${f.clientes}/${f.total} · <strong style="color:${f.key===melhor.key?'#22c55e':'var(--text)'};">${f.pct}%</strong></span>
+          </div>
+          <div style="background:var(--surface3);border-radius:20px;height:7px;overflow:hidden;">
+            <div style="width:${f.pct}%;height:100%;background:${f.key===melhor.key?'#22c55e':'var(--accent)'};border-radius:20px;transition:width .5s;"></div>
+          </div>
+        </div>
+      `).join('')}
+      <div style="margin-top:8px;padding:10px 12px;background:rgba(34,197,94,0.08);border:1px solid rgba(34,197,94,0.2);border-radius:8px;font-size:12px;color:var(--text2);">
+        🏆 <strong style="color:var(--text);">${melhor.label}</strong> converte melhor (${melhor.pct}%) — vale a pena investir mais tempo/orçamento nesta fonte.
+      </div>
+    </div>`;
 }
 
 // Extrai o novo estado a partir da mensagem de uma entrada tipo 'estado' do
@@ -19432,7 +19514,7 @@ function openModal(id) {
     const av = document.getElementById('f-duplicado-aviso');
     if (av) av.style.display = 'none';
     const dlInd = document.getElementById('f-indicado-por-list');
-    if (dlInd) dlInd.innerHTML = leads.filter(l => l.estado === 'cliente').map(l => `<option value="${l.nome}">`).join('');
+    if (dlInd) dlInd.innerHTML = leads.filter(l => l.estado === 'cliente').map(l => `<option value="${escapeHtml(l.nome)}">`).join('');
   }
   if (id === 'modal-nova-venda' && !editingVendaId) {
     // Reset fields inline (avoid calling abrirNovaVenda which would recurse)
@@ -20037,6 +20119,9 @@ function entrarNaApp(user) {
   // Mover automaticamente leads inativos há muito tempo para "Frio"
   moverLeadsParaFrioAutomaticamente();
 
+  // Alerta diário se houver clientes Preferenciais em risco de não renovar
+  setTimeout(() => { if (typeof verificarChurnDiario === 'function') verificarChurnDiario(); }, 3000);
+
   // Limpar da lixeira itens com mais de LIXEIRA_DIAS dias (apagados em definitivo)
   limparLixeiraExpirada();
 
@@ -20234,6 +20319,7 @@ const TUTORIAL_STEPS = [
   { id:'gcontacts',emoji:'🔗', titulo:'Sincroniza os teus Contactos Google',  desc:'Agora que já sabes o que é um lead, importa os teus contactos diretamente do Google em 1 clique. Evita duplicados e poupa tempo.', tag:'Essencial', action:() => { goTo('lista'); setTimeout(() => syncGoogleContacts(), 400); } },
   { id:'automacao', emoji:'⚙️', titulo:'Ativa a tua primeira Automação',     desc:'Escolhe uma regra pronta da Biblioteca — por exemplo, mensagem de boas-vindas automática quando um lead vira Cliente. Sem escrever nada de raiz.', tag:'Recomendado', action:() => { goTo('automacao'); setTimeout(() => { if (typeof autoTab === 'function') autoTab('biblioteca'); }, 300); } },
   { id:'metas',    emoji:'🎯', titulo:'Define as tuas Metas mensais',         desc:'Configura objetivos de vendas, recrutamento e rendimento. A app acompanha o progresso.', tag:'Recomendado', page:'metas' },
+  { id:'stats',    emoji:'📊', titulo:'Entende os teus Relatórios',           desc:'Vê de onde vêm os teus melhores leads (Origem dos Leads), quais valem mais a longo prazo (Valor de Cliente) e porque perdes os outros (Porque perco leads). Usa isto para decidir onde investires o teu tempo.', tag:'Recomendado', page:'stats' },
   { id:'posts',    emoji:'✨', titulo:'Cria o teu primeiro Post com IA',      desc:'Escolhe plataforma, tom e tema. A IA gera posts autênticos em Português para as tuas redes.', tag:'Recomendado', page:'posts' },
   { id:'coach',    emoji:'🤖', titulo:'Experimenta o Coach IA',               desc:'Faz perguntas sobre scripts, objeções, recrutamento. O coach conhece o teu perfil LifeWave.', tag:'Extra', page:'coach' },
   { id:'equipa',   emoji:'👥', titulo:'Regista a tua Equipa',                 desc:'Adiciona os teus distribuidores para acompanhar atividade, ranking e vendas da equipa.', tag:'Extra', page:'equipa' },
@@ -21105,31 +21191,39 @@ async function driveSync(mode) {
         return [...local, ...remFiltrado.filter(x => !ids.has(x.id))];
       };
       // Merge "preferir o que existe": para dados não-array (objeto único,
-      // como o perfil), nunca deixa um valor local vazio (null/undefined,
-      // ex: primeiro login com Google neste dispositivo, antes do perfil
-      // ainda ter sido sincronizado) apagar um valor remoto já existente.
-      // Sem isto, um dispositivo "novo" a sincronizar apagava o perfil
-      // (nome, API keys, links) tanto localmente como no próprio Drive,
-      // porque o valor local vazio era escrito por cima do remoto.
+      // como o perfil), nunca deixa um valor local vazio apagar um valor
+      // remoto já existente. Sem isto, um dispositivo "novo" a sincronizar
+      // apagava o perfil (nome, API keys, links) tanto localmente como no
+      // próprio Drive, porque o valor local vazio era escrito por cima do remoto.
       const mergeObjPreferirExistente = (local, rem) => {
         if (local && typeof local === 'object' && Object.keys(local).length > 0) return local;
         return rem || local;
       };
+      // O perfil (getDefaultPerfil) tem sempre as mesmas ~15 chaves mesmo
+      // vazio, por isso Object.keys().length > 0 é SEMPRE verdadeiro e não
+      // deteta um perfil por preencher — usamos o "slug" (identificador da
+      // conta LifeWave, só existe depois de configurado no Perfil) como
+      // sinal real de "há dados aqui", tal como getMeuLinks() já faz.
+      const mergePerfilPreferirExistente = (local, rem) => {
+        const localTemDados = local && typeof local === 'object' && (local.slug || '').trim();
+        if (localTemDados) return local;
+        return (rem && typeof rem === 'object' && (rem.slug || '').trim()) ? rem : (local || rem);
+      };
       const payload = getDrivePayload();
       const totalLocalAntes = (payload.leads || []).length;
-      payload.leads            = merge(payload.leads,            remote.leads,   idsEliminadosLead);
-      payload.posts             = merge(payload.posts,             remote.posts);
-      payload.membros           = merge(payload.membros,           remote.membros, idsEliminadosMembro);
-      payload.eventos           = merge(payload.eventos,           remote.eventos);
-      payload.vendas            = merge(payload.vendas,            remote.vendas);
-      payload.despesas          = merge(payload.despesas,          remote.despesas);
-      payload.testemunhos       = merge(payload.testemunhos,       remote.testemunhos);
+      payload.leads             = merge(payload.leads,             remote.leads,   idsEliminadosLead);
+      payload.posts              = merge(payload.posts,              remote.posts);
+      payload.membros            = merge(payload.membros,            remote.membros, idsEliminadosMembro);
+      payload.eventos            = merge(payload.eventos,            remote.eventos);
+      payload.vendas             = merge(payload.vendas,             remote.vendas);
+      payload.despesas           = merge(payload.despesas,           remote.despesas);
+      payload.testemunhos        = merge(payload.testemunhos,        remote.testemunhos);
       payload.agendamentoPedidos = merge(payload.agendamentoPedidos, remote.agendamentoPedidos);
-      payload.perfil             = mergeObjPreferirExistente(payload.perfil,             remote.perfil);
-      payload.agendamentoConfig  = mergeObjPreferirExistente(payload.agendamentoConfig,  remote.agendamentoConfig);
-      payload.revista             = mergeObjPreferirExistente(payload.revista,             remote.revista);
-      payload.metaMensal          = mergeObjPreferirExistente(payload.metaMensal,          remote.metaMensal);
-      payload.viagens             = (Array.isArray(payload.viagens) && payload.viagens.length > 0) ? payload.viagens : (remote.viagens || payload.viagens);
+      payload.perfil             = mergePerfilPreferirExistente(payload.perfil,          remote.perfil);
+      payload.agendamentoConfig  = mergeObjPreferirExistente(payload.agendamentoConfig, remote.agendamentoConfig);
+      payload.revista            = mergeObjPreferirExistente(payload.revista,           remote.revista);
+      payload.metaMensal         = mergeObjPreferirExistente(payload.metaMensal,        remote.metaMensal);
+      payload.viagens            = (Array.isArray(payload.viagens) && payload.viagens.length > 0) ? payload.viagens : (remote.viagens || payload.viagens);
       payload.viagemAtividades   = merge(payload.viagemAtividades, remote.viagemAtividades);
       applyDrivePayload(payload);
       driveFileId = await driveWriteFile(googleAccessToken, driveFileId, getDrivePayload());
@@ -21314,11 +21408,36 @@ async function supabaseSync(mode) {
         const ids = new Set(local.map(x => x.id));
         return [...local, ...remFiltrado.filter(x => !ids.has(x.id))];
       };
-      payload.leads   = merge(payload.leads,   remote.leads,   idsEliminadosLead);
-      payload.posts   = merge(payload.posts,   remote.posts);
-      payload.membros = merge(payload.membros, remote.membros, idsEliminadosMembro);
-      payload.eventos = merge(payload.eventos, remote.eventos);
-      payload.vendas  = merge(payload.vendas,  remote.vendas);
+      // Mesma proteção aplicada no driveSync: nunca deixa um valor local
+      // vazio (perfil ainda não sincronizado neste dispositivo/conta) apagar
+      // um valor remoto já existente no backend.
+      const mergeObjPreferirExistente = (local, rem) => {
+        if (local && typeof local === 'object' && Object.keys(local).length > 0) return local;
+        return rem || local;
+      };
+      // O perfil (getDefaultPerfil) tem sempre as mesmas ~15 chaves mesmo
+      // vazio — Object.keys().length > 0 nunca deteta um perfil por
+      // preencher. Usa "slug" (identificador da conta LifeWave) como sinal
+      // real de "há dados aqui", igual ao driveSync.
+      const mergePerfilPreferirExistente = (local, rem) => {
+        const localTemDados = local && typeof local === 'object' && (local.slug || '').trim();
+        if (localTemDados) return local;
+        return (rem && typeof rem === 'object' && (rem.slug || '').trim()) ? rem : (local || rem);
+      };
+      payload.leads             = merge(payload.leads,             remote.leads,   idsEliminadosLead);
+      payload.posts              = merge(payload.posts,              remote.posts);
+      payload.membros            = merge(payload.membros,            remote.membros, idsEliminadosMembro);
+      payload.eventos            = merge(payload.eventos,            remote.eventos);
+      payload.vendas             = merge(payload.vendas,             remote.vendas);
+      payload.despesas           = merge(payload.despesas,           remote.despesas);
+      payload.testemunhos        = merge(payload.testemunhos,        remote.testemunhos);
+      payload.agendamentoPedidos = merge(payload.agendamentoPedidos, remote.agendamentoPedidos);
+      payload.perfil             = mergePerfilPreferirExistente(payload.perfil,          remote.perfil);
+      payload.agendamentoConfig  = mergeObjPreferirExistente(payload.agendamentoConfig, remote.agendamentoConfig);
+      payload.revista            = mergeObjPreferirExistente(payload.revista,           remote.revista);
+      payload.metaMensal         = mergeObjPreferirExistente(payload.metaMensal,        remote.metaMensal);
+      payload.viagens            = (Array.isArray(payload.viagens) && payload.viagens.length > 0) ? payload.viagens : (remote.viagens || payload.viagens);
+      payload.viagemAtividades   = merge(payload.viagemAtividades, remote.viagemAtividades);
       applyDrivePayload(payload);
     }
 
@@ -21358,7 +21477,6 @@ async function supabaseSync(mode) {
 // e respeita um snooze de 3 dias para não ser intrusivo.
 // ===================================================
 function renderDriveSyncFalhouAviso() {
-  if (typeof leads === 'undefined' || !leads.length) return; // nada a perder ainda
   const banner = document.getElementById('drive-sync-falhou-aviso');
   if (!banner) return;
 
@@ -21366,9 +21484,22 @@ function renderDriveSyncFalhouAviso() {
   const snoozeUntil = localStorage.getItem(snoozeKey);
   if (snoozeUntil && Date.now() < parseInt(snoozeUntil, 10)) { banner.style.display = 'none'; return; }
 
+  const temLeadsLocais = (typeof leads !== 'undefined') && leads.length > 0;
   const texto = document.getElementById('drive-sync-falhou-aviso-texto');
-  if (texto) {
-    texto.textContent = `A sincronização automática com o Google Drive ainda não foi autorizada — tens ${leads.length} contacto(s) que só existem neste dispositivo. Se perderes ou trocares de telemóvel, não estarão noutro lado.`;
+  const titulo = document.getElementById('drive-sync-falhou-aviso-titulo');
+  if (temLeadsLocais) {
+    // Cenário original: há dados neste dispositivo que ainda não foram para a cloud.
+    if (titulo) titulo.textContent = 'Os teus dados só existem neste dispositivo';
+    if (texto) texto.textContent = `A sincronização automática com o Google Drive ainda não foi autorizada — tens ${leads.length} contacto(s) que só existem neste dispositivo. Se perderes ou trocares de telemóvel, não estarão noutro lado.`;
+  } else {
+    // Cenário mais grave: a conta está vazia (ex: acabaste de voltar a fazer
+    // login depois de uma limpeza de cache) e a sincronização automática com
+    // o Drive falhou silenciosamente — pode existir uma cópia completa dos
+    // dados no Drive, à espera de ser lida, mas sem autorização não chega cá.
+    // Sem este ramo, o aviso ficava mudo precisamente no momento em que mais
+    // fazia falta, porque a condição original exigia leads locais para disparar.
+    if (titulo) titulo.textContent = '⚠️ A cloud não sincronizou — os teus dados podem estar lá à espera';
+    if (texto) texto.textContent = 'Esta conta está vazia neste dispositivo e a sincronização automática com o Google Drive não foi autorizada agora. Se já usaste a cloud antes, os teus dados (perfil, contactos, etc.) podem continuar guardados lá — toca abaixo para autorizar e tentar recuperá-los.';
   }
   banner.style.display = 'block';
 }
@@ -23137,6 +23268,24 @@ function getLastContactDate(l) {
   return maisRecente;
 }
 
+// Devolve a entrada do histórico com texto (h.msg) mais RECENTE por data real
+// — não a primeira do array. Usa o mesmo parseDataContactoLead já testado em
+// getLastContactDate, porque o histórico mistura push()/unshift() consoante
+// a função que escreveu a entrada (ver nota acima). Sem isto, qualquer sítio
+// que fizesse hist.find(h => h.msg) podia devolver a interação mais ANTIGA
+// do lead em vez da mais recente, dependendo de como cada entrada foi gravada.
+function getUltimaNotaHistorico(l) {
+  const hist = l.historico || [];
+  let melhor = null, melhorTs = -Infinity;
+  for (const h of hist) {
+    if (!h.msg) continue;
+    const d = parseDataContactoLead(h.data);
+    const ts = (d && !isNaN(d.getTime())) ? d.getTime() : -Infinity;
+    if (ts >= melhorTs) { melhorTs = ts; melhor = h; }
+  }
+  return melhor ? melhor.msg : '';
+}
+
 function diasSemContacto(l) {
   const last = getLastContactDate(l);
   if (!last || isNaN(last.getTime())) return null;
@@ -23416,6 +23565,35 @@ function getAcaoPrioridade(l) {
 }
 
 // ===================================================
+// ALERTA DIÁRIO DE RISCO DE CHURN (clientes Preferenciais)
+// O Previsor de Churn (calcularChurnClientesPreferenciais, dentro da página
+// Comissões & Receita) já identifica clientes atrasados face ao seu próprio
+// ritmo de compra — mas só é visto por quem visita essa página. Isto avisa
+// proativamente, uma vez por dia, quando há clientes em risco crítico ou
+// alto, reutilizando o MESMO cálculo (nenhuma lógica de risco duplicada) e
+// o mesmo dispararNotificacao() já usado pelo motor de automação.
+// ===================================================
+function verificarChurnDiario() {
+  if (typeof calcularChurnClientesPreferenciais !== 'function') return;
+  const hoje = new Date().toDateString();
+  const chave = getUserStorageKey('lw_churn_check_' + hoje);
+  if (localStorage.getItem(chave)) return;
+  localStorage.setItem(chave, '1');
+
+  const lista = calcularChurnClientesPreferenciais();
+  const graves = lista.filter(c => c.risco.nivel === 'critico' || c.risco.nivel === 'alto');
+  if (!graves.length) return;
+
+  const nomes = graves.slice(0, 3).map(c => c.nome.split(' ')[0]).join(', ');
+  const resto = graves.length > 3 ? ` +${graves.length - 3}` : '';
+  const texto = graves.length === 1
+    ? `${graves[0].nome} está em risco de não renovar — sem comprar há ${graves[0].diasDesdeUltima}d (costuma comprar a cada ${graves[0].intervaloMedio}d).`
+    : `${graves.length} clientes Preferenciais em risco de não renovar: ${nomes}${resto}. Vê o Previsor de Churn em Comissões.`;
+
+  if (typeof dispararNotificacao === 'function') dispararNotificacao('🛡️ Risco de Churn', texto, '🛡️');
+}
+
+// ===================================================
 // MOVER AUTOMATICAMENTE PARA "FRIO"
 // Leads em novo/contactado/interessado/negociação sem contacto há
 // 2x o limiar "urgente" da sua etapa são movidos para a coluna Frio.
@@ -23588,6 +23766,13 @@ function renderAcoes() {
       const pa = ordem[a.prioridade] ?? 4;
       const pb = ordem[b.prioridade] ?? 4;
       if (pa !== pb) return pa - pb;
+      // Dentro do mesmo grupo de urgência, o critério de desempate passa a
+      // ser o score do lead (calcularScore, já usado noutras vistas), não
+      // só os dias sem contacto — assim, entre dois leads igualmente
+      // urgentes, aparece primeiro o de maior potencial de conversão.
+      const scoreA = calcularScore(a.l).score;
+      const scoreB = calcularScore(b.l).score;
+      if (scoreA !== scoreB) return scoreB - scoreA;
       return (b.dias || 0) - (a.dias || 0);
     });
 
@@ -23711,6 +23896,7 @@ function renderAcoesLista() {
             <span class="acao-chip chip-estado">${estado}</span>
             <span class="acao-chip chip-mercado">${mercadoCurto}</span>
             ${l.fonte ? `<span class="acao-chip chip-mercado">${l.fonte}</span>` : ''}
+            ${(() => { const { score } = calcularScore(l); return `<span class="score-badge ${scoreClass(score)}">${scoreEmoji(score)} ${score}/10</span>`; })()}
           </div>
         </div>
       </div>
@@ -23822,13 +24008,16 @@ async function gerarMensagemAcaoIA(leadId) {
   wrap.innerHTML = `<div class="acao-msg-ia-loading">✨ A personalizar mensagem para ${escapeHtml(l.nome.split(' ')[0])}...</div>`;
 
   const dias = diasSemContacto(l);
-  const ultimaNota = (l.historico || []).find(h => h.msg)?.msg || '';
+  const ultimaNota = getUltimaNotaHistorico(l);
   const prova = escolherTestemunhoParaLead(l);
+  const autoTags = calcularAutoTags(l);
+  const semResposta = autoTags.some(t => t.key === 'sem_resposta');
   const contexto = [
     `Nome: ${l.nome.split(' ')[0]}`,
     `Estado no funil: ${estadoLabel(l.estado)}`,
     `Mercado: ${l.mercado || 'não definido'}`,
     dias !== null ? `Dias sem contacto: ${dias}` : 'Lead novo, ainda sem contacto',
+    semResposta ? 'ATENÇÃO: as últimas tentativas de contacto ficaram sem resposta — não repitas o mesmo tipo de pergunta/abordagem, muda de ângulo.' : '',
     l.notas ? `Notas: ${l.notas.slice(0, 200)}` : '',
     ultimaNota ? `Última interação registada: ${ultimaNota.slice(0, 150)}` : '',
     prova ? `Prova social disponível (testemunho real de outro cliente, produto ${prova.produto}, com consentimento): ${prova.notas}${prova.videoUrl ? ` — link do vídeo: ${prova.videoUrl}` : ''}` : ''
@@ -25652,6 +25841,9 @@ function renderStats() {
   // --- Valor de Cliente (LTV) por fonte ---
   if (typeof renderStatsValorCliente === 'function') renderStatsValorCliente();
 
+  // --- Porque perco leads (motivos de perda) ---
+  if (typeof renderStatsMotivosPerda === 'function') renderStatsMotivosPerda();
+
 
 
   // --- Evolução por mês — gráfico de linha SVG ---
@@ -26004,6 +26196,76 @@ function renderStatsValorCliente() {
   }
 
   el.innerHTML = html;
+}
+
+// Análise dos motivos de perda registados via abrirMotivoPerda/confirmarMotivoPerda.
+// 100% derivado de dados já existentes (lead.motivoPerda) — não introduz
+// nenhum campo novo nem duplica MOTIVOS_PERDA, definido mais acima no ficheiro.
+// Só mostra o card quando há amostra mínima (3+), mesmo limiar já usado no
+// insight equivalente do resumo do Funil de Conversão.
+function renderStatsMotivosPerda() {
+  const card = document.getElementById('stats-motivos-perda-card');
+  const el = document.getElementById('stats-motivos-perda-chart');
+  if (!card || !el || typeof leads === 'undefined') return;
+
+  const perdidos = leads.filter(l => l.estado === 'perdido' && l.motivoPerda);
+  if (perdidos.length < 3) { card.style.display = 'none'; return; }
+  card.style.display = 'block';
+
+  const contagens = {};
+  perdidos.forEach(l => { contagens[l.motivoPerda] = (contagens[l.motivoPerda] || 0) + 1; });
+  const total = perdidos.length;
+  const ordenados = Object.entries(contagens).sort((a, b) => b[1] - a[1]);
+  const maxCount = Math.max(1, ...ordenados.map(([, c]) => c));
+  const cores = ['#ff6b6b', '#ff9300', '#f5c842', '#8b9cf7', '#0084ff', '#00d4aa', 'var(--text3)'];
+
+  el.innerHTML = ordenados.map(([id, count], i) => {
+    const def = MOTIVOS_PERDA.find(m => m.id === id);
+    const label = def ? def.label : id;
+    const pct = Math.round((count / maxCount) * 100);
+    const pctTotal = Math.round((count / total) * 100);
+    const color = cores[i % cores.length];
+    return `
+      <div style="margin-bottom:10px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+          <span style="font-size:12px;color:var(--text);">${label}</span>
+          <span style="font-size:12px;font-weight:700;color:${color};">${count} <span style="font-size:10px;color:var(--text2);font-weight:400;">(${pctTotal}%)</span></span>
+        </div>
+        <div style="height:6px;background:var(--surface3);border-radius:3px;overflow:hidden;">
+          <div style="height:100%;width:${pct}%;background:${color};border-radius:3px;transition:width 0.6s ease;"></div>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  // Insight automático: cruza o motivo mais frequente com a fonte de onde
+  // mais vêm esses leads perdidos, quando há amostra suficiente para ser
+  // um sinal e não ruído (mesmo raciocínio do insight de Origem dos Leads).
+  const insightEl = document.getElementById('stats-motivos-perda-insight');
+  if (insightEl) {
+    const motivoTopo = ordenados[0];
+    const leadsDoMotivoTopo = perdidos.filter(l => l.motivoPerda === motivoTopo[0]);
+    const fonteEmojis = { Instagram:'📸', Facebook:'📘', WhatsApp:'💬', Pessoal:'🤝', Referência:'⭐', Google:'🇬', Importação:'📂', Desconhecida:'❓' };
+    const porFonte = {};
+    leadsDoMotivoTopo.forEach(l => { const f = l.fonte || 'Desconhecida'; porFonte[f] = (porFonte[f] || 0) + 1; });
+    const fonteTopoEntry = Object.entries(porFonte).sort((a, b) => b[1] - a[1])[0];
+    const def = MOTIVOS_PERDA.find(m => m.id === motivoTopo[0]);
+    const motivoLabel = def ? def.label : motivoTopo[0];
+    const pctMotivoTopo = Math.round((motivoTopo[1] / total) * 100);
+
+    if (fonteTopoEntry && fonteTopoEntry[1] >= 2 && leadsDoMotivoTopo.length >= 3) {
+      const pctFonteNoMotivo = Math.round((fonteTopoEntry[1] / leadsDoMotivoTopo.length) * 100);
+      insightEl.style.display = 'flex';
+      insightEl.innerHTML = `
+        <span style="font-size:15px;">💡</span>
+        <span><strong style="color:var(--text);">${motivoLabel}</strong> é o motivo mais frequente (${pctMotivoTopo}% das perdas) — e ${pctFonteNoMotivo}% desses casos vêm de <strong style="color:var(--text);">${fonteEmojis[fonteTopoEntry[0]]||'📌'} ${fonteTopoEntry[0]}</strong>.</span>`;
+    } else {
+      insightEl.style.display = 'flex';
+      insightEl.innerHTML = `
+        <span style="font-size:15px;">💡</span>
+        <span><strong style="color:var(--text);">${motivoLabel}</strong> é o motivo mais frequente de perda, representando ${pctMotivoTopo}% dos casos registados.</span>`;
+    }
+  }
 }
 
 // ===== PIPELINE DE RECEITA =====
@@ -40476,6 +40738,7 @@ const AUTO_BIBLIOTECA = [
   { id:'lib_checkin_7dias', icon:'📅', titulo:'Check-in 7 dias após Venda', trigger:{ tipo:'estado_muda', de:'*', para:'cliente' }, action:{ tipo:'criar_lembrete', dias:7, mensagem:'Check-in: como está {nome} a sentir-se com o produto?' }, desc:'Cria automaticamente um lembrete para 7 dias depois de um lead se tornar Cliente.', tag:'Retenção' },
   { id:'lib_lead_frio_30d', icon:'🥶', titulo:'Marcar como Frio após 30 dias', trigger:{ tipo:'sem_contacto_dias', dias:30 }, action:{ tipo:'mudar_estado', estado:'frio' }, desc:'Leads sem qualquer contacto há 30 dias são automaticamente marcados como "Frio".', tag:'Organização' },
   { id:'lib_followup_novo_lead', icon:'👋', titulo:'Follow-up automático em Novo Lead', trigger:{ tipo:'lead_criado' }, action:{ tipo:'criar_lembrete', dias:1, mensagem:'Fazer 1º contacto com {nome}' }, desc:'Sempre que adicionas um lead novo, cria automaticamente um lembrete para o dia seguinte.', tag:'Prospeção' },
+  { id:'lib_alerta_resposta_rapida_2h', icon:'⏱️', titulo:'Alerta: Lead Novo sem Resposta em 2h', trigger:{ tipo:'lead_novo_sem_contacto_horas', horas:2 }, action:{ tipo:'notificar', texto:'{nome} está há mais de 2h sem 1º contacto — responde agora enquanto o interesse está quente!' }, desc:'Notificação imediata quando um lead novo passa 2 horas sem receber o primeiro contacto. O tempo de resposta é um dos fatores com maior impacto na conversão.', tag:'Prospeção' },
   { id:'lib_negociacao_lembrete', icon:'🤝', titulo:'Lembrete ao entrar em Negociação', trigger:{ tipo:'estado_muda', de:'*', para:'negociacao' }, action:{ tipo:'criar_lembrete', dias:2, mensagem:'Dar seguimento à negociação com {nome} — fechar antes que esfrie!' }, desc:'Agenda um lembrete 2 dias depois de entrar em Negociação.', tag:'Vendas' },
   { id:'lib_aniversario_msg', icon:'🎂', titulo:'Mensagem de Aniversário', trigger:{ tipo:'aniversario' }, action:{ tipo:'copiar_mensagem', texto:'Parabéns, {nome}! 🎂🎉 Espero que tenhas um dia incrível! Um abraço grande.' }, desc:'No dia de aniversário de um lead, prepara mensagem de parabéns.', tag:'Relacionamento' },
   { id:'lib_interessado_apresentacao', icon:'📊', titulo:'Enviar Apresentação a Interessado', trigger:{ tipo:'estado_muda', de:'*', para:'interessado' }, action:{ tipo:'notificar', texto:'{nome} está Interessado — envia a apresentação do X39 agora enquanto o interesse está quente!' }, desc:'Notificação imediata quando um lead passa a Interessado.', tag:'Vendas' },
@@ -40562,9 +40825,9 @@ function renderAutomacao() {
   renderAutomacaoGrid();
 }
 
-function descreverTrigger(t) { if(t.tipo==='estado_muda')return `Lead passa a "${estadoLabel(t.para)}"`; if(t.tipo==='lead_criado')return 'Novo lead adicionado'; if(t.tipo==='sem_contacto_dias')return `Sem contacto há ${t.dias} dias`; if(t.tipo==='aniversario')return 'Aniversário do lead'; return t.tipo; }
+function descreverTrigger(t) { if(t.tipo==='estado_muda')return `Lead passa a "${estadoLabel(t.para)}"`; if(t.tipo==='lead_criado')return 'Novo lead adicionado'; if(t.tipo==='lead_novo_sem_contacto_horas')return `Lead novo há ${t.horas}h sem 1º contacto`; if(t.tipo==='sem_contacto_dias')return `Sem contacto há ${t.dias} dias`; if(t.tipo==='aniversario')return 'Aniversário do lead'; return t.tipo; }
 function descreverAction(a) { if(a.tipo==='criar_lembrete')return `Cria lembrete em ${a.dias} dia(s)`; if(a.tipo==='copiar_mensagem')return 'Prepara mensagem para enviar'; if(a.tipo==='mudar_estado')return `Move para "${estadoLabel(a.estado)}"`; if(a.tipo==='notificar')return 'Mostra notificação'; if(a.tipo==='iniciar_sequencia')return `Inicia sequência de ${(a.passos||[]).length} mensagens`; return a.tipo; }
-function iconeTrigger(tipo) { return { estado_muda:'🔄', lead_criado:'👋', sem_contacto_dias:'🥶', aniversario:'🎂' }[tipo] || '⚙️'; }
+function iconeTrigger(tipo) { return { estado_muda:'🔄', lead_criado:'👋', lead_novo_sem_contacto_horas:'⏱️', sem_contacto_dias:'🥶', aniversario:'🎂' }[tipo] || '⚙️'; }
 
 function renderAutomacaoGrid() {
   const regras = getAutoRegras();
@@ -40647,6 +40910,7 @@ function atualizarRegraBuilderUI() {
   if (tEl) {
     if (trigger === 'estado_muda') tEl.innerHTML = `<div class="form-label">Para que estado?</div><select class="form-select" id="regra-trigger-estado"><option value="contactado">Contactado</option><option value="interessado">Interessado</option><option value="negociacao">Negociação</option><option value="cliente">Cliente</option><option value="frio">Frio</option></select>`;
     else if (trigger === 'sem_contacto_dias') tEl.innerHTML = `<div class="form-label">Quantos dias sem contacto?</div><input class="form-input" type="number" id="regra-trigger-dias" value="14" min="1">`;
+    else if (trigger === 'lead_novo_sem_contacto_horas') tEl.innerHTML = `<div class="form-label">Quantas horas sem 1º contacto?</div><input class="form-input" type="number" id="regra-trigger-horas" value="2" min="1">`;
     else tEl.innerHTML = '';
   }
   if (aEl) {
@@ -40668,6 +40932,7 @@ function guardarRegraPersonalizada() {
   let trigger = { tipo: triggerTipo };
   if (triggerTipo === 'estado_muda') trigger.para = document.getElementById('regra-trigger-estado')?.value || 'cliente';
   if (triggerTipo === 'sem_contacto_dias') trigger.dias = parseInt(document.getElementById('regra-trigger-dias')?.value || 14);
+  if (triggerTipo === 'lead_novo_sem_contacto_horas') trigger.horas = parseInt(document.getElementById('regra-trigger-horas')?.value || 2);
   let action = { tipo: actionTipo };
   if (actionTipo === 'criar_lembrete') { action.dias = parseInt(document.getElementById('regra-action-dias')?.value || 1); action.mensagem = document.getElementById('regra-action-msg')?.value.trim() || 'Follow-up com {nome}'; }
   if (actionTipo === 'copiar_mensagem') action.texto = document.getElementById('regra-action-texto')?.value.trim() || 'Olá {nome}!';
@@ -40835,6 +41100,26 @@ function verificarAutomacoesPeriodicas() {
         // nunca repita todos os dias enquanto o silêncio continua.
         const jaExecutou = getAutoLog().some(l => l.regraId === r.id && l._leadId === lead.id && l._ultimoContactoRef === ultimo);
         if (dias >= (r.trigger.dias||14) && !jaExecutou) executarAcaoRegra(r, lead, ultimo, true);
+      });
+    }
+    // Lead ainda em estado "novo" (nenhum primeiro contacto feito) há mais
+    // de X horas desde que entrou no funil. Diferente de sem_contacto_dias
+    // (pensado para follow-up de leads já contactados, em dias): este mede
+    // a velocidade de resposta ao primeiro contacto, em horas — o fator com
+    // maior impacto na conversão de um lead novo. Só considera l.data (data
+    // de criação), nunca ultimoContacto, porque um lead "novo" por definição
+    // ainda não teve nenhum contacto registado.
+    if (r.trigger.tipo === 'lead_novo_sem_contacto_horas') {
+      leads.forEach(lead => {
+        if (lead.estado !== 'novo') return;
+        const criado = parseDataPtPT(lead.data)?.getTime();
+        if (!criado) return;
+        const horas = (agora - criado) / 3600000;
+        // Dispara uma única vez por lead+regra (ligado à data de criação do
+        // lead) — assim que o lead sair do estado "novo" (1º contacto feito),
+        // deixa automaticamente de ser candidato, sem precisar de outro controlo.
+        const jaExecutou = getAutoLog().some(l => l.regraId === r.id && l._leadId === lead.id && l._ultimoContactoRef === criado);
+        if (horas >= (r.trigger.horas||2) && !jaExecutou) executarAcaoRegra(r, lead, criado, true);
       });
     }
     if (r.trigger.tipo === 'aniversario') {
@@ -43971,7 +44256,7 @@ async function acAnalisar() {
       + ' 7) NESTED/FORWARDED SCREENSHOT RULE (critical): if the screenshot shows a forwarded message or a screenshot-within-a-screenshot (e.g. the prospect forwarded a message they received from someone else, or shared a screenshot of a different conversation), do NOT confuse the participants of the inner forwarded screenshot with the participants of the outer conversation. The person who forwarded/shared that inner screenshot to the distributor is the actual prospect in this conversation — analyze their reaction and intent (e.g. "I think your account was hacked", suspicion, confusion) as the prospect\'s message, not as if the distributor sent the inner content. Always determine the real sender of each visible message based on bubble side and context, never assume the most recent or central text bubble belongs to the distributor by default.'
       + ' 8) UNRELATED CONTENT RULE (critical): a screenshot or pasted conversation may contain messages that have nothing to do with LifeWave — personal chit-chat, work topics, family matters, an entirely different business/project/opportunity, or an unrelated subject mixed into the same thread. IGNORE all such unrelated messages completely when producing resumo, objecoes, pontos_positivos, erros_cometidos, proximo_passo, probabilidade_conversao and proxima_mensagem. Base the ENTIRE analysis only on messages that EXPLICITLY reference LifeWave, X39 or other named LifeWave products/patches, phototherapy/photobiomodulation, or an unambiguous LifeWave business/compensation-plan opportunity. Do NOT assume something is LifeWave-related just because it is generically about "a business opportunity", "a project", "a video to watch" or "money" — those words alone are not evidence. If the name, brand or product is not identifiable and nothing in the visible text ties it to LifeWave, treat it as UNRELATED, even if it looks superficially similar (e.g. another company\'s pre-launch project, a different MLM, a generic investment pitch). NEVER speculate or stretch an ambiguous or unrelated item into a LifeWave interpretation (e.g. do not write things like "in a LifeWave context this could be interpreted as..." — if it is not explicitly LifeWave, it is not part of this analysis). If there are multiple separate LifeWave-related exchanges at different points in the thread, focus on the MOST RECENT one — that is the current live opportunity. If, after excluding unrelated content, there is no LifeWave-related material left at all, set "fase" to "sem_contexto", leave objecoes/pontos_positivos/erros_cometidos as empty arrays, set probabilidade_conversao to 0, and explain in "resumo" that no LifeWave-related conversation was found in the screenshot/text provided — do not describe or summarize the unrelated content instead.'
       + ' 8a) FACTUAL CORRECTION ABOUT THE LEAD, EVEN IN UNRELATED/SOCIAL CONTENT (critical exception to rule 8 — check this even when "fase" ends up "sem_contexto"): although unrelated chit-chat is excluded from the LifeWave-focused analysis, still scan it for any explicit correction the prospect makes about a basic fact the distributor assumed about them — most commonly their current location/city, but also job, name spelling, or similar — that contradicts what the distributor\'s opening message or the CRM data assumed (e.g. the distributor wrote "aí em Chaves" and the prospect replies "não moro em Chaves há 3 anos"). When this happens, "dica_extra" must name the outdated/wrong fact plainly and suggest updating the lead\'s record (e.g. "O Nuno já não mora em Chaves há 3 anos — vale a pena corrigir isto no CRM antes do próximo contacto, para não repetir o mesmo erro."). This is the ONLY thing rule 8a allows through the unrelated-content filter — it never justifies inventing a LifeWave angle, changing "fase" away from "sem_contexto", or filling objecoes/pontos_positivos/erros_cometidos with unrelated content; it is strictly a data-hygiene note in "dica_extra" (and briefly in "resumo" if natural), nothing else.'
-      + (_acLinksStr ? ' 9) LINK INCLUSION RULE (mandatory, not optional): if "fase" is "pronto_para_comprar" or "interesse", the "proxima_mensagem" field MUST include one of the distributor\'s personal links below — this is a hard requirement, not a suggestion. Choosing WHICH link, in this order of priority: (a) FIRST check if any of the named extra links below (each with its own descriptive name, e.g. "Funil Cellergize", "Testemunhos") clearly matches what the prospect is specifically interested in — if so, use that one. (b) If none of the extra links match, decide between a CAPTURE link (produto/negocio) and a DIRECT link (produto-direto/negocio-direto): this conversation is a DIRECT one-on-one exchange with an identified prospect (WhatsApp, Instagram DM, Messenger, SMS, email, or a call) — the distributor ALREADY has this person\'s contact and is already talking to them, so ALWAYS prefer the DIRECT link (produto-direto or negocio-direto) over the capture-form one; sending a capture-form link that asks again for a name/phone/email the prospect already gave is redundant and a poor experience. Only fall back to a capture-form link (produto/negocio) if no direct-link equivalent exists for the relevant angle. Between direct-produto and direct-negocio (or their capture equivalents if no direct link exists): use the produto angle if the prospect is leaning toward the product/wellness side, or the negocio angle if leaning toward the business/partnership side; use registo only if the prospect has already clearly decided to join/buy. Weave the link naturally into the message (e.g. "Aqui tens o link com toda a informação: [link]"), never omit it in these two phases. If "fase" is "descoberta" or "consideracao", do NOT include any link yet — keep the conversation going first. 9a) NEVER PROMISE TO SEND SOMETHING WITHOUT ACTUALLY INCLUDING IT (critical, very common failure mode): if "proxima_mensagem" says or implies that information, a link, testimonials, an explanation or material will be sent — in ANY phrasing ("vou enviar-te", "aqui tens", "deixo-te aqui", "vou mandar", "segue o link", "envio-te já", "I\'ll send you") — that same message MUST contain the actual link right there, not a promise to send it in a future, separate message. A message that says "vou enviar-te um resumo com testemunhos" but contains no actual link or content is incomplete and unacceptable — either include the real link/content immediately in this same "proxima_mensagem", or rewrite the message to not promise something it does not deliver (e.g. ask a question instead). This applies regardless of "fase" — if the message text itself promises to send something, the promise and the delivery must be in the same message.' + _acLinksStr : '')
+      + (_acLinksStr ? ' 9) LINK INCLUSION RULE (mandatory, not optional): if "fase" is "pronto_para_comprar" or "interesse", the "proxima_mensagem" field MUST include one of the distributor\'s personal links below — this is a hard requirement, not a suggestion. Choosing WHICH link, in this order of priority: (a) FIRST check if any of the named extra links below (each with its own descriptive name, e.g. "Funil Cellergize", "Testemunhos") clearly matches what the prospect is specifically interested in — if so, use that one. (b) If none of the extra links match, decide between a CAPTURE link (produto/negocio) and a DIRECT link (produto-direto/negocio-direto): this conversation is a DIRECT one-on-one exchange with an identified prospect (WhatsApp, Instagram DM, Messenger, SMS, email, or a call) — the distributor ALREADY has this person\'s contact and is already talking to them, so ALWAYS prefer the DIRECT link (produto-direto or negocio-direto) over the capture-form one; sending a capture-form link that asks again for a name/phone/email the prospect already gave is redundant and a poor experience. Only fall back to a capture-form link (produto/negocio) if no direct-link equivalent exists for the relevant angle. Between direct-produto and direct-negocio (or their capture equivalents if no direct link exists): base this choice STRICTLY on what the PROSPECT has said or asked about, not on how the distributor\'s own message happens to be phrased — a distributor message that mentions "LifeWave e o X39" is generic brand language and is NOT evidence of a product angle by itself. Look specifically at the prospect\'s own words: interest in wellness/health/pain/a specific condition → produto; interest in "oportunidade", "negócio", earning money, working with the distributor, or being "disposto a ouvir" about an opportunity → negocio. When the prospect has shown a clear business/opportunity signal, the negocio link must be the one used in "proxima_mensagem" — never bury it as a secondary/alternative suggestion while a produto link goes in the main message. Use registo only if the prospect has already clearly decided to join/buy. Weave the link naturally into the message (e.g. "Aqui tens o link com toda a informação: [link]"), never omit it in these two phases. If "fase" is "descoberta" or "consideracao", do NOT include any link yet — keep the conversation going first. 9a) NEVER PROMISE TO SEND SOMETHING WITHOUT ACTUALLY INCLUDING IT (critical, very common failure mode): if "proxima_mensagem" says or implies that information, a link, testimonials, an explanation or material will be sent — in ANY phrasing ("vou enviar-te", "aqui tens", "deixo-te aqui", "vou mandar", "segue o link", "envio-te já", "I\'ll send you") — that same message MUST contain the actual link right there, not a promise to send it in a future, separate message. A message that says "vou enviar-te um resumo com testemunhos" but contains no actual link or content is incomplete and unacceptable — either include the real link/content immediately in this same "proxima_mensagem", or rewrite the message to not promise something it does not deliver (e.g. ask a question instead). This applies regardless of "fase" — if the message text itself promises to send something, the promise and the delivery must be in the same message.' + _acLinksStr : '')
       + ' 10) PORTUGUESE FORMALITY MATCHING (mandatory when Portuguese): before writing "proxima_mensagem" in Portuguese, look at the PROSPECT\'s own messages in the conversation (not the distributor\'s) and determine whether the prospect writes using "tu" (informal — verb forms like "tens", "queres", "achaste", pronouns "tu"/"teu"/"contigo") or "você" (formal — either the explicit pronoun "você", OR the very common European Portuguese INDIRECT formal address that never says "você" at all but uses "lhe" and 3rd-person verb forms speaking directly to the person, e.g. "não conhece o seu projeto", "se quiser explicar", "nunca se perde nada" — this indirect "lhe"-based form is JUST AS FORMAL as explicit "você" and must be matched with "você", never with "tu"). Mirror that SAME form of address in "proxima_mensagem" — if the prospect uses "tu", write with "tu"; if the prospect uses "você" (explicit or the indirect "lhe" form), write with "você". If the prospect has not written enough for either form to be clear (e.g. very short replies, no verbs conjugated for 2nd person, or this is the very first message with no prior reply from the prospect at all), default to "você" as the safer, more professional choice for an uncertain relationship. Never mix "tu" and "você" forms within the same message.'
       + ' 9b) TEMPLATE DETECTION RULE: compare the distributor\'s messages in this conversation against the reference list below (id, title, opening words of each app template). If one of them is a clear match — even if the distributor personalized it (changed the name, added/removed a sentence, reworded slightly) — return its exact id in "template_detectado". Judge by structure and core intent, not exact wording. If no template is a reasonably close match, or the distributor wrote something clearly original, return an empty string. Never guess a weak match just to fill the field.\n\nREFERENCE TEMPLATES:\n' + JSON.stringify(getListaReferenciaTemplates())
       + '\n\n10) PROXIMA_MENSAGEM QUALITY RULES (critical — write it like an experienced LifeWave distributor who has closed real sales, not like a generic marketing bot):'
