@@ -15587,12 +15587,32 @@ function initAISelector() {
   syncClaudeKeyInputs();
 }
 
-// Gemini API call — tenta modelos por ordem até encontrar um que funcione
+// Gemini API call — tenta modelos por ordem até encontrar um que funcione.
+// gemini-2.5-pro foi removido em 2026 (a Google descontinuou-o para novos
+// utilizadores, ver mensagemErroIA/callGemini) — gemini-2.0-flash fica como
+// fallback final por ser o mais estável a longo prazo, mesmo sendo mais antigo
+// que o 2.5-flash, precisamente para não repetir este problema se a Google
+// voltar a descontinuar um modelo "flash" mais recente.
 const GEMINI_MODELS = [
   'gemini-2.5-flash',
-  'gemini-2.5-pro',
   'gemini-2.0-flash'
 ];
+
+// Decide se um erro do Gemini justifica tentar o próximo modelo da lista
+// (quota esgotada, ou o modelo foi removido/descontinuado) em vez de desistir
+// e mostrar o erro cru ao distribuidor. Centralizado aqui porque a Google já
+// mudou a frase exata usada para "modelo descontinuado" mais do que uma vez
+// (ex: "is not supported" antes, "is no longer available to new users"
+// depois) — manter esta lista em vários sítios do código fazia com que uma
+// correção feita num loop de fallback não chegasse ao outro.
+function _ehErroModeloGeminiIndisponivel(err) {
+  var msg = ((err && err.message) || '').toLowerCase();
+  return msg.includes('quota') || msg.includes('resource_exhausted') || msg.includes('limit')
+    || msg.includes('not found') || msg.includes('404')
+    || msg.includes('is not supported') || msg.includes('no longer available')
+    || msg.includes('deprecated') || msg.includes('has been removed')
+    || msg.includes('update your code');
+}
 
 // Traduz erros técnicos das APIs de IA em mensagens curtas e claras para o utilizador
 function mensagemErroIA(err) {
@@ -15709,8 +15729,10 @@ async function callGemini(prompt, imageBase64, imageMediaType, cacheContext, ext
       return resposta;
     } catch(e) {
       lastError = e;
-      // Se for quota ou modelo indisponível, tenta o próximo modelo
-      if (e.message && (e.message.includes('quota') || e.message.includes('RESOURCE_EXHAUSTED') || e.message.includes('limit') || e.message.includes('not found') || e.message.includes('404') || e.message.includes('is not supported'))) {
+      // Se for quota, modelo indisponível/descontinuado, ou não suportado, tenta o
+      // próximo modelo — ver _ehErroModeloGeminiIndisponivel para a lista de
+      // padrões cobertos.
+      if (_ehErroModeloGeminiIndisponivel(e)) {
         continue;
       }
       // Outro erro — lança imediatamente
@@ -23015,7 +23037,7 @@ async function coachEnviar() {
           break;
         } catch(e) {
           lastErr = e;
-          if (e.message?.includes('quota') || e.message?.includes('RESOURCE_EXHAUSTED')) continue;
+          if (_ehErroModeloGeminiIndisponivel(e)) continue;
           throw e;
         }
       }
@@ -44528,6 +44550,74 @@ async function acAnalisar() {
     }
     if (parsed && typeof parsed.proxima_mensagem_alt === 'string') {
       parsed.proxima_mensagem_alt = acSanearPerguntasExtra(parsed.proxima_mensagem_alt);
+    }
+
+    // ---------------------------------------------------------------
+    // SANEAMENTO DEFENSIVO DE LINKS (rede de segurança, não substitui a regra
+    // 9b "NEVER WRAP THE URL IN BRACKETS..." do prompt) — mesmo depois de a IA
+    // parar de decorar o URL com colchetes/markdown, foi observado um segundo
+    // erro distinto: a IA por vezes "corrige" pontuação dentro do próprio URL
+    // ao reescrevê-lo numa frase (ex: troca o "?" de "biz?lng=pt" por um "."
+    // porque o trata como pontuação de frase em vez de parte do link),
+    // produzindo um URL que já não corresponde a nenhuma página real. Como
+    // isto é a IA a distorcer texto técnico que já lhe foi dado correto (não
+    // um erro de julgamento sobre QUAL link usar), corrige-se aqui de forma
+    // determinística por comparação de texto, em vez de tentar apanhar isto
+    // só reforçando o prompt outra vez.
+    function acLinksReaisDoDistribuidor() {
+      var todos = [];
+      ['registo','produto','negocio','produtos-direto','negocio-direto'].forEach(function(k){
+        if (_acLinks && _acLinks[k]) todos.push(_acLinks[k]);
+      });
+      if (Array.isArray(_acLinksExtra)) {
+        _acLinksExtra.forEach(function(l){ if (l && l.url) todos.push(l.url); });
+      }
+      return todos;
+    }
+    // Normaliza um URL para comparação: colapsa "?" e "." para o MESMO símbolo
+    // (a troca real observada — a IA reescreve "biz?lng=pt" como "biz.lng=pt"
+    // ao tratar o "?" como pontuação de frase) sem os apagar, preservando a
+    // posição/estrutura do resto do URL. Apagar estes caracteres por completo
+    // (em vez de colapsá-los) faria "biz?lng=pt" e "biz.lng=pt" colidirem com
+    // qualquer URL parecido — colapsar para um símbolo comum mantém a
+    // comparação estrita a "mesmo URL, só que com ?/. trocados".
+    function acNormalizarUrlParaComparacao(url) {
+      return (url || '')
+        .toLowerCase()
+        .replace(/[?.]/g, '§')
+        .replace(/[^a-z0-9§&=\/:]/g, '');
+    }
+    function acCorrigirLinksNaMensagem(msg) {
+      if (!msg) return msg;
+      var linksReais = acLinksReaisDoDistribuidor();
+      if (!linksReais.length) return msg;
+      // Deteta qualquer "palavra" no texto que pareça um URL (sem espaços,
+      // contém um ponto) — candidato a ser um link que a IA reescreveu.
+      return msg.replace(/\S*\.\S+/g, function(candidato) {
+        // Remove pontuação de fecho de frase colada ao fim (., , ), etc.) antes
+        // de comparar, para não a incluir na versão corrigida por engano.
+        var m = candidato.match(/^(.*?)([.,;:!?)\]]*)$/);
+        var nucleo = m ? m[1] : candidato;
+        var sufixo = m ? m[2] : '';
+        var nucleoNorm = acNormalizarUrlParaComparacao(nucleo);
+        if (nucleoNorm.length < 10) return candidato; // demasiado curto para arriscar
+        for (var i = 0; i < linksReais.length; i++) {
+          if (acNormalizarUrlParaComparacao(linksReais[i]) === nucleoNorm) {
+            // Mesmo link (possivelmente com ?/. trocados, ou já correto) —
+            // devolve sempre a versão REAL guardada no perfil do distribuidor.
+            // Idempotente: reescrever um candidato já correto com o mesmo
+            // valor real não tem qualquer efeito visível.
+            return linksReais[i] + sufixo;
+          }
+        }
+        return candidato;
+      });
+    }
+    if (parsed && typeof parsed.proxima_mensagem === 'string') {
+      parsed.proxima_mensagem = acCorrigirLinksNaMensagem(parsed.proxima_mensagem);
+    }
+    if (parsed && typeof parsed.proxima_mensagem_alt === 'string') {
+      parsed.proxima_mensagem_alt = acCorrigirLinksNaMensagem(parsed.proxima_mensagem_alt);
     }
 
     // ---------------------------------------------------------------
