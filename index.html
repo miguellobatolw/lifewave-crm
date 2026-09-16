@@ -8,7 +8,7 @@
   // Versão única da app — muda só aqui a cada release; o título da página
   // e o rodapé do ecrã de login lêem sempre deste valor, para nunca ficarem
   // dessincronizados um do outro.
-  window.APP_VERSION = 'v137';
+  window.APP_VERSION = 'v138';
 </script>
 
 <!-- ===== PWA: manifest, ícones e meta tags ===== -->
@@ -44145,7 +44145,29 @@ async function acAnalisar() {
 
     function acNormaliza(s) { return (s||'').toString().trim().toLowerCase(); }
 
-    // Bloco de regras 13/13a-13e do prompt de Análise de Conversa — extraído para
+    // Defesa em profundidade contra a IA "inventar" ou confundir um número
+    // (ex: transformar um @username ou uma cidade visível no screenshot num
+    // número plausível) — mesmo com a regra 14b do prompt a pedir para nunca
+    // adivinhar, um modelo pode falhar; isto garante que só um valor com
+    // forma real de telefone (dígitos suficientes, sem letras) é usado como
+    // pista de match automático. Sem isto, um tel_detectado inventado ou
+    // confundido tinha prioridade sobre o nome dentro de acEncontrarLeadPorPistas
+    // (telefone é a pista mais forte ali) e associava a análise ao lead ERRADO
+    // — isto já aconteceu na prática (caso confirmado: número de um contacto
+    // dos telefone atribuído por engano ao Bruno, cujo Messenger não mostra
+    // nenhum número). A verificação "pertence a outro lead" feita mais abaixo
+    // em acGuardarNoLead cobre a sugestão de preencher o campo tel do lead,
+    // mas não cobre esta pré-seleção automática — por isso a validação de
+    // forma aqui é necessária mesmo com aquela já existir.
+    function acParecerNumeroTelefone(s) {
+      var t = (s || '').toString().trim();
+      if (!t) return false;
+      if (/[a-zA-Z]/.test(t)) return false; // exclui @username, "Lausana", etc.
+      var digitos = t.replace(/[^\d]/g, '');
+      return digitos.length >= 9;
+    }
+
+
     // função só, reutilizada na chamada inicial e na re-análise com histórico. Antes
     // estava copiado verbatim nos dois sítios (um comentário no código já registava
     // preocupação com isso) — e, de facto, tinham divergido: a versão da re-análise dizia
@@ -44478,7 +44500,8 @@ async function acAnalisar() {
     // ---------------------------------------------------------------
     var _acLeadMatchFinal = _acLeadMatchInicial;
     if (!_acLeadMatchFinal && _acLeadsDisponiveis.length) {
-      var pistaPosIa = [(parsed.nome_detectado||''), (parsed.tel_detectado||'')].filter(Boolean).join(' ');
+      var telDetectadoValido = acParecerNumeroTelefone(parsed.tel_detectado) ? parsed.tel_detectado : '';
+      var pistaPosIa = [(parsed.nome_detectado||''), telDetectadoValido].filter(Boolean).join(' ');
       _acLeadMatchFinal = acEncontrarLeadPorPistas(pistaPosIa);
     }
     var _acHistoricoResumoFinal = _acLeadMatchFinal ? acResumirHistoricoLead(_acLeadMatchFinal) : '';
