@@ -11388,7 +11388,7 @@ function exportarBackupCompleto() {
   for (let i = 0; i < localStorage.length; i++) {
     const key = localStorage.key(i);
     if (!key || !key.startsWith(prefixo)) continue;
-    const isApiKey = /claudeKey|claude_key|geminiKey|gemini_key|google_client_id|grokKey|groqKey|mistralKey|openrouterKey/i.test(key);
+    const isApiKey = /claudeKey|claude_key|geminiKey|gemini_key|google_client_id|grokKey|groqKey|mistralKey|openrouterKey|cometapiKey/i.test(key);
     if (isApiKey && !incluirApiKeys) continue;
     try {
       dados[key] = localStorage.getItem(key);
@@ -15346,6 +15346,7 @@ let grokKey       = localStorage.getItem('lw_grokKey')       || '';
 let groqKey       = localStorage.getItem('lw_groqKey')       || '';
 let mistralKey    = localStorage.getItem('lw_mistralKey')    || '';
 let openrouterKey = localStorage.getItem('lw_openrouterKey') || '';
+let cometapiKey   = localStorage.getItem('lw_cometapiKey')   || '';
 
 // Chave para um futuro serviço de publicação automática (ex: Blotato ou
 // similar — um intermediário que já tem aprovação da Meta, para não
@@ -15491,6 +15492,17 @@ function saveOpenrouterKey(val) {
     const inp = document.getElementById(p + '-openrouter-key');
     if (st)  st.textContent  = openrouterKey.length > 10 ? '✅ Guardada' : '';
     if (inp && inp !== document.activeElement) inp.value = openrouterKey;
+  });
+}
+
+function saveCometapiKey(val) {
+  cometapiKey = val.trim();
+  localStorage.setItem('lw_cometapiKey', cometapiKey);
+  ['perfil'].forEach(p => {
+    const st  = document.getElementById(p + '-cometapi-status');
+    const inp = document.getElementById(p + '-cometapi-key');
+    if (st)  st.textContent  = cometapiKey.length > 10 ? '✅ Guardada' : '';
+    if (inp && inp !== document.activeElement) inp.value = cometapiKey;
   });
 }
 
@@ -16029,8 +16041,8 @@ async function callAI(page, prompt, imageBase64, imageMediaType, cacheContext) {
   //   historicamente o mais forte a escrever em português natural, antes do Grok.
   // Groq fica sempre fora quando há imagem: os seus modelos padrão não têm visão.
   const ALL_AI = imageBase64
-    ? ['gemini', 'grok', 'claude', 'mistral', 'openrouter']
-    : ['gemini', 'claude', 'grok', 'groq', 'mistral', 'openrouter'];
+    ? ['gemini', 'grok', 'claude', 'mistral', 'openrouter', 'cometapi']
+    : ['gemini', 'claude', 'grok', 'groq', 'mistral', 'openrouter', 'cometapi'];
   const aiOrder = [ai, ...ALL_AI.filter(a => a !== ai)].filter(a => {
     if (imageBase64 && a === 'groq') return false;
     if (a === 'gemini')     return !!geminiKey;
@@ -16039,13 +16051,15 @@ async function callAI(page, prompt, imageBase64, imageMediaType, cacheContext) {
     if (a === 'groq')       return !!groqKey;
     if (a === 'mistral')    return !!mistralKey;
     if (a === 'openrouter') return !!openrouterKey;
+    if (a === 'cometapi')   return !!cometapiKey;
     return false;
   });
 
   const LABELS = {
     gemini: '✦ Gemini está a criar...', claude: '🧠 Claude está a criar...',
     grok: '⚡ Grok está a criar...', groq: '🚀 Groq está a criar...',
-    mistral: '🌪️ Mistral está a criar...', openrouter: '🔀 OpenRouter está a criar...'
+    mistral: '🌪️ Mistral está a criar...', openrouter: '🔀 OpenRouter está a criar...',
+    cometapi: '☄️ CometAPI está a criar...'
   };
 
   async function tryAI(name) {
@@ -16056,6 +16070,7 @@ async function callAI(page, prompt, imageBase64, imageMediaType, cacheContext) {
     if (name === 'groq')       return await callGroq(prompt);
     if (name === 'mistral')    return await callMistral(prompt, imageBase64, imageMediaType);
     if (name === 'openrouter') return await callOpenRouter(prompt, imageBase64, imageMediaType);
+    if (name === 'cometapi')   return await callCometAPI(prompt, imageBase64, imageMediaType);
     throw new Error('IA desconhecida: ' + name);
   }
 
@@ -21718,19 +21733,23 @@ function abrirPerfilModal(isPrimeiraVez) {
   if (gSt) gSt.textContent = geminiKey.length > 10 ? '✅ Guardada' : '';
   if (cSt) cSt.textContent = claudeKey.length > 10 ? '✅ Guardada' : '';
   if (xSt) xSt.textContent = grokKey.length   > 10 ? '✅ Guardada' : '';
-  // Groq / Mistral / OpenRouter
+  // Groq / Mistral / OpenRouter / CometAPI
   const grInp = document.getElementById('perfil-groq-key');
   const miInp = document.getElementById('perfil-mistral-key');
   const orInp = document.getElementById('perfil-openrouter-key');
+  const ctInp = document.getElementById('perfil-cometapi-key');
   const grSt  = document.getElementById('perfil-groq-status');
   const miSt  = document.getElementById('perfil-mistral-status');
   const orSt  = document.getElementById('perfil-openrouter-status');
+  const ctSt  = document.getElementById('perfil-cometapi-status');
   if (grInp) grInp.value = groqKey;
   if (miInp) miInp.value = mistralKey;
   if (orInp) orInp.value = openrouterKey;
+  if (ctInp) ctInp.value = cometapiKey;
   if (grSt) grSt.textContent = groqKey.length       > 10 ? '✅ Guardada' : '';
   if (miSt) miSt.textContent = mistralKey.length    > 10 ? '✅ Guardada' : '';
   if (orSt) orSt.textContent = openrouterKey.length > 10 ? '✅ Guardada' : '';
+  if (ctSt) ctSt.textContent = cometapiKey.length   > 10 ? '✅ Guardada' : '';
   openModal('modal-perfil');
   setTimeout(() => { previewPerfilLinks(); atualizarPerfilCategoriaPreview(); atualizarPerfilDatasPreview(); }, 50);
 }
@@ -32960,6 +32979,18 @@ function renderPrevisaoComissao() {
           <span id="perfil-openrouter-status" style="font-size:11px;color:var(--accent);white-space:nowrap;"></span>
         </div>
       </div>
+
+      <div class="form-group" style="margin-bottom:0;margin-top:14px;">
+        <label class="form-label" style="display:flex;align-items:center;gap:6px;">
+          <span style="font-size:15px;">☄️</span> CometAPI — Último recurso (serviço de terceiros, pago)
+          <a href="https://api.cometapi.com/console" target="_blank" style="font-size:10px;color:#22d3d3;margin-left:auto;">Obter chave →</a>
+        </label>
+        <div style="font-size:10.5px;color:var(--text2);margin-bottom:6px;line-height:1.4;">Só é usada se nenhuma das outras IAs acima responder — não é a Anthropic/Google diretamente, é um intermediário que revende acesso a vários modelos.</div>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <input class="form-input" type="password" id="perfil-cometapi-key" placeholder="sk-..." style="flex:1;" oninput="saveCometapiKey(this.value)">
+          <span id="perfil-cometapi-status" style="font-size:11px;color:var(--accent);white-space:nowrap;"></span>
+        </div>
+      </div>
     </div>
 
     <!-- ==================== PUBLICAÇÃO AUTOMÁTICA (em preparação) ==================== -->
@@ -43646,6 +43677,55 @@ async function callOpenRouter(prompt, imageBase64, imageMediaType) {
   return text.trim();
 }
 
+// CometAPI é um agregador de terceiros (não é a Anthropic nem a Google
+// diretamente) que expõe um endpoint compatível com o formato "Anthropic
+// Messages" — por isso reaproveitamos aqui a mesma forma de montar "content"
+// (texto + imagem) que já usamos em callClaude, só mudando o URL base e a
+// chave. Usado apenas como último recurso na cadeia de fallback (ver ALL_AI
+// em callAI) — é serviço pago à parte, não a conta Anthropic/Google do
+// distribuidor, e os dados passam por este intermediário antes do modelo.
+async function callCometAPI(prompt, imageBase64, imageMediaType) {
+  if (!cometapiKey) throw new Error('COMETAPI_NO_KEY');
+
+  const content = imageBase64
+    ? [
+        { type: 'image', source: { type: 'base64', media_type: imageMediaType || 'image/jpeg', data: imageBase64 } },
+        { type: 'text', text: prompt }
+      ]
+    : prompt;
+
+  let response;
+  try {
+    response = await fetch('https://api.cometapi.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': cometapiKey,
+        'anthropic-version': '2023-06-01'
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 1200,
+        messages: [{ role: 'user', content: content }]
+      })
+    });
+  } catch (networkErr) {
+    throw new Error('COMETAPI_CORS');
+  }
+  if (!response.ok) {
+    let errMsg = '';
+    try { const err = await response.json(); errMsg = err?.error?.message || ''; } catch(e) {}
+    if (!errMsg) errMsg = response.statusText || ('HTTP ' + response.status);
+    if (response.status === 401) throw new Error('Chave CometAPI inválida — verifica em cometapi.com/console');
+    if (response.status === 429) throw new Error('Quota CometAPI esgotada — aguarda uns minutos');
+    throw new Error('CometAPI (' + response.status + '): ' + errMsg);
+  }
+  const data = await response.json();
+  const text = data?.content?.[0]?.text;
+  if (!text) throw new Error('CometAPI não devolveu resposta');
+  return text.trim();
+}
+
 
 // ===================================================
 // COACH IA — PERSISTÊNCIA DE HISTÓRICO
@@ -44122,8 +44202,8 @@ async function acAnalisar() {
     if (isAudio && !geminiKey) { acMostrarErroChave('gemini'); return; }
 
     var temChave = temMedia
-      ? !!(geminiKey || claudeKey || grokKey || mistralKey || openrouterKey)
-      : !!(geminiKey || claudeKey || grokKey || groqKey || mistralKey || openrouterKey);
+      ? !!(geminiKey || claudeKey || grokKey || mistralKey || openrouterKey || cometapiKey)
+      : !!(geminiKey || claudeKey || grokKey || groqKey || mistralKey || openrouterKey || cometapiKey);
     if (!temChave) { acMostrarErroChave('qualquer'); return; }
 
     var perfNome = '';
@@ -44698,13 +44778,13 @@ function acMostrarErroChave(ai) {
   document.getElementById('ac-loading').style.display = 'none';
   document.getElementById('ac-btn-analisar').disabled = false;
   document.getElementById('ac-empty').style.display = 'block';
-  var nomes = {claude:'Claude', gemini:'Gemini', grok:'Grok'};
+  var nomes = {claude:'Claude', gemini:'Gemini', grok:'Grok', qualquer:'nenhuma IA'};
   var el = document.getElementById('ac-resultado');
   if (el) {
     el.style.display = 'block';
     el.innerHTML = '<div style="background:rgba(249,115,22,0.1);border:1px solid rgba(249,115,22,0.3);border-radius:var(--radius);padding:20px;text-align:center;">'
       + '<div style="font-size:28px;margin-bottom:10px;">🔑</div>'
-      + '<div style="font-size:14px;font-weight:700;color:#f97316;margin-bottom:8px;">Chave API ' + (nomes[ai]||ai) + ' nao configurada</div>'
+      + '<div style="font-size:14px;font-weight:700;color:#f97316;margin-bottom:8px;">' + (ai === 'qualquer' ? 'Nenhuma chave API configurada' : 'Chave API ' + (nomes[ai]||ai) + ' nao configurada') + '</div>'
       + '<div style="font-size:12.5px;color:var(--text2);margin-bottom:16px;line-height:1.6;">Para usar a Analise de Conversa precisas de uma chave API.<br>Vai a <strong>Posts IA</strong> ou <strong>Respostas IA</strong> para configurar a chave ' + (nomes[ai]||ai) + '.</div>'
       + '<button class="btn btn-primary btn-sm" onclick="goTo(\'posts\')">Ir configurar chave →</button>'
       + '</div>';
