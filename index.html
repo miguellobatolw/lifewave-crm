@@ -44265,29 +44265,73 @@ async function acAnalisar() {
       + ' 13e) PROSPECT ALREADY TRIED THE PRODUCT / ALREADY RESOLVED THE PROBLEM (critical, second most common failure mode after 13a, check this explicitly before writing "proxima_mensagem", "proximo_passo" and "pontos_positivos"): read the CURRENT conversation and the history carefully for any explicit signal that the prospect has ALREADY used LifeWave/X39 specifically (not just "soluções naturais" in general) for a period of time and did NOT get the result they wanted, OR that they already solved the problem being discussed through a different method entirely (e.g. chiropractor, medication, another therapy) and consider it resolved. These are two DIFFERENT situations and must not be treated the same as an "undecided" or "never tried" prospect: (a) if they tried X39/LifeWave itself and it did not work for their specific complaint, "proxima_mensagem" must NOT invite them to "experimentar", "explorar", "conhecer" or "saber mais" about X39 as if it were new to them — that reads as not having listened and damages trust; instead, either acknowledge the outcome honestly and ask a genuine diagnostic question (how long did they use it, correct patch placement/protocol, was it used consistently) before suggesting anything further, or drop the product angle for this particular complaint entirely; (b) if they solved the ORIGINAL problem through a non-LifeWave method and are satisfied, do not frame X39 as still relevant to that same already-solved problem — pivoting to "complemento ao bem-estar geral" as a way to keep pitching the same closed topic is a weak, evasive-sounding move; either find a genuinely different, unaddressed angle (a different complaint they mentioned, the business/income side, general wellness maintenance framed on its own terms) or accept that this specific thread has no natural next step and say so plainly in "dica_extra" rather than inventing one. In both cases (a) and (b), "pontos_positivos" must not spin prior product use or a resolved complaint as a generic opening ("já é aberta a soluções naturais") when the specific, current signal is that this exact avenue did not pay off or is no longer needed — name the real state of things instead.';
     }
 
+    // ---- Helpers de matching (v-fix: números que não correspondiam aos leads) ----
+    // Sufixo de 9 dígitos de um telefone (ignora +351, espaços, hífens). '' se não parecer telefone.
+    function acTelSufixo(t) {
+      var d = (t || '').toString().replace(/[^\d]/g, '');
+      return d.length >= 9 ? d.slice(-9) : '';
+    }
+    // Extrai de um texto LIVRE só os "tokens" com forma de telefone (em vez de juntar TODOS os
+    // dígitos do texto — datas, horas e valores colados davam um "número" falso aleatório).
+    function acTelsNoTexto(txt) {
+      var out = [], re = /(?:\+|00)?\d[\d\s().\-]{7,}\d/g, m;
+      txt = (txt || '').toString();
+      while ((m = re.exec(txt)) !== null) {
+        var d = m[0].replace(/[^\d]/g, '');
+        if (d.length >= 9 && d.length <= 15) out.push(d.slice(-9));
+      }
+      return out;
+    }
+    function acNomeNorm(s) {
+      return (s || '').toString().trim().toLowerCase()
+        .normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, ' ');
+    }
+    // "a contém b" só como palavra(s) inteira(s) — "ana" já não dá match em "mariana"/"joana".
+    function acContemPalavras(a, b) {
+      if (!a || !b) return false;
+      var esc = b.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      return new RegExp('(^|[^a-z0-9])' + esc + '($|[^a-z0-9])').test(a);
+    }
+    function acLeadPorTelSufixo(suf) {
+      if (!suf) return null;
+      return _acLeadsDisponiveis.find(function(l) { return acTelSufixo(l.tel) === suf; }) || null;
+    }
+
+    // Pistas em texto livre (texto colado / contexto): telefone com forma real primeiro,
+    // depois nome — único e como palavra inteira. Ambíguo => não arrisca (devolve null).
     function acEncontrarLeadPorPistas(pistas) {
-      var pistaNorm = acNormaliza(pistas);
+      var pistaNorm = acNomeNorm(pistas);
       if (!pistaNorm) return null;
-      // Match exato de telefone (só dígitos, últimos 9) tem prioridade — é o identificador mais fiável
-      var soDigitos = pistaNorm.replace(/[^\d]/g, '');
-      if (soDigitos.length >= 9) {
-        var telSufixo = soDigitos.slice(-9);
-        var porTel = _acLeadsDisponiveis.find(function(l) {
-          var lt = (l.tel||'').replace(/[^\d]/g, '');
-          return lt.length >= 9 && lt.slice(-9) === telSufixo;
-        });
+      var tels = acTelsNoTexto(pistas);
+      for (var i = 0; i < tels.length; i++) {
+        var porTel = acLeadPorTelSufixo(tels[i]);
         if (porTel) return porTel;
       }
-      // Match exato de nome
-      var porNomeExato = _acLeadsDisponiveis.find(function(l) { return l.nome && acNormaliza(l.nome) === pistaNorm; });
-      if (porNomeExato) return porNomeExato;
-      // Match parcial: nome do lead aparece dentro do texto fornecido (ex: cabeçalho de export, contexto)
-      var porNomeParcial = _acLeadsDisponiveis.filter(function(l) {
-        return l.nome && l.nome.trim().length >= 3 && pistaNorm.indexOf(acNormaliza(l.nome)) !== -1;
+      var exatos = _acLeadsDisponiveis.filter(function(l) { return l.nome && acNomeNorm(l.nome) === pistaNorm; });
+      if (exatos.length === 1) return exatos[0];
+      if (exatos.length > 1) return null;
+      var parciais = _acLeadsDisponiveis.filter(function(l) {
+        var n = acNomeNorm(l.nome);
+        return n.indexOf(' ') !== -1 && n.length >= 5 && acContemPalavras(pistaNorm, n);
       });
-      // Se houver mais do que um candidato parcial, é ambíguo demais para confiar — não arrisca
-      if (porNomeParcial.length === 1) return porNomeParcial[0];
-      return null;
+      return parciais.length === 1 ? parciais[0] : null;
+    }
+
+    // Match depois da IA devolver nome/telefone (campos separados, nunca concatenados).
+    // REGRA CHAVE: se foi detetado um telefone válido e nenhum lead o tem, um lead com o
+    // mesmo nome mas OUTRO número já registado NÃO é a mesma pessoa — não associa.
+    function acEncontrarLeadPorNomeETel(nome, tel) {
+      var suf = acParecerNumeroTelefone(tel) ? acTelSufixo(tel) : '';
+      var porTel = acLeadPorTelSufixo(suf);
+      if (porTel) return porTel;
+      var n = acNomeNorm(nome);
+      if (!n) return null;
+      // Só por nome: exige nome COMPLETO igual e único. "Paula" ≠ "Paula Ribeiro" —
+      // partilhar o primeiro nome não chega (redes sociais não mostram telefone,
+      // e outra Paula com contacto era associada por engano).
+      var exatos = _acLeadsDisponiveis.filter(function(l) { return acNomeNorm(l.nome) === n; });
+      if (suf) exatos = exatos.filter(function(l) { var ls = acTelSufixo(l.tel); return !ls || ls === suf; });
+      return exatos.length === 1 ? exatos[0] : null;
     }
 
     // Resume o histórico de um lead num bloco de texto compacto para o prompt.
@@ -44431,7 +44475,7 @@ async function acAnalisar() {
       + ' 14) SECOND MESSAGE OPTION (mandatory — the distributor should get a real choice, not just one fixed suggestion): in addition to "proxima_mensagem", write "proxima_mensagem_alt" — a genuinely different STRATEGIC ANGLE for the same reply, not just a reworded version of the same idea. Both must still follow every rule above (address the same detected objection if any, name the brand when appropriate, end on one concrete step, respect the hidden-objection guidance, etc.) — they should feel like two approaches a skilled distributor might realistically choose between, leading to potentially different conversations, not two paraphrases of the same message. Concretely vary ONE of: (a) the closing move — e.g. one version closes with a direct, curious question, the other closes with a short concrete offer (a specific day/time, or a piece of content to send) instead of a question; (b) the opening move — e.g. one leads with acknowledging the objection/feeling, the other leads with a relevant fact or short personal reason first; (c) the register — e.g. one stays purely relationship/curiosity-based, the other (only when the fase genuinely supports it) is a touch more direct about next steps. Do not vary tone alone (e.g. "formal" vs "casual") — that is not a strategic difference. Also write "proxima_mensagem_alt_label" — a very short 2-4 word tag in ' + uiLangName + ' naming the strategic difference of the ALT version specifically, from the distributor\'s point of view (e.g. "Oferece horário direto", "Lidera com empatia", "Pergunta mais direta") — never a generic label like "Alternativa" or "Versão 2".'
       + ' 14b) CONTACT-DETECTION FIELDS MUST NEVER BE GUESSED (critical — this has caused a real, confirmed bug: a phone number belonging to a completely different person ended up saved against the wrong lead because it was invented instead of left empty): for "nome_detectado", "tel_detectado" and "email_detectado", only fill in a value that is LITERALLY visible as text in the conversation/screenshot/audio being analyzed right now (e.g. a name label above a chat bubble, a phone number actually typed or shown in the UI, an email actually written out). If the name, phone number or email is not literally shown in what you are looking at, you MUST return an empty string "" for that field — never infer, reconstruct, autocomplete, or produce a plausible-looking placeholder value, even if the example in the JSON structure below shows a realistic-looking one (that example is ONLY illustrating the expected FORMAT, not a value to approximate). This is especially critical for phone numbers: a wrong digit or a number borrowed from an unrelated part of the screen (a different contact, a call button, a timestamp) can get silently saved to the wrong lead\'s profile and used to contact the wrong person later — when in doubt, leave it empty rather than risk this.'
       + ' 15) NATURAL LANGUAGE IN EVERY FIELD, NEVER MACHINE-STYLE IDENTIFIERS (critical, applies to "objecoes", "pontos_positivos", "erros_cometidos", "proximo_passo", "dica_extra" and "resumo"): every one of these fields is read directly by a human distributor on a phone screen, not parsed by code — write them as normal ' + uiLangName + ' sentences or short phrases, the way a coach would say them out loud. NEVER output snake_case, kebab-case, camelCase, underscores joining words, or database-style tags (e.g. do NOT write "não_tem_tempo", "pediu_mais_informação", "abordar_a_objeção_da_falta_de_tempo" — these are wrong). Correct style instead: "objecoes" → ["Falta de tempo", "Preço elevado"]; "pontos_positivos" → ["Respondeu rapidamente", "Fez uma pergunta concreta"]; "proximo_passo" → a short natural sentence like "Responder à pergunta dele sobre o preço antes de propor um próximo passo." This applies even though the JSON keys themselves (like "objecoes") are in code-style — the KEYS stay as given, only the VALUES must always read as natural human language, with proper spacing, accents and punctuation.'
-      + ' Respond ONLY in valid JSON with this exact structure (note the field order — write them in this order; the example VALUES below show the expected natural-language style, not literal text to copy): {"nome_detectado":"Maria Silva","tel_detectado":"+351912345678","email_detectado":"maria@email.com","sentimento":"positivo","fase":"interesse","resumo":"texto em frases normais","objecoes":["Falta de tempo","Já conhece a marca"],"pontos_positivos":["Já respondeu com interesse"],"erros_cometidos":["Não abordou a experiência anterior dela"],"proximo_passo":"Uma frase natural descrevendo a ação, ex: perguntar o que a fez parar antes de propor algo novo","dica_extra":"dica em frase normal","proxima_mensagem":"msg exacta no idioma do prospecto","proxima_mensagem_alt":"segunda opcao com angulo estrategico diferente, mesmo idioma","proxima_mensagem_alt_label":"tag curta 2-4 palavras","probabilidade_conversao":60,"probabilidade_racional":"frase curta com o sinal concreto mais recente","idioma_prospecto":"fr","template_detectado":"tb1"' + (isAudio ? ',"transcricao":"texto exacto dito no audio","tom_voz":"analise do tom de voz"' : '') + '}';
+      + ' Respond ONLY in valid JSON with this exact structure (note the field order — write them in this order; the example VALUES below show the expected natural-language style, not literal text to copy): {"nome_detectado":"<nome visível ou vazio>","tel_detectado":"<número visível ou vazio>","email_detectado":"<email visível ou vazio>","sentimento":"positivo","fase":"interesse","resumo":"texto em frases normais","objecoes":["Falta de tempo","Já conhece a marca"],"pontos_positivos":["Já respondeu com interesse"],"erros_cometidos":["Não abordou a experiência anterior dela"],"proximo_passo":"Uma frase natural descrevendo a ação, ex: perguntar o que a fez parar antes de propor algo novo","dica_extra":"dica em frase normal","proxima_mensagem":"msg exacta no idioma do prospecto","proxima_mensagem_alt":"segunda opcao com angulo estrategico diferente, mesmo idioma","proxima_mensagem_alt_label":"tag curta 2-4 palavras","probabilidade_conversao":60,"probabilidade_racional":"frase curta com o sinal concreto mais recente","idioma_prospecto":"fr","template_detectado":"tb1"' + (isAudio ? ',"transcricao":"texto exacto dito no audio","tom_voz":"analise do tom de voz"' : '') + '}';
     var acDescricaoInput = isAudio && isImg ? '. Vê a imagem E ouve o áudio (nota de voz do prospecto) em conjunto, como partes da mesma conversa, e transcreve o áudio.'
       : isAudio ? '. Ouve o áudio (nota de voz do prospecto) e transcreve-o.'
       : isImg ? '. Vê a imagem.'
@@ -44580,10 +44624,15 @@ async function acAnalisar() {
     // contexto do CRM sem exigir qualquer seleção manual do utilizador.
     // ---------------------------------------------------------------
     var _acLeadMatchFinal = _acLeadMatchInicial;
+    var _acTelDetValido = acParecerNumeroTelefone(parsed.tel_detectado) ? parsed.tel_detectado : '';
+    // Se o lead apanhado só por pistas de texto tem um telefone DIFERENTE do que está
+    // realmente visível na conversa, é outra pessoa — descarta em vez de associar mal.
+    if (_acLeadMatchFinal && _acTelDetValido) {
+      var _sufDet = acTelSufixo(_acTelDetValido), _sufLead = acTelSufixo(_acLeadMatchFinal.tel);
+      if (_sufDet && _sufLead && _sufDet !== _sufLead) _acLeadMatchFinal = null;
+    }
     if (!_acLeadMatchFinal && _acLeadsDisponiveis.length) {
-      var telDetectadoValido = acParecerNumeroTelefone(parsed.tel_detectado) ? parsed.tel_detectado : '';
-      var pistaPosIa = [(parsed.nome_detectado||''), telDetectadoValido].filter(Boolean).join(' ');
-      _acLeadMatchFinal = acEncontrarLeadPorPistas(pistaPosIa);
+      _acLeadMatchFinal = acEncontrarLeadPorNomeETel(parsed.nome_detectado, _acTelDetValido);
     }
     var _acHistoricoResumoFinal = _acLeadMatchFinal ? acResumirHistoricoLead(_acLeadMatchFinal) : '';
 
@@ -44966,6 +45015,8 @@ function acMostrarResultado(r) {
     var match = leadPreSelecionado || null;
     if (match) {
       selEl.value = match.id;
+      var nomeInpPre = document.getElementById('ac-lead-nome');
+      if (nomeInpPre) nomeInpPre.value = match.nome;
       var buscaPre = document.getElementById('ac-lead-busca');
       if (buscaPre) buscaPre.value = match.nome + (match.tel ? ' · ' + match.tel : '');
     }
