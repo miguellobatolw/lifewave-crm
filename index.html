@@ -8569,6 +8569,10 @@ var QRCode=function(t){"use strict";var r,e=function(){return"function"==typeof 
     <div id="f-duplicado-aviso" style="display:none;align-items:center;gap:8px;background:rgba(255,159,10,0.12);border:1px solid rgba(255,159,10,0.4);border-radius:10px;padding:9px 12px;margin-top:-6px;margin-bottom:12px;font-size:12.5px;color:#FF9F0A;font-weight:600;">
       ⚠️ <span id="f-duplicado-texto">Já existe um lead parecido</span>
     </div>
+    <div class="form-group">
+      <label class="form-label">Instagram (@)</label>
+      <input class="form-input" id="f-instagram" placeholder="@utilizador" autocomplete="off" autocapitalize="off" oninput="verificarLeadDuplicado()">
+    </div>
     <div class="form-row">
       <div class="form-group">
         <label class="form-label">Email</label>
@@ -10114,28 +10118,20 @@ function verificarLeadDuplicado() {
   const textoEl = document.getElementById('f-duplicado-texto');
   if (!avisoEl) return null;
 
-  const nome = (document.getElementById('f-nome').value || '').trim().toLowerCase();
-  const telRaw = (document.getElementById('f-tel').value || '').trim();
-  const tel = telRaw ? limparTelefone(telRaw) : '';
+  const nomeV = (document.getElementById('f-nome').value || '').trim();
+  const telV = (document.getElementById('f-tel').value || '').trim();
+  const igV = (document.getElementById('f-instagram')?.value || '').trim();
+  if (!nomeV && !telV && !igV) { avisoEl.style.display = 'none'; return null; }
 
-  if (!nome && !tel) { avisoEl.style.display = 'none'; return null; }
+  // Procura por telefone, @, nome (sem acentos) e primeiro nome; ignora o próprio lead em edição.
+  const ps = acharLeadsParecidos({ nome: nomeV, tel: telV, instagram: igV, ignorarId: editingLeadId });
+  if (!ps.length) { avisoEl.style.display = 'none'; return null; }
 
-  const duplicado = leads.find(l => {
-    if (editingLeadId && l.id === editingLeadId) return false; // ignora o próprio lead em edição
-    const mesmoNome = nome && l.nome && l.nome.trim().toLowerCase() === nome;
-    const mesmoTel = tel && l.tel && limparTelefone(l.tel) === tel;
-    return mesmoNome || mesmoTel;
-  });
-
-  if (duplicado) {
-    const motivo = (duplicado.tel && tel && limparTelefone(duplicado.tel) === tel) ? 'mesmo telefone' : 'mesmo nome';
-    textoEl.textContent = `Já existe "${duplicado.nome}" (${motivo}) — estado: ${estadoLabel(duplicado.estado)}`;
-    avisoEl.style.display = 'flex';
-    return duplicado;
-  } else {
-    avisoEl.style.display = 'none';
-    return null;
-  }
+  const lista = ps.slice(0, 3).map(p => `"${p.lead.nome}" (${p.motivos.join(', ')}${p.lead.tel ? ' · ' + p.lead.tel : ''})`).join(' · ');
+  const forte = ps[0].forca >= 2;
+  textoEl.textContent = (forte ? 'Já existe: ' : 'Leads parecidos: ') + lista + ' — estado: ' + estadoLabel(ps[0].lead.estado);
+  avisoEl.style.display = 'flex';
+  return forte ? ps[0].lead : null;
 }
 
 function salvarLead() {
@@ -10186,6 +10182,7 @@ function salvarLead() {
     nome,
     tel: document.getElementById('f-tel').value.trim(),
     email: document.getElementById('f-email').value.trim(),
+    instagram: (document.getElementById('f-instagram')?.value || '').trim(),
     mercado: document.getElementById('f-mercado').value,
     estado: novoEstado,
     objetivo: document.getElementById('f-objetivo')?.value || 'cliente',
@@ -10279,6 +10276,7 @@ function editarLead(id) {
   document.getElementById('f-nome').value = l.nome;
   document.getElementById('f-tel').value = l.tel;
   document.getElementById('f-email').value = l.email;
+  const fIgEl = document.getElementById('f-instagram'); if (fIgEl) fIgEl.value = l.instagram || '';
   document.getElementById('f-mercado').value = l.mercado;
   document.getElementById('f-estado').value = l.estado;
   const fObjEl = document.getElementById('f-objetivo'); if (fObjEl) fObjEl.value = l.objetivo || 'cliente';
@@ -10387,9 +10385,109 @@ function renderTimeline(historico,filtro,busca){
         <div class="conv-msg-acoes">
           ${h.conteudo?`<button class="conv-copy-btn" onclick="copiarMsgHistorico(this,${JSON.stringify(h.conteudo)})">📋 Copiar msg</button>`:''}
           <button class="conv-copy-btn" onclick="copiarMsgHistorico(this,${JSON.stringify(h.msg||'')})">📋 Copiar nota</button>
+          ${tipo==='analise_ia'?`<button class="conv-copy-btn" onclick="moverEntradaHistorico(this)" data-data="${de2}" data-msg="${me.replace(/"/g,'&quot;')}">↪ Mover</button>`:''}
           <button class="conv-del-btn" onclick="eliminarEntradaHistorico(this)" data-data="${de2}" data-msg="${me.replace(/"/g,'&quot;')}">🗑</button>
         </div>
       </div></div>`;}).join('')+'</div>';}
+
+// Move uma ANÁLISE DE CONVERSA guardada no lead errado para o lead certo.
+// Move a entrada do histórico e, se o resumo foi acrescentado às notas do lead de origem,
+// retira-o de lá e acrescenta-o às notas do destino. Não reverte estado/temperatura.
+function moverEntradaHistorico(btn) {
+  const d = btn.dataset.data;
+  const m = (btn.dataset.msg || '').replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&quot;/g,'"');
+  const origem = leads.find(x => x.id === _verLeadAtualId);
+  if (!origem) return;
+  const idx = (origem.historico || []).findIndex(h => h.data === d && h.msg === m);
+  if (idx < 0) { showToast('❌ Entrada não encontrada.'); return; }
+  const norm = x => (x || '').toString().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/@/g, '');
+
+  const antigo = document.getElementById('mover-entrada-overlay');
+  if (antigo) antigo.remove();
+  const ov = document.createElement('div');
+  ov.id = 'mover-entrada-overlay';
+  ov.style.cssText = 'position:fixed;inset:0;z-index:100000;background:rgba(0,0,0,0.6);display:flex;align-items:flex-end;justify-content:center;';
+  const box = document.createElement('div');
+  box.style.cssText = 'background:var(--surface2);border:1px solid var(--border);border-radius:16px 16px 0 0;padding:16px;width:100%;max-width:520px;max-height:75vh;display:flex;flex-direction:column;gap:10px;';
+  const tit = document.createElement('div');
+  tit.style.cssText = 'font-size:14px;font-weight:700;color:var(--text);';
+  tit.textContent = '↪ Mover esta análise para qual lead?';
+  const sub = document.createElement('div');
+  sub.style.cssText = 'font-size:12px;color:var(--text2);';
+  sub.textContent = 'Sai de "' + origem.nome + '" e passa para o lead que escolheres.';
+  const inp = document.createElement('input');
+  inp.className = 'form-input';
+  inp.placeholder = '🔍 Pesquisar (nome, telefone ou @)...';
+  inp.autocomplete = 'off';
+  const lista = document.createElement('div');
+  lista.style.cssText = 'overflow-y:auto;border:1px solid var(--border);border-radius:10px;';
+  const fechar = document.createElement('button');
+  fechar.className = 'btn btn-secondary btn-sm';
+  fechar.textContent = 'Cancelar';
+  fechar.onclick = () => ov.remove();
+
+  function desenhar() {
+    const t = norm(inp.value.trim());
+    const td = t.replace(/[^\d]/g, '');
+    lista.innerHTML = '';
+    const cands = leads.filter(l => l.id !== origem.id).filter(l => {
+      if (!t) return true;
+      const hay = norm(l.nome + ' ' + (l.tel || '') + ' ' + (l.instagram || ''));
+      return hay.indexOf(t) !== -1 || (td.length >= 3 && hay.replace(/[^\d]/g, '').indexOf(td) !== -1);
+    }).slice(0, 60);
+    if (!cands.length) {
+      const v = document.createElement('div');
+      v.style.cssText = 'padding:10px 12px;color:var(--text2);font-size:12px;';
+      v.textContent = 'Nenhum contacto encontrado.';
+      lista.appendChild(v);
+      return;
+    }
+    cands.forEach(l => {
+      const it = document.createElement('div');
+      it.style.cssText = 'padding:10px 12px;cursor:pointer;border-bottom:1px solid var(--border);font-size:13px;color:var(--text);';
+      it.textContent = l.nome + (l.tel ? ' · ' + l.tel : '') + (l.instagram ? ' · ' + l.instagram : '');
+      it.onclick = () => escolher(l);
+      lista.appendChild(it);
+    });
+  }
+
+  function escolher(destino) {
+    if (!confirm('Mover esta análise de "' + origem.nome + '" para "' + destino.nome + '"' + (destino.tel ? ' (' + destino.tel + ')' : '') + '?')) return;
+    const j = (origem.historico || []).findIndex(h => h.data === d && h.msg === m);
+    if (j < 0) { showToast('❌ Entrada não encontrada.'); return; }
+    const entrada = origem.historico.splice(j, 1)[0];
+    entrada.movidaDe = origem.nome;
+    destino.historico = destino.historico || [];
+    destino.historico.unshift(entrada);
+    // Notas: se o resumo desta análise foi acrescentado às notas da origem, leva-o consigo.
+    const linhas = (entrada.msg || '').split('\n');
+    const resumo = (linhas[1] || '').trim();
+    if (resumo && origem.notas && origem.notas.indexOf(resumo) !== -1) {
+      let ini = origem.notas.indexOf(resumo), fim = ini + resumo.length;
+      if (origem.notas.substr(fim, 11) === '\nObjeções: ') {
+        const nl = origem.notas.indexOf('\n', fim + 1);
+        fim = nl === -1 ? origem.notas.length : nl;
+      }
+      const removido = origem.notas.slice(ini, fim);
+      const antes = origem.notas.slice(0, ini).replace(/\s+$/, '');
+      const depois = origem.notas.slice(fim).replace(/^\s+/, '');
+      origem.notas = (antes && depois) ? (antes + '\n\n' + depois) : (antes || depois);
+      destino.notas = (destino.notas && destino.notas.trim()) ? (destino.notas.trim() + '\n\n' + removido) : removido;
+    }
+    saveleads();
+    ov.remove();
+    showToast('↪ Análise movida para "' + destino.nome + '"');
+    if (typeof verLead === 'function') verLead(origem.id);
+    if (typeof renderLista === 'function') renderLista();
+  }
+
+  inp.oninput = desenhar;
+  ov.onclick = (e) => { if (e.target === ov) ov.remove(); };
+  box.appendChild(tit); box.appendChild(sub); box.appendChild(inp); box.appendChild(lista); box.appendChild(fechar);
+  ov.appendChild(box);
+  document.body.appendChild(ov);
+  desenhar();
+}
 
 function setTlTipo(key) {
   tlTipoAtivo = key;
@@ -19540,7 +19638,7 @@ function openModal(id) {
   }
   if (id === 'modal-lead' && !editingLeadId) {
     document.getElementById('modal-lead-title').textContent = '➕ Novo Lead';
-    ['f-nome','f-tel','f-email','f-notas','f-aniversario','f-indicado-por','f-proximo-contacto-data','f-proximo-contacto-nota'].forEach(f => document.getElementById(f).value = '');
+    ['f-nome','f-tel','f-email','f-instagram','f-notas','f-aniversario','f-indicado-por','f-proximo-contacto-data','f-proximo-contacto-nota'].forEach(f => document.getElementById(f).value = '');
     document.getElementById('f-estado').value = 'novo';
     document.getElementById('f-proximo-contacto-hora').value = '09:00';
     const fAutoTagEl = document.getElementById('f-proximo-contacto-auto-tag'); if (fAutoTagEl) fAutoTagEl.style.display = 'none';
@@ -26646,7 +26744,7 @@ Estrutura exata a devolver (usa exatamente estas chaves; usa 0 ou [] quando um c
 
 {
   "versao": "string — código/versão do documento se visível (ex: LW0052-EMEA-EN R02), senão null",
-  "atualizadoEm": "string — data no formato YYYY-MM-DD; usa a data de hoje se não houver data no documento",
+  "atualizadoEm": "string — data no formato YYYY-MM-DD; se não houver data no documento usa ${new Date().toISOString().slice(0,10)}",
   "categorias": [
     {
       "cat": "nome exato da categoria, ex: '3-Star Presidential'",
@@ -26684,7 +26782,7 @@ Estrutura exata a devolver (usa exatamente estas chaves; usa 0 ou [] quando um c
 
 Regras importantes:
 - Não incluas explicações, só o JSON.
-- Se o PDF não tiver uma tabela PIB ou Customer Premium, devolve os valores já existentes tal como aparecem no documento, ou 0 se realmente ausentes.
+- Se o PDF não tiver uma tabela PIB ou Customer Premium, devolve 0 nesses campos — nunca estimes nem inventes valores que não estejam no documento.
 - Números sempre como number, nunca como string com símbolo de moeda (remove $, €, vírgulas de milhar).
 - Mantém a ordem das categorias do maior (3-Star Presidential) para o menor (Brand Partner Ativo).`;
 }
@@ -27818,17 +27916,17 @@ Responde APENAS em JSON válido, sem markdown, sem explicações, neste schema e
   "nome": "string curto — nome da viagem/prémio, ex: 'Luminate 2026 — Conferência VIP'",
   "icone": "1 emoji representativo, ex: '✈️'",
   "descricao": "string — descrição da recompensa em português, 1-3 frases",
-  "metaPontos": 500,
+  "metaPontos": 0,
   "inicio": "YYYY-MM-DD — data de início do período de qualificação",
   "fim": "YYYY-MM-DD — data de fim do período de qualificação",
   "regras": [
-    {"id": "string curto sem espaços, ex: 'cliente'", "label": "string — descrição da atividade que dá pontos", "pts": 10}
+    {"id": "string curto sem espaços, ex: 'cliente'", "label": "string — descrição da atividade que dá pontos", "pts": 0}
   ],
   "beneficios": ["string — cada benefício/regalia da viagem, um por item"],
   "notas": "string — notas importantes, exceções, prazos especiais (ex: PIB Boost). Vazio se não houver."
 }
 
-Se um campo não estiver no documento, usa null, 0, ou array vazio []. Não inventes valores — apenas extrai o que está explicitamente no documento. Garante que "regras" tem pelo menos uma entrada por cada forma de ganhar pontos descrita no documento.`;
+Se um campo não estiver no documento, usa null, 0, ou array vazio []. Não inventes valores — apenas extrai o que está explicitamente no documento. Garante que "regras" tem pelo menos uma entrada por cada forma de ganhar pontos descrita no documento. Os 0 do esquema são só marcadores de formato — nunca os uses como valores do documento.`;
 
 // ---- ANÁLISE IA ----
 async function viagemAnalisarIA() {
@@ -33950,19 +34048,19 @@ Responde APENAS em JSON válido, sem markdown, sem texto adicional, neste format
   "nome": "Nome curto da promoção (máx 60 chars)",
   "descricao": "Descrição clara e objetiva em português (máx 200 chars)",
   "icone": "1 emoji representativo",
-  "inicio_iso": "Data de início em ISO 8601 (ex: 2026-06-08T07:00:00+02:00) — se não encontrares, usa hoje",
-  "fim_iso": "Data de fim em ISO 8601 — se não encontrares, usa 30 dias a partir de hoje",
+  "inicio_iso": "Data de início em ISO 8601 (ex: 2026-06-08T07:00:00+02:00) — se não encontrares, usa ${new Date().toISOString()}",
+  "fim_iso": "Data de fim em ISO 8601 — se não encontrares, usa ${new Date(Date.now() + 30 * 86400000).toISOString()}",
   "valores": [
     {"cat": "categoria do BP", "normal": "valor normal", "duplo": "valor durante promoção", "match": "matching normal se aplicável", "matchDuplo": "matching duplo se aplicável"}
   ],
   "maxNovoBP": "Máximo que um novo BP pode ganhar (string)",
   "maxMatch": "Máximo de matching que o patrocinador pode ganhar (string)",
-  "tags": ["tag1", "tag2"],
-  "mercados": ["EMEA", "Portugal"],
+  "tags": ["string"],
+  "mercados": ["string — mercados indicados no documento"],
   "condicoes": "Condições principais em 1-2 frases"
 }
 
-Se algum campo não estiver no documento, usa null ou array vazio.`;
+Se algum campo não estiver no documento, usa null ou array vazio. Não inventes nem copies valores do esquema acima — só o que está no documento.`;
 
   const promptEstrategia = (promoData) => `És um coach de negócios LifeWave X39 especializado no mercado português/EMEA.
 
@@ -34379,12 +34477,12 @@ Responde APENAS em JSON válido, sem markdown, sem explicações, neste schema e
       "codigo": "string curto — ex: 'bp-ativo'",
       "ordem": 1,
       "requisitos": {
-        "pv_minimo": 55,
+        "pv_minimo": 0,
         "qdv_minimo": 0,
         "descricao": "string — requisitos em texto"
       },
       "bonus_nivel": [
-        {"nivel": 1, "pct": 3},
+        {"nivel": 1, "pct": 0},
         {"nivel": 2, "pct": 0}
       ],
       "bonus_binario": {
@@ -34420,7 +34518,7 @@ Responde APENAS em JSON válido, sem markdown, sem explicações, neste schema e
   "notas_extra": "string — qualquer informação relevante não capturada acima"
 }
 
-Se um campo não estiver no documento, usa null ou array vazio []. Não inventes valores — apenas extrai o que está explicitamente no documento.`;
+Se um campo não estiver no documento, usa null ou array vazio []. Não inventes valores — apenas extrai o que está explicitamente no documento. Os 0 e false deste esquema são só marcadores de formato: nunca os uses como se fossem valores do documento.`;
 
 // ---- ANÁLISE IA ----
 async function planoAnalisarIA() {
@@ -44297,6 +44395,30 @@ async function acAnalisar() {
       return _acLeadsDisponiveis.find(function(l) { return acTelSufixo(l.tel) === suf; }) || null;
     }
 
+    // ---- Instagram: o @handle é a chave fiável nas redes sociais (não há telefone) ----
+    function acHandleNorm(h) {
+      return (h || '').toString().trim().toLowerCase()
+        .replace(/^https?:\/\/(www\.)?instagram\.com\//, '').replace(/[?#].*$/, '')
+        .replace(/^@/, '').replace(/\/+$/, '');
+    }
+    // Parece um handle (sem espaços e com _ . ou dígitos), não um nome de pessoa.
+    function acPareceHandle(s) {
+      s = (s || '').toString().trim().replace(/^@/, '');
+      return s.length >= 3 && !/\s/.test(s) && /[_.\d]/.test(s);
+    }
+    function acLeadPorHandle(h) {
+      h = acHandleNorm(h);
+      if (h.length < 3) return null;
+      return _acLeadsDisponiveis.find(function(l) { return l.instagram && acHandleNorm(l.instagram) === h; }) || null;
+    }
+    // Primeiro nome partilhado por outro lead? ("Claudia" vs "Claudia Braz") => ambíguo.
+    function acPrimeiroNomePartilhado(nomeNorm, leadId) {
+      var p = nomeNorm.split(' ')[0];
+      return _acLeadsDisponiveis.some(function(l) {
+        return l.id !== leadId && acNomeNorm(l.nome).split(' ')[0] === p;
+      });
+    }
+
     // Pistas em texto livre (texto colado / contexto): telefone com forma real primeiro,
     // depois nome — único e como palavra inteira. Ambíguo => não arrisca (devolve null).
     function acEncontrarLeadPorPistas(pistas) {
@@ -44307,9 +44429,17 @@ async function acAnalisar() {
         var porTel = acLeadPorTelSufixo(tels[i]);
         if (porTel) return porTel;
       }
-      var exatos = _acLeadsDisponiveis.filter(function(l) { return l.nome && acNomeNorm(l.nome) === pistaNorm; });
-      if (exatos.length === 1) return exatos[0];
-      if (exatos.length > 1) return null;
+      var hs = (pistas || '').toString().match(/@[A-Za-z0-9._]{3,}/g) || [];
+      for (var j = 0; j < hs.length; j++) {
+        var porH = acLeadPorHandle(hs[j]);
+        if (porH) return porH;
+      }
+      // Um primeiro nome sozinho NÃO é identidade (há várias Cláudias/Paulas): só nome completo.
+      if (pistaNorm.indexOf(' ') !== -1) {
+        var exatos = _acLeadsDisponiveis.filter(function(l) { return l.nome && acNomeNorm(l.nome) === pistaNorm; });
+        if (exatos.length === 1) return exatos[0];
+        if (exatos.length > 1) return null;
+      }
       var parciais = _acLeadsDisponiveis.filter(function(l) {
         var n = acNomeNorm(l.nome);
         return n.indexOf(' ') !== -1 && n.length >= 5 && acContemPalavras(pistaNorm, n);
@@ -44324,14 +44454,17 @@ async function acAnalisar() {
       var suf = acParecerNumeroTelefone(tel) ? acTelSufixo(tel) : '';
       var porTel = acLeadPorTelSufixo(suf);
       if (porTel) return porTel;
+      // Nome detetado é um @handle (Instagram etc.): só associa se for o handle de um lead.
+      // Nunca cai para "primeiro nome parecido".
+      if (acPareceHandle(nome)) return acLeadPorHandle(nome);
       var n = acNomeNorm(nome);
       if (!n) return null;
-      // Só por nome: exige nome COMPLETO igual e único. "Paula" ≠ "Paula Ribeiro" —
-      // partilhar o primeiro nome não chega (redes sociais não mostram telefone,
-      // e outra Paula com contacto era associada por engano).
       var exatos = _acLeadsDisponiveis.filter(function(l) { return acNomeNorm(l.nome) === n; });
       if (suf) exatos = exatos.filter(function(l) { var ls = acTelSufixo(l.tel); return !ls || ls === suf; });
-      return exatos.length === 1 ? exatos[0] : null;
+      if (exatos.length !== 1) return null;
+      // Nome de uma só palavra e outro lead com o mesmo primeiro nome => ambíguo, não arrisca.
+      if (n.indexOf(' ') === -1 && acPrimeiroNomePartilhado(n, exatos[0].id)) return null;
+      return exatos[0];
     }
 
     // Resume o histórico de um lead num bloco de texto compacto para o prompt.
@@ -44631,6 +44764,10 @@ async function acAnalisar() {
       var _sufDet = acTelSufixo(_acTelDetValido), _sufLead = acTelSufixo(_acLeadMatchFinal.tel);
       if (_sufDet && _sufLead && _sufDet !== _sufLead) _acLeadMatchFinal = null;
     }
+    if (_acLeadMatchFinal && acPareceHandle(parsed.nome_detectado) && _acLeadMatchFinal.instagram
+        && acHandleNorm(_acLeadMatchFinal.instagram) !== acHandleNorm(parsed.nome_detectado)) {
+      _acLeadMatchFinal = null; // o lead tem outro @ registado => é outra pessoa
+    }
     if (!_acLeadMatchFinal && _acLeadsDisponiveis.length) {
       _acLeadMatchFinal = acEncontrarLeadPorNomeETel(parsed.nome_detectado, _acTelDetValido);
     }
@@ -44923,8 +45060,12 @@ function acMostrarResultado(r) {
     leadPreSelecionado = leads.find(function(l) { return l.id === leadIdConfirmado; }) || null;
   }
   if (!leadPreSelecionado && nomeDetectado && typeof leads !== 'undefined') {
+    // Só nome completo (2+ palavras) e único; um handle ou primeiro nome sozinho não identifica ninguém.
     var nomeNormPre = nomeDetectado.trim().toLowerCase();
-    leadPreSelecionado = leads.find(function(l) { return l.nome && l.nome.trim().toLowerCase() === nomeNormPre; }) || null;
+    if (nomeNormPre.indexOf(' ') !== -1) {
+      var _exPre = leads.filter(function(l) { return l.nome && l.nome.trim().toLowerCase() === nomeNormPre; });
+      leadPreSelecionado = _exPre.length === 1 ? _exPre[0] : null;
+    }
   }
   var estadoAtualPre = leadPreSelecionado ? leadPreSelecionado.estado : 'novo'; // lead novo nasce em "novo"
   var sugerirMudancaEstado = estadoSugerido && estadoSugerido !== estadoAtualPre;
@@ -44949,9 +45090,10 @@ function acMostrarResultado(r) {
     + (nomeDetectado
         ? '<div style="font-size:12px;color:var(--text2);margin-bottom:10px;">Nome detetado na conversa: <strong style="color:var(--text);">' + nomeDetectado + '</strong></div>'
         : '<div style="font-size:12px;color:var(--text2);margin-bottom:10px;">Não foi possível detetar um nome automaticamente — escolhe ou cria o lead manualmente.</div>')
-    + '<input class="form-input" id="ac-lead-nome" placeholder="Nome do lead" value="' + nomeDetectado.replace(/"/g,'&quot;') + '" style="margin-bottom:8px;">'
+    + '<input class="form-input" id="ac-lead-nome" placeholder="Nome do lead" value="' + nomeDetectado.replace(/"/g,'&quot;') + '" style="margin-bottom:8px;" oninput="acAvisarLeadsParecidos()">'
+    + '<div id="ac-lead-parecidos" style="display:none;margin-bottom:10px;"></div>'
     + '<div style="position:relative;margin-bottom:10px;">'
-    + '<input class="form-input" id="ac-lead-busca" placeholder="🔍 Pesquisar contacto existente (nome ou telefone)..." autocomplete="off" oninput="acFiltrarListaLeads(this.value)" onfocus="acFiltrarListaLeads(this.value)">'
+    + '<input class="form-input" id="ac-lead-busca" placeholder="🔍 Pesquisar contacto (nome, telefone ou @)..." autocomplete="off" oninput="acOnBuscaInput(this.value)" onfocus="acFiltrarListaLeads(this.value)">'
     + '<div id="ac-lead-lista-dropdown" style="display:none;position:absolute;top:100%;left:0;right:0;z-index:50;background:var(--surface2);border:1px solid var(--border);border-radius:10px;margin-top:4px;max-height:240px;overflow-y:auto;box-shadow:0 8px 24px rgba(0,0,0,0.35);"></div>'
     + '</div>'
     + '<select class="form-select" id="ac-lead-existente" style="display:none;" onchange="acOnLeadExistenteChange()">'
@@ -45008,7 +45150,7 @@ function acMostrarResultado(r) {
     var opts = ['<option value="">+ Criar novo lead com este nome</option>'];
     leads.forEach(function(l) {
       var label = l.nome + (l.tel ? ' · ' + l.tel : '');
-      opts.push('<option value="' + l.id + '">' + label.replace(/</g,'&lt;') + '</option>');
+      opts.push('<option value="' + l.id + '" data-extra="' + ((l.instagram || '') + '').replace(/[<>"&]/g,'') + '">' + label.replace(/</g,'&lt;') + '</option>');
     });
     selEl.innerHTML = opts.join('');
 
@@ -45021,6 +45163,7 @@ function acMostrarResultado(r) {
       if (buscaPre) buscaPre.value = match.nome + (match.tel ? ' · ' + match.tel : '');
     }
   }
+  acAvisarLeadsParecidos();
 }
 
 // ===================================================
@@ -45035,10 +45178,18 @@ function acFiltrarListaLeads(termo) {
   var dd = document.getElementById('ac-lead-lista-dropdown');
   var sel = document.getElementById('ac-lead-existente');
   if (!dd || !sel) return;
-  var t = (termo || '').trim().toLowerCase();
+  // Pesquisa por nome (sem acentos), telefone (ignora espaços/+) e @ do Instagram.
+  var norm = function(x) { return (x || '').toString().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, ''); };
+  var t = norm((termo || '').trim()).replace(/^@/, '');
+  var tDig = t.replace(/[^\d]/g, '');
   var opcoes = Array.from(sel.options).filter(function(o) { return o.value !== ''; });
   var filtradas = t
-    ? opcoes.filter(function(o) { return o.textContent.toLowerCase().indexOf(t) !== -1; })
+    ? opcoes.filter(function(o) {
+        var extra = o.getAttribute('data-extra') || '';
+        var hay = norm(o.textContent + ' ' + extra).replace(/@/g, '');
+        if (hay.indexOf(t) !== -1) return true;
+        return tDig.length >= 3 && hay.replace(/[^\d]/g, '').indexOf(tDig) !== -1;
+      })
     : opcoes;
 
   var html = '<div onclick="acSelecionarLeadExistente(\'\')" style="padding:10px 12px;cursor:pointer;border-bottom:1px solid var(--border);color:var(--accent);font-weight:600;font-size:13px;">➕ Criar novo lead</div>';
@@ -45046,11 +45197,27 @@ function acFiltrarListaLeads(termo) {
     html += '<div style="padding:10px 12px;color:var(--text2);font-size:12px;">Nenhum contacto encontrado.</div>';
   } else {
     filtradas.slice(0, 60).forEach(function(o) {
-      html += '<div onclick="acSelecionarLeadExistente(\'' + o.value + '\')" style="padding:10px 12px;cursor:pointer;border-bottom:1px solid var(--border);font-size:13px;color:var(--text);">' + o.textContent + '</div>';
+      html += '<div onclick="acSelecionarLeadExistente(\'' + o.value + '\')" style="padding:10px 12px;cursor:pointer;border-bottom:1px solid var(--border);font-size:13px;color:var(--text);">' + o.textContent + (o.getAttribute('data-extra') ? ' <span style="color:var(--text2);font-size:12px;">· ' + o.getAttribute('data-extra') + '</span>' : '') + '</div>';
     });
   }
   dd.innerHTML = html;
   dd.style.display = 'block';
+}
+
+// Se o utilizador edita/apaga o texto da caixa depois de ter escolhido um lead (ex.: apaga o
+// número e deixa só o nome), a escolha escondida no <select> já não corresponde ao que está
+// escrito — antes ficava o lead antigo e o guardar ia para a pessoa errada.
+function acOnBuscaInput(v) {
+  var sel = document.getElementById('ac-lead-existente');
+  if (sel && sel.value) {
+    var opt = Array.from(sel.options).find(function(o) { return o.value === sel.value; });
+    if (!opt || opt.textContent !== v) {
+      sel.value = '';
+      acOnLeadExistenteChange();
+      if (typeof showToast === 'function') showToast('ℹ️ Lead desassociado — escolhe outro da lista ou será criado um novo');
+    }
+  }
+  acFiltrarListaLeads(v);
 }
 
 function acSelecionarLeadExistente(id) {
@@ -45080,10 +45247,60 @@ document.addEventListener('click', function(e) {
   dd.style.display = 'none';
 });
 
+// Procura leads "parecidos" a partir de nome / telefone / @. Devolve [{lead, motivos, forca}]
+// por força: 3 = mesmo telefone ou @; 2 = mesmo nome (sem acentos); 1 = mesmo primeiro nome.
+function acharLeadsParecidos(o) {
+  var norm = function(x) { return (x || '').toString().trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, ' '); };
+  var hn = function(x) { return (x || '').toString().trim().toLowerCase().replace(/^https?:\/\/(www\.)?instagram\.com\//, '').replace(/[?#].*$/, '').replace(/^@/, '').replace(/\/+$/, ''); };
+  var d9 = function(t) { var d = (t || '').toString().replace(/[^\d]/g, ''); return d.length >= 9 ? d.slice(-9) : ''; };
+  var n = norm(o.nome), primeiro = n.split(' ')[0], tel = d9(o.tel), ig = hn(o.instagram);
+  var out = [];
+  (typeof leads !== 'undefined' ? leads : []).forEach(function(l) {
+    if (o.ignorarId && l.id === o.ignorarId) return;
+    var motivos = [], forca = 0;
+    if (tel && d9(l.tel) === tel) { motivos.push('mesmo telefone'); forca = 3; }
+    if (ig.length >= 3 && hn(l.instagram) === ig) { motivos.push('mesmo @'); forca = 3; }
+    var ln = norm(l.nome);
+    if (n && ln === n) { motivos.push('mesmo nome'); forca = Math.max(forca, 2); }
+    else if (primeiro.length >= 3 && !/[_.\d]/.test(primeiro) && ln.split(' ')[0] === primeiro) { motivos.push('mesmo primeiro nome'); forca = Math.max(forca, 1); }
+    if (motivos.length) out.push({ lead: l, motivos: motivos, forca: forca });
+  });
+  out.sort(function(a, b) { return b.forca - a.forca; });
+  return out;
+}
+
+// Análise de Conversa: com "criar novo lead" ativo, mostra leads parecidos e deixa tocar para associar.
+function acAvisarLeadsParecidos() {
+  var box = document.getElementById('ac-lead-parecidos');
+  if (!box) return;
+  var sel = document.getElementById('ac-lead-existente');
+  box.innerHTML = '';
+  if (sel && sel.value) { box.style.display = 'none'; return; }
+  var inp = document.getElementById('ac-lead-nome');
+  var nome = (inp ? inp.value : '').trim();
+  var r = (typeof _acUltimaAnalise !== 'undefined' && _acUltimaAnalise && _acUltimaAnalise.resultado) || {};
+  var ehHandle = /^@?[A-Za-z0-9._]{3,}$/.test(nome) && /[_.\d]/.test(nome);
+  var ps = acharLeadsParecidos({ nome: ehHandle ? '' : nome, tel: r.tel_detectado, instagram: ehHandle ? nome : '' }).slice(0, 3);
+  if (!ps.length) { box.style.display = 'none'; return; }
+  var tit = document.createElement('div');
+  tit.style.cssText = 'font-size:12px;color:#ff9f0a;margin-bottom:6px;font-weight:600;';
+  tit.textContent = '⚠️ Já existe um lead parecido — toca para associar a ele:';
+  box.appendChild(tit);
+  ps.forEach(function(p) {
+    var b = document.createElement('div');
+    b.style.cssText = 'padding:8px 10px;margin-bottom:5px;border:1px solid rgba(255,159,10,0.4);border-radius:8px;font-size:12.5px;color:var(--text);cursor:pointer;';
+    b.textContent = p.lead.nome + (p.lead.tel ? ' · ' + p.lead.tel : '') + (p.lead.instagram ? ' · ' + p.lead.instagram : '') + ' (' + p.motivos.join(', ') + ')';
+    b.onclick = function() { acSelecionarLeadExistente(p.lead.id); };
+    box.appendChild(b);
+  });
+  box.style.display = 'block';
+}
+
 function acOnLeadExistenteChange() {
   var sel = document.getElementById('ac-lead-existente');
   var nomeInput = document.getElementById('ac-lead-nome');
   if (!sel || !nomeInput || typeof leads === 'undefined') return;
+  acAvisarLeadsParecidos();
   var lAtual = null;
   if (sel.value) {
     lAtual = leads.find(function(x) { return x.id === sel.value; });
@@ -45115,6 +45332,49 @@ function acGuardarNoLead() {
   var leadIdEscolhido = sel ? sel.value : '';
 
   if (!leadIdEscolhido && !nome) { showToast('❌ Indica um nome para criar o lead.'); return; }
+
+  // CONFIRMAÇÃO antes de guardar num lead EXISTENTE: mostra para quem vai e se o número/@
+  // detetado na conversa bate com o do lead. Só dispensa a pergunta quando o número (ou o @)
+  // detetado é igual ao do lead — aí a identidade está provada.
+  if (leadIdEscolhido) {
+    var _lc = leads.find(function(x) { return x.id === leadIdEscolhido; });
+    if (_lc) {
+      var _rc = _acUltimaAnalise.resultado || {};
+      var _d9 = function(t) { var d = (t || '').toString().replace(/[^\d]/g, ''); return d.length >= 9 ? d.slice(-9) : ''; };
+      var _hn = function(h) { return (h || '').toString().trim().toLowerCase().replace(/^https?:\/\/(www\.)?instagram\.com\//, '').replace(/[?#].*$/, '').replace(/^@/, '').replace(/\/+$/, ''); };
+      var _telDet = _d9(_rc.tel_detectado), _telLead = _d9(_lc.tel);
+      var _nomeDet = (_rc.nome_detectado || '').trim();
+      var _ehHandle = _nomeDet.length >= 3 && !/\s/.test(_nomeDet) && /[_.\d]/.test(_nomeDet);
+      var _hLead = _hn(_lc.instagram);
+      var _provado = (_telDet && _telLead && _telDet === _telLead) || (_ehHandle && _hLead && _hn(_nomeDet) === _hLead);
+      if (!_provado) {
+        var _linhas = ['Guardar esta análise no lead EXISTENTE?', '', '👤 ' + _lc.nome];
+        if (_lc.tel) _linhas.push('📱 ' + _lc.tel);
+        if (_lc.instagram) _linhas.push('📷 ' + _lc.instagram);
+        _linhas.push('');
+        _linhas.push('Na conversa foi detetado:');
+        _linhas.push('• Nome: ' + (_nomeDet || '—'));
+        _linhas.push('• Número: ' + ((_rc.tel_detectado || '').trim() || '—'));
+        if (_telDet && _telLead && _telDet !== _telLead) {
+          _linhas.push(''); _linhas.push('⚠️ O número detetado é DIFERENTE do número deste lead.');
+        } else if (_ehHandle && _hLead && _hn(_nomeDet) !== _hLead) {
+          _linhas.push(''); _linhas.push('⚠️ O @ detetado é DIFERENTE do @ registado neste lead.');
+        } else if (_lc.tel || _lc.instagram) {
+          _linhas.push(''); _linhas.push('⚠️ Não há número/@ na conversa que confirme que é a mesma pessoa.');
+        }
+        _linhas.push(''); _linhas.push('OK = guardar neste lead · Cancelar = voltar e escolher outro / criar novo');
+        if (!confirm(_linhas.join('\n'))) return;
+      }
+    }
+  }
+
+  // Snapshot do lead ANTES de a análise o alterar — alimenta o botão "Desfazer" no fim.
+  // Sem snapshot (lead novo), desfazer = apagar o lead acabado de criar.
+  var _undoSnap = null;
+  var _preLead = leadIdEscolhido
+    ? leads.find(function(x) { return x.id === leadIdEscolhido; })
+    : leads.find(function(l) { return l.nome && l.nome.trim().toLowerCase() === nome.toLowerCase(); });
+  if (_preLead) { try { _undoSnap = JSON.parse(JSON.stringify(_preLead)); } catch (e) { _undoSnap = null; } }
 
   // Mapeia a pill "Temperatura do lead" (escolhida manualmente pelo distribuidor antes
   // de analisar) para a string canónica do campo l.mercado usada em todo o CRM. É a
@@ -45313,6 +45573,7 @@ function acGuardarNoLead() {
   if (typeof renderLista === 'function') renderLista();
 
   showToast('✓ Análise guardada no lead "' + lead.nome + '"');
+  acMostrarDesfazerGuardar(lead.id, _undoSnap, _undoSnap ? null : lead.id, lead.nome);
 
   // Se vier de uma fila de .zip, avança automaticamente para a próxima conversa
   if (_acFilaZip.length && _acFilaIndex >= 0) {
@@ -45337,6 +45598,16 @@ function acGuardarNoLead() {
   var sugestoes = [];
   if (telDet && !lead.tel) sugestoes.push({ campo: 'tel', label: '📱 Telefone', valor: telDet });
   if (emailDet && !lead.email) sugestoes.push({ campo: 'email', label: '✉️ Email', valor: emailDet });
+  // @ do Instagram: nas DMs o nome detetado costuma ser o handle. Sugere gravá-lo no lead
+  // para a próxima análise o reconhecer sozinho. Só com o lead sem @ e se o @ não for de outro lead.
+  var igDet = (r1.nome_detectado || '').trim().replace(/^@/, '');
+  if (igDet.length >= 3 && /^[A-Za-z0-9._]+$/.test(igDet) && /[_.\d]/.test(igDet) && !lead.instagram) {
+    var igNormDet = igDet.toLowerCase();
+    var igDeOutro = leads.some(function(l) {
+      return l.id !== lead.id && l.instagram && l.instagram.toString().trim().toLowerCase().replace(/^@/, '') === igNormDet;
+    });
+    if (!igDeOutro) sugestoes.push({ campo: 'instagram', label: '📷 Instagram', valor: '@' + igDet });
+  }
   if (sugestoes.length) {
     setTimeout(function() { acMostrarSugestaoContacto(lead, sugestoes); }, 400);
   }
@@ -45349,12 +45620,64 @@ function acGuardarNoLead() {
       var opt = document.createElement('option');
       opt.value = lead.id;
       opt.textContent = lead.nome + (lead.tel ? ' · ' + lead.tel : '');
+      opt.setAttribute('data-extra', lead.instagram || '');
       selAfter.appendChild(opt);
     }
     selAfter.value = lead.id;
     var buscaAfter = document.getElementById('ac-lead-busca');
     if (buscaAfter) buscaAfter.value = lead.nome + (lead.tel ? ' · ' + lead.tel : '');
   }
+}
+
+// Barra "Desfazer" depois de guardar uma análise (visível ~15 s).
+// Repõe o lead tal como estava antes (histórico, notas, estado, temperatura, contactos
+// aceites na janela de sugestão) ou apaga-o, se foi criado por esta análise.
+// NÃO reverte tarefas/lembretes que as automações de mudança de estado possam ter criado.
+function acMostrarDesfazerGuardar(leadId, snap, novoId, nomeLead) {
+  var antiga = document.getElementById('ac-desfazer-barra');
+  if (antiga) antiga.remove();
+  var barra = document.createElement('div');
+  barra.id = 'ac-desfazer-barra';
+  barra.style.cssText = 'position:fixed;top:calc(env(safe-area-inset-top,0px) + 64px);left:50%;transform:translateX(-50%);z-index:10000;background:var(--surface2);border:1px solid rgba(0,212,170,0.35);border-radius:12px;padding:10px 14px;max-width:360px;width:92%;box-shadow:0 8px 32px rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:space-between;gap:10px;';
+  var txt = document.createElement('span');
+  txt.style.cssText = 'font-size:12.5px;color:var(--text);';
+  txt.textContent = (novoId ? '✓ Lead criado: ' : '✓ Guardado em: ') + nomeLead;
+  var btn = document.createElement('button');
+  btn.textContent = '↩ Desfazer';
+  btn.style.cssText = 'background:var(--accent);color:var(--bg);border:none;border-radius:8px;padding:7px 12px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;';
+  btn.onclick = function() {
+    var i = leads.findIndex(function(l) { return l.id === leadId; });
+    if (novoId) {
+      if (i >= 0) leads.splice(i, 1);
+      var sel = document.getElementById('ac-lead-existente');
+      if (sel) {
+        Array.from(sel.options).forEach(function(o) { if (o.value === leadId) o.remove(); });
+        sel.value = '';
+      }
+      var busca = document.getElementById('ac-lead-busca');
+      if (busca) busca.value = '';
+    } else if (snap && i >= 0) {
+      var alvo = leads[i];
+      Object.keys(alvo).forEach(function(k) { delete alvo[k]; });
+      Object.assign(alvo, snap);
+    } else {
+      barra.remove();
+      if (typeof showToast === 'function') showToast('❌ Não foi possível desfazer.');
+      return;
+    }
+    saveleads();
+    var pop = document.getElementById('ac-contacto-popup');
+    if (pop) pop.remove();
+    barra.remove();
+    if (typeof renderDashboardSeVisivel === 'function') renderDashboardSeVisivel();
+    if (typeof renderFunil === 'function') renderFunil();
+    if (typeof renderLista === 'function') renderLista();
+    if (typeof showToast === 'function') showToast('↩ Guardado desfeito' + (novoId ? ' — lead apagado' : ''));
+  };
+  barra.appendChild(txt);
+  barra.appendChild(btn);
+  document.body.appendChild(barra);
+  setTimeout(function() { if (barra.parentNode) barra.remove(); }, 15000);
 }
 
 function acMostrarSugestaoContacto(lead, sugestoes) {
@@ -45376,6 +45699,7 @@ function acMostrarSugestaoContacto(lead, sugestoes) {
   desc.textContent = 'A IA detetou dados de contacto. Confirma que corresponde mesmo a este lead antes de adicionar a "' + lead.nome + '".';
   popup.appendChild(desc);
 
+  var pendentes = sugestoes.length;
   sugestoes.forEach(function(s) {
     var row = document.createElement('div');
     row.style.cssText = 'display:flex;align-items:center;justify-content:space-between;background:var(--surface3);border-radius:8px;padding:8px 12px;margin-bottom:8px;gap:10px;';
@@ -45394,6 +45718,11 @@ function acMostrarSugestaoContacto(lead, sugestoes) {
       btn.remove();
       if (typeof renderFunil === 'function') renderFunil();
       if (typeof renderLista === 'function') renderLista();
+      // Quando a última sugestão é aceite, mostra "guardado!" um instante e fecha a janela.
+      pendentes--;
+      if (pendentes <= 0) {
+        setTimeout(function() { if (popup.parentNode) popup.remove(); }, 1200);
+      }
     };
 
     row.appendChild(info);
