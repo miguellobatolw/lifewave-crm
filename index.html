@@ -8612,7 +8612,7 @@ var QRCode=function(t){"use strict";var r,e=function(){return"function"==typeof 
           <option value="alavida">Alavida®</option>
           <option value="aculife">AcuLife®</option>
           <option value="cellergize_morning">Cellergize™ Morning</option>
-          <option value="cellergize_night">Cellergize™ Night</option>
+          <option value="cellergize_night">Cellergize™ Evening</option>
           <option value="y-age-kit">Y-Age® System Kit</option>
           <option value="x39x49-bundle">X39® + X49™ Bundle</option>
           <option value="alavida-trio">Alavida® Regenerating Trio</option>
@@ -12404,7 +12404,7 @@ const PRODUTOS_LABELS = {
   'energy': 'Energy Enhancer®', 'silent': 'Silent Nights®', 'aeon': 'Y-Age Aeon®',
   'gluta': 'Y-Age® Glutathione', 'carno': 'Y-Age® Carnosine', 'sp6': 'SP6® Complete',
   'alavida': 'Alavida®', 'aculife': 'AcuLife®', 'y-age-kit': 'Y-Age® System Kit',
-  'cellergize_morning': 'Cellergize™ Morning', 'cellergize_night': 'Cellergize™ Night',
+  'cellergize_morning': 'Cellergize™ Morning', 'cellergize_night': 'Cellergize™ Evening',
   'x39x49-bundle': 'X39® + X49™ Bundle', 'alavida-trio': 'Alavida® Regenerating Trio',
   'oportunidade': '🧲 Oportunidade de negócio'
 };
@@ -15743,7 +15743,7 @@ function mensagemErroIA(err) {
   return 'Não foi possível gerar a resposta agora. Tenta novamente dentro de momentos.';
 }
 
-async function callGeminiModel(model, prompt, imageBase64, imageMediaType, extraMedia) {
+async function callGeminiModel(model, prompt, imageBase64, imageMediaType, extraMedia, opcoes) {
   const parts = [];
   if (imageBase64) {
     parts.push({ inline_data: { mime_type: imageMediaType || 'image/jpeg', data: imageBase64 } });
@@ -15761,9 +15761,14 @@ async function callGeminiModel(model, prompt, imageBase64, imageMediaType, extra
   // Quando há imagem/áudio, deixamos o Gemini "pensar" (thinkingBudget maior) para ler bem
   // texto/detalhe visual em cartazes, gráficos e imagens compostas — com thinkingBudget:0
   // o modelo tende a responder de forma genérica em vez de citar factos concretos da imagem.
+  // opcoes (opcional): { maxTokens, temperature } — permite a tarefas de extração
+  // (ex: importar tabela de preços) pedir respostas longas/determinísticas sem
+  // alterar o comportamento das restantes chamadas (que mantêm 4096 / 0.8).
+  const _maxOut = (opcoes && opcoes.maxTokens) ? Math.min(Math.max(opcoes.maxTokens, 1024), 16384) : 4096;
+  const _temp = (opcoes && typeof opcoes.temperature === 'number') ? opcoes.temperature : 0.8;
   const generationConfig = temMedia
-    ? { maxOutputTokens: 4096, temperature: 0.8, thinkingConfig: { thinkingBudget: 512 } }
-    : { maxOutputTokens: 4096, temperature: 0.8, thinkingConfig: { thinkingBudget: 0 } };
+    ? { maxOutputTokens: _maxOut, temperature: _temp, thinkingConfig: { thinkingBudget: 512 } }
+    : { maxOutputTokens: _maxOut, temperature: _temp, thinkingConfig: { thinkingBudget: 0 } };
   const body = {
     contents: [{ role: 'user', parts }],
     generationConfig
@@ -15822,7 +15827,7 @@ function setCacheRespostaIA(prompt, resposta) {
   }
 }
 
-async function callGemini(prompt, imageBase64, imageMediaType, cacheContext, extraMedia) {
+async function callGemini(prompt, imageBase64, imageMediaType, cacheContext, extraMedia, opcoes) {
   const cachePrefix = cacheContext ? `gemini::${cacheContext}::` : 'gemini::';
   const temMedia = !!imageBase64 || (Array.isArray(extraMedia) && extraMedia.length > 0);
   if (!temMedia) {
@@ -15834,7 +15839,7 @@ async function callGemini(prompt, imageBase64, imageMediaType, cacheContext, ext
   let lastError = null;
   for (const model of GEMINI_MODELS) {
     try {
-      const resposta = await callGeminiModel(model, prompt, imageBase64, imageMediaType, extraMedia);
+      const resposta = await callGeminiModel(model, prompt, imageBase64, imageMediaType, extraMedia, opcoes);
       if (!temMedia) setCacheRespostaIA(cachePrefix + prompt, resposta);
       return resposta;
     } catch(e) {
@@ -15859,7 +15864,7 @@ async function callGemini(prompt, imageBase64, imageMediaType, cacheContext, ext
 // promoAnalisarIA, planoAnalisarIA, mbFaturaAnalisarIA, etc.
 // Devolve o texto de resposta cru (cada chamador faz o seu próprio parse).
 // ===================================================
-async function chamarIADocumento({ ai, prompt, base64, isPdf, mediaType, maxTokens, fallback }) {
+async function chamarIADocumento({ ai, prompt, base64, isPdf, mediaType, maxTokens, fallback, temperature }) {
   maxTokens = maxTokens || 2000;
 
   async function chamarClaude() {
@@ -15877,7 +15882,7 @@ async function chamarIADocumento({ ai, prompt, base64, isPdf, mediaType, maxToke
         'anthropic-version': '2023-06-01',
         'anthropic-dangerous-direct-browser-access': 'true'
       },
-      body: JSON.stringify({ model: 'claude-sonnet-4-6', max_tokens: maxTokens, messages: [{ role: 'user', content }] })
+      body: JSON.stringify(Object.assign({ model: 'claude-sonnet-4-6', max_tokens: maxTokens, messages: [{ role: 'user', content }] }, (typeof temperature === 'number') ? { temperature } : {}))
     });
     if (!res.ok) { const e = await res.json().catch(()=>({})); throw new Error(e?.error?.message || `HTTP ${res.status}`); }
     const data = await res.json();
@@ -15886,7 +15891,7 @@ async function chamarIADocumento({ ai, prompt, base64, isPdf, mediaType, maxToke
 
   async function chamarGemini() {
     if (typeof callGemini !== 'function') throw new Error('Função Gemini não disponível.');
-    return await callGemini(prompt, base64, isPdf ? 'application/pdf' : mediaType);
+    return await callGemini(prompt, base64, isPdf ? 'application/pdf' : mediaType, undefined, undefined, { maxTokens, temperature });
   }
 
   function _docFallbackLabel(err) {
@@ -31122,26 +31127,34 @@ const PATCHES_CLASSICOS_PRECO = {
 });
 
 // ===== CELLERGIZE =====
-// Ainda não consta no "EMEA Compensation Plan" oficial — lançamento em curso.
-// Valores abaixo são ESTIMATIVAS (baseadas no tamanho de embalagem: Morning
-// 390g / Evening 210g) e ficam marcadas "por confirmar" em toda a app até
-// confirmares/importares os valores reais assim que a LifeWave os publicar.
-CATALOGO_PRECOS_DEFAULT.cellergize_morning = {
-  direto_eur:45, direto_usd:47.95, direto_gbp:39, direto_cad:66, direto_aud:73,
-  pref_eur:39,   pref_usd:41.95,  pref_gbp:34,   pref_cad:57,  pref_aud:63,
-  bp_eur:39,     bp_usd:41.95,    bp_gbp:34,     bp_cad:57,    bp_aud:63,
-  lucro_direto_eur:14, lucro_direto_usd:15, lucro_direto_gbp:12, lucro_direto_cad:21, lucro_direto_aud:23,
-  lucro_pref_eur:10,   lucro_pref_usd:10,   lucro_pref_gbp:9,  lucro_pref_cad:15,  lucro_pref_aud:16,
-  qv:33, multi:true, porConfirmar:true,
+// Fonte: LW0056-R02 (EMEA Compensation Plan — Product Pricing Breakdown).
+// Morning e Evening têm exatamente os mesmos preços/QV/BV. Na app o id do
+// Evening continua a ser 'cellergize_night' (nome no PDF: Evening).
+// GBP/CAD/AUD NÃO constam no documento — são estimativas a partir do EUR.
+const CELLERGIZE_PRECO = {
+  // Direct 1 / 2 / 3 packs
+  direto_eur:76,   direto_usd:79.95,  direto_gbp:65,  direto_cad:112, direto_aud:123,
+  direto_2_eur:71, direto_2_usd:74.95, direto_2_gbp:61, direto_2_cad:105, direto_2_aud:115,
+  direto_3_eur:66, direto_3_usd:69.95, direto_3_gbp:57, direto_3_cad:97,  direto_3_aud:107,
+  lucro_direto_eur:10, lucro_direto_usd:10, lucro_direto_gbp:9,  lucro_direto_cad:15, lucro_direto_aud:16,
+  lucro_2_eur:14,      lucro_2_usd:15,      lucro_2_gbp:12,      lucro_2_cad:21,      lucro_2_aud:23,
+  lucro_3_eur:19,      lucro_3_usd:20,      lucro_3_gbp:16,      lucro_3_cad:28,      lucro_3_aud:31,
+  // Preferred / PC+
+  pref_eur:66,   pref_usd:69.95,  pref_gbp:57,  pref_cad:97,  pref_aud:107,
+  pref_2_eur:57, pref_2_usd:59.95, pref_2_gbp:49, pref_2_cad:84, pref_2_aud:92,
+  pref_3_eur:47, pref_3_usd:49.95, pref_3_gbp:40, pref_3_cad:69, pref_3_aud:76,
+  lucro_pref_eur:5,   lucro_pref_usd:5,   lucro_pref_gbp:4,  lucro_pref_cad:7,  lucro_pref_aud:8,
+  lucro_pref_2_eur:5, lucro_pref_2_usd:5, lucro_pref_2_gbp:4, lucro_pref_2_cad:7, lucro_pref_2_aud:8,
+  lucro_pref_3_eur:5, lucro_pref_3_usd:5, lucro_pref_3_gbp:4, lucro_pref_3_cad:7, lucro_pref_3_aud:8,
+  // Brand Partner (mesmos valores do Preferred, mas BV = QV)
+  bp_eur:66,   bp_usd:69.95,  bp_gbp:57,  bp_cad:97,  bp_aud:107,
+  bp_2_eur:57, bp_2_usd:59.95, bp_2_gbp:49, bp_2_cad:84, bp_2_aud:92,
+  bp_3_eur:47, bp_3_usd:49.95, bp_3_gbp:40, bp_3_cad:69, bp_3_aud:76,
+  qv:35, bv_direto:35, bv_pref:27, multi:true,
+  gbpEstimado:true, cadEstimado:true, audEstimado:true,
 };
-CATALOGO_PRECOS_DEFAULT.cellergize_night = {
-  direto_eur:32, direto_usd:33.95, direto_gbp:28, direto_cad:47, direto_aud:52,
-  pref_eur:28,   pref_usd:29.95,  pref_gbp:24,   pref_cad:41,  pref_aud:45,
-  bp_eur:28,     bp_usd:29.95,    bp_gbp:24,     bp_cad:41,    bp_aud:45,
-  lucro_direto_eur:10, lucro_direto_usd:10, lucro_direto_gbp:9, lucro_direto_cad:15, lucro_direto_aud:16,
-  lucro_pref_eur:7,    lucro_pref_usd:8,    lucro_pref_gbp:6,  lucro_pref_cad:10,  lucro_pref_aud:12,
-  qv:22, multi:true, porConfirmar:true,
-};
+CATALOGO_PRECOS_DEFAULT.cellergize_morning = Object.assign({}, CELLERGIZE_PRECO);
+CATALOGO_PRECOS_DEFAULT.cellergize_night   = Object.assign({}, CELLERGIZE_PRECO);
 
 // ===== SISTEMAS / BUNDLES =====
 CATALOGO_PRECOS_DEFAULT['y-age-kit'] = {
@@ -31159,6 +31172,16 @@ CATALOGO_PRECOS_DEFAULT['x39x49-bundle'] = {
   lucro_direto_eur:95, lucro_direto_usd:100, lucro_direto_gbp:82, lucro_direto_cad:140, lucro_direto_aud:154,
   lucro_pref_eur:38,   lucro_pref_usd:40,   lucro_pref_gbp:33,  lucro_pref_cad:56,  lucro_pref_aud:62,
   qv:140, bv_direto:140, bv_pref:73, gbpEstimado:true, cadEstimado:true, audEstimado:true,
+};
+
+// Cellergize Duo (Morning + Evening) — LW0056-R02. GBP/CAD/AUD estimados a partir do EUR.
+CATALOGO_PRECOS_DEFAULT['cellergize-duo'] = {
+  direto_eur:142, direto_usd:149.95, direto_gbp:122, direto_cad:209, direto_aud:230,
+  pref_eur:114,   pref_usd:119.95,   pref_gbp:98,    pref_cad:168,  pref_aud:185,
+  bp_eur:114,     bp_usd:119.95,     bp_gbp:98,      bp_cad:168,    bp_aud:185,
+  lucro_direto_eur:29, lucro_direto_usd:30, lucro_direto_gbp:25, lucro_direto_cad:43, lucro_direto_aud:47,
+  lucro_pref_eur:10,   lucro_pref_usd:10,   lucro_pref_gbp:9,    lucro_pref_cad:15,   lucro_pref_aud:16,
+  qv:55, qv_pref:38, bv_direto:55, bv_pref:38, gbpEstimado:true, cadEstimado:true, audEstimado:true,
 };
 
 // ===== SKIN CARE (Alavida) =====
@@ -31216,6 +31239,14 @@ function getCatalogoPrecos() {
     // atualização da app (ex: Cellergize) aparecerem mesmo que o utilizador
     // já tenha uma tabela guardada de antes dessa atualização.
     CATALOGO_PRECOS = Object.assign({}, CATALOGO_PRECOS_DEFAULT, guardado || {});
+    // Migração: se o catálogo guardado neste dispositivo ainda tem um produto
+    // marcado \"por confirmar\" (estimativa antiga) mas o default da app já traz
+    // os valores oficiais, passa a valer o default. (Antes, qualquer gravação do
+    // catálogo congelava as estimativas do Cellergize no localStorage.)
+    Object.keys(CATALOGO_PRECOS).forEach(id => {
+      const g = CATALOGO_PRECOS[id], d = CATALOGO_PRECOS_DEFAULT[id];
+      if (g && g.porConfirmar === true && d && !d.porConfirmar) CATALOGO_PRECOS[id] = Object.assign({}, d);
+    });
   } catch(e) {
     CATALOGO_PRECOS = Object.assign({}, CATALOGO_PRECOS_DEFAULT);
   }
@@ -31273,10 +31304,11 @@ const SIM_PRODUTOS_REF = [
   { id:'sp6',                 nome:'SP6® Complete',              qv:55,  multi:true },
   { id:'alavida',             nome:'Alavida®',                   qv:55,  multi:true },
   { id:'aculife',             nome:'AcuLife®',                   qv:55,  multi:true },
-  { id:'cellergize_morning',  nome:'Cellergize™ Morning',        qv:0,   multi:true },
-  { id:'cellergize_night',    nome:'Cellergize™ Night',          qv:0,   multi:true },
+  { id:'cellergize_morning',  nome:'Cellergize™ Morning',        qv:35,  multi:true },
+  { id:'cellergize_night',    nome:'Cellergize™ Evening',        qv:35,  multi:true },
   { id:'y-age-kit',           nome:'Y-Age® System Kit',          qv:117, multi:false },
   { id:'x39x49-bundle',       nome:'X39® + X49™ Bundle',         qv:140, multi:false },
+  { id:'cellergize-duo',      nome:'Cellergize™ Duo',            qv:55,  multi:false },
   { id:'alavida-trio',        nome:'Alavida® Regenerating Trio', qv:119, multi:false },
   { id:'alavida-nectar',      nome:'Alavida® Daily Refresh Facial Nectar', qv:42, multi:false },
   { id:'alavida-nightly',     nome:'Alavida® Nightly Restore Facial Creme', qv:55, multi:false },
@@ -31626,16 +31658,16 @@ const CATALOGO_PRODUTOS = [
     desc:'Suplemento em pó para dissolver em água, pensado para o início do dia — apoia a energia e a hidratação de forma natural. A começar a ser comercializado na Europa.',
     beneficios:['Apoia a energia ao longo da manhã','Apoia a hidratação','Fácil de preparar (mistura para bebida)','Sem estimulantes fortes'],
     uso:'Dissolver uma porção em água de manhã, conforme indicação da embalagem.',
-    bv_direto:0, bv_pref:0,
+    bv_direto:35, bv_pref:27,
     script:'O Cellergize Morning é a nova mistura para bebida da LifeWave, pensada para o início do dia — dissolves em água e ajuda a sentir-te com mais energia e hidratação. Está a chegar à Europa! Queres ser das primeiras pessoas a experimentar?'
   },
-  { id:'cellergize_night', nome:'Cellergize™ Night', cat:'suplementos', emoji:'🌌',
+  { id:'cellergize_night', nome:'Cellergize™ Evening', cat:'suplementos', emoji:'🌌',
     cor:'#7c3aed', destaque:true,
     desc:'Suplemento em pó para dissolver em água, pensado para a noite — apoia o relaxamento e a hidratação antes de dormir. A começar a ser comercializado na Europa.',
     beneficios:['Apoia o relaxamento antes de dormir','Apoia a hidratação','Fácil de preparar (mistura para bebida)','Sem hormonas externas'],
     uso:'Dissolver uma porção em água à noite, conforme indicação da embalagem.',
-    bv_direto:0, bv_pref:0,
-    script:'O Cellergize Night é o complemento perfeito ao Morning — uma mistura para bebida pensada para a noite, que ajuda a relaxar e a hidratar antes de dormir. Está a chegar à Europa! Combina muito bem com o Silent Nights.'
+    bv_direto:35, bv_pref:27,
+    script:'O Cellergize Evening é o complemento perfeito ao Morning — uma mistura para bebida pensada para a noite, que ajuda a relaxar e a hidratar antes de dormir. Está a chegar à Europa! Combina muito bem com o Silent Nights.'
   },
   // SISTEMAS
   { id:'y-age-kit', nome:'Y-Age® System Kit', cat:'sistemas', emoji:'🎁',
@@ -31653,6 +31685,14 @@ const CATALOGO_PRODUTOS = [
     uso:'X39 de manhã + X49 antes do treino ou na tarde. Retirar ao fim de 12h cada.',
     bv_direto:140, bv_pref:73,
     script:'Para quem quer o máximo, o bundle X39+X49 é imbatível. Fotobiomodulação + performance física num só protocolo. Os atletas adoram. E sai muito mais em conta do que comprar separado!'
+  },
+  { id:'cellergize-duo', nome:'Cellergize™ Duo', cat:'sistemas', emoji:'☀️',
+    cor:'#7c3aed', destaque:false,
+    desc:'O par completo Cellergize: Morning para começar o dia e Evening para a noite, num só pack com preço especial.',
+    beneficios:['Morning + Evening num só pack','Apoia a energia de manhã','Apoia o relaxamento à noite','Apoia a hidratação','Mais económico do que comprar separado'],
+    uso:'Dissolver uma porção de Morning em água de manhã e uma de Evening à noite, conforme indicação da embalagem.',
+    bv_direto:55, bv_pref:38,
+    script:'O Cellergize Duo junta o Morning e o Evening: começas o dia com mais energia e acabas-o a relaxar, tudo em misturas para bebida fáceis de preparar. E sai mais em conta do que comprar cada um em separado!'
   },
   // PELE
   { id:'alavida-trio', nome:'Alavida® Regenerating Trio', cat:'pele', emoji:'💆',
@@ -42699,7 +42739,8 @@ const PRECOS_IMPORT_NOME_ID = {
   'aculife':'aculife', 'aculife®':'aculife',
   'cellergize morning':'cellergize_morning', 'cellergize™ morning':'cellergize_morning', 'cellergize® morning':'cellergize_morning',
   'cellergize night':'cellergize_night', 'cellergize™ night':'cellergize_night', 'cellergize® night':'cellergize_night',
-  'cellergize evening':'cellergize_night', 'cellergize™ evening':'cellergize_night', 'cellergize® evening':'cellergize_night',
+  'cellergize duo':'cellergize-duo', 'cellergize® duo':'cellergize-duo', 'cellergize™ duo':'cellergize-duo', 'cellergize_duo':'cellergize-duo',
+  'cellergize evening':'cellergize_night', 'cellergize_evening':'cellergize_night', 'cellergize™ evening':'cellergize_night', 'cellergize® evening':'cellergize_night',
   'y-age system kit':'y-age-kit', 'y-age® system kit':'y-age-kit',
   'x39+x49 bundle':'x39x49-bundle', 'x39 + x49 bundle':'x39x49-bundle',
   'alavida trio':'alavida-trio', 'alavida regenerating trio':'alavida-trio', 'alavida® regenerating trio':'alavida-trio',
@@ -42708,6 +42749,20 @@ const PRECOS_IMPORT_NOME_ID = {
   'pacote advanced plus':'pib-advp', 'pacote premium':'pib-premium',
 };
 
+// Normaliza nomes/ids vindos da IA ou de ficheiros: sem ™ ®, com _ e - tratados
+// como espaço — assim "cellergize_evening", "Cellergize™ Evening" e
+// "cellergize evening" resolvem todos para o mesmo produto.
+function _precosNormNome(t) {
+  return String(t || '').toLowerCase().replace(/[™®]/g, '').replace(/[_\-]+/g, ' ').replace(/\s+/g, ' ').trim();
+}
+let _PRECOS_NOME_ID_NORM = null;
+function _precosIdPorNome(t) {
+  if (!_PRECOS_NOME_ID_NORM) {
+    _PRECOS_NOME_ID_NORM = {};
+    Object.keys(PRECOS_IMPORT_NOME_ID).forEach(k => { _PRECOS_NOME_ID_NORM[_precosNormNome(k)] = PRECOS_IMPORT_NOME_ID[k]; });
+  }
+  return _PRECOS_NOME_ID_NORM[_precosNormNome(t)] || null;
+}
 let _precosImportLinhas = [];
 
 // --- Importação a partir de PDF via IA (ex: "EMEA Compensation Plan —
@@ -42762,6 +42817,8 @@ Regras importantes:
 - Omite arrays de packs que não existam para o produto (ex: X39/X49 só têm d1/p1/b1 — não incluas "d2"/"d3"/"p2"/"p3"/"b2"/"b3" nesse caso, nem sequer como null).
 - Usa 0 (não null) quando um valor individual dentro de um array existir mas não houver lucro nessa secção (ex: Brand Partner nunca tem lucro — mas como "b1" já só tem 4 posições, isso não se aplica lá).
 - Números sempre limpos (sem $, €, vírgulas de milhar).
+- O produto \"Cellergize Evening\" do PDF corresponde ao id \"cellergize_night\" desta app; \"Cellergize Morning\" é \"cellergize_morning\". Estes dois e o \"Cellergize Duo\" (id \"cellergize-duo\", em Sistemas/Pacotes) não podem ser omitidos.
+- Nas linhas do Cellergize o texto pode vir colado, sem espaço entre o preço e o volume (ex: \"$74.95/€7127QV / 27BV\" = $74.95 / €71 / 27QV / 27BV). Separa sempre o preço do QV.
 - Não incluas explicações nem comentários, só o JSON.
 - Sê o mais conciso possível: nomes de chaves curtos como pedido acima, sem espaços extra.`;
 }
@@ -42786,7 +42843,7 @@ function precosConverterRespostaIA(json) {
 
   return json.produtos.map(p => {
     const idBruto = String(p.id || p.nome || '').trim();
-    const idProduto = idsValidos.has(idBruto) ? idBruto : (PRECOS_IMPORT_NOME_ID[idBruto.toLowerCase()] || PRECOS_IMPORT_NOME_ID[(p.nome||'').toLowerCase()] || null);
+    const idProduto = idsValidos.has(idBruto) ? idBruto : (PRECOS_IMPORT_NOME_ID[idBruto.toLowerCase()] || _precosIdPorNome(idBruto) || _precosIdPorNome(p.nome) || null);
     const precos = {};
 
     // Cada entrada: [chaveNoJSON, [usd,eur,qv,bv,lucroUsd,lucroEur] -> campos-destino em CATALOGO_PRECOS]
@@ -42863,7 +42920,7 @@ async function precosExtrairDoPDFviaIA(file) {
   // típico tem 10-15 produtos, o que facilmente ultrapassa os 4000 tokens
   // e cortava a resposta a meio (causando falha de parse). 8000 dá margem.
   const respostaTexto = await chamarIADocumento({
-    ai: 'gemini', fallback: true, base64, isPdf: true, maxTokens: 8000, prompt,
+    ai: 'gemini', fallback: true, base64, isPdf: true, maxTokens: 12000, temperature: 0.1, prompt,
   });
 
   let json;
@@ -43286,6 +43343,13 @@ function precosRenderPreview() {
         </tbody>
       </table>
     </div>` : '<div style="padding:12px;color:var(--text2);font-size:12px;">Nenhum produto reconhecido neste ficheiro — confirma se tens uma coluna "id" ou "nome" com os nomes dos produtos LifeWave.</div>'}
+    ${(() => {
+      const idsRec = new Set(reconhecidas.map(l => l.idProduto));
+      const emFalta = CATALOGO_PRODUTOS.filter(p => !String(p.id).startsWith('pib-') && !idsRec.has(p.id));
+      return (reconhecidas.length && emFalta.length)
+        ? `<div style="margin-top:10px;font-size:11.5px;color:var(--gold);">⚠️ Não vieram no resultado (ficam com o preço atual): ${emFalta.map(p => escapeHtml(p.nome)).join(', ')}. Se faltam produtos, volta a importar.</div>`
+        : '';
+    })()}
     ${naoReconhecidas.length ? `
     <div style="margin-top:10px;font-size:11px;color:var(--text3);">Não reconhecidas: ${naoReconhecidas.map(l => escapeHtml(l.idOriginal)).join(', ')}</div>` : ''}
   `;
