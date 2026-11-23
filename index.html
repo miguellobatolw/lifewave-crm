@@ -3,12 +3,13 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, interactive-widget=resizes-content">
-<title>LifeWave CRM v86 — Gestão de Leads & Posts</title>
+<title>Alfa Team CRM v144 — Gestão de Leads & Posts</title>
 <script>
   // Versão única da app — muda só aqui a cada release; o título da página
   // e o rodapé do ecrã de login lêem sempre deste valor, para nunca ficarem
   // dessincronizados um do outro.
-  window.APP_VERSION = 'v139';
+  window.APP_VERSION = 'v144';
+  document.title = 'Alfa Team CRM ' + window.APP_VERSION + ' — Gestão de Leads & Posts';
 </script>
 
 <!-- ===== PWA: manifest, ícones e meta tags ===== -->
@@ -10362,7 +10363,6 @@ function tlDotEmoji(tipo) {
   const map = { mensagem:'💬', chamada:'📞', reuniao:'🤝', nota:'📝', estado:'🔄', sistema:'⚙️' };
   return map[tipo] || '•';
 }
-function escapeHtmlTL(s){return(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
 function copiarMsgHistorico(btn,txt){copiarTextoSeguro(txt,'');const o=btn.textContent;btn.textContent='✅ Copiado!';setTimeout(()=>btn.textContent=o,1500)}
 function eliminarEntradaHistorico(btn){
   if(!confirm('Eliminar esta entrada?'))return;
@@ -10397,17 +10397,17 @@ function renderTimeline(historico,filtro,busca){
   const de={mensagem:'💬',chamada:'📞',reuniao:'🤝',nota:'📝',estado:'🔄',sistema:'⚙️'};
   const tl={mensagem:'Mensagem',chamada:'Chamada',reuniao:'Reunião',nota:'Nota',estado:'Estado',sistema:'Sistema'};
   return'<div class="conv-wrap">'+items.map(h=>{
-    const tipo=h.tipo||'sistema',ce=escapeHtmlTL(h.conteudo||''),me=escapeHtmlTL(h.msg||''),de2=escapeHtmlTL(h.data||'');
+    const tipo=h.tipo||'sistema',ce=escapeHtml(h.conteudo||''),me=escapeHtml(h.msg||''),de2=escapeHtml(h.data||'');
     return`<div class="conv-msg">
       <div class="conv-msg-dot dot-${tipo}">${de[tipo]||'•'}</div>
       <div class="conv-msg-body">
         <div class="conv-msg-header"><span class="conv-msg-tipo tipo-${tipo}">${tl[tipo]||tipo}</span><span class="conv-msg-data">${de2}</span></div>
         <div class="conv-msg-texto">${me}</div>
         ${h.conteudo?`<div class="conv-msg-conteudo c-${tipo}">${ce}</div>`:''}
-        ${h.resposta?`<div class="conv-resposta"><div class="conv-resposta-label">↩ Resposta recebida</div>${escapeHtmlTL(h.resposta)}</div>`:''}
+        ${h.resposta?`<div class="conv-resposta"><div class="conv-resposta-label">↩ Resposta recebida</div>${escapeHtml(h.resposta)}</div>`:''}
         <div class="conv-msg-acoes">
-          ${h.conteudo?`<button class="conv-copy-btn" onclick="copiarMsgHistorico(this,${JSON.stringify(h.conteudo)})">📋 Copiar msg</button>`:''}
-          <button class="conv-copy-btn" onclick="copiarMsgHistorico(this,${JSON.stringify(h.msg||'')})">📋 Copiar nota</button>
+          ${h.conteudo?`<button class="conv-copy-btn" onclick="copiarMsgHistorico(this,${escapeHtml(JSON.stringify(h.conteudo))})">📋 Copiar msg</button>`:''}
+          <button class="conv-copy-btn" onclick="copiarMsgHistorico(this,${escapeHtml(JSON.stringify(h.msg||''))})">📋 Copiar nota</button>
           ${tipo==='analise_ia'?`<button class="conv-copy-btn" onclick="moverEntradaHistorico(this)" data-data="${de2}" data-msg="${me.replace(/"/g,'&quot;')}">↪ Mover</button>`:''}
           <button class="conv-del-btn" onclick="eliminarEntradaHistorico(this)" data-data="${de2}" data-msg="${me.replace(/"/g,'&quot;')}">🗑</button>
         </div>
@@ -11498,13 +11498,21 @@ function abrirModalBackup() {
 
 // Recolhe todas as chaves lw_* do localStorage (fonte única: usada pelo backup
 // em ficheiro E pelos pontos de restauro automáticos).
+// Regra única do que entra e sai dos backups (recolha E restauro usam-na).
+// Ficam sempre de fora as chaves de conta, sessão e servidor: um ficheiro de
+// backup nunca deve poder trocar a conta com sessão iniciada, as contas locais
+// nem o servidor Supabase para onde os dados são sincronizados.
+const BACKUP_CHAVES_RESERVADAS = /^lw_(auth_user|auth_user_local|users|supabase_url|supabase_anon_key)$/;
+function _chaveBackupPermitida(key) {
+  return typeof key === 'string' && (key.startsWith('lw_') || key === 'compPlanConfig') && !BACKUP_CHAVES_RESERVADAS.test(key);
+}
+
 function _coletarDadosLocaisBackup(incluirApiKeys) {
-  const prefixo = 'lw_';
   const dados = {};
   let totalChaves = 0;
   for (let i = 0; i < localStorage.length; i++) {
     const key = localStorage.key(i);
-    if (!key || !key.startsWith(prefixo)) continue;
+    if (!_chaveBackupPermitida(key)) continue;
     const isApiKey = /claudeKey|claude_key|geminiKey|gemini_key|google_client_id|grokKey|groqKey|mistralKey|openrouterKey|cometapiKey/i.test(key);
     if (isApiKey && !incluirApiKeys) continue;
     try {
@@ -11516,10 +11524,14 @@ function _coletarDadosLocaisBackup(incluirApiKeys) {
 }
 
 // Repõe um conjunto de chaves no localStorage (fonte única: importar ficheiro e restaurar ponto).
+// Só aplica chaves permitidas (_chaveBackupPermitida) e devolve quantas foram mesmo gravadas.
 function _aplicarDadosBackupLocal(dados) {
+  let aplicadas = 0;
   Object.keys(dados || {}).forEach(key => {
-    try { localStorage.setItem(key, dados[key]); } catch(e) { /* ignora chave problemática */ }
+    if (!_chaveBackupPermitida(key) || typeof dados[key] !== 'string') return;
+    try { localStorage.setItem(key, dados[key]); aplicadas++; } catch(e) { /* ignora chave problemática */ }
   });
+  return aplicadas;
 }
 
 function exportarBackupCompleto() {
@@ -11583,10 +11595,11 @@ Queres continuar?`)) {
         return;
       }
 
-      _aplicarDadosBackupLocal(dados);
+      const aplicadas = _aplicarDadosBackupLocal(dados);
+      if (!aplicadas) throw new Error('Nenhum dado deste ficheiro pôde ser restaurado.');
 
       localStorage.setItem(getBackupLastKey(), new Date().toISOString());
-      showToast(`✅ Backup restaurado! (${chaves.length} itens). A recarregar...`);
+      showToast(`✅ Backup restaurado! (${aplicadas} itens). A recarregar...`);
       setTimeout(() => window.location.reload(), 1200);
     } catch(err) {
       showToast('❌ Ficheiro inválido: ' + err.message);
@@ -11693,8 +11706,8 @@ async function restaurarPontoRestauro(id) {
     if (!ponto) { showToast('❌ Ponto de restauro não encontrado.'); return; }
     if (!confirm(`Restaurar os dados de ${new Date(ponto.data).toLocaleString('pt-PT')}` + (ponto.contactos != null ? ` (${ponto.contactos} contactos)` : '') + `?\n\nOs dados atuais serão substituídos. Vou guardar primeiro um ponto de restauro do estado atual, para poderes voltar atrás.\n\nNota: se a sincronização cloud estiver ativa, ao recarregar a app pode voltar a juntar dados que existam na cloud.`)) return;
     await criarPontoRestauro('Antes de restaurar um ponto anterior');
-    _aplicarDadosBackupLocal(ponto.dados);
-    showToast(`✅ Restaurado (${ponto.totalChaves} itens). A recarregar...`);
+    const aplicadas = _aplicarDadosBackupLocal(ponto.dados);
+    showToast(`✅ Restaurado (${aplicadas} itens). A recarregar...`);
     setTimeout(() => window.location.reload(), 1200);
   } catch(e) {
     showToast('❌ Não foi possível restaurar: ' + (e && e.message ? e.message : e));
@@ -17973,11 +17986,11 @@ function renderEventosList(filtroData) {
       <div class="scheduled-item">
         <div class="scheduled-dot" style="background:${ev.cor || 'var(--accent)'}"></div>
         <div style="flex:1;">
-          <div class="scheduled-text">${icon} <strong>${ev.titulo}</strong></div>
+          <div class="scheduled-text">${icon} <strong>${escapeHtml(ev.titulo)}</strong></div>
           <div class="scheduled-meta">
             ${dt.toLocaleDateString('pt-PT', { weekday:'short', day:'numeric', month:'short' })}${hora ? ` às ${hora}` : ''}
             ${ev.lead ? ` · 👤 ${ev.lead}` : ''}
-            ${ev.notas ? `<div style="margin-top:3px;color:var(--text2);font-size:11px;">${ev.notas}</div>` : ''}
+            ${ev.notas ? `<div style="margin-top:3px;color:var(--text2);font-size:11px;">${escapeHtml(ev.notas)}</div>` : ''}
           </div>
           <div style="margin-top:6px;display:flex;gap:6px;">
             <button class="btn btn-secondary btn-sm" onclick="editarEvento('${ev.id}')">✏️ Editar</button>
@@ -27706,7 +27719,7 @@ function renderDashboardViagemCountdown() {
           <div class="promo-banner-left">
             <div class="promo-banner-icon">${v.icone || '✈️'}</div>
             <div>
-              <div class="promo-banner-title">${v.nome}</div>
+              <div class="promo-banner-title">${escapeHtml(v.nome)}</div>
               <div class="promo-banner-sub" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
                 ${ativaPillHtml}
                 <span>${label}${meta ? ` · ${fmtNum(total)} / ${fmtNum(meta)} pontos` : ''}</span>
@@ -27738,7 +27751,7 @@ function renderDashboardViagemCountdown() {
               </div>
               <div class="promo-estrategia-content" id="viagem-dash-est-content" style="display:none;">
                 ${regrasHtml}
-                ${v.notas ? `<div style="margin-top:10px;">${v.notas}</div>` : ''}
+                ${v.notas ? `<div style="margin-top:10px;">${escapeHtml(v.notas)}</div>` : ''}
               </div>
             </div>` : ''}
             ${estrategiaHtml}
@@ -27861,7 +27874,7 @@ function renderLuminate() {
       <div style="display:flex;gap:8px;flex-wrap:wrap;">
         ${viagens.map(v => `
           <button class="btn ${v.id === viagemSelecionadaId ? 'btn-primary' : 'btn-secondary'} btn-sm" onclick="selecionarViagem('${v.id}')">
-            ${v.icone || '✈️'} ${v.nome}
+            ${v.icone || '✈️'} ${escapeHtml(v.nome)}
           </button>
         `).join('')}
       </div>
@@ -27908,7 +27921,7 @@ function renderLuminate() {
       <div class="card" style="background:linear-gradient(135deg,rgba(0,212,170,0.06),rgba(0,132,255,0.04));border-color:rgba(0,212,170,0.2);">
         <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:12px;">
           <div>
-            <div class="section-title" style="margin-bottom:2px;">${viagem.icone || '🎯'} ${viagem.nome}</div>
+            <div class="section-title" style="margin-bottom:2px;">${viagem.icone || '🎯'} ${escapeHtml(viagem.nome)}</div>
             <div style="font-size:12px;color:${statusCor};">${statusTexto}</div>
           </div>
           ${meta > 0 ? `
@@ -28004,7 +28017,7 @@ function renderLuminate() {
 
         ${viagem.notas ? `
           <div class="card" style="background:rgba(255,107,53,0.06);border-color:rgba(255,107,53,0.2);">
-            <div style="font-size:12px;color:var(--text2);">${viagem.notas}</div>
+            <div style="font-size:12px;color:var(--text2);">${escapeHtml(viagem.notas)}</div>
           </div>
         ` : ''}
 
@@ -28223,7 +28236,7 @@ async function viagemAnalisarIA() {
           <span style="font-size:22px;">✅</span>
           <div>
             <div style="font-size:13px;font-weight:700;color:var(--accent);">Viagem adicionada com sucesso!</div>
-            <div style="font-size:11px;color:var(--text2);">${novaViagem.icone} ${novaViagem.nome}</div>
+            <div style="font-size:11px;color:var(--text2);">${novaViagem.icone} ${escapeHtml(novaViagem.nome)}</div>
           </div>
         </div>
         <div style="font-size:12px;color:var(--text2);">
@@ -28394,7 +28407,7 @@ function renderEquipa() {
           <div class="membro-rank" style="color:${rankColor}">${rankNum <= 3 ? ['🥇','🥈','🥉'][rankNum-1] : rankNum}</div>
           <div class="membro-avatar" style="background:linear-gradient(135deg,${avatarColor},${avatarColor}99)">${initials}</div>
           <div class="membro-info">
-            <div class="membro-nome">${m.nome} <span class="nivel-badge">Nív. ${m.nivel}</span><span title="Índice de Saúde: ${saudeM.score}/100 — ${saudeM.nivel}" style="margin-left:4px;font-size:10px;font-weight:700;color:${saudeM.cor};">${saudeM.emoji} ${saudeM.score}</span>${(() => { const p = getPrioridadeMembro(m); return p === 'urgente' ? ' <span style="color:#ff5555;font-size:11px;" title="Sem contacto há muito tempo">🔴</span>' : p === 'aviso' ? ' <span style="color:var(--gold);font-size:11px;" title="A precisar de contacto">🟡</span>' : ''; })()}${(() => { const semAtividadeReal = !!m.ultimaAtividade && (Date.now() - new Date(m.ultimaAtividade).getTime())/86400000 >= 14; return semAtividadeReal ? ' <span style="color:var(--text3);font-size:11px;" title="Sem vendas/recrutas registados há 14+ dias">😴</span>' : ''; })()}</div>
+            <div class="membro-nome">${escapeHtml(m.nome)} <span class="nivel-badge">Nív. ${m.nivel}</span><span title="Índice de Saúde: ${saudeM.score}/100 — ${saudeM.nivel}" style="margin-left:4px;font-size:10px;font-weight:700;color:${saudeM.cor};">${saudeM.emoji} ${saudeM.score}</span>${(() => { const p = getPrioridadeMembro(m); return p === 'urgente' ? ' <span style="color:#ff5555;font-size:11px;" title="Sem contacto há muito tempo">🔴</span>' : p === 'aviso' ? ' <span style="color:var(--gold);font-size:11px;" title="A precisar de contacto">🟡</span>' : ''; })()}${(() => { const semAtividadeReal = !!m.ultimaAtividade && (Date.now() - new Date(m.ultimaAtividade).getTime())/86400000 >= 14; return semAtividadeReal ? ' <span style="color:var(--text3);font-size:11px;" title="Sem vendas/recrutas registados há 14+ dias">😴</span>' : ''; })()}</div>
             <div class="membro-meta">
               <span class="${estadoCls}">${estadoEmoji} ${estadoLabel}</span>
               ${m.tel ? ` · ${m.tel}` : ''}
@@ -28639,7 +28652,7 @@ function renderQuadroHonra() {
         <div class="honra-card">
           <div class="honra-emoji">${h.emoji}</div>
           <div class="honra-titulo">${h.titulo}</div>
-          <div class="honra-nome">${h.nome}</div>
+          <div class="honra-nome">${escapeHtml(h.nome)}</div>
           <div class="honra-detalhe">${h.detalhe}</div>
         </div>
       `).join('')
@@ -28771,8 +28784,8 @@ function abrirVerificarDuplicadosMembros() {
         ${grupo.map(m => `
           <div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border);">
             <div style="flex:1;">
-              <div style="font-size:13px;color:var(--text);font-weight:600;">${m.nome}</div>
-              <div style="font-size:11px;color:var(--text2);">${m.tel || 'sem tel'} · ${m.email || 'sem email'} · ${({ativo:'Ativo',iniciante:'Iniciante',inativo:'Inativo'})[m.estado] || m.estado} · ${(m.compras||[]).length} compras</div>
+              <div style="font-size:13px;color:var(--text);font-weight:600;">${escapeHtml(m.nome)}</div>
+              <div style="font-size:11px;color:var(--text2);">${escapeHtml(m.tel || 'sem tel')} · ${escapeHtml(m.email || 'sem email')} · ${({ativo:'Ativo',iniciante:'Iniciante',inativo:'Inativo'})[m.estado] || m.estado} · ${(m.compras||[]).length} compras</div>
             </div>
             <button class="btn btn-secondary btn-sm" onclick='manterApenasEste(${JSON.stringify(m.id)}, ${JSON.stringify(grupo.map(g=>g.id))})'>Manter este</button>
           </div>
@@ -29384,11 +29397,11 @@ function verMembro(id) {
     </div>
     <div class="detail-row"><div class="detail-label">📌 Estado</div><div class="detail-val">${estadoEmoji} ${estadoLabel}</div></div>
     <div class="detail-row"><div class="detail-label">🔗 Nível</div><div class="detail-val">${nivelLabel}</div></div>
-    ${m.tel ? `<div class="detail-row"><div class="detail-label">📱 Telefone</div><div class="detail-val">${m.tel}</div></div>` : ''}
-    ${m.email ? `<div class="detail-row"><div class="detail-label">📧 Email</div><div class="detail-val">${m.email}</div></div>` : ''}
+    ${m.tel ? `<div class="detail-row"><div class="detail-label">📱 Telefone</div><div class="detail-val">${escapeHtml(m.tel)}</div></div>` : ''}
+    ${m.email ? `<div class="detail-row"><div class="detail-label">📧 Email</div><div class="detail-val">${escapeHtml(m.email)}</div></div>` : ''}
     ${m.data ? `<div class="detail-row"><div class="detail-label">📅 Entrada</div><div class="detail-val">${m.data}</div></div>` : ''}
     ${m.slug ? `<div class="detail-row"><div class="detail-label">🔗 Slug LW</div><div class="detail-val" style="color:var(--accent);">lifewave.com/${m.slug}</div></div>` : ''}
-    ${m.notas ? `<div class="detail-row"><div class="detail-label">📝 Notas</div><div class="detail-val">${m.notas}</div></div>` : ''}
+    ${m.notas ? `<div class="detail-row"><div class="detail-label">📝 Notas</div><div class="detail-val">${escapeHtml(m.notas)}</div></div>` : ''}
   `;
   document.getElementById('ver-membro-actions').innerHTML = `
     <button class="btn btn-secondary btn-sm" onclick="editarMembro('${id}')">✏️ Editar</button>
@@ -30913,7 +30926,7 @@ function renderSimuladorBonus() {
               <tbody>
                 ${resultMentor.detalhes.map(d => `
                   <tr>
-                    <td><strong>${d.nome}</strong></td>
+                    <td><strong>${escapeHtml(d.nome)}</strong></td>
                     <td>Gen ${d.geracao}</td>
                     <td>${d.pct}%</td>
                     <td style="font-weight:700;color:var(--gold);">${fmtMoeda(d.ganho)}${d.atingiuLimite ? ' 🔒' : ''}</td>
@@ -35918,7 +35931,7 @@ function renderMiniCRM() {
       <div style="display:flex;align-items:flex-start;gap:10px;padding:12px 14px;background:${corFundo};border:1px solid ${cor}33;border-left:3px solid ${cor};border-radius:10px;margin-bottom:8px;">
         <div style="font-size:18px;line-height:1;padding-top:1px;">${icon}</div>
         <div style="flex:1;min-width:0;">
-          <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:2px;">${escHtml(m.nome)}</div>
+          <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:2px;">${escapeHtml(m.nome)}</div>
           <div style="font-size:12px;color:var(--text2);line-height:1.5;">${msg}</div>
         </div>
         <div style="display:flex;gap:6px;flex-wrap:wrap;flex-shrink:0;">${acao}</div>
@@ -35995,7 +36008,7 @@ function renderMiniCRM() {
     const notasHtml = notas.length > 0
       ? notas.slice(-2).reverse().map(n => `
           <div class="minicrm-nota-item">
-            ${escHtml(n.texto)}
+            ${escapeHtml(n.texto)}
             <div class="minicrm-nota-data">📅 ${n.data}</div>
           </div>`).join('')
       : `<div style="font-size:12px;color:var(--text3);font-style:italic;padding:8px 0;">Sem notas ainda — adiciona a primeira nota sobre este membro</div>`;
@@ -36045,7 +36058,7 @@ function renderMiniCRM() {
       <div class="minicrm-card-header" onclick="toggleMiniCRMCard('${m.id}')">
         <div class="minicrm-avatar" style="background:linear-gradient(135deg,${avatarColor},${avatarColor}99)">${initials}</div>
         <div class="minicrm-info">
-          <div class="minicrm-nome">${escHtml(m.nome)} <span class="minicrm-badge-estado ${estadoCls}">${estadoLabel}</span></div>
+          <div class="minicrm-nome">${escapeHtml(m.nome)} <span class="minicrm-badge-estado ${estadoCls}">${estadoLabel}</span></div>
           <div class="minicrm-meta" style="display:flex;flex-wrap:wrap;gap:4px;align-items:center;margin-top:3px;">
             <span>Nível ${m.nivel} · ${m.clientes||0} cli. · ${m.recrutados||0} rec.</span>
             ${badgePV}${badgeBLB}${badgeVIP}
@@ -36087,10 +36100,6 @@ function renderMiniCRM() {
       </div>
     </div>`;
   }).join('');
-}
-
-function escHtml(str) {
-  return (str||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
 
 function toggleMiniCRMCard(id) {
@@ -36454,14 +36463,14 @@ function renderListaLembretes() {
     <div class="notif-item ${cls}">
       <div class="notif-item-icon">${info.icon}</div>
       <div class="notif-item-info">
-        <div class="notif-item-msg">${escHtml(l.mensagem)}</div>
+        <div class="notif-item-msg">${escapeHtml(l.mensagem)}</div>
         <div class="notif-item-meta">
           ${atrasado ? '<span style="color:#ff6b6b;font-weight:700;">⚠️ Atrasado · </span>' : ''}
           📅 ${dtStr} · ${info.label} · ${repLabel}
         </div>
       </div>
       <div class="notif-item-actions">
-        ${l._leadId && l._textoSequencia ? `<button class="notif-snooze-btn" onclick="enviarWhatsAppParaLead('${l._leadId}', ${JSON.stringify(l._textoSequencia)}, '${l.id}')" title="Enviar esta mensagem da sequência">💬 Enviar</button>` : (l._membroId ? `<button class="notif-snooze-btn" onclick="abrirWAMembro('${l._membroId}','${l._motivoAlerta || 'inativo'}'); concluirLembrete('${l.id}')" title="Abrir WhatsApp para este membro">💬 WhatsApp</button>` : '')}
+        ${l._leadId && l._textoSequencia ? `<button class="notif-snooze-btn" onclick="enviarWhatsAppParaLead('${l._leadId}', ${escapeHtml(JSON.stringify(l._textoSequencia))}, '${l.id}')" title="Enviar esta mensagem da sequência">💬 Enviar</button>` : (l._membroId ? `<button class="notif-snooze-btn" onclick="abrirWAMembro('${l._membroId}','${l._motivoAlerta || 'inativo'}'); concluirLembrete('${l.id}')" title="Abrir WhatsApp para este membro">💬 WhatsApp</button>` : '')}
         ${atrasado ? `<button class="notif-snooze-btn" onclick="adiarLembrete('${l.id}',15)">+15m</button>` : ''}
         <button class="notif-snooze-btn" onclick="adiarLembrete('${l.id}',60)">+1h</button>
         <button class="notif-snooze-btn" onclick="concluirLembrete('${l.id}')">✅</button>
@@ -39084,8 +39093,8 @@ function renderTemplates() {
       </div>
       ${t.variaveis && t.variaveis.length ? `<div style="font-size:11px;color:var(--text3);margin-bottom:8px;">Variáveis: ${t.variaveis.map(v=>`<code style="background:var(--surface3);padding:1px 5px;border-radius:4px;">${v}</code>`).join(' ')}</div>` : ''}
       <div class="tmpl-btns">
-        <button class="btn btn-sm btn-secondary" onclick="copiarTemplate(${JSON.stringify(t.texto)})">📋 Copiar</button>
-        <button class="tmpl-wa-btn" onclick="enviarTemplateWA(${JSON.stringify(t.texto)})">💬 Enviar WA</button>
+        <button class="btn btn-sm btn-secondary" onclick="copiarTemplate(${escapeHtml(JSON.stringify(t.texto))})">📋 Copiar</button>
+        <button class="tmpl-wa-btn" onclick="enviarTemplateWA(${escapeHtml(JSON.stringify(t.texto))})">💬 Enviar WA</button>
         <button class="btn btn-sm btn-secondary" onclick="toggleTmplExpand('${t.id}')">📖 Ver mais</button>
         ${isCustom ? `<button class="btn btn-sm btn-secondary" onclick="eliminarTemplate('${t.id}')" style="color:#ff6b6b;">🗑</button>` : ''}
       </div>
@@ -39478,7 +39487,7 @@ function obRenderLista() {
       <div style="padding:13px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:11px;">
         <div style="width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:700;color:#000;flex-shrink:0;">${d.nome.charAt(0).toUpperCase()}</div>
         <div style="flex:1;min-width:0;">
-          <div style="font-weight:700;font-size:13.5px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${d.nome}</div>
+          <div style="font-weight:700;font-size:13.5px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(d.nome)}</div>
           <div style="font-size:11px;color:${ativo?'var(--accent2)':'var(--accent)'};font-weight:600;">${ativo?'Dia '+diaN+' de 7':'✅ Onboarding completo'}</div>
         </div>
         <div style="display:flex;gap:5px;flex-shrink:0;">
@@ -39498,7 +39507,7 @@ function obRenderLista() {
           <div style="font-size:10.5px;color:var(--text2);margin-bottom:3px;">📌 Próxima tarefa:</div>
           <div style="font-size:12px;color:var(--text);">${prox}</div>
         </div>
-        ${d.notas?`<div style="font-size:11px;color:var(--text2);margin-bottom:9px;font-style:italic;">📝 ${d.notas}</div>`:''}
+        ${d.notas?`<div style="font-size:11px;color:var(--text2);margin-bottom:9px;font-style:italic;">📝 ${escapeHtml(d.notas)}</div>`:''}
         <button class="btn btn-primary btn-sm" style="width:100%;justify-content:center;" onclick="obVerChecklist(${i})">✅ Ver & Gerir Checklist</button>
       </div>
     </div>`;
@@ -39562,7 +39571,7 @@ function obVerChecklist(idx) {
   c.innerHTML = `
     <div style="grid-column:1/-1;background:rgba(0,212,170,0.07);border:1px solid rgba(0,212,170,0.2);border-radius:10px;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:2px;">
       <div>
-        <div style="font-size:13px;font-weight:700;color:var(--accent);">📋 ${d.nome}</div>
+        <div style="font-size:13px;font-weight:700;color:var(--accent);">📋 ${escapeHtml(d.nome)}</div>
         <div style="font-size:11px;color:var(--text2);margin-top:2px;">Entrada: ${new Date(d.data).toLocaleDateString('pt-PT')} · ${pct}% (${feito}/${OB_TOTAL})</div>
       </div>
       <button class="btn btn-secondary btn-sm" onclick="obRenderChecklistGlobal()">← Checklist geral</button>
@@ -39821,7 +39830,7 @@ function lbRender() {
           <div style="font-size:${isTop?'20px':'14px'};font-weight:700;color:${isTop?'var(--gold)':'var(--text3)'};min-width:28px;text-align:center;">${medal}</div>
           <div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,${cor},${cor}88);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:#000;flex-shrink:0;">${m.nome.charAt(0).toUpperCase()}</div>
           <div style="flex:1;min-width:0;">
-            <div style="font-size:13px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${m.nome}</div>
+            <div style="font-size:13px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(m.nome)}</div>
             <div style="background:var(--surface2);border-radius:20px;height:5px;overflow:hidden;margin-top:4px;">
               <div style="width:${pct}%;height:100%;background:${barCor};border-radius:20px;transition:width 0.5s;"></div>
             </div>
@@ -41513,7 +41522,7 @@ function executarAcaoRegra(regra, lead, ultimoContactoRef, emBackground) {
     const texto = substituirVariaveis(a.texto, lead);
     if (typeof dispararNotificacao === 'function') dispararNotificacao('⚙️ Automação LifeWave CRM', texto, '⚙️');
     else if (!emBackground) showToast('⚙️ ' + texto);
-    registarAutoLogRegra(regra, '🔔', texto, null, null, lead.id, ultimoContactoRef);
+    registarAutoLogRegra(regra, '🔔', escapeHtml(texto), null, null, lead.id, ultimoContactoRef);
   } else if (a.tipo === 'iniciar_sequencia') {
     // Cria um lembrete por cada passo da sequência, já com o texto da mensagem
     // pronto a enviar (via enviarWhatsAppParaLead) quando o lembrete disparar.
@@ -41737,7 +41746,7 @@ function popularSelectLeadsApresentacao() {
   const valorAtual = sel.value;
   const ordenados = [...leads].sort((a, b) => (a.nome || '').localeCompare(b.nome || ''));
   sel.innerHTML = '<option value="">— Sem nome (apresentação genérica) —</option>' +
-    ordenados.map(l => `<option value="${escHtml(l.nome)}">${escHtml(l.nome)} (${estadoLabel(l.estado)})</option>`).join('');
+    ordenados.map(l => `<option value="${escapeHtml(l.nome)}">${escapeHtml(l.nome)} (${estadoLabel(l.estado)})</option>`).join('');
   if (valorAtual && ordenados.some(l => l.nome === valorAtual)) sel.value = valorAtual;
 }
 
@@ -42462,12 +42471,12 @@ function renderDiarioFeed() {
       <div class="diario-card-header">
         <div class="diario-avatar" style="background:linear-gradient(135deg,${cor},${cor}99)">${initials}</div>
         <div>
-          <div class="diario-autor">${escHtml(e.autor)}</div>
+          <div class="diario-autor">${escapeHtml(e.autor)}</div>
           <div class="diario-data">${e.data}</div>
         </div>
         <span class="diario-tipo-badge ${tipoInfo.cls}">${tipoInfo.icon} ${tipoInfo.label}</span>
       </div>
-      <div class="diario-card-texto">${escHtml(e.texto)}</div>
+      <div class="diario-card-texto">${escapeHtml(e.texto)}</div>
       <div class="diario-card-footer">
         <div class="diario-reacoes">${reacoesHtml}</div>
         ${souAutor ? `<button class="diario-del-btn" onclick="eliminarDiarioEntrada('${e.id}')">🗑</button>` : ''}
@@ -42564,7 +42573,7 @@ function renderSeletorWALista() {
     return `<div class="wai-item" onclick="selecionarLeadParaWA('${l.id}')">
       <div class="wai-avatar" style="background:linear-gradient(135deg,${cor},${cor}99)">${initials}</div>
       <div class="wai-info">
-        <div class="wai-nome">${escHtml(l.nome)}</div>
+        <div class="wai-nome">${escapeHtml(l.nome)}</div>
         <div class="wai-meta">${estadoLabel(l.estado)}</div>
       </div>
       ${!l.tel ? '<span class="wai-no-tel">sem nº</span>' : ''}
@@ -44215,7 +44224,7 @@ function loadCoachHistory() {
 }
 
 function escapeHtml(str) {
-  return String(str)
+  return String(str ?? '')
     .replace(/&/g,'&amp;')
     .replace(/</g,'&lt;')
     .replace(/>/g,'&gt;')
