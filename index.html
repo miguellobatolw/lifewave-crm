@@ -3,13 +3,12 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, interactive-widget=resizes-content">
-<title>Alfa Team CRM v140 — Gestão de Leads & Posts</title>
+<title>LifeWave CRM v86 — Gestão de Leads & Posts</title>
 <script>
   // Versão única da app — muda só aqui a cada release; o título da página
   // e o rodapé do ecrã de login lêem sempre deste valor, para nunca ficarem
   // dessincronizados um do outro.
-  window.APP_VERSION = 'v140';
-  document.title = 'Alfa Team CRM ' + window.APP_VERSION + ' — Gestão de Leads & Posts';
+  window.APP_VERSION = 'v139';
 </script>
 
 <!-- ===== PWA: manifest, ícones e meta tags ===== -->
@@ -24,9 +23,8 @@
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<!-- xlsx, jszip e pdf.js carregam sob demanda (garantirBiblioteca) — só são precisos nas importações -->
+
 <!-- Geração de QR code local no browser (sem enviar o link a nenhum servidor externo).
      Biblioteca embutida diretamente (em vez de carregada de um CDN externo) para funcionar
      mesmo quando a app é aberta como ficheiro local (ex: content://downloads/... no Android),
@@ -5442,6 +5440,7 @@ var QRCode=function(t){"use strict";var r,e=function(){return"function"==typeof 
         <div>
           <div class="page-title">💰 Comissões & Receita</div>
           <div class="page-sub">Acompanha as tuas vendas, comissões e metas mensais</div>
+          <div class="catalogo-versao-label" style="font-size:11px;color:var(--text3);margin-top:3px;"></div>
         </div>
         <div style="display:flex;gap:10px;flex-wrap:wrap;">
           <button class="btn btn-secondary" onclick="exportarRelatorioComissoesPDF()">🖨️ Exportar PDF</button>
@@ -5528,7 +5527,7 @@ var QRCode=function(t){"use strict";var r,e=function(){return"function"==typeof 
               <option>Alavida</option>
               <option>AcuLife</option>
               <option>Cellergize Morning</option>
-              <option>Cellergize Night</option>
+              <option>Cellergize Evening</option>
               <option>Pack Starter</option>
               <option>Outro</option>
             </select>
@@ -6347,6 +6346,7 @@ var QRCode=function(t){"use strict";var r,e=function(){return"function"==typeof 
         <div>
           <div class="page-title">📦 Catálogo de Produtos</div>
           <div class="page-sub">Preços, lucros e scripts de venda — valores reais do Plano de Compensação 2.0</div>
+          <div class="catalogo-versao-label" style="font-size:11px;color:var(--text3);margin-top:3px;"></div>
         </div>
         <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
           <select id="cat-tipo-cliente" onchange="renderCatalogo()" style="background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:7px 10px;font-size:12px;font-family:'DM Sans',sans-serif;cursor:pointer;">
@@ -6596,7 +6596,7 @@ var QRCode=function(t){"use strict";var r,e=function(){return"function"==typeof 
         <button class="pill" id="tm-filtro-glutathione" onclick="testemunhosFiltrar('Y-Age Glutathione')" style="white-space:nowrap;">Glutathione</button>
         <button class="pill" id="tm-filtro-silentnight" onclick="testemunhosFiltrar('Silent Nights')" style="white-space:nowrap;">Silent Nights</button>
         <button class="pill" id="tm-filtro-cellergizemorning" onclick="testemunhosFiltrar('Cellergize Morning')" style="white-space:nowrap;">Cellergize Morning</button>
-        <button class="pill" id="tm-filtro-cellergizenight" onclick="testemunhosFiltrar('Cellergize Night')" style="white-space:nowrap;">Cellergize Night</button>
+        <button class="pill" id="tm-filtro-cellergizeevening" onclick="testemunhosFiltrar('Cellergize Evening')" style="white-space:nowrap;">Cellergize Evening</button>
         <button class="pill" id="tm-filtro-negocio" onclick="testemunhosFiltrar('Negócio')" style="white-space:nowrap;">Negócio</button>
         <button class="pill" id="tm-filtro-outro" onclick="testemunhosFiltrar('Outro')" style="white-space:nowrap;">Outro</button>
       </div>
@@ -8590,6 +8590,19 @@ var QRCode=function(t){"use strict";var r,e=function(){return"function"==typeof 
     </div>
     <div class="form-row">
       <div class="form-group">
+        <label class="form-label">Moeda dos preços deste cliente</label>
+        <select class="form-select" id="f-moeda">
+          <option value="">Automática (indicativo do telefone ou perfil)</option>
+          <option value="eur">€ Euro</option>
+          <option value="gbp">£ Libra (Reino Unido)</option>
+          <option value="usd">$ Dólar (EUA)</option>
+          <option value="cad">CA$ Dólar canadiano</option>
+          <option value="aud">AU$ Dólar australiano</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
         <label class="form-label">🎯 Objetivo com este contacto</label>
         <select class="form-select" id="f-objetivo">
           <option value="cliente">🛒 Cliente (quer usar os produtos)</option>
@@ -9234,6 +9247,12 @@ var QRCode=function(t){"use strict";var r,e=function(){return"function"==typeof 
         <span>Incluir chaves API (Claude/Gemini) neste backup. <strong style="color:var(--warning, #f5a524);">⚠️ O ficheiro passa a conter segredos</strong> — guarda-o em local seguro e não o partilhes. Sem esta opção, as chaves API não são recuperáveis por backup e só sobrevivem se não limpares a cache do navegador.</span>
       </label>
       <button class="btn btn-primary" style="width:100%;justify-content:center;" onclick="exportarBackupCompleto()">🛡️ Descarregar Backup Completo</button>
+    </div>
+
+    <div class="card" style="margin-bottom:14px;">
+      <div style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:6px;">🕓 Pontos de restauro automáticos</div>
+      <div style="font-size:12px;color:var(--text2);margin-bottom:8px;line-height:1.6;">Cópias locais tiradas antes de sincronizar com a cloud (últimas 7). Ficam só neste dispositivo.</div>
+      <div id="backup-pontos-lista"></div>
     </div>
 
     <div class="card">
@@ -9950,6 +9969,7 @@ document.addEventListener('DOMContentLoaded', () => setTimeout(() => atualizarBo
 
 function goTo(page, opts) {
   const fromHistory = opts && opts.fromHistory;
+  try { renderCatalogoVersaoLabel(); } catch(e) {}
   // Ao mudar de página principal, tira o foco de qualquer input/textarea que
   // tenha ficado ativo (ex: campo de pesquisa) — evita o teclado do Android
   // continuar visível por cima da barra de navegação depois de navegar.
@@ -10185,6 +10205,7 @@ function salvarLead() {
     email: document.getElementById('f-email').value.trim(),
     instagram: (document.getElementById('f-instagram')?.value || '').trim(),
     mercado: document.getElementById('f-mercado').value,
+    moeda: document.getElementById('f-moeda')?.value || '',
     estado: novoEstado,
     objetivo: document.getElementById('f-objetivo')?.value || 'cliente',
     produtoInteresse: document.getElementById('f-produto')?.value || '',
@@ -10279,6 +10300,7 @@ function editarLead(id) {
   document.getElementById('f-email').value = l.email;
   const fIgEl = document.getElementById('f-instagram'); if (fIgEl) fIgEl.value = l.instagram || '';
   document.getElementById('f-mercado').value = l.mercado;
+  const fMoedaEl = document.getElementById('f-moeda'); if (fMoedaEl) fMoedaEl.value = l.moeda || '';
   document.getElementById('f-estado').value = l.estado;
   const fObjEl = document.getElementById('f-objetivo'); if (fObjEl) fObjEl.value = l.objetivo || 'cliente';
   const fProdEl = document.getElementById('f-produto'); if (fProdEl) fProdEl.value = l.produtoInteresse || '';
@@ -10968,6 +10990,7 @@ function verLead(id) {
     <div class="detail-row"><div class="detail-label">📱 Telefone</div><div class="detail-val">${l.tel || '—'}</div></div>
     <div class="detail-row"><div class="detail-label">📧 Email</div><div class="detail-val">${l.email || '—'}</div></div>
     <div class="detail-row"><div class="detail-label">🎯 Mercado</div><div class="detail-val">${l.mercado}</div></div>
+      <div class="detail-row"><div class="detail-label">💱 Moeda</div><div class="detail-val">${escapeHtml(descreverMoedaDoLead(l))}</div></div>
     <div class="detail-row"><div class="detail-label">📌 Estado</div><div class="detail-val"><span class="lead-badge b-${l.estado}">${estadoLabel(l.estado)}</span></div></div>
     <div class="detail-row"><div class="detail-label">🔍 Fonte</div><div class="detail-val">${l.fonte}</div></div>
     ${l.indicadoPor ? `<div class="detail-row"><div class="detail-label">🎁 Indicado por</div><div class="detail-val">${escapeHtml(l.indicadoPor)}</div></div>` : ''}
@@ -11470,20 +11493,15 @@ function abrirModalBackup() {
     }
   }
   openModal('modal-backup');
+  renderPontosRestauro();
 }
 
-function exportarBackupCompleto() {
+// Recolhe todas as chaves lw_* do localStorage (fonte única: usada pelo backup
+// em ficheiro E pelos pontos de restauro automáticos).
+function _coletarDadosLocaisBackup(incluirApiKeys) {
   const prefixo = 'lw_';
   const dados = {};
   let totalChaves = 0;
-  // Por defeito as chaves API ficam de fora (são segredos específicos do
-  // dispositivo) — mas se o utilizador marcar explicitamente a opção, incluímo-las,
-  // já que sem isso não há NENHUMA forma de as recuperar após uma limpeza de
-  // cache/dados do navegador (ao contrário do resto, que também pode ser
-  // resposto a partir do Drive/backup). O aviso sobre segredos fica no próprio
-  // checkbox do modal, visível antes de o utilizador decidir marcar.
-  const incluirApiKeys = document.getElementById('backup-incluir-api-keys')?.checked || false;
-
   for (let i = 0; i < localStorage.length; i++) {
     const key = localStorage.key(i);
     if (!key || !key.startsWith(prefixo)) continue;
@@ -11494,6 +11512,26 @@ function exportarBackupCompleto() {
       totalChaves++;
     } catch(e) { /* ignora chave problemática */ }
   }
+  return { dados, totalChaves };
+}
+
+// Repõe um conjunto de chaves no localStorage (fonte única: importar ficheiro e restaurar ponto).
+function _aplicarDadosBackupLocal(dados) {
+  Object.keys(dados || {}).forEach(key => {
+    try { localStorage.setItem(key, dados[key]); } catch(e) { /* ignora chave problemática */ }
+  });
+}
+
+function exportarBackupCompleto() {
+  // Por defeito as chaves API ficam de fora (são segredos específicos do
+  // dispositivo) — mas se o utilizador marcar explicitamente a opção, incluímo-las,
+  // já que sem isso não há NENHUMA forma de as recuperar após uma limpeza de
+  // cache/dados do navegador (ao contrário do resto, que também pode ser
+  // resposto a partir do Drive/backup). O aviso sobre segredos fica no próprio
+  // checkbox do modal, visível antes de o utilizador decidir marcar.
+  const incluirApiKeys = document.getElementById('backup-incluir-api-keys')?.checked || false;
+
+  const { dados, totalChaves } = _coletarDadosLocaisBackup(incluirApiKeys);
 
   const data = {
     versao: 'lifewave-crm-backup-v1',
@@ -11545,9 +11583,7 @@ Queres continuar?`)) {
         return;
       }
 
-      chaves.forEach(key => {
-        try { localStorage.setItem(key, dados[key]); } catch(e) { /* ignora chave problemática */ }
-      });
+      _aplicarDadosBackupLocal(dados);
 
       localStorage.setItem(getBackupLastKey(), new Date().toISOString());
       showToast(`✅ Backup restaurado! (${chaves.length} itens). A recarregar...`);
@@ -11560,6 +11596,110 @@ Queres continuar?`)) {
   reader.readAsText(file);
 }
 // ===== FIM BACKUP COMPLETO =====
+
+// ===== PONTOS DE RESTAURO AUTOMÁTICOS =====
+// Cópia de segurança local tirada ANTES de sincronizar com o Drive/Supabase
+// (os momentos em que dados remotos podem mexer nos locais). Guardada em
+// IndexedDB (mais espaço que o localStorage e não entra no próprio backup).
+// Mantém os últimos PR_MAX; sem chaves API. Nunca bloqueia a sincronização.
+const PR_DB = 'lw_restauro', PR_STORE = 'pontos', PR_MAX = 7;
+const PR_INTERVALO_MIN_MS = 30 * 60 * 1000;        // manual / auto-login
+const PR_INTERVALO_AUTO_MS = 6 * 60 * 60 * 1000;   // gravação automática em segundo plano
+
+function _prAbrirDB() {
+  return new Promise((resolve, reject) => {
+    if (!window.indexedDB) { reject(new Error('IndexedDB indisponível')); return; }
+    const r = indexedDB.open(PR_DB, 1);
+    r.onupgradeneeded = () => { r.result.createObjectStore(PR_STORE, { keyPath: 'id' }); };
+    r.onsuccess = () => resolve(r.result);
+    r.onerror = () => reject(r.error);
+  });
+}
+function _prOp(modo, fn) {
+  return _prAbrirDB().then(db => new Promise((resolve, reject) => {
+    const tx = db.transaction(PR_STORE, modo);
+    let saida;
+    const req = fn(tx.objectStore(PR_STORE));
+    if (req) req.onsuccess = () => { saida = req.result; };
+    tx.oncomplete = () => { db.close(); resolve(saida); };
+    tx.onerror = tx.onabort = () => { db.close(); reject(tx.error || new Error('Falha IndexedDB')); };
+  }));
+}
+
+async function listarPontosRestauro() {
+  const todos = (await _prOp('readonly', st => st.getAll())) || [];
+  const email = currentUser ? currentUser.email : null;
+  return todos.filter(p => !p.utilizador || p.utilizador === email).sort((a, b) => b.id - a.id);
+}
+
+// opcoes.minIntervaloMs: não cria se já existe um ponto mais recente do que isto.
+async function criarPontoRestauro(motivo, opcoes) {
+  try {
+    const existentes = await listarPontosRestauro();
+    const minMs = (opcoes && opcoes.minIntervaloMs) || 0;
+    if (minMs && existentes[0] && (Date.now() - existentes[0].id) < minMs) return null;
+    const { dados, totalChaves } = _coletarDadosLocaisBackup(false);
+    if (!totalChaves) return null;
+    const ponto = {
+      id: Date.now(), data: new Date().toISOString(), motivo: motivo || 'Automático',
+      utilizador: currentUser ? currentUser.email : null,
+      contactos: (typeof leads !== 'undefined' && Array.isArray(leads)) ? leads.length : null,
+      totalChaves, dados,
+    };
+    await _prOp('readwrite', st => st.put(ponto));
+    // Mantém só os PR_MAX mais recentes deste utilizador
+    const todos = await listarPontosRestauro();
+    for (const velho of todos.slice(PR_MAX)) await _prOp('readwrite', st => st.delete(velho.id));
+    return ponto.id;
+  } catch(e) {
+    console.warn('[Restauro] Não foi possível criar ponto de restauro:', e);
+    return null;
+  }
+}
+
+// Chamado no início de driveSync/supabaseSync. Nunca lança erro.
+async function criarPontoRestauroAntesSync(mode) {
+  const auto = (mode === 'auto');
+  await criarPontoRestauro(auto ? 'Antes de sincronizar (automático)' : 'Antes de sincronizar',
+    { minIntervaloMs: auto ? PR_INTERVALO_AUTO_MS : PR_INTERVALO_MIN_MS });
+}
+
+async function renderPontosRestauro() {
+  const el = document.getElementById('backup-pontos-lista');
+  if (!el) return;
+  try {
+    const pontos = await listarPontosRestauro();
+    if (!pontos.length) {
+      el.innerHTML = '<div style="font-size:12px;color:var(--text3);">Ainda não há pontos de restauro. São criados automaticamente antes de sincronizar com a cloud.</div>';
+      return;
+    }
+    el.innerHTML = pontos.map(p => `
+      <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-top:1px solid var(--border);">
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:12.5px;color:var(--text);font-weight:600;">${new Date(p.data).toLocaleString('pt-PT')}</div>
+          <div style="font-size:11px;color:var(--text2);">${escapeHtml(p.motivo || '')}${p.contactos != null ? ' · ' + p.contactos + ' contactos' : ''}</div>
+        </div>
+        <button class="btn btn-secondary btn-sm" onclick="restaurarPontoRestauro(${p.id})">Restaurar</button>
+      </div>`).join('');
+  } catch(e) {
+    el.innerHTML = '<div style="font-size:12px;color:var(--text3);">Pontos de restauro indisponíveis neste navegador.</div>';
+  }
+}
+
+async function restaurarPontoRestauro(id) {
+  try {
+    const todos = await listarPontosRestauro();
+    const ponto = todos.find(p => p.id === id);
+    if (!ponto) { showToast('❌ Ponto de restauro não encontrado.'); return; }
+    if (!confirm(`Restaurar os dados de ${new Date(ponto.data).toLocaleString('pt-PT')}` + (ponto.contactos != null ? ` (${ponto.contactos} contactos)` : '') + `?\n\nOs dados atuais serão substituídos. Vou guardar primeiro um ponto de restauro do estado atual, para poderes voltar atrás.\n\nNota: se a sincronização cloud estiver ativa, ao recarregar a app pode voltar a juntar dados que existam na cloud.`)) return;
+    await criarPontoRestauro('Antes de restaurar um ponto anterior');
+    _aplicarDadosBackupLocal(ponto.dados);
+    showToast(`✅ Restaurado (${ponto.totalChaves} itens). A recarregar...`);
+    setTimeout(() => window.location.reload(), 1200);
+  } catch(e) {
+    showToast('❌ Não foi possível restaurar: ' + (e && e.message ? e.message : e));
+  }
+}
 
 // ===== PESQUISA GLOBAL =====
 function abrirPesquisaGlobal() {
@@ -14484,11 +14624,11 @@ function eliminarTestemunho(id) {
 
 function testemunhosFiltrar(filtro) {
   tmFiltroAtivo = filtro;
-  ['todos','x39','x49','aeon','icewave','alavida','carnosine','glutathione','silentnight','cellergizemorning','cellergizenight','negocio','outro'].forEach(f => {
+  ['todos','x39','x49','aeon','icewave','alavida','carnosine','glutathione','silentnight','cellergizemorning','cellergizeevening','negocio','outro'].forEach(f => {
     const el = document.getElementById('tm-filtro-' + f);
     if (el) el.classList.remove('active');
   });
-  const idMap = { 'Todos':'todos', X39:'x39', X49:'x49', Aeon:'aeon', IceWave:'icewave', Alavida:'alavida', 'Y-Age Carnosine':'carnosine', 'Y-Age Glutathione':'glutathione', 'Silent Nights':'silentnight', 'Cellergize Morning':'cellergizemorning', 'Cellergize Night':'cellergizenight', 'Negócio':'negocio', Outro:'outro' };
+  const idMap = { 'Todos':'todos', X39:'x39', X49:'x49', Aeon:'aeon', IceWave:'icewave', Alavida:'alavida', 'Y-Age Carnosine':'carnosine', 'Y-Age Glutathione':'glutathione', 'Silent Nights':'silentnight', 'Cellergize Morning':'cellergizemorning', 'Cellergize Evening':'cellergizeevening', 'Negócio':'negocio', Outro:'outro' };
   const btnId = 'tm-filtro-' + (idMap[filtro] || filtro.toLowerCase().replace(/\s+/g, ''));
   const btn = document.getElementById(btnId);
   if (btn) btn.classList.add('active');
@@ -15744,6 +15884,7 @@ function mensagemErroIA(err) {
   return 'Não foi possível gerar a resposta agora. Tenta novamente dentro de momentos.';
 }
 
+let _iaUltimaTruncada = false;
 async function callGeminiModel(model, prompt, imageBase64, imageMediaType, extraMedia, opcoes) {
   const parts = [];
   if (imageBase64) {
@@ -15765,7 +15906,7 @@ async function callGeminiModel(model, prompt, imageBase64, imageMediaType, extra
   // opcoes (opcional): { maxTokens, temperature } — permite a tarefas de extração
   // (ex: importar tabela de preços) pedir respostas longas/determinísticas sem
   // alterar o comportamento das restantes chamadas (que mantêm 4096 / 0.8).
-  const _maxOut = (opcoes && opcoes.maxTokens) ? Math.min(Math.max(opcoes.maxTokens, 1024), 16384) : 4096;
+  const _maxOut = (opcoes && opcoes.maxTokens) ? Math.min(Math.max(opcoes.maxTokens, 4096), 16384) : 4096;
   const _temp = (opcoes && typeof opcoes.temperature === 'number') ? opcoes.temperature : 0.8;
   const generationConfig = temMedia
     ? { maxOutputTokens: _maxOut, temperature: _temp, thinkingConfig: { thinkingBudget: 512 } }
@@ -15787,6 +15928,9 @@ async function callGeminiModel(model, prompt, imageBase64, imageMediaType, extra
   // raciocínio em vez da resposta quando o thinking estava ativo.
   const allParts = data.candidates?.[0]?.content?.parts || [];
   const respostaFinal = allParts.filter(p => !p.thought && p.text).map(p => p.text).join('');
+  // Sinaliza respostas cortadas por limite de tokens (finishReason MAX_TOKENS).
+  _iaUltimaTruncada = data.candidates?.[0]?.finishReason === 'MAX_TOKENS';
+  if (_iaUltimaTruncada) console.warn('[IA] Resposta do Gemini truncada (MAX_TOKENS, limite ' + _maxOut + ').');
   return respostaFinal || '';
 }
 
@@ -15892,7 +16036,10 @@ async function chamarIADocumento({ ai, prompt, base64, isPdf, mediaType, maxToke
 
   async function chamarGemini() {
     if (typeof callGemini !== 'function') throw new Error('Função Gemini não disponível.');
-    return await callGemini(prompt, base64, isPdf ? 'application/pdf' : mediaType, undefined, undefined, { maxTokens, temperature });
+    _iaUltimaTruncada = false;
+    const _r = await callGemini(prompt, base64, isPdf ? 'application/pdf' : mediaType, undefined, undefined, { maxTokens, temperature });
+    if (_iaUltimaTruncada && typeof showToast === 'function') showToast('⚠️ A resposta da IA foi cortada por ser longa — alguns itens podem faltar. Tenta de novo ou divide o documento.');
+    return _r;
   }
 
   function _docFallbackLabel(err) {
@@ -16266,7 +16413,7 @@ async function gerarPost() {
   const limite = limites[currentPlatform] || 400;
 
   const instrucao = postImageBase64
-    ? `Analisa esta imagem com atenção antes de escreveres seja o que for — ela pode ser QUALQUER tipo de imagem: um produto LifeWave específico (X39, X49, IceWave, Cellergize Morning/Night, Aeon, etc.), uma foto de estilo de vida (exercício, natureza, trabalho, família, viagem, rotina matinal), um evento (convenção, reunião de equipa, formação), um cartaz/gráfico promocional com texto sobreposto, uma pessoa, um resultado/conquista, um print de ecrã, ou outra coisa qualquer. NÃO assumas que é sempre um produto ou sempre o X39.
+    ? `Analisa esta imagem com atenção antes de escreveres seja o que for — ela pode ser QUALQUER tipo de imagem: um produto LifeWave específico (X39, X49, IceWave, Cellergize Morning/Evening, Aeon, etc.), uma foto de estilo de vida (exercício, natureza, trabalho, família, viagem, rotina matinal), um evento (convenção, reunião de equipa, formação), um cartaz/gráfico promocional com texto sobreposto, uma pessoa, um resultado/conquista, um print de ecrã, ou outra coisa qualquer. NÃO assumas que é sempre um produto ou sempre o X39.
 Passos:
 0. PRIMEIRO, se houver QUALQUER texto escrito na imagem (título, datas, local, nome de evento, nome de produto, números, slogans em cartazes/gráficos), lê-o e transcreve-o para ti mesmo palavra a palavra antes de continuares — isto é OBRIGATÓRIO e tem prioridade sobre a descrição visual genérica. Um cartaz de evento com datas e local concretos NÃO deve resultar num post genérico sobre "energia" ou "brilhar" — usa os factos concretos que leste (nome do evento, datas exatas, cidade/país, condições de qualificação, etc.) como base real do post.
 1. Descreve para ti mesmo o que vês de facto na imagem, incluindo todo o texto transcrito no passo 0 (não inventes elementos, nomes, datas ou locais que não estão lá).
@@ -16617,7 +16764,32 @@ function processarBufferComoFicheiro(buffer, nomeFicheiro, onResultado) {
 // fallback "tentar mesmo assim" quando o ficheiro reporta 0 bytes.
 // onResultado(sucesso) é opcional — usado pelo fallback para saber se a
 // tentativa produziu algum contacto real ou continuou vazia.
-function processarFicheiroImportacao(file, onResultado) {
+// Bibliotecas pesadas carregadas só quando uma importação as pede (antes bloqueavam
+// o arranque da app com ~1,3 MB de scripts no <head>). Fonte única: usa-se
+// garantirBiblioteca('xlsx'|'jszip'|'pdfjs') e devolve Promise<boolean>.
+const _BIBLIOTECAS_SOB_DEMANDA = {
+  xlsx:  { src: 'https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js',          pronta: () => typeof XLSX !== 'undefined' },
+  jszip: { src: 'https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js',              pronta: () => typeof JSZip !== 'undefined' },
+  pdfjs: { src: 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js',        pronta: () => typeof pdfjsLib !== 'undefined' },
+};
+const _bibPromessas = {};
+function garantirBiblioteca(nome) {
+  const b = _BIBLIOTECAS_SOB_DEMANDA[nome];
+  if (!b) return Promise.resolve(false);
+  if (b.pronta()) return Promise.resolve(true);
+  if (_bibPromessas[nome]) return _bibPromessas[nome];
+  if (typeof showToast === 'function') showToast('⏳ A preparar a ferramenta de importação...');
+  _bibPromessas[nome] = new Promise(resolve => {
+    const el = document.createElement('script');
+    el.src = b.src;
+    el.onload = () => resolve(b.pronta());
+    el.onerror = () => { delete _bibPromessas[nome]; resolve(false); }; // permite tentar de novo
+    document.head.appendChild(el);
+  });
+  return _bibPromessas[nome];
+}
+
+async function processarFicheiroImportacao(file, onResultado) {
   // Reset filtros de importação a cada novo ficheiro carregado
   const fInd = document.getElementById('imp-filtro-indicativo');
   const fCom = document.getElementById('imp-filtro-com-contacto');
@@ -16636,7 +16808,7 @@ function processarFicheiroImportacao(file, onResultado) {
   const isExcel = ext === 'xlsx' || ext === 'xls';
 
   if (isExcel) {
-    if (typeof XLSX === 'undefined') {
+    if (typeof XLSX === 'undefined' && !(await garantirBiblioteca('xlsx'))) {
       showToast('❌ Biblioteca Excel não carregada. Verifica a ligação à internet.');
       finalizar(false);
       return;
@@ -18913,6 +19085,8 @@ Estado atual: ${estadoLabel(l.estado)}
 Mercado: ${l.mercado}
 Notas: ${l.notas || 'Nenhuma'}
 
+${blocoPrecosParaIA(l)}
+
 --- HISTÓRICO DA CONVERSA (usa para personalizar) ---
 ${histResumo}
 
@@ -19650,6 +19824,7 @@ function openModal(id) {
     const fAutoTagEl = document.getElementById('f-proximo-contacto-auto-tag'); if (fAutoTagEl) fAutoTagEl.style.display = 'none';
     const fObjNovoEl = document.getElementById('f-objetivo'); if (fObjNovoEl) fObjNovoEl.value = 'cliente';
     const fProdNovoEl = document.getElementById('f-produto'); if (fProdNovoEl) fProdNovoEl.value = '';
+    const fMoedaNovoEl = document.getElementById('f-moeda'); if (fMoedaNovoEl) fMoedaNovoEl.value = '';
   }
   if (id === 'modal-lead') {
     const av = document.getElementById('f-duplicado-aviso');
@@ -19944,9 +20119,58 @@ function eliminarDefinitivamenteDaLixeira(index) {
   showToast('🗑️ Eliminado definitivamente');
 }
 
+// Migração "Cellergize Night" → "Cellergize Evening" (nome oficial no PDF R02).
+// Idempotente e conservadora: só troca valores de texto (e nomes de propriedade)
+// EXATAMENTE iguais ao nome antigo — nunca mexe em notas ou texto livre.
+// Corre antes de carregar os dados; custo ~zero quando já não há nada a migrar
+// (verificação rápida por texto antes de qualquer parse).
+const _CELLERGIZE_NOME_ANTIGO = { 'Cellergize Night':'Cellergize Evening', 'Cellergize™ Night':'Cellergize™ Evening', 'Cellergize® Night':'Cellergize® Evening' };
+function _migrarNomeCellergizeNode(no) {
+  let mudou = false;
+  if (typeof no === 'string') {
+    return _CELLERGIZE_NOME_ANTIGO.hasOwnProperty(no) ? { valor: _CELLERGIZE_NOME_ANTIGO[no], mudou: true } : { valor: no, mudou: false };
+  }
+  if (Array.isArray(no)) {
+    const out = no.map(x => { const r = _migrarNomeCellergizeNode(x); if (r.mudou) mudou = true; return r.valor; });
+    return { valor: mudou ? out : no, mudou };
+  }
+  if (no && typeof no === 'object') {
+    const out = {};
+    Object.keys(no).forEach(k => {
+      const r = _migrarNomeCellergizeNode(no[k]); if (r.mudou) mudou = true;
+      let novaChave = k;
+      if (_CELLERGIZE_NOME_ANTIGO.hasOwnProperty(k) && !(_CELLERGIZE_NOME_ANTIGO[k] in no)) { novaChave = _CELLERGIZE_NOME_ANTIGO[k]; mudou = true; }
+      out[novaChave] = r.valor;
+    });
+    return { valor: mudou ? out : no, mudou };
+  }
+  return { valor: no, mudou: false };
+}
+function migrarNomeCellergizeEvening() {
+  try {
+    const re = /Cellergize(?:\u2122|\u00ae|™|®)? Night/;
+    const chaves = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (k && k.startsWith('lw_') && !/claudeKey|claude_key|geminiKey|gemini_key|google_client_id|grokKey|groqKey|mistralKey|openrouterKey|cometapiKey/i.test(k)) chaves.push(k);
+    }
+    let total = 0;
+    chaves.forEach(k => {
+      const raw = localStorage.getItem(k);
+      if (!raw || !re.test(raw)) return;
+      let novo = null;
+      try { const r = _migrarNomeCellergizeNode(JSON.parse(raw)); if (r.mudou) novo = JSON.stringify(r.valor); }
+      catch(e) { const r = _migrarNomeCellergizeNode(raw); if (r.mudou) novo = r.valor; } // valor não-JSON (texto simples)
+      if (novo !== null) { localStorage.setItem(k, novo); total++; }
+    });
+    if (total) console.info('[Migração] "Cellergize Night" → "Cellergize Evening" em ' + total + ' conjunto(s) de dados.');
+  } catch(e) { console.warn('[Migração] Cellergize Evening falhou:', e); }
+}
+
 // Override localStorage access to be user-scoped
 // Wrap leads/posts loading to be user-aware
 function loadUserData() {
+  migrarNomeCellergizeEvening();
   const leadsKey = getUserStorageKey('lw_leads');
   const postsKey = getUserStorageKey('lw_posts');
   const membrosKey = getUserStorageKey('lw_membros');
@@ -21298,6 +21522,7 @@ async function driveSync(mode) {
   }
 
   driveSyncPending = true;
+  await criarPontoRestauroAntesSync(mode); // cópia local de segurança (nunca bloqueia nem falha)
   const btn    = document.getElementById('btn-drive-sync');
   const label  = document.getElementById('drive-sync-label');
 
@@ -21518,6 +21743,7 @@ async function supabaseSync(mode) {
   }
   if (supabaseSyncPending) return;
   supabaseSyncPending = true;
+  await criarPontoRestauroAntesSync(mode); // cópia local de segurança (nunca bloqueia nem falha)
 
   const btn = document.getElementById('btn-drive-sync');
   const label = document.getElementById('drive-sync-label');
@@ -22820,6 +23046,7 @@ DADOS DO LEAD:
 - Estado atual no funil: ${estadoLabel(l.estado)}
 - Fonte: ${l.fonte || 'desconhecida'}
 - Notas do distribuidor: ${l.notas || 'sem notas'}
+${blocoPrecosParaIA(l)}
 - Objeções já levantadas: ${objecoesStr}
 - Histórico de interações recentes:
 ${histResumo}
@@ -31058,6 +31285,48 @@ function formatarPreco(valor, moeda) {
   return cfg.posicao === 'antes' ? `${cfg.simbolo}${num}` : `${num}${cfg.simbolo}`;
 }
 
+// ---- Moeda por cliente (conversas) ----
+// Regra: moeda indicada no contacto > indicativo do telemóvel > moeda do perfil.
+// (+1 não se infere: pode ser EUA ou Canadá — nesse caso vale o perfil, ou escolhe-se no contacto.)
+function moedaPorTelefone(tel) {
+  const t = String(tel || '').replace(/[\s().-]/g, '').replace(/^00/, '+');
+  if (!t.startsWith('+')) return null;
+  if (t.startsWith('+44')) return 'gbp';
+  if (t.startsWith('+61')) return 'aud';
+  const eur = ['+351','+34','+33','+49','+39','+31','+32','+43','+353','+358','+30','+352','+356','+357','+386','+421','+372','+371','+370'];
+  return eur.some(c => t.startsWith(c)) ? 'eur' : null;
+}
+function getMoedaDoLead(l) {
+  if (l && l.moeda && MOEDAS[l.moeda]) return l.moeda;
+  return moedaPorTelefone(l && l.tel) || getMoedaAtual();
+}
+function descreverMoedaDoLead(l) {
+  const m = getMoedaDoLead(l), cfg = MOEDAS[m];
+  const origem = (l && l.moeda && MOEDAS[l.moeda]) ? 'definida no contacto'
+               : (moedaPorTelefone(l && l.tel) ? 'pelo indicativo do telemóvel' : 'igual ao teu perfil');
+  return `${cfg.simbolo} ${cfg.nome} (${origem})`;
+}
+// Bloco de texto para os prompts de IA que falam com um cliente concreto:
+// garante que, se a IA citar preços, usa a moeda e os valores certos desse cliente.
+function blocoPrecosParaIA(l) {
+  try {
+    const m = getMoedaDoLead(l), cfg = MOEDAS[m];
+    let estimado = false;
+    const itens = [];
+    CATALOGO_PRODUTOS.forEach(p => {
+      if (p.cat === 'pib' || precoProdutoPorConfirmar(p.id)) return;
+      const v = precoProduto(p.id, 'direto', m);
+      if (!(v > 0)) return;
+      if (precoProdutoEstimado(p.id, m)) estimado = true;
+      itens.push(`${p.nome} ${formatarPreco(v, m)}`);
+    });
+    if (!itens.length) return '';
+    return `--- PREÇOS PARA ESTE CLIENTE ---
+Moeda deste cliente: ${cfg.simbolo} ${cfg.nome}. Se mencionares preços, usa SEMPRE esta moeda e estes valores (venda direta, por embalagem; nunca inventes outros):
+${itens.join(' · ')}${estimado ? `\nAtenção: os valores em ${cfg.simbolo} são aproximados (não constam da tabela oficial importada) — se citares um preço, diz "cerca de" e sugere confirmar.` : ''}`;
+  } catch(e) { return ''; }
+}
+
 // Chamado a partir do select de Mercado no modal de Perfil.
 function perfilMercadoAlterado() {
   const mercadoSel = document.getElementById('perfil-mercado')?.value || '';
@@ -31254,6 +31523,28 @@ function getCatalogoPrecos() {
   return CATALOGO_PRECOS;
 }
 
+// Versão/data da tabela de preços em uso. Sem importação neste dispositivo,
+// vale a tabela de série incluída na app (documento LW0056-R02).
+const CATALOGO_VERSAO_DEFAULT = 'LW0056-R02';
+function getCatalogoPrecosMeta() {
+  try { return JSON.parse(localStorage.getItem(getUserStorageKey('lw_catalogo_precos_meta')) || 'null'); } catch(e) { return null; }
+}
+function saveCatalogoPrecosMeta(meta) {
+  try { localStorage.setItem(getUserStorageKey('lw_catalogo_precos_meta'), JSON.stringify(meta)); } catch(e) {}
+}
+// Atualiza TODOS os elementos .catalogo-versao-label (Catálogo, Comissões, …).
+function renderCatalogoVersaoLabel() {
+  const m = getCatalogoPrecosMeta();
+  let txt;
+  if (m && m.data) {
+    const dt = new Date(m.data).toLocaleDateString('pt-PT');
+    txt = `📋 Preços: ${m.versao || CATALOGO_VERSAO_DEFAULT} · importados em ${dt}`;
+  } else {
+    txt = `📋 Preços: ${CATALOGO_VERSAO_DEFAULT} · tabela de série da app (sem importação)`;
+  }
+  document.querySelectorAll('.catalogo-versao-label').forEach(el => { el.textContent = txt; });
+}
+
 function saveCatalogoPrecos(precos) {
   CATALOGO_PRECOS = precos;
   localStorage.setItem(getUserStorageKey('lw_catalogo_precos'), JSON.stringify(precos));
@@ -31261,6 +31552,7 @@ function saveCatalogoPrecos(precos) {
   try { if (typeof simularLucro === 'function') simularLucro(); } catch(e) {}
   try { if (typeof simRenderTabela === 'function') simRenderTabela(); } catch(e) {}
   try { if (typeof renderCatalogo === 'function') renderCatalogo(); } catch(e) {}
+  try { renderCatalogoVersaoLabel(); } catch(e) {}
 }
 
 // Lê o preço de um produto para um dado tipo de cliente/moeda. Devolve 0
@@ -31287,7 +31579,7 @@ function precoProdutoPorConfirmar(id) {
 // (ex: CAD, quando ainda não foi importada uma tabela real desse mercado).
 function precoProdutoEstimado(id, moeda) {
   const p = CATALOGO_PRECOS[id] || CATALOGO_PRECOS_DEFAULT[id];
-  return !!(p && p.cadEstimado && moeda === 'cad');
+  return !!(p && p[moeda + 'Estimado']); // cadEstimado / gbpEstimado / audEstimado
 }
 
 // ===================================================
@@ -33498,7 +33790,7 @@ function renderPrevisaoComissao() {
           <option>Alavida</option>
           <option>AcuLife</option>
           <option>Cellergize Morning</option>
-          <option>Cellergize Night</option>
+          <option>Cellergize Evening</option>
           <option>Pack Starter</option>
           <option>Outro</option>
         </select>
@@ -33670,7 +33962,7 @@ function renderPrevisaoComissao() {
           <option>Y-Age Glutathione</option>
           <option>Silent Nights</option>
           <option>Cellergize Morning</option>
-          <option>Cellergize Night</option>
+          <option>Cellergize Evening</option>
           <option>Negócio</option>
           <option>Outro</option>
         </select>
@@ -42653,7 +42945,7 @@ const VENDA_PRODUTO_ID_MAP = {
   'Energy Enhancer':'energy', 'IceWave':'icewave', 'Silent Nights':'silent',
   'SP6 Complete':'sp6', 'Y-Age Glutathione':'gluta', 'Alavida':'alavida',
   'AcuLife':'aculife', 'Cellergize Morning':'cellergize_morning',
-  'Cellergize Night':'cellergize_night', 'Pack Starter':'pib-starter',
+  'Cellergize Night':'cellergize_night', 'Cellergize Evening':'cellergize_night', 'Pack Starter':'pib-starter',
 };
 
 function vendaAutoPreco() {
@@ -42765,6 +43057,7 @@ function _precosIdPorNome(t) {
   return _PRECOS_NOME_ID_NORM[_precosNormNome(t)] || null;
 }
 let _precosImportLinhas = [];
+let _precosImportVersao = null; // código do documento detetado pela IA (ex: LW0056-R02)
 
 // --- Importação a partir de PDF via IA (ex: "EMEA Compensation Plan —
 // Product Pricing Breakdown", LW0056-R01) ---
@@ -42916,6 +43209,7 @@ async function precosExtrairDoPDFviaIA(file) {
     reader.readAsDataURL(file);
   });
 
+  _precosImportVersao = null;
   const prompt = precosPromptExtracao();
   // maxTokens generoso: o JSON pedido tem ~29 campos por produto e um PDF
   // típico tem 10-15 produtos, o que facilmente ultrapassa os 4000 tokens
@@ -42937,6 +43231,7 @@ async function precosExtrairDoPDFviaIA(file) {
     throw err;
   }
 
+  if (json && typeof json.versao === 'string' && /^[\w .\-]{3,40}$/.test(json.versao.trim())) _precosImportVersao = json.versao.trim();
   const linhas = precosConverterRespostaIA(json);
   if (!linhas.length) throw new Error('A IA não encontrou produtos reconhecíveis neste PDF. Tenta um PDF com texto selecionável (não uma imagem digitalizada).');
   return linhas;
@@ -42993,7 +43288,7 @@ function _precosParseJsonTolerante(respostaTexto) {
 // LifeWave — e o utilizador pode sempre corrigir depois na pré-visualização.
 // Usado apenas se a extração via IA falhar (ex: sem ligação à internet).
 async function precosExtrairDoPDF_Regex(file) {
-  if (typeof pdfjsLib === 'undefined') throw new Error('pdf.js não carregado');
+  if (typeof pdfjsLib === 'undefined' && !(await garantirBiblioteca('pdfjs'))) throw new Error('pdf.js não carregado');
   pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
   const buf = await file.arrayBuffer();
   const pdf = await pdfjsLib.getDocument({ data: buf }).promise;
@@ -43206,7 +43501,7 @@ async function precosHandleImportFilePDF(file, input) {
   }
 }
 
-function precosHandleImportFile(input) {
+async function precosHandleImportFile(input) {
   const file = input.files[0];
   if (!file) return;
   const ext = file.name.split('.').pop().toLowerCase();
@@ -43223,7 +43518,7 @@ function precosHandleImportFile(input) {
   if (isPdf) {
     precosHandleImportFilePDF(file, input);
   } else if (isExcel) {
-    if (typeof XLSX === 'undefined') {
+    if (typeof XLSX === 'undefined' && !(await garantirBiblioteca('xlsx'))) {
       showToast('❌ Biblioteca Excel não carregada. Verifica a ligação à internet.');
       return;
     }
@@ -43372,6 +43667,9 @@ function precosConfirmarImport() {
   });
 
   saveCatalogoPrecos(novos);
+  saveCatalogoPrecosMeta({ versao: _precosImportVersao || null, data: new Date().toISOString(), produtos: atualizados });
+  _precosImportVersao = null;
+  renderCatalogoVersaoLabel();
   closeModal('modal-import-precos');
   showToast(`✅ ${atualizados} produto${atualizados !== 1 ? 's' : ''} atualizado${atualizados !== 1 ? 's' : ''} — preços refletidos em toda a app.`);
 }
@@ -44060,7 +44358,7 @@ let _acFilaIndex = -1;
 async function acCarregarZipWA(input) {
   const file = input.files[0];
   if (!file) return;
-  if (typeof JSZip === 'undefined') {
+  if (typeof JSZip === 'undefined' && !(await garantirBiblioteca('jszip'))) {
     showToast('❌ Biblioteca .zip não carregada. Verifica a ligação à internet.');
     return;
   }
@@ -46498,7 +46796,7 @@ function lwNormNome(nome) {
 }
 
 // ── Handler do upload CSV ────────────────────────────────────────
-function lwHandleCSV(input) {
+async function lwHandleCSV(input) {
   const file = input.files[0];
   if (!file) return;
   const ext = file.name.split('.').pop().toLowerCase();
@@ -46515,7 +46813,7 @@ function lwHandleCSV(input) {
   }
 
   if (isExcel) {
-    if (typeof XLSX === 'undefined') {
+    if (typeof XLSX === 'undefined' && !(await garantirBiblioteca('xlsx'))) {
       showToast('❌ Biblioteca Excel não carregada. Verifica a ligação à internet.');
       return;
     }
